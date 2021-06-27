@@ -9,6 +9,8 @@ You can set different icons for different note types, filter the displayed notes
 
 ![](sample.png)
 
+![](search.png)
+
 This plugin is in preliminary stages, but its guiding philosophy and goal is to provide a **personal GIS system** as a complementary view for your notes.
 I wrote it because I wanted my ever-growing Zettelkasten to be able to answer questions like...
 
