@@ -156,3 +156,9 @@ There are so many things that I want it to do, and so little time...
 - Dark mode.
 - A side bar with note summaries linked to the map view.
 
+## Changelog
+
+### 0.0.1
+
+Initial alpha release.
+
