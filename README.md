@@ -1,11 +1,13 @@
-# Interactive Maps for Obsidian.md
+# Obsidian.md Map View
 
 ## Intro
 
-This plugin introduces an **interactive map view** for the Obsidian.md editor.
+This plugin introduces an **interactive map view** for the [Obsidian.md](https://obsidian.md/) editor.
 It searches your notes for encoded geolocations (see below) and places them as markers on a map.  
 
 You can set different icons for different note types, filter the displayed notes and much more.
+
+![](sample.png)
 
 This plugin is in preliminary stages, but its guiding philosophy and goal is to provide a **personal GIS system** as a complementary view for your notes.
 I wrote it because I wanted my ever-growing Zettelkasten to be able to answer questions like...
@@ -45,7 +47,7 @@ location: [40.6892494,-74.0466891]
 This is useful for notes that represent a single specific location.
 It's also compatible with the way other useful plugins like [obsidian-leaflet](https://github.com/valentine195/obsidian-leaflet-plugin) read locations, and allows some interoperability.
 
-Another way that the plugin parses location data is through inline ``location`` markers within notes (note the backticks), which allow multiple markers in a note.
+Another way that the plugin parses location data is through inline `\`location\`` markers within notes (note the backticks), which allow multiple markers in the same note.
 To prevent the need to scan the full content of all your notes, it requires an empty `locations:` tag in the note front matter ('locations' and not 'location').
 Example:
 
@@ -74,6 +76,8 @@ I guess a natural next step is to support both.
 
 If you want to log a location in a note, I recommend one of two ways.
 
+![](copy.png)
+
 1. Use one of the "copy location as..." options when you right-click the map. If you use "copy location as inline", just remember you need the note to start with a front matter that has an empty `locations:` line.
 
 2. Search from something in Google Maps then copy the latitude & longitude parts of the URL, e.g. if you search for "statue of liberty" you get to a link that looks like this: `https://www.google.com/maps/place/Statue+of+Liberty+National+Monument/@40.6892494,-74.0466891,17z/data=!3m1!4b1!4m5!3m4!1s0x89c25090129c363d:0x40c6a5770d25022b!8m2!3d40.6892494!4d-74.0445004`. From that you can take the location: `40.6892494,-74.0466891`.
@@ -86,7 +90,7 @@ At the time of release, this plugin provides just one way to filter notes: an "O
 Your notes are encouraged to contain Obsidian tags that represent their type (e.g. `#hike`, `#food`, `#journal-entry` or whatever you'll want to filter by).
 In the search box you can type tags separated by commas and you'll get in your view just the notes that have one of these tags.
 
-This this method has a single-note granularity, there is currently no way to see just a few locations inlined in the same note.
+Since this method has a single-note granularity, there is currently no way to see just a few locations inlined in the same note.
 If a note's tag is included in the search, all the locations within this note will be displayed on the map.
 
 ### Marker Icons
@@ -104,11 +108,11 @@ Shape and color are for your choosing.
 
 #### Tag Rules
 
-To apply an icon to a note with geolocation data, the plugin scans a list of rules.
+To apply an icon to a note with geolocation data, Map View scans a list of rules.
 You can edit these rules through the plugin configuration, which currently includes a not-so-friendly JSON dictionary that you need to carefully edit.
 Please don't do that if you're unfamiliar with the JSON syntax, if you wait a while I'm sure that a better GUI will be built :)
 
-The plugin scans the rules and apply them one by one, always starting from `default` and then from first to last. A rule matches if the tag that it lists is included in the note, and then the rule's fields will overwrite the corresponding fields of the previous matching rules, until all rules were scanned.
+Map View scans the rules and applies them one by one, always starting from `default` and then from first to last. A rule matches if the tag that it lists is included in the note, and then the rule's fields will overwrite the corresponding fields of the previous matching rules, until all rules were scanned.
 This allows you to set rules that change just some properties of the icons, e.g. some rules change the shape according to some tags, some change the color etc.
 
 Here's the example I provide as a probably-not-useful default in the plugin:
@@ -132,8 +136,8 @@ The configuration dialog ignores an invalid JSON object, so if you close it in a
 ## Relation to Other Obsidian Plugins
 
 When thinking about Obsidian and maps, the first plugin that comes to mind is [Obsidian Leaflet](https://github.com/valentine195/obsidian-leaflet-plugin).
-That plugin is great at rendering maps from various meta data within a note, with great customization options.
-It also includes tools for composing a map from a directory of notes.
+That plugin is great at rendering maps based on data within a note, with great customization options.
+It can also scan for data inside a directory which gives even more power.
 In contrast, Obsidian Map View is focused on showing and interacting with your notes geographically.
 
 Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-map) which seems to focus on powerful tools for map drawing.
