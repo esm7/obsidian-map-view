@@ -75,9 +75,8 @@ Point 2: New Haven
 
 Notes with multiple markers will contain multiple markers on the map with the same note name, and clicking on the marker will jump to the correct location within the note.
 
-**Notice how locations in the front matter contain brackets (`location: [lat, lng]`) and inline locations do not (`location: lat, lng`).**
-This is because front matter tags are YAML-formatted and inline tags don't need to be, so I thought it to be more intuitive this way.
-I guess a natural next step is to support both.
+Notice how locations in the front matter must contain brackets (`location: [lat, lng]`) and inline locations do not (`location: lat, lng`).
+For inline locations both formats are supported, but for the front matter brackets are mandatory because it needs to compny with the YAML format.
 
 ### Finding a Location
 
@@ -139,6 +138,18 @@ Then, a note that has both the `#trip` and `#trip-water` tags will have a `fa-hi
 
 **Consider copying the configuration to an external editor and editing it there.**
 The configuration dialog ignores an invalid JSON object, so if you close it in a state that has a syntax error, your changes will be lost.
+
+### Map Sources
+
+By default, Map View uses the [standard tile layer of OpenStreetMap](https://wiki.openstreetmap.org/wiki/Standard_tile_layer).
+However, you can change the map source in the configuration to any service that has a tiles API using a standard URL syntax.
+
+There are many services of localized, specialized or just beautifully-rendered maps that you can use, sometimes following a free registration.
+See a pretty comprehensive list [here](https://wiki.openstreetmap.org/wiki/Tiles).
+
+Although that's the case with this plugin in general, it's worth noting explicitly that using 3rd party map data properly, and making sure you are not violating any terms of use, is your own responsibility.
+
+Note that Google Maps is not in that list, because although it does provide the same standard form of static tiles in the same URL format, the Google Maps terms of service makes it difficult to legally bundle the maps in an application.
 
 ## Relation to Other Obsidian Plugins
 
