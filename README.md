@@ -175,6 +175,10 @@ There are so many things that I want it to do, and so little time...
 
 ## Changelog
 
+### 0.0.2
+
+Various cleanups, better copyright handling and generally more readiness for releasing the plugin.
+
 ### 0.0.1
 
 Initial alpha release.
