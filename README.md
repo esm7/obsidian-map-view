@@ -32,6 +32,11 @@ I'm sure many will have great ideas for taking it to the next level, but unfortu
 
 I believe that it can be useful enough for many users as-is, and I hope that as the user base grows, a few developers will pitch in to help continue the vision.
 
+## Limitations
+
+- Although both light & dark themes are supported, the map itself is currently only light.
+- Was not yet tested & adapted to Obsidian Mobile.
+
 ## User Guide
 
 ### Parsing Location Data
