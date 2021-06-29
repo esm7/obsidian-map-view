@@ -54,7 +54,7 @@ location: [40.6892494,-74.0466891]
 This is useful for notes that represent a single specific location.
 It's also compatible with the way other useful plugins like [obsidian-leaflet](https://github.com/valentine195/obsidian-leaflet-plugin) read locations, and allows some interoperability.
 
-Another way that the plugin parses location data is through inline `\`location\`` markers within notes (note the backticks), which allow multiple markers in the same note.
+Another way that the plugin parses location data is through inline `` `location` `` markers within notes (note the backticks), which allow multiple markers in the same note.
 To prevent the need to scan the full content of all your notes, it requires an empty `locations:` tag in the note front matter ('locations' and not 'location').
 Example:
 
