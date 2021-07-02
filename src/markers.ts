@@ -2,6 +2,7 @@ import { App, TFile } from 'obsidian';
 import * as leaflet from 'leaflet';
 
 import { PluginSettings } from 'src/settings';
+import * as consts from 'src/consts';
 
 export class FileMarker {
 	file: TFile;
@@ -32,14 +33,13 @@ export type MarkersMap = Map<MarkerId, FileMarker>;
 
 export async function buildMarkers(files: TFile[], settings: PluginSettings, app: App) {
 	let markers: FileMarker[] = [];
-	let foundFrontmatter = false;
 	for (const file of files) {
 		const fileCache = app.metadataCache.getFileCache(file);
 		const frontMatter = fileCache?.frontmatter;
 		if (frontMatter) {
-			foundFrontmatter = true;
 			const location = getFrontMatterLocation(file, app);
 			if (location) {
+				verifyLocation(location);
 				let leafletMarker = new FileMarker(file, location);
 				leafletMarker.icon = getIconForMarker(leafletMarker, settings, app);
 				markers.push(leafletMarker);
@@ -50,8 +50,6 @@ export async function buildMarkers(files: TFile[], settings: PluginSettings, app
 			}
 		}
 	}
-	if (!foundFrontmatter)
-		console.log(`No frontmatter found over ${files.length} files`);
 	return markers;
 }
 
@@ -70,6 +68,13 @@ function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App
 	return leaflet.ExtraMarkers.icon(result);
 }
 
+function verifyLocation(location: leaflet.LatLng) {
+	if (location.lng < consts.LNG_LIMITS[0] || location.lng > consts.LNG_LIMITS[1])
+		throw Error(`Lng ${location.lng} is outside the allowed limits`);
+	if (location.lat < consts.LAT_LIMITS[0] || location.lat > consts.LAT_LIMITS[1])
+		throw Error(`Lat ${location.lat} is outside the allowed limits`);
+}
+
 async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, app: App): Promise<FileMarker[]> {
 	let markers: FileMarker[] = [];
 	const content = await app.vault.read(file);
@@ -78,6 +83,7 @@ async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, 
 	for (const match of matches) {
 		try {
 			const location = new leaflet.LatLng(parseFloat(match[1]), parseFloat(match[2]));
+			verifyLocation(location);
 			const marker = new FileMarker(file, location);
 			marker.fileLocation = match.index;
 			marker.icon = getIconForMarker(marker, settings, app);
@@ -94,12 +100,19 @@ export function getFrontMatterLocation(file: TFile, app: App) : leaflet.LatLng {
 	const fileCache = app.metadataCache.getFileCache(file);
 	const frontMatter = fileCache?.frontmatter;
 	if (frontMatter && frontMatter?.location) {
-		const location = frontMatter.location;
-		if (!Array.isArray(frontMatter.location))
-			return null;
-		// We have a single location at hand
-		if (location.length == 2 && typeof(location[0]) === 'number' && typeof(location[1]) === 'number')
-			return new leaflet.LatLng(frontMatter.location[0], frontMatter.location[1]);
+		try {
+			const location = frontMatter.location;
+			if (!Array.isArray(frontMatter.location))
+				return null;
+			// We have a single location at hand
+			if (location.length == 2 && typeof(location[0]) === 'number' && typeof(location[1]) === 'number') {
+				const location = new leaflet.LatLng(frontMatter.location[0], frontMatter.location[1]);
+				verifyLocation(location);
+			}
+		}
+		catch (e) {
+			console.log(`Error converting location in file ${file.name}:`, e);
+		}
 	}
 	return null;
 }

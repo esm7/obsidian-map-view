@@ -175,6 +175,10 @@ There are so many things that I want it to do, and so little time...
 
 ## Changelog
 
+### 0.0.3
+
+- Proper view and state management (hopefully).
+
 ### 0.0.2
 
 Various cleanups, better copyright handling and generally more readiness for releasing the plugin.

@@ -6,3 +6,10 @@ export const RIBBON_ICON = '<path fill="currentColor" stroke="currentColor" d="m
 
 export const TILES_URL_OPENSTREETMAP = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const SEARCH_RESULT_MARKER = leaflet.ExtraMarkers.icon({prefix: 'fas', icon: 'fa-search', markerColor: 'blue'});
+
+export const DEFAULT_ZOOM = 1.0;
+export const DEFAULT_CENTER = new leaflet.LatLng(40.44694705960048 ,-180.70312500000003);
+export const DEFAULT_TAGS: string[] = [];
+
+export const LAT_LIMITS = [-90, 90];
+export const LNG_LIMITS = [-180, 180];

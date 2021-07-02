@@ -18,7 +18,9 @@ export default class MapViewPlugin extends Plugin {
 			this.app.workspace.activeLeaf.open(view);
 		});
 
-		// this.registerView('map', mapViewCreator);
+		this.registerView('map', (leaf: WorkspaceLeaf) => {
+			return new MapView(leaf, this.settings, this);
+		});
 
 		this.addCommand({
 			id: 'open-map-view',
