@@ -102,13 +102,14 @@ export function getFrontMatterLocation(file: TFile, app: App) : leaflet.LatLng {
 	if (frontMatter && frontMatter?.location) {
 		try {
 			const location = frontMatter.location;
-			if (!Array.isArray(frontMatter.location))
-				return null;
 			// We have a single location at hand
 			if (location.length == 2 && typeof(location[0]) === 'number' && typeof(location[1]) === 'number') {
 				const location = new leaflet.LatLng(frontMatter.location[0], frontMatter.location[1]);
 				verifyLocation(location);
+				return location;
 			}
+			else
+				console.log(`Unknown: `, location);
 		}
 		catch (e) {
 			console.log(`Error converting location in file ${file.name}:`, e);
