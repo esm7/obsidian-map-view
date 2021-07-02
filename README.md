@@ -178,6 +178,7 @@ There are so many things that I want it to do, and so little time...
 ### 0.0.3
 
 - Proper view and state management (hopefully).
+- Fixed a bug in location parsing.
 
 ### 0.0.2
 
