@@ -1,5 +1,6 @@
 import * as consts from 'src/consts';
 import { LatLng } from 'leaflet';
+import { SplitDirection } from 'obsidian';
 
 export type PluginSettings = {
 	darkMode: boolean;
@@ -10,6 +11,8 @@ export type PluginSettings = {
 	defaultZoom?: number;
 	defaultTags?: string[];
 	autoZoom: boolean;
+	markerClickBehavior?: 'samePane' | 'secondPane' | 'alwaysNew';
+	newPaneSplitDirection?: SplitDirection;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -22,5 +25,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	},
 	zoomOnGoFromNote: 15,
 	tilesUrl: consts.TILES_URL_OPENSTREETMAP,
-	autoZoom: true
+	autoZoom: true,
+	markerClickBehavior: 'samePane'
 };

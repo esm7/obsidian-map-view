@@ -31,6 +31,7 @@ export class MapView extends ItemView {
 	};
 	private plugin: MapViewPlugin;
 	private defaultState: MapState;
+	private newPaneLeaf: WorkspaceLeaf;
 
 	public onAfterOpen: (map: leaflet.Map, markers: MarkersMap) => any = null;
 
@@ -271,15 +272,15 @@ export class MapView extends ItemView {
 				marker.mapMarker = leaflet.marker(marker.location, { icon: marker.icon || new leaflet.Icon.Default() })
 					.addTo(this.display.map)
 					.bindTooltip(marker.file.name);
-				marker.mapMarker.on('click', (event: leaflet.LeafletEvent) => {
-					this.goToMarker(marker);
+				marker.mapMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
+					this.goToMarker(marker, event.originalEvent.ctrlKey);
 				});
 				marker.mapMarker.getElement().addEventListener('contextmenu', (ev: MouseEvent) => {
 					let mapPopup = new Menu(this.app);
 					mapPopup.setNoIcon();
 					mapPopup.addItem((item: MenuItem) => {
 						item.setTitle('Open note');
-						item.onClick(async ev => { this.goToMarker(marker); });
+						item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey); });
 					});
 					mapPopup.addItem((item: MenuItem) => {
 						item.setTitle('Open in Google Maps');
@@ -307,8 +308,31 @@ export class MapView extends ItemView {
 		}
 	}
 
-	async goToMarker(marker: FileMarker) {
-		await this.app.workspace.activeLeaf.openFile(marker.file);
+	async goToMarker(marker: FileMarker, useCtrlKeyBehavior: boolean) {
+		let leafToUse = this.app.workspace.activeLeaf;
+		const defaultDifferentPane = this.settings.markerClickBehavior != 'samePane';
+		// Having a pane to reuse means that we previously opened a note in a new pane and that pane still exists (wasn't closed)
+		const havePaneToReuse = this.newPaneLeaf && this.newPaneLeaf.view && this.settings.markerClickBehavior != 'alwaysNew';
+		if (havePaneToReuse || (defaultDifferentPane && !useCtrlKeyBehavior) || (!defaultDifferentPane && useCtrlKeyBehavior)) {
+			// We were instructed to use a different pane for opening the note.
+			// We go here in the following cases:
+			// 1. An existing pane to reuse exists (the user previously opened it, with or without Ctrl).
+			//    In this case we use the pane regardless of the default or of Ctrl, assuming that if a user opened a pane
+			//    once, she wants to retain it until it's closed. (I hope no one will treat this as a bug...)
+			// 2. The default is to use a different pane and Ctrl is not pressed.
+			// 3. The default is to NOT use a different pane and Ctrl IS pressed.
+			if (havePaneToReuse) {
+				// We have an existing pane, that pane still has a view (it was not closed), and the settings say
+				// to use a 2nd pane. That's the only case on which we reuse a pane
+				this.app.workspace.setActiveLeaf(this.newPaneLeaf);
+				leafToUse = this.newPaneLeaf;
+			} else {
+				// We need a new pane. We split it the way the settings tell us
+				this.newPaneLeaf = this.app.workspace.splitActiveLeaf(this.settings.newPaneSplitDirection || 'horizontal');
+				leafToUse = this.newPaneLeaf;
+			}
+		}
+		await leafToUse.openFile(marker.file);
 		const editor = this.getEditor();
 		if (editor) {
 			if (marker.fileLocation)

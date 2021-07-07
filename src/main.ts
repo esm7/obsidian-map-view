@@ -91,6 +91,33 @@ class SettingsTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
+			.setName('Default action for map marker click')
+			.setDesc('How should the corresponding note be opened when clicking a map marker? Either way, CTRL reverses the behavior.')
+			.addDropdown(component => { component
+				.addOption('samePane', 'Open in same pane (replace map view)')
+				.addOption('secondPane', 'Open in a 2nd pane and keep reusing it')
+				.addOption('alwaysNew', 'Always open a new pane')
+				.setValue(this.plugin.settings.markerClickBehavior || 'samePane')
+				.onChange(async (value: any) => {
+					this.plugin.settings.markerClickBehavior = value;
+					this.plugin.saveSettings();
+				})
+			});
+
+		new Setting(containerEl)
+			.setName('New pane split direction')
+			.setDesc('Which way should the pane be split when opening in a new pane.')
+			.addDropdown(component => { component
+				.addOption('horizontal', 'Horizontal')
+				.addOption('vertical', 'Vertical')
+				.setValue(this.plugin.settings.newPaneSplitDirection || 'horizontal')
+					.onChange(async (value: any) => {
+						this.plugin.settings.newPaneSplitDirection = value;
+						this.plugin.saveSettings();
+					})
+			});
+
+		new Setting(containerEl)
 			.setName('Default zoom for "show on map" action')
 			.setDesc('When jumping to the map from a note, what should be the display zoom?')
 			.addSlider(component => {component

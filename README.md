@@ -166,6 +166,7 @@ As noted in the disclaimer above, my wishlist for this plugin is huge and I'm un
 There are so many things that I want it to do, and so little time...
 
 - **Most importantly**: proper mobile support including device location if possible. That's literally on the top of my list.
+- Better navigation: go to inline location that's in a note
 - More powerful filtering. I'd love it to be based on the [existing Obsidian query format](https://github.com/obsidianmd/obsidian-api/issues/22).
 - Better interoperability with Obsidian Leaflet: support for marker image files, locations as an array and `marker` tags.
 - Better UI, especially for the core functionality like editing icons.
@@ -174,6 +175,10 @@ There are so many things that I want it to do, and so little time...
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### 0.0.4
+
+- Added settings (and Ctrl key) to open a note in a separate pane (https://github.com/esm7/obsidian-map-view/issues/3).
 
 ### 0.0.3
 
