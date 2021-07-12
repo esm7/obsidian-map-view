@@ -176,7 +176,7 @@ There are so many things that I want it to do, and so little time...
 
 ## Changelog
 
-### Unreleased
+### 0.0.5
 
 - New "show on map" menu item in the editor.
 - Fixed a nasty compatibility issue with obsidian-leaflet, see [here](https://github.com/esm7/obsidian-map-view/issues/6).
