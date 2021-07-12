@@ -68,18 +68,23 @@ function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App
 	return leaflet.ExtraMarkers.icon(result);
 }
 
-function verifyLocation(location: leaflet.LatLng) {
+export function verifyLocation(location: leaflet.LatLng) {
 	if (location.lng < consts.LNG_LIMITS[0] || location.lng > consts.LNG_LIMITS[1])
 		throw Error(`Lng ${location.lng} is outside the allowed limits`);
 	if (location.lat < consts.LAT_LIMITS[0] || location.lat > consts.LAT_LIMITS[1])
 		throw Error(`Lat ${location.lat} is outside the allowed limits`);
 }
 
+export function matchInlineLocation(content: string) {
+	const locationRegex = /\`location:\s*\[?(.+)\s*,\s*(.+)\]?\`/g;
+	const matches = content.matchAll(locationRegex);
+	return matches;
+}
+
 async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, app: App): Promise<FileMarker[]> {
 	let markers: FileMarker[] = [];
 	const content = await app.vault.read(file);
-	const locationRegex = /\`location:\s*\[?(.+)\s*,\s*(.+)\]?\`/g;
-	const matches = content.matchAll(locationRegex);
+	const matches = matchInlineLocation(content);
 	for (const match of matches) {
 		try {
 			const location = new leaflet.LatLng(parseFloat(match[1]), parseFloat(match[2]));

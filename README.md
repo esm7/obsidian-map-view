@@ -166,8 +166,8 @@ As noted in the disclaimer above, my wishlist for this plugin is huge and I'm un
 There are so many things that I want it to do, and so little time...
 
 - **Most importantly**: proper mobile support including device location if possible. That's literally on the top of my list.
-- Better navigation: go to inline location that's in a note
-- More powerful filtering. I'd love it to be based on the [existing Obsidian query format](https://github.com/obsidianmd/obsidian-api/issues/22).
+- Real-time updates when notes change
+- More powerful filtering. I'd love it to be based on the [existing Obsidian query format](https://github.com/obsidianmd/obsidian-api/issues/22). What I see in mind is a powerful text search with a results pane that's linked to the map.
 - Better interoperability with Obsidian Leaflet: support for marker image files, locations as an array and `marker` tags.
 - Better UI, especially for the core functionality like editing icons.
 - More useful map commands, e.g. "new note here" with a configurable template.
@@ -175,6 +175,10 @@ There are so many things that I want it to do, and so little time...
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### Unreleased
+
+- New "show on map" menu item in the editor.
 
 ### 0.0.4
 

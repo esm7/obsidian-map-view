@@ -1,9 +1,10 @@
-import { addIcon, App, MenuItem, Menu, TFile, Plugin, WorkspaceLeaf, PluginSettingTab, Setting, TAbstractFile } from 'obsidian';
+import { addIcon, App, Editor, FileView, MarkdownView, MenuItem, Menu, TFile, Plugin, WorkspaceLeaf, PluginSettingTab, Setting, TAbstractFile } from 'obsidian';
 import * as consts from 'src/consts';
+import * as leaflet from 'leaflet';
 
 import { MapView } from 'src/mapView';
 import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
-import { getFrontMatterLocation } from 'src/markers';
+import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
 
 export default class MapViewPlugin extends Plugin {
 	settings: PluginSettings;
@@ -39,16 +40,53 @@ export default class MapViewPlugin extends Plugin {
 				if (location)
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
-						item.onClick(async () => {
-							const view = new MapView(this.app.workspace.activeLeaf, this.settings, this);
-							await this.app.workspace.activeLeaf.open(view);
-							view.onAfterOpen = () => {
-								view.zoomToLocation(location);
-							}
-						})
+						item.setIcon('globe');
+						item.onClick(async () => await this.openMapWithLocation(location));
 					});
 			}
 		});
+
+		// TODO function signature is a guess, revise when API is released
+		// @ts-ignore
+		this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor, view: FileView) => {
+			if (view instanceof FileView) {
+				const location = this.getLocationOnEditorLine(editor, view);
+				if (location) {
+					menu.addItem((item: MenuItem) => {
+						item.setTitle('Show on map');
+						item.setIcon('globe');
+						item.onClick(async () => await this.openMapWithLocation(location));
+					});
+				}
+			}
+		});
+	}
+
+	private async openMapWithLocation(location: leaflet.LatLng) {
+		const view = new MapView(this.app.workspace.activeLeaf, this.settings, this);
+		await this.app.workspace.activeLeaf.open(view);
+		view.onAfterOpen = () => {
+			view.zoomToLocation(location);
+		};
+	}
+
+	private getLocationOnEditorLine(editor: Editor, view: FileView): leaflet.LatLng {
+		const line = editor.getLine(editor.getCursor().line);
+		const match = matchInlineLocation(line)?.next()?.value;
+		let selectedLocation = null;
+		if (match)
+			selectedLocation = new leaflet.LatLng(parseFloat(match[1]), parseFloat(match[2]));
+		else
+		{
+			const fmLocation = getFrontMatterLocation(view.file, this.app);
+			if (line.indexOf('location') > -1 && fmLocation)
+				selectedLocation = fmLocation;
+		}
+		if (selectedLocation) {
+			verifyLocation(selectedLocation);
+			return selectedLocation;
+		}
+		return null;
 	}
 
 	onunload() {
