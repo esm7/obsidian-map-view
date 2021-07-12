@@ -1,5 +1,10 @@
 import { App, TFile } from 'obsidian';
 import * as leaflet from 'leaflet';
+import 'leaflet-extra-markers';
+import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
+// Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
+// @ts-ignore
+let localL = L;
 
 import { PluginSettings } from 'src/settings';
 import * as consts from 'src/consts';
@@ -53,7 +58,7 @@ export async function buildMarkers(files: TFile[], settings: PluginSettings, app
 	return markers;
 }
 
-function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.ExtraMarkers.Icon {
+function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.Icon {
 	let result = settings.markerIcons.default;
 	const fileCache = app.metadataCache.getFileCache(marker.file);
 	if (fileCache && fileCache.tags) {
@@ -65,7 +70,22 @@ function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App
 			}
 		}
 	}
-	return leaflet.ExtraMarkers.icon(result);
+	return getIconFromOptions(result);
+}
+
+export function getIconFromOptions(iconSpec: leaflet.BaseIconOptions) : leaflet.Icon {
+	// Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
+	// @ts-ignore
+	const backupL = L;
+	try {
+		// @ts-ignore
+		L = localL;
+		return leaflet.ExtraMarkers.icon(iconSpec);
+	}
+	finally {
+		// @ts-ignore
+		L = backupL;
+	}
 }
 
 export function verifyLocation(location: leaflet.LatLng) {

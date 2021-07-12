@@ -1,7 +1,8 @@
 import { App, ButtonComponent, MarkdownView, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
-import 'leaflet-extra-markers';
-import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
+// Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
+// @ts-ignore
+import * as leafletFullscreen from 'leaflet-fullscreen';
 import '@fortawesome/fontawesome-free/js/all.min';
 import 'leaflet/dist/leaflet.css';
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
@@ -9,7 +10,7 @@ import 'leaflet-geosearch/dist/geosearch.css';
 
 import * as consts from 'src/consts';
 import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
-import { MarkersMap, FileMarker, buildMarkers } from 'src/markers';
+import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions } from 'src/markers';
 import MapViewPlugin  from 'src/main';
 
 type MapState = {
@@ -151,6 +152,8 @@ export class MapView extends ItemView {
 
 	async createMap() {
 		var that = this;
+		// LeafletJS compatability: disable tree-shaking for the full-screen module
+		var dummy = leafletFullscreen;
 		this.display.map = new leaflet.Map(this.display.mapDiv, {
 			center: new leaflet.LatLng(40.731253, -73.996139),
 			zoom: 13,
@@ -170,7 +173,7 @@ export class MapView extends ItemView {
 			provider: new OpenStreetMapProvider(),
 			position: 'topright',
 			marker: {
-				icon: consts.SEARCH_RESULT_MARKER
+				icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER as leaflet.BaseIconOptions)
 			},
 			style: 'button'});
 		this.display.map.addControl(searchControl);

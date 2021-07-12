@@ -31,6 +31,7 @@
     "@fortawesome/fontawesome-free": "^5.15.3",
     "leaflet": "^1.7.1",
     "leaflet-extra-markers": "github:coryasilva/Leaflet.ExtraMarkers",
+    "leaflet-fullscreen": "^1.0.2",
     "leaflet-geosearch": "^3.3.2",
     "open": "^8.2.1"
   }
