@@ -15,11 +15,10 @@ export default class MapViewPlugin extends Plugin {
 		await this.loadSettings();
 
 		this.addRibbonIcon('globe', 'Open map view', () => {
-			const view = new MapView(this.app.workspace.activeLeaf, this.settings, this);
-			this.app.workspace.activeLeaf.open(view);
+			this.app.workspace.getLeaf().setViewState({type: consts.MAP_VIEW_NAME});
 		});
 
-		this.registerView('map', (leaf: WorkspaceLeaf) => {
+		this.registerView(consts.MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
 			return new MapView(leaf, this.settings, this);
 		});
 
@@ -27,8 +26,7 @@ export default class MapViewPlugin extends Plugin {
 			id: 'open-map-view',
 			name: 'Open Map View',
 			callback: () => {
-				const view = new MapView(this.app.workspace.activeLeaf, this.settings, this);
-				this.app.workspace.activeLeaf.open(view);
+				this.app.workspace.getLeaf().setViewState({type: consts.MAP_VIEW_NAME});
 			},
 		});
 
@@ -63,11 +61,12 @@ export default class MapViewPlugin extends Plugin {
 	}
 
 	private async openMapWithLocation(location: leaflet.LatLng) {
-		const view = new MapView(this.app.workspace.activeLeaf, this.settings, this);
-		await this.app.workspace.activeLeaf.open(view);
-		view.onAfterOpen = () => {
-			view.zoomToLocation(location);
-		};
+		await this.app.workspace.getLeaf().setViewState({
+			type: consts.MAP_VIEW_NAME,
+			state: {
+				mapCenter: location,
+				mapZoom: this.settings.zoomOnGoFromNote
+			} as any});
 	}
 
 	private getLocationOnEditorLine(editor: Editor, view: FileView): leaflet.LatLng {

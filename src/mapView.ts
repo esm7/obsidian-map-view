@@ -1,4 +1,4 @@
-import { App, ButtonComponent, MarkdownView, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
+import { App, Editor, ButtonComponent, MarkdownView, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
@@ -60,16 +60,6 @@ export class MapView extends ItemView {
 		this.getState = (): MapState => {
 			return this.state;
 		}
-	}
-
-	public zoomToLocation(location: leaflet.LatLng) {
-		let newState: MapState = {
-			mapCenter: location,
-			mapZoom: this.settings.zoomOnGoFromNote,
-			tags: this.state.tags,
-			version: this.state.version + 1
-		};
-		this.updateMapToState(newState);
 	}
 
 	getViewType() { return 'map'; }
@@ -235,8 +225,10 @@ export class MapView extends ItemView {
 		}
 		this.state = state;
 		this.updateMapMarkers(newMarkers);
+		this.state.tags = this.state.tags || [];
 		this.display.tagsBox.setValue(this.state.tags.filter(tag => tag.length > 0).join(','));
-		this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
+		if (this.state.mapCenter && this.state.mapZoom)
+			this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
 		if (autoFit)
 			this.autoFitMapToMarkers();
 	}
@@ -246,7 +238,7 @@ export class MapView extends ItemView {
 		const allFiles = this.app.vault.getFiles();
 		for (const file of allFiles) {
 			var match = true;
-			if (tags.length > 0) {
+			if (tags && tags.length > 0) {
 				// A tags query exist, file defaults to non-matching and we'll add it if it has one of the tags
 				match = false;
 				const fileCache = this.app.metadataCache.getFileCache(file);
@@ -338,8 +330,10 @@ export class MapView extends ItemView {
 		await leafToUse.openFile(marker.file);
 		const editor = this.getEditor();
 		if (editor) {
-			if (marker.fileLocation)
-				editor.setCursor(editor.posFromIndex(marker.fileLocation));
+			if (marker.fileLocation) {
+				let pos = editor.offsetToPos(marker.fileLocation);
+				editor.setCursor(pos);
+			}
 			editor.focus();
 		}
 	}
@@ -350,7 +344,7 @@ export class MapView extends ItemView {
 		for (const file of allFiles) {
 			const fileCache = this.app.metadataCache.getFileCache(file);
 			if (fileCache && fileCache.tags) {
-				const fileTagNames = getAllTags(fileCache);
+				const fileTagNames = getAllTags(fileCache) || [];
 				tags = tags.concat(fileTagNames.filter(tagName => tags.indexOf(tagName) < 0));
 			}
 		}
@@ -358,12 +352,11 @@ export class MapView extends ItemView {
 		return tags;
 	}
 
-	getEditor() {
-		var view = this.app.workspace.activeLeaf.view;
-		if (view.getViewType() == 'markdown') {
+	getEditor() : Editor {
+		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (view && view.getViewType() == 'markdown') {
 			var markdownView = view as MarkdownView;
-			var cmEditor = markdownView.sourceMode.cmEditor;
-			return cmEditor;
+			return markdownView.editor;
 		}
 		return null;
 	}

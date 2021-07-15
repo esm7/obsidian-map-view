@@ -18,7 +18,7 @@ export default {
 	input: 'src/main.ts',
 	output: {
 		dir: './dist',
-		sourcemap: 'inline',
+		sourcemap: isProd ? false : 'inline',
 		sourcemapExcludeSources: isProd,
 		format: 'cjs',
 		exports: 'default',
