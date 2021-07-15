@@ -176,6 +176,10 @@ There are so many things that I want it to do, and so little time...
 
 ## Changelog
 
+### 0.0.7
+
+Tiny fix to an annoying bug of the default not being applied.
+
 ### 0.0.6
 
 Small fixes before the plugin formal release.

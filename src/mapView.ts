@@ -48,7 +48,6 @@ export class MapView extends ItemView {
 			tags: this.settings.defaultTags || consts.DEFAULT_TAGS,
 			version: 0
 		};
-		this.state = this.defaultState;
 		this.setState = async (state: MapState, result) => {
 			if (state) {
 				console.log(`Received setState:`, state);
@@ -67,6 +66,7 @@ export class MapView extends ItemView {
 
 	onOpen() {
 		var that = this;
+		this.state = this.defaultState;
 		let controlsDiv = createDiv({
 			'cls': 'graph-controls',
 			'text': 'Filters'
