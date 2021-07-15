@@ -176,6 +176,10 @@ There are so many things that I want it to do, and so little time...
 
 ## Changelog
 
+### 0.0.6
+
+Small fixes before the plugin formal release.
+
 ### 0.0.5
 
 - New "show on map" menu item in the editor.

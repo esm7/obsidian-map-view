@@ -354,10 +354,8 @@ export class MapView extends ItemView {
 
 	getEditor() : Editor {
 		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (view && view.getViewType() == 'markdown') {
-			var markdownView = view as MarkdownView;
-			return markdownView.editor;
-		}
+		if (view)
+			return view.editor;
 		return null;
 	}
 }
