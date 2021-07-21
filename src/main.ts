@@ -35,12 +35,19 @@ export default class MapViewPlugin extends Plugin {
 		this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, _source: string, leaf?: WorkspaceLeaf) => {
 			if (file instanceof TFile) {
 				const location = getFrontMatterLocation(file, this.app);
-				if (location)
+				if (location) {
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
 						item.onClick(async () => await this.openMapWithLocation(location));
 					});
+					menu.addItem((item: MenuItem) => {
+						item.setTitle('Open in Google Maps');
+						item.onClick(_ev => {
+							open(`https://maps.google.com/?q=${location.lat},${location.lng}`);
+						});
+					});
+				}
 			}
 		});
 
@@ -55,9 +62,16 @@ export default class MapViewPlugin extends Plugin {
 						item.setIcon('globe');
 						item.onClick(async () => await this.openMapWithLocation(location));
 					});
+					menu.addItem((item: MenuItem) => {
+						item.setTitle('Open in Google Maps');
+						item.onClick(_ev => {
+							open(`https://maps.google.com/?q=${location.lat},${location.lng}`);
+						});
+					});
 				}
 			}
 		});
+
 	}
 
 	private async openMapWithLocation(location: leaflet.LatLng) {
@@ -152,6 +166,37 @@ class SettingsTab extends PluginSettingTab {
 						this.plugin.settings.newPaneSplitDirection = value;
 						this.plugin.saveSettings();
 					})
+			});
+
+		new Setting(containerEl)
+			.setName('New note name format')
+			.setDesc('Date/times in the format can be wrapped in {{date:...}}, e.g. "note-{{date:YYYY-MM-DD}}".')
+			.addText(component => { component
+				.setValue(this.plugin.settings.newNoteNameFormat || DEFAULT_SETTINGS.newNoteNameFormat)
+				.onChange(async (value: string) => {
+					this.plugin.settings.newNoteNameFormat = value;
+					this.plugin.saveSettings();
+				})
+			});
+		new Setting(containerEl)
+			.setName('New note location')
+			.setDesc('Location for notes created from the map.')
+			.addText(component => { component
+				.setValue(this.plugin.settings.newNotePath || '')
+				.onChange(async (value: string) => {
+					this.plugin.settings.newNotePath = value;
+					this.plugin.saveSettings();
+				})
+			});
+		new Setting(containerEl)
+			.setName('Template file location')
+			.setDesc('Choose the file to use as a template, e.g. "templates/map-log.md".')
+			.addText(component => { component
+				.setValue(this.plugin.settings.newNoteTemplate || '')
+				.onChange(async (value: string) => {
+					this.plugin.settings.newNoteTemplate = value;
+					this.plugin.saveSettings();
+				})
 			});
 
 		new Setting(containerEl)

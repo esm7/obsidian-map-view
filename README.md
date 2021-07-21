@@ -166,15 +166,22 @@ As noted in the disclaimer above, my wishlist for this plugin is huge and I'm un
 There are so many things that I want it to do, and so little time...
 
 - **Most importantly**: proper mobile support including device location if possible. That's literally on the top of my list.
-- Real-time updates when notes change
 - More powerful filtering. I'd love it to be based on the [existing Obsidian query format](https://github.com/obsidianmd/obsidian-api/issues/22). What I see in mind is a powerful text search with a results pane that's linked to the map.
 - Better interoperability with Obsidian Leaflet: support for marker image files, locations as an array and `marker` tags.
 - Better UI, especially for the core functionality like editing icons.
-- More useful map commands, e.g. "new note here" with a configurable template.
 - Dark mode.
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### 0.0.8
+
+- Fixed [a bug](https://github.com/esm7/obsidian-map-view/issues/12) allowing to confusingly add markers out of earth's proper bounds.
+- "New note here" right-click option with configuration options.
+- Markers now updated dynamically when relevant notes are added/deleted/modified.
+- Tweaks to opening notes in a 2nd pane (be able to use a 2nd pane if it already existed).
+- When jumping to a location within a note, the corresponding note line is now highlighted.
+- "Open in Google Maps" menu item within notes with locations (both note menu and right-click on a location).
 
 ### 0.0.7
 

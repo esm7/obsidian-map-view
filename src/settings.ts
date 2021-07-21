@@ -13,6 +13,9 @@ export type PluginSettings = {
 	autoZoom: boolean;
 	markerClickBehavior?: 'samePane' | 'secondPane' | 'alwaysNew';
 	newPaneSplitDirection?: SplitDirection;
+	newNoteNameFormat?: string;
+	newNotePath?: string;
+	newNoteTemplate?: string;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -26,5 +29,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	zoomOnGoFromNote: 15,
 	tilesUrl: consts.TILES_URL_OPENSTREETMAP,
 	autoZoom: true,
-	markerClickBehavior: 'samePane'
+	markerClickBehavior: 'samePane',
+	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}'
 };

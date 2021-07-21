@@ -9,6 +9,8 @@ let localL = L;
 import { PluginSettings } from 'src/settings';
 import * as consts from 'src/consts';
 
+type MarkerId = string;
+
 export class FileMarker {
 	file: TFile;
 	fileLocation?: number;
@@ -20,40 +22,55 @@ export class FileMarker {
 	constructor(file: TFile, location: leaflet.LatLng) {
 		this.file = file;
 		this.location = location;
-		this.id = new MarkerId(file.name, location);
+		this.id = this.generateId();
 	}
-}
 
-export class MarkerId {
-	public fileName: string;
-	public flattenedLocation: string;
+	isSame(other: FileMarker) {
+		return this.file.name === other.file.name &&
+			this.location.toString() === other.location.toString() &&
+			this.fileLocation === other.fileLocation &&
+			this.icon?.options?.iconUrl === other.icon?.options?.iconUrl &&
+			// @ts-ignore
+			this.icon?.options?.icon === other.icon?.options?.icon &&
+			// @ts-ignore
+			this.icon?.options?.iconColor === other.icon?.options?.iconColor &&
+			// @ts-ignore
+			this.icon?.options?.markerColor === other.icon?.options?.markerColor &&
+			// @ts-ignore
+			this.icon?.options?.shape === other.icon?.options?.shape;
+	}
 
-	constructor(fileName: string, location: leaflet.LatLng) {
-		this.fileName = fileName;
-		this.flattenedLocation = location.lat.toString() + location.lng.toString();
+	generateId() : MarkerId {
+		return this.file.name + this.location.lat.toString() + this.location.lng.toString();
 	}
 }
 
 export type MarkersMap = Map<MarkerId, FileMarker>;
 
-export async function buildMarkers(files: TFile[], settings: PluginSettings, app: App) {
-	let markers: FileMarker[] = [];
-	for (const file of files) {
-		const fileCache = app.metadataCache.getFileCache(file);
-		const frontMatter = fileCache?.frontmatter;
-		if (frontMatter) {
+export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], file: TFile, settings: PluginSettings, app: App, skipMetadata?: boolean) {
+	const fileCache = app.metadataCache.getFileCache(file);
+	const frontMatter = fileCache?.frontmatter;
+	if (frontMatter) {
+		if (!skipMetadata) {
 			const location = getFrontMatterLocation(file, app);
 			if (location) {
 				verifyLocation(location);
 				let leafletMarker = new FileMarker(file, location);
 				leafletMarker.icon = getIconForMarker(leafletMarker, settings, app);
-				markers.push(leafletMarker);
-			}
-			if ('locations' in frontMatter) {
-				const markersFromFile = await getMarkersFromFileContent(file, settings, app);
-				markers.push(...markersFromFile);
+				mapToAppendTo.push(leafletMarker);
 			}
 		}
+		if ('locations' in frontMatter) {
+			const markersFromFile = await getMarkersFromFileContent(file, settings, app);
+			mapToAppendTo.push(...markersFromFile);
+		}
+	}
+}
+
+export async function buildMarkers(files: TFile[], settings: PluginSettings, app: App): Promise<FileMarker[]> {
+	let markers: FileMarker[] = [];
+	for (const file of files) {
+		await buildAndAppendFileMarkers(markers, file, settings, app);
 	}
 	return markers;
 }

@@ -1,4 +1,4 @@
-import { App, Editor, ButtonComponent, MarkdownView, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
+import { App, TAbstractFile, Editor, ButtonComponent, MarkdownView, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
@@ -10,8 +10,9 @@ import 'leaflet-geosearch/dist/geosearch.css';
 
 import * as consts from 'src/consts';
 import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
-import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions } from 'src/markers';
-import MapViewPlugin  from 'src/main';
+import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers } from 'src/markers';
+import MapViewPlugin from 'src/main';
+import * as utils from 'src/utils';
 
 type MapState = {
 	mapZoom: number;
@@ -33,6 +34,7 @@ export class MapView extends ItemView {
 	private plugin: MapViewPlugin;
 	private defaultState: MapState;
 	private newPaneLeaf: WorkspaceLeaf;
+	private isOpen: boolean = false;
 
 	public onAfterOpen: (map: leaflet.Map, markers: MarkersMap) => any = null;
 
@@ -59,6 +61,10 @@ export class MapView extends ItemView {
 		this.getState = (): MapState => {
 			return this.state;
 		}
+
+		this.app.vault.on('delete', file => this.updateMarkersWithRelationToFile(file.path, null, true));
+		this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
+		this.app.metadataCache.on('changed', file => this.updateMarkersWithRelationToFile(file.path, file, false));
 	}
 
 	getViewType() { return 'map'; }
@@ -66,6 +72,7 @@ export class MapView extends ItemView {
 
 	onOpen() {
 		var that = this;
+		this.isOpen = true;
 		this.state = this.defaultState;
 		let controlsDiv = createDiv({
 			'cls': 'graph-controls',
@@ -136,6 +143,11 @@ export class MapView extends ItemView {
 		return super.onOpen();
 	}
 
+	onClose() {
+		this.isOpen = false;
+		return super.onClose();
+	}
+
 	onResize() {
 		this.display.map.invalidateSize();
 	}
@@ -147,7 +159,9 @@ export class MapView extends ItemView {
 		this.display.map = new leaflet.Map(this.display.mapDiv, {
 			center: new leaflet.LatLng(40.731253, -73.996139),
 			zoom: 13,
-			zoomControl: false});
+			zoomControl: false,
+			worldCopyJump: true,
+			maxBoundsViscosity: 1.0});
 		leaflet.control.zoom({
 			position: 'topright'
 		}).addTo(this.display.map);
@@ -178,9 +192,29 @@ export class MapView extends ItemView {
 			mapPopup.setNoIcon();
 			mapPopup.addItem((item: MenuItem) => {
 				const location = `${event.latlng.lat},${event.latlng.lng}`;
-				item.setTitle(`Copy location as coordinates`);
+				item.setTitle('New note here');
+				item.onClick(async ev => {
+					const newFileName = utils.formatWithTemplates(this.settings.newNoteNameFormat);
+					const file: TFile = await utils.newNote(this.app, 'singleLocation', this.settings.newNotePath,
+						newFileName, location, this.settings.newNoteTemplate);
+					this.goToFile(file, ev.ctrlKey);
+				});
+			})
+			mapPopup.addItem((item: MenuItem) => {
+				const location = `${event.latlng.lat},${event.latlng.lng}`;
+				item.setTitle('New multi-location note');
+				item.onClick(async ev => {
+					const newFileName = utils.formatWithTemplates(this.settings.newNoteNameFormat);
+					const file: TFile = await utils.newNote(this.app, 'multiLocation', this.settings.newNotePath,
+						newFileName, location, this.settings.newNoteTemplate);
+					this.goToFile(file, ev.ctrlKey);
+				});
+			})
+			mapPopup.addItem((item: MenuItem) => {
+				const location = `${event.latlng.lat},${event.latlng.lng}`;
+				item.setTitle(`Copy location as inline`);
 				item.onClick(_ev => {
-					navigator.clipboard.writeText(location);
+					navigator.clipboard.writeText(`\`location: [${location}]\``);
 				});
 			});
 			mapPopup.addItem((item: MenuItem) => {
@@ -192,9 +226,9 @@ export class MapView extends ItemView {
 			});
 			mapPopup.addItem((item: MenuItem) => {
 				const location = `${event.latlng.lat},${event.latlng.lng}`;
-				item.setTitle(`Copy location as inline`);
+				item.setTitle(`Copy location as coordinates`);
 				item.onClick(_ev => {
-					navigator.clipboard.writeText(`\`location: [${location}]\``);
+					navigator.clipboard.writeText(location);
 				});
 			});
 			mapPopup.addItem((item: MenuItem) => {
@@ -257,9 +291,10 @@ export class MapView extends ItemView {
 	updateMapMarkers(newMarkers: FileMarker[]) {
 		let newMarkersMap: MarkersMap = new Map();
 		for (let marker of newMarkers) {
-			if (this.display.markers.has(marker.id)) {
+			const existingMarker = this.display.markers.has(marker.id) ?
+				this.display.markers.get(marker.id) : null;
+			if (existingMarker && existingMarker.isSame(marker)) {
 				// This marker exists, so just keep it
-				// TODO: check if its string or marker has changed
 				newMarkersMap.set(marker.id, this.display.markers.get(marker.id));
 				this.display.markers.delete(marker.id);
 			} else {
@@ -268,14 +303,14 @@ export class MapView extends ItemView {
 					.addTo(this.display.map)
 					.bindTooltip(marker.file.name);
 				marker.mapMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
-					this.goToMarker(marker, event.originalEvent.ctrlKey);
+					this.goToMarker(marker, event.originalEvent.ctrlKey, true);
 				});
 				marker.mapMarker.getElement().addEventListener('contextmenu', (ev: MouseEvent) => {
 					let mapPopup = new Menu(this.app);
 					mapPopup.setNoIcon();
 					mapPopup.addItem((item: MenuItem) => {
 						item.setTitle('Open note');
-						item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey); });
+						item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey, true); });
 					});
 					mapPopup.addItem((item: MenuItem) => {
 						item.setTitle('Open in Google Maps');
@@ -303,7 +338,7 @@ export class MapView extends ItemView {
 		}
 	}
 
-	async goToMarker(marker: FileMarker, useCtrlKeyBehavior: boolean) {
+	async goToFile(file: TFile, useCtrlKeyBehavior: boolean, fileLocation?: number, highlight?: boolean) {
 		let leafToUse = this.app.workspace.activeLeaf;
 		const defaultDifferentPane = this.settings.markerClickBehavior != 'samePane';
 		// Having a pane to reuse means that we previously opened a note in a new pane and that pane still exists (wasn't closed)
@@ -316,26 +351,43 @@ export class MapView extends ItemView {
 			//    once, she wants to retain it until it's closed. (I hope no one will treat this as a bug...)
 			// 2. The default is to use a different pane and Ctrl is not pressed.
 			// 3. The default is to NOT use a different pane and Ctrl IS pressed.
+			const someOpenMarkdownLeaf = this.app.workspace.getLeavesOfType('markdown');
 			if (havePaneToReuse) {
 				// We have an existing pane, that pane still has a view (it was not closed), and the settings say
 				// to use a 2nd pane. That's the only case on which we reuse a pane
 				this.app.workspace.setActiveLeaf(this.newPaneLeaf);
 				leafToUse = this.newPaneLeaf;
+			} else if (someOpenMarkdownLeaf.length > 0 && this.settings.markerClickBehavior != 'alwaysNew') {
+				// We don't have a pane to reuse but the user wants a new pane and there is currently an open
+				// Markdown pane. Let's take control over it and hope it's the right thing to do
+				this.app.workspace.setActiveLeaf(someOpenMarkdownLeaf[0]);
+				leafToUse = someOpenMarkdownLeaf[0];
+				this.newPaneLeaf = leafToUse;
 			} else {
 				// We need a new pane. We split it the way the settings tell us
 				this.newPaneLeaf = this.app.workspace.splitActiveLeaf(this.settings.newPaneSplitDirection || 'horizontal');
 				leafToUse = this.newPaneLeaf;
 			}
 		}
-		await leafToUse.openFile(marker.file);
+		await leafToUse.openFile(file);
 		const editor = this.getEditor();
 		if (editor) {
-			if (marker.fileLocation) {
-				let pos = editor.offsetToPos(marker.fileLocation);
-				editor.setCursor(pos);
+			if (fileLocation) {
+				let pos = editor.offsetToPos(fileLocation);
+				if (highlight) {
+					editor.setSelection({ch: 0, line: pos.line}, {ch: 1000, line: pos.line});
+				} else {
+					editor.setCursor(pos);
+					editor.refresh();
+				}
 			}
 			editor.focus();
 		}
+
+	}
+
+	async goToMarker(marker: FileMarker, useCtrlKeyBehavior: boolean, highlight: boolean) {
+		return this.goToFile(marker.file, useCtrlKeyBehavior, marker.fileLocation, highlight);
 	}
 
 	getAllTagNames() : string[] {
@@ -358,5 +410,19 @@ export class MapView extends ItemView {
 			return view.editor;
 		return null;
 	}
+
+	private async updateMarkersWithRelationToFile(fileRemoved: string, fileAddedOrChanged: TAbstractFile, skipMetadata: boolean) {
+		if (!this.display.map || !this.isOpen)
+			return;
+		let newMarkers: FileMarker[] = [];
+		for (let [markerId, fileMarker] of this.display.markers) {
+			if (fileMarker.file.path !== fileRemoved)
+				newMarkers.push(fileMarker);
+		}
+		if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
+			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app)
+		this.updateMapMarkers(newMarkers);
+	}
+
 }
 

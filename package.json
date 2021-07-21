@@ -1,6 +1,6 @@
 {
   "name": "obsidian-map-view",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "An interactive map view for Obsidian.md",
   "main": "main.js",
   "scripts": {
@@ -33,6 +33,7 @@
     "leaflet-extra-markers": "github:coryasilva/Leaflet.ExtraMarkers",
     "leaflet-fullscreen": "^1.0.2",
     "leaflet-geosearch": "^3.3.2",
+    "moment": "^2.29.1",
     "open": "^8.2.1"
   }
 }
