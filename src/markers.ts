@@ -6,8 +6,9 @@ import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 // @ts-ignore
 let localL = L;
 
-import { PluginSettings } from 'src/settings';
+import { isImage, PluginSettings } from 'src/settings';
 import * as consts from 'src/consts';
+import exifr from "exifr";
 
 type MarkerId = string;
 
@@ -48,6 +49,8 @@ export class FileMarker {
 export type MarkersMap = Map<MarkerId, FileMarker>;
 
 export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], file: TFile, settings: PluginSettings, app: App, skipMetadata?: boolean) {
+	if (isImage(file)) { await getImageCoords(mapToAppendTo, file, settings, app); return; }
+
 	const fileCache = app.metadataCache.getFileCache(file);
 	const frontMatter = fileCache?.frontmatter;
 	if (frontMatter) {
@@ -66,6 +69,19 @@ export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], fil
 		}
 	}
 }
+async function getImageCoords(mapToAppendTo: FileMarker[], file: TFile, settings: PluginSettings, app: App) {
+	let jeff = await exifr.parse(await app.vault.adapter.readBinary(file.path));
+	let { latitude, longitude } = jeff;
+	if (latitude && longitude) {
+		let leafletMarker = new FileMarker(file, new leaflet.LatLng(latitude, longitude));
+		leafletMarker.icon = getImageMarker(settings);
+		mapToAppendTo.push(leafletMarker);
+	}
+}
+function getImageMarker(settings: PluginSettings) {
+	return getIconFromOptions(Object.assign({}, settings.markerIcons.default, { "prefix": "fas", "icon": "fa-camera" }));
+}
+
 
 export async function buildMarkers(files: TFile[], settings: PluginSettings, app: App): Promise<FileMarker[]> {
 	let markers: FileMarker[] = [];
@@ -145,7 +161,7 @@ export function getFrontMatterLocation(file: TFile, app: App) : leaflet.LatLng {
 		try {
 			const location = frontMatter.location;
 			// We have a single location at hand
-			if (location.length == 2 && typeof(location[0]) === 'number' && typeof(location[1]) === 'number') {
+			if (location.length == 2 && typeof (location[0]) === 'number' && typeof(location[1]) === 'number') {
 				const location = new leaflet.LatLng(frontMatter.location[0], frontMatter.location[1]);
 				verifyLocation(location);
 				return location;

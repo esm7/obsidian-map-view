@@ -1,6 +1,6 @@
 import * as consts from 'src/consts';
 import { LatLng } from 'leaflet';
-import { SplitDirection } from 'obsidian';
+import { SplitDirection, TFile } from 'obsidian';
 
 export type PluginSettings = {
 	darkMode: boolean;
@@ -16,6 +16,8 @@ export type PluginSettings = {
 	newNoteNameFormat?: string;
 	newNotePath?: string;
 	newNoteTemplate?: string;
+	detectImageLocations: boolean;
+	imageMatcher: RegExp;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -30,5 +32,11 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	tilesUrl: consts.TILES_URL_OPENSTREETMAP,
 	autoZoom: true,
 	markerClickBehavior: 'samePane',
-	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}'
+	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
+	detectImageLocations: true,
+	imageMatcher: /(?:png|jpe?g)/i,
 };
+
+export function isImage(file: TFile) {
+	return file.extension.match(DEFAULT_SETTINGS.imageMatcher);
+}
