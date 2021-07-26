@@ -6,8 +6,9 @@ import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 // @ts-ignore
 let localL = L;
 
-import { PluginSettings } from 'src/settings';
+import { isImage, PluginSettings } from 'src/settings';
 import * as consts from 'src/consts';
+import exifr from "exifr";
 
 type MarkerId = string;
 
@@ -40,7 +41,7 @@ export class FileMarker {
 			this.icon?.options?.shape === other.icon?.options?.shape;
 	}
 
-	generateId() : MarkerId {
+	generateId(): MarkerId {
 		return this.file.name + this.location.lat.toString() + this.location.lng.toString();
 	}
 }
@@ -48,6 +49,8 @@ export class FileMarker {
 export type MarkersMap = Map<MarkerId, FileMarker>;
 
 export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], file: TFile, settings: PluginSettings, app: App, skipMetadata?: boolean) {
+	if (isImage(file)) { await getImageCoords(mapToAppendTo, file, settings, app); return; }
+
 	const fileCache = app.metadataCache.getFileCache(file);
 	const frontMatter = fileCache?.frontmatter;
 	if (frontMatter) {
@@ -66,6 +69,19 @@ export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], fil
 		}
 	}
 }
+async function getImageCoords(mapToAppendTo: FileMarker[], file: TFile, settings: PluginSettings, app: App) {
+	let jeff = await exifr.parse(await app.vault.adapter.readBinary(file.path));
+	let { latitude, longitude } = jeff;
+	if (latitude && longitude) {
+		let leafletMarker = new FileMarker(file, new leaflet.LatLng(latitude, longitude));
+		leafletMarker.icon = getImageMarker(settings);
+		mapToAppendTo.push(leafletMarker);
+	}
+}
+function getImageMarker(settings: PluginSettings) {
+	return getIconFromOptions(Object.assign({}, settings.markerIcons.default, { "prefix": "fas", "icon": "fa-camera" }));
+}
+
 
 export async function buildMarkers(files: TFile[], settings: PluginSettings, app: App): Promise<FileMarker[]> {
 	let markers: FileMarker[] = [];
@@ -75,7 +91,8 @@ export async function buildMarkers(files: TFile[], settings: PluginSettings, app
 	return markers;
 }
 
-function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.Icon {
+
+function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App): leaflet.Icon {
 	let result = settings.markerIcons.default;
 	const fileCache = app.metadataCache.getFileCache(marker.file);
 	if (fileCache && fileCache.tags) {
@@ -90,7 +107,9 @@ function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App
 	return getIconFromOptions(result);
 }
 
-export function getIconFromOptions(iconSpec: leaflet.BaseIconOptions) : leaflet.Icon {
+
+
+export function getIconFromOptions(iconSpec: leaflet.BaseIconOptions): leaflet.Icon {
 	// Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 	// @ts-ignore
 	const backupL = L;
@@ -138,14 +157,15 @@ async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, 
 	return markers;
 }
 
-export function getFrontMatterLocation(file: TFile, app: App) : leaflet.LatLng {
+
+export function getFrontMatterLocation(file: TFile, app: App): leaflet.LatLng {
 	const fileCache = app.metadataCache.getFileCache(file);
 	const frontMatter = fileCache?.frontmatter;
 	if (frontMatter && frontMatter?.location) {
 		try {
 			const location = frontMatter.location;
 			// We have a single location at hand
-			if (location.length == 2 && typeof(location[0]) === 'number' && typeof(location[1]) === 'number') {
+			if (location.length == 2 && typeof (location[0]) === 'number' && typeof (location[1]) === 'number') {
 				const location = new leaflet.LatLng(frontMatter.location[0], frontMatter.location[1]);
 				verifyLocation(location);
 				return location;

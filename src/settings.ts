@@ -1,6 +1,8 @@
 import * as consts from 'src/consts';
+
+import { SplitDirection, TFile } from 'obsidian';
+
 import { LatLng } from 'leaflet';
-import { SplitDirection } from 'obsidian';
 
 export type PluginSettings = {
 	darkMode: boolean;
@@ -16,19 +18,25 @@ export type PluginSettings = {
 	newNoteNameFormat?: string;
 	newNotePath?: string;
 	newNoteTemplate?: string;
-}
+	imageMatcher: RegExp;
+};
 
 export const DEFAULT_SETTINGS: PluginSettings = {
 	darkMode: false,
 	markerIcons: {
-		"default": {"prefix": "fas", "icon": "fa-circle", "markerColor": "blue"},
-		"#trip": {"prefix": "fas", "icon": "fa-hiking", "markerColor": "green"},
-		"#trip-water": {"prefix": "fas", "markerColor": "blue"},
-		"#dogs": {"prefix": "fas", "icon": "fa-paw"},
+		"default": { "prefix": "fas", "icon": "fa-circle", "markerColor": "blue" },
+		"#trip": { "prefix": "fas", "icon": "fa-hiking", "markerColor": "green" },
+		"#trip-water": { "prefix": "fas", "markerColor": "blue" },
+		"#dogs": { "prefix": "fas", "icon": "fa-paw" },
 	},
 	zoomOnGoFromNote: 15,
 	tilesUrl: consts.TILES_URL_OPENSTREETMAP,
 	autoZoom: true,
 	markerClickBehavior: 'samePane',
-	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}'
+	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
+	imageMatcher: /(?:png|jpe?g)/i,
 };
+
+export function isImage(file: TFile) {
+	return file.extension.match(DEFAULT_SETTINGS.imageMatcher);
+}

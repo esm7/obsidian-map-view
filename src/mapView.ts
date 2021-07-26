@@ -9,7 +9,7 @@ import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 
 import * as consts from 'src/consts';
-import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
+import { PluginSettings, DEFAULT_SETTINGS, isImage } from 'src/settings';
 import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers } from 'src/markers';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
@@ -19,7 +19,7 @@ type MapState = {
 	mapCenter: leaflet.LatLng;
 	tags: string[];
 	version: number;
-} 
+};
 
 export class MapView extends ItemView {
 	private settings: PluginSettings;
@@ -57,10 +57,10 @@ export class MapView extends ItemView {
 				state.version = 100;
 				await this.updateMapToState(state);
 			}
-		}
+		};
 		this.getState = (): MapState => {
 			return this.state;
-		}
+		};
 
 		this.app.vault.on('delete', file => this.updateMarkersWithRelationToFile(file.path, null, true));
 		this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
@@ -131,7 +131,7 @@ export class MapView extends ItemView {
 			});
 		this.contentEl.style.padding = '0px 0px';
 		this.contentEl.append(controlsDiv);
-		this.display.mapDiv = createDiv({cls: 'map'}, (el: HTMLDivElement) => {
+		this.display.mapDiv = createDiv({ cls: 'map' }, (el: HTMLDivElement) => {
 			el.style.zIndex = '1';
 			el.style.width = '100%';
 			el.style.height = '100%';
@@ -161,7 +161,8 @@ export class MapView extends ItemView {
 			zoom: 13,
 			zoomControl: false,
 			worldCopyJump: true,
-			maxBoundsViscosity: 1.0});
+			maxBoundsViscosity: 1.0
+		});
 		leaflet.control.zoom({
 			position: 'topright'
 		}).addTo(this.display.map);
@@ -169,7 +170,7 @@ export class MapView extends ItemView {
 			'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' : '';
 		this.display.map.addLayer(new leaflet.TileLayer(this.settings.tilesUrl, {
 			maxZoom: 20,
-			subdomains:['mt0','mt1','mt2','mt3'],
+			subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
 			attribution: attribution,
 			className: this.settings.darkMode ? "dark-mode" : ""
 		}));
@@ -179,7 +180,8 @@ export class MapView extends ItemView {
 			marker: {
 				icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER as leaflet.BaseIconOptions)
 			},
-			style: 'button'});
+			style: 'button'
+		});
 		this.display.map.addControl(searchControl);
 		this.display.map.on('zoomend', (event: leaflet.LeafletEvent) => {
 			this.state.mapZoom = this.display.map.getZoom();
@@ -199,7 +201,7 @@ export class MapView extends ItemView {
 						newFileName, location, this.settings.newNoteTemplate);
 					this.goToFile(file, ev.ctrlKey);
 				});
-			})
+			});
 			mapPopup.addItem((item: MenuItem) => {
 				const location = `${event.latlng.lat},${event.latlng.lng}`;
 				item.setTitle('New multi-location note');
@@ -209,7 +211,7 @@ export class MapView extends ItemView {
 						newFileName, location, this.settings.newNoteTemplate);
 					this.goToFile(file, ev.ctrlKey);
 				});
-			})
+			});
 			mapPopup.addItem((item: MenuItem) => {
 				const location = `${event.latlng.lat},${event.latlng.lng}`;
 				item.setTitle(`Copy location as inline`);
@@ -243,14 +245,14 @@ export class MapView extends ItemView {
 			await that.updateMapToState(this.defaultState, !this.settings.defaultZoom);
 			if (this.onAfterOpen != null)
 				this.onAfterOpen(this.display.map, this.display.markers);
-		})
+		});
 
 	}
 
 	// Updates the map to the given state and then sets the state accordingly, but only if the given state version
 	// is not lower than the current state version (so concurrent async updates always keep the latest one)
 	async updateMapToState(state: MapState, autoFit: boolean = false) {
-		const files = this.getFileListByQuery(state.tags);
+		const files = await this.getFileListByQuery(state.tags);
 		let newMarkers = await buildMarkers(files, this.settings, this.app);
 		if (state.version < this.state.version) {
 			// If the state we were asked to update is old (e.g. because while we were building markers a newer instance
@@ -267,22 +269,13 @@ export class MapView extends ItemView {
 			this.autoFitMapToMarkers();
 	}
 
-	getFileListByQuery(tags: string[]): TFile[] {
+	async getFileListByQuery(tags: string[]) {
 		let results: TFile[] = [];
 		const allFiles = this.app.vault.getFiles();
 		for (const file of allFiles) {
-			var match = true;
-			if (tags && tags.length > 0) {
-				// A tags query exist, file defaults to non-matching and we'll add it if it has one of the tags
-				match = false;
-				const fileCache = this.app.metadataCache.getFileCache(file);
-				if (fileCache && fileCache.tags) {
-					const tagsMatch = fileCache.tags.some(tagInFile => tags.indexOf(tagInFile.tag) > -1);
-					if (tagsMatch)
-						match = true;
-				}
-			}
-			if (match)
+			// only show images when not filtering by tag, currently not a clean way of adding tags to images
+			if (!tags?.length && isImage(file)) results.push(file);
+			else if (!tags?.length || this.app.metadataCache.getFileCache(file)?.tags?.some(t => tags.includes(t.tag)))
 				results.push(file);
 		}
 		return results;
@@ -320,7 +313,7 @@ export class MapView extends ItemView {
 					});
 					mapPopup.showAtPosition(ev);
 					ev.stopPropagation();
-				})
+				});
 				newMarkersMap.set(marker.id, marker);
 			}
 		}
@@ -375,7 +368,7 @@ export class MapView extends ItemView {
 			if (fileLocation) {
 				let pos = editor.offsetToPos(fileLocation);
 				if (highlight) {
-					editor.setSelection({ch: 0, line: pos.line}, {ch: 1000, line: pos.line});
+					editor.setSelection({ ch: 0, line: pos.line }, { ch: 1000, line: pos.line });
 				} else {
 					editor.setCursor(pos);
 					editor.refresh();
@@ -390,7 +383,7 @@ export class MapView extends ItemView {
 		return this.goToFile(marker.file, useCtrlKeyBehavior, marker.fileLocation, highlight);
 	}
 
-	getAllTagNames() : string[] {
+	getAllTagNames(): string[] {
 		let tags: string[] = [];
 		const allFiles = this.app.vault.getFiles();
 		for (const file of allFiles) {
@@ -404,7 +397,7 @@ export class MapView extends ItemView {
 		return tags;
 	}
 
-	getEditor() : Editor {
+	getEditor(): Editor {
 		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (view)
 			return view.editor;
@@ -420,7 +413,7 @@ export class MapView extends ItemView {
 				newMarkers.push(fileMarker);
 		}
 		if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
-			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app)
+			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app);
 		this.updateMapMarkers(newMarkers);
 	}
 
