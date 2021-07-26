@@ -1,8 +1,6 @@
 import * as consts from 'src/consts';
-
-import { SplitDirection, TFile } from 'obsidian';
-
 import { LatLng } from 'leaflet';
+import { SplitDirection, TFile } from 'obsidian';
 
 export type PluginSettings = {
 	darkMode: boolean;
@@ -20,15 +18,15 @@ export type PluginSettings = {
 	newNoteTemplate?: string;
 	detectImageLocations: boolean;
 	imageMatcher: RegExp;
-};
+}
 
 export const DEFAULT_SETTINGS: PluginSettings = {
 	darkMode: false,
 	markerIcons: {
-		"default": { "prefix": "fas", "icon": "fa-circle", "markerColor": "blue" },
-		"#trip": { "prefix": "fas", "icon": "fa-hiking", "markerColor": "green" },
-		"#trip-water": { "prefix": "fas", "markerColor": "blue" },
-		"#dogs": { "prefix": "fas", "icon": "fa-paw" },
+		"default": {"prefix": "fas", "icon": "fa-circle", "markerColor": "blue"},
+		"#trip": {"prefix": "fas", "icon": "fa-hiking", "markerColor": "green"},
+		"#trip-water": {"prefix": "fas", "markerColor": "blue"},
+		"#dogs": {"prefix": "fas", "icon": "fa-paw"},
 	},
 	zoomOnGoFromNote: 15,
 	tilesUrl: consts.TILES_URL_OPENSTREETMAP,

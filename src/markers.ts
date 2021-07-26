@@ -41,7 +41,7 @@ export class FileMarker {
 			this.icon?.options?.shape === other.icon?.options?.shape;
 	}
 
-	generateId(): MarkerId {
+	generateId() : MarkerId {
 		return this.file.name + this.location.lat.toString() + this.location.lng.toString();
 	}
 }
@@ -91,8 +91,7 @@ export async function buildMarkers(files: TFile[], settings: PluginSettings, app
 	return markers;
 }
 
-
-function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App): leaflet.Icon {
+function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.Icon {
 	let result = settings.markerIcons.default;
 	const fileCache = app.metadataCache.getFileCache(marker.file);
 	if (fileCache && fileCache.tags) {
@@ -107,9 +106,7 @@ function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App
 	return getIconFromOptions(result);
 }
 
-
-
-export function getIconFromOptions(iconSpec: leaflet.BaseIconOptions): leaflet.Icon {
+export function getIconFromOptions(iconSpec: leaflet.BaseIconOptions) : leaflet.Icon {
 	// Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 	// @ts-ignore
 	const backupL = L;
@@ -157,15 +154,14 @@ async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, 
 	return markers;
 }
 
-
-export function getFrontMatterLocation(file: TFile, app: App): leaflet.LatLng {
+export function getFrontMatterLocation(file: TFile, app: App) : leaflet.LatLng {
 	const fileCache = app.metadataCache.getFileCache(file);
 	const frontMatter = fileCache?.frontmatter;
 	if (frontMatter && frontMatter?.location) {
 		try {
 			const location = frontMatter.location;
 			// We have a single location at hand
-			if (location.length == 2 && typeof (location[0]) === 'number' && typeof (location[1]) === 'number') {
+			if (location.length == 2 && typeof (location[0]) === 'number' && typeof(location[1]) === 'number') {
 				const location = new leaflet.LatLng(frontMatter.location[0], frontMatter.location[1]);
 				verifyLocation(location);
 				return location;
