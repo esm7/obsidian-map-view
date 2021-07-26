@@ -18,6 +18,7 @@ export type PluginSettings = {
 	newNoteNameFormat?: string;
 	newNotePath?: string;
 	newNoteTemplate?: string;
+	detectImageLocations: boolean;
 	imageMatcher: RegExp;
 };
 
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	autoZoom: true,
 	markerClickBehavior: 'samePane',
 	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
+	detectImageLocations: true,
 	imageMatcher: /(?:png|jpe?g)/i,
 };
 

@@ -274,7 +274,8 @@ export class MapView extends ItemView {
 		const allFiles = this.app.vault.getFiles();
 		for (const file of allFiles) {
 			// only show images when not filtering by tag, currently not a clean way of adding tags to images
-			if (!tags?.length && isImage(file)) results.push(file);
+			console.log(`this.settings.detectImageLocations`, this.settings.detectImageLocations);
+			if (!tags?.length && this.settings.detectImageLocations && isImage(file)) results.push(file);
 			else if (!tags?.length || this.app.metadataCache.getFileCache(file)?.tags?.some(t => tags.includes(t.tag)))
 				results.push(file);
 		}
@@ -284,6 +285,7 @@ export class MapView extends ItemView {
 	updateMapMarkers(newMarkers: FileMarker[]) {
 		let newMarkersMap: MarkersMap = new Map();
 		for (let marker of newMarkers) {
+			if (isImage(marker.file) && !this.settings.detectImageLocations) continue; //don't update if the setting has been changed
 			const existingMarker = this.display.markers.has(marker.id) ?
 				this.display.markers.get(marker.id) : null;
 			if (existingMarker && existingMarker.isSame(marker)) {

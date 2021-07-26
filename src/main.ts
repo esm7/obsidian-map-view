@@ -15,7 +15,7 @@ export default class MapViewPlugin extends Plugin {
 		await this.loadSettings();
 
 		this.addRibbonIcon('globe', 'Open map view', () => {
-			this.app.workspace.getLeaf().setViewState({type: consts.MAP_VIEW_NAME});
+			this.app.workspace.getLeaf().setViewState({ type: consts.MAP_VIEW_NAME });
 		});
 
 		this.registerView(consts.MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
@@ -26,7 +26,7 @@ export default class MapViewPlugin extends Plugin {
 			id: 'open-map-view',
 			name: 'Open Map View',
 			callback: () => {
-				this.app.workspace.getLeaf().setViewState({type: consts.MAP_VIEW_NAME});
+				this.app.workspace.getLeaf().setViewState({ type: consts.MAP_VIEW_NAME });
 			},
 		});
 
@@ -80,7 +80,8 @@ export default class MapViewPlugin extends Plugin {
 			state: {
 				mapCenter: location,
 				mapZoom: this.settings.zoomOnGoFromNote
-			} as any});
+			} as any
+		});
 	}
 
 	private getLocationOnEditorLine(editor: Editor, view: FileView): leaflet.LatLng {
@@ -89,8 +90,7 @@ export default class MapViewPlugin extends Plugin {
 		let selectedLocation = null;
 		if (match)
 			selectedLocation = new leaflet.LatLng(parseFloat(match[1]), parseFloat(match[2]));
-		else
-		{
+		else {
 			const fmLocation = getFrontMatterLocation(view.file, this.app);
 			if (line.indexOf('location') > -1 && fmLocation)
 				selectedLocation = fmLocation;
@@ -128,98 +128,118 @@ class SettingsTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for the map view plugin.'});
+		containerEl.createEl('h2', { text: 'Settings for the map view plugin.' });
+
+		new Setting(containerEl)
+			.setName('Automatically add markers for images')
+			.setDesc('Search the vault for image files and add markers on the map if they have location data')
+			.addToggle(component => {
+				component
+					.setValue(this.plugin.settings.detectImageLocations)
+				.onChange(async (value) => {
+					this.plugin.settings.detectImageLocations = value;
+					await this.plugin.saveSettings();
+				});
+			});
 
 		new Setting(containerEl)
 			.setName('Map follows search results')
 			.setDesc('Auto focus the map to fit search results.')
-			.addToggle(component => {component
-				.setValue(this.plugin.settings.autoZoom)
-					.onChange(async (value) => {
-						this.plugin.settings.autoZoom = value;
-						await this.plugin.saveSettings();
-					})
+			.addToggle(component => {
+				component
+					.setValue(this.plugin.settings.autoZoom)
+				.onChange(async (value) => {
+					this.plugin.settings.autoZoom = value;
+					await this.plugin.saveSettings();
+				});
 			});
 
 		new Setting(containerEl)
 			.setName('Default action for map marker click')
 			.setDesc('How should the corresponding note be opened when clicking a map marker? Either way, CTRL reverses the behavior.')
-			.addDropdown(component => { component
-				.addOption('samePane', 'Open in same pane (replace map view)')
+			.addDropdown(component => {
+				component
+					.addOption('samePane', 'Open in same pane (replace map view)')
 				.addOption('secondPane', 'Open in a 2nd pane and keep reusing it')
 				.addOption('alwaysNew', 'Always open a new pane')
 				.setValue(this.plugin.settings.markerClickBehavior || 'samePane')
 				.onChange(async (value: any) => {
 					this.plugin.settings.markerClickBehavior = value;
 					this.plugin.saveSettings();
-				})
+				});
 			});
 
 		new Setting(containerEl)
 			.setName('New pane split direction')
 			.setDesc('Which way should the pane be split when opening in a new pane.')
-			.addDropdown(component => { component
-				.addOption('horizontal', 'Horizontal')
+			.addDropdown(component => {
+				component
+					.addOption('horizontal', 'Horizontal')
 				.addOption('vertical', 'Vertical')
 				.setValue(this.plugin.settings.newPaneSplitDirection || 'horizontal')
-					.onChange(async (value: any) => {
-						this.plugin.settings.newPaneSplitDirection = value;
-						this.plugin.saveSettings();
-					})
+				.onChange(async (value: any) => {
+					this.plugin.settings.newPaneSplitDirection = value;
+					this.plugin.saveSettings();
+				});
 			});
 
 		new Setting(containerEl)
 			.setName('New note name format')
 			.setDesc('Date/times in the format can be wrapped in {{date:...}}, e.g. "note-{{date:YYYY-MM-DD}}".')
-			.addText(component => { component
-				.setValue(this.plugin.settings.newNoteNameFormat || DEFAULT_SETTINGS.newNoteNameFormat)
+			.addText(component => {
+				component
+					.setValue(this.plugin.settings.newNoteNameFormat || DEFAULT_SETTINGS.newNoteNameFormat)
 				.onChange(async (value: string) => {
 					this.plugin.settings.newNoteNameFormat = value;
 					this.plugin.saveSettings();
-				})
+				});
 			});
 		new Setting(containerEl)
 			.setName('New note location')
 			.setDesc('Location for notes created from the map.')
-			.addText(component => { component
-				.setValue(this.plugin.settings.newNotePath || '')
+			.addText(component => {
+				component
+					.setValue(this.plugin.settings.newNotePath || '')
 				.onChange(async (value: string) => {
 					this.plugin.settings.newNotePath = value;
 					this.plugin.saveSettings();
-				})
+				});
 			});
 		new Setting(containerEl)
 			.setName('Template file location')
 			.setDesc('Choose the file to use as a template, e.g. "templates/map-log.md".')
-			.addText(component => { component
-				.setValue(this.plugin.settings.newNoteTemplate || '')
+			.addText(component => {
+				component
+					.setValue(this.plugin.settings.newNoteTemplate || '')
 				.onChange(async (value: string) => {
 					this.plugin.settings.newNoteTemplate = value;
 					this.plugin.saveSettings();
-				})
+				});
 			});
 
 		new Setting(containerEl)
 			.setName('Default zoom for "show on map" action')
 			.setDesc('When jumping to the map from a note, what should be the display zoom?')
-			.addSlider(component => {component
-				.setLimits(1, 18, 1)
+			.addSlider(component => {
+				component
+					.setLimits(1, 18, 1)
 				.setValue(this.plugin.settings.zoomOnGoFromNote)
-					.onChange(async (value) => {
-						this.plugin.settings.zoomOnGoFromNote = value;
-						await this.plugin.saveSettings();
-					})
+				.onChange(async (value) => {
+					this.plugin.settings.zoomOnGoFromNote = value;
+					await this.plugin.saveSettings();
+				});
 			});
 
 		new Setting(containerEl)
 			.setName('Map source (advanced)')
 			.setDesc('Source for the map tiles, see the documentation for more details. Requires to close & reopen the map.')
-			.addText(component => {component
-				.setValue(this.plugin.settings.tilesUrl)
+			.addText(component => {
+				component
+					.setValue(this.plugin.settings.tilesUrl)
 				.onChange(async (value) => {
 					this.plugin.settings.tilesUrl = value;
 					await this.plugin.saveSettings();
-				})
+				});
 			});
 
 		new Setting(containerEl)
