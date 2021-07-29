@@ -16,6 +16,7 @@ export type PluginSettings = {
 	newNoteNameFormat?: string;
 	newNotePath?: string;
 	newNoteTemplate?: string;
+	snippetLines?: number;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -30,5 +31,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	tilesUrl: consts.TILES_URL_OPENSTREETMAP,
 	autoZoom: true,
 	markerClickBehavior: 'samePane',
-	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}'
+	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
+	snippetLines: 3
 };

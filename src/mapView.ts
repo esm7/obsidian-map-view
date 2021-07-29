@@ -53,9 +53,15 @@ export class MapView extends ItemView {
 		this.setState = async (state: MapState, result) => {
 			if (state) {
 				console.log(`Received setState:`, state);
-				// We give the given state priority by setting a high version
-				state.version = 100;
-				await this.updateMapToState(state);
+				if (!state.version) {
+					// We give the given state priority by setting a high version
+					state.version = this.plugin.highestVersionSeen + 1;
+				}
+				if (!state.mapCenter || !state.mapZoom) {
+					state.mapCenter = this.defaultState.mapCenter;
+					state.mapZoom = this.defaultState.mapZoom;
+				}
+				await this.updateMapToState(state, false);
 			}
 		}
 		this.getState = (): MapState => {
@@ -70,7 +76,7 @@ export class MapView extends ItemView {
 	getViewType() { return 'map'; }
 	getDisplayText() { return 'Interactive Map View'; }
 
-	onOpen() {
+	async onOpen() {
 		var that = this;
 		this.isOpen = true;
 		this.state = this.defaultState;
@@ -112,7 +118,7 @@ export class MapView extends ItemView {
 					tags: this.settings.defaultTags || consts.DEFAULT_TAGS,
 					version: this.state.version + 1
 				};
-				await this.updateMapToState(newState);
+				await this.updateMapToState(newState, false);
 			});
 		let fitButton = new ButtonComponent(controlsDiv);
 		fitButton
@@ -138,7 +144,7 @@ export class MapView extends ItemView {
 		});
 		this.contentEl.append(this.display.mapDiv);
 
-		this.createMap();
+		await this.createMap();
 
 		return super.onOpen();
 	}
@@ -157,8 +163,8 @@ export class MapView extends ItemView {
 		// LeafletJS compatability: disable tree-shaking for the full-screen module
 		var dummy = leafletFullscreen;
 		this.display.map = new leaflet.Map(this.display.mapDiv, {
-			center: new leaflet.LatLng(40.731253, -73.996139),
-			zoom: 13,
+			center: this.defaultState.mapCenter,
+			zoom: this.defaultState.mapZoom,
 			zoomControl: false,
 			worldCopyJump: true,
 			maxBoundsViscosity: 1.0});
@@ -239,12 +245,6 @@ export class MapView extends ItemView {
 			});
 			mapPopup.showAtPosition(event.originalEvent);
 		});
-		this.display.map.whenReady(async () => {
-			await that.updateMapToState(this.defaultState, !this.settings.defaultZoom);
-			if (this.onAfterOpen != null)
-				this.onAfterOpen(this.display.map, this.display.markers);
-		})
-
 	}
 
 	// Updates the map to the given state and then sets the state accordingly, but only if the given state version
@@ -257,7 +257,10 @@ export class MapView extends ItemView {
 			// of the method was called), cancel the update
 			return;
 		}
+		// --- BEYOND THIS POINT NOTHING SHOULD BE ASYNC ---
+		// Saying it again: do not use 'await' below this line!
 		this.state = state;
+		this.plugin.highestVersionSeen = Math.max(this.plugin.highestVersionSeen, this.state.version);
 		this.updateMapMarkers(newMarkers);
 		this.state.tags = this.state.tags || [];
 		this.display.tagsBox.setValue(this.state.tags.filter(tag => tag.length > 0).join(','));
@@ -299,28 +302,7 @@ export class MapView extends ItemView {
 				this.display.markers.delete(marker.id);
 			} else {
 				// New marker - create it
-				marker.mapMarker = leaflet.marker(marker.location, { icon: marker.icon || new leaflet.Icon.Default() })
-					.addTo(this.display.map)
-					.bindTooltip(marker.file.name);
-				marker.mapMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
-					this.goToMarker(marker, event.originalEvent.ctrlKey, true);
-				});
-				marker.mapMarker.getElement().addEventListener('contextmenu', (ev: MouseEvent) => {
-					let mapPopup = new Menu(this.app);
-					mapPopup.setNoIcon();
-					mapPopup.addItem((item: MenuItem) => {
-						item.setTitle('Open note');
-						item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey, true); });
-					});
-					mapPopup.addItem((item: MenuItem) => {
-						item.setTitle('Open in Google Maps');
-						item.onClick(ev => {
-							open(`https://maps.google.com/?q=${marker.location.lat},${marker.location.lng}`);
-						});
-					});
-					mapPopup.showAtPosition(ev);
-					ev.stopPropagation();
-				})
+				marker.mapMarker = this.newLeafletMarker(marker);
 				newMarkersMap.set(marker.id, marker);
 			}
 		}
@@ -328,6 +310,40 @@ export class MapView extends ItemView {
 			value.mapMarker.removeFrom(this.display.map);
 		}
 		this.display.markers = newMarkersMap;
+	}
+
+	private newLeafletMarker(marker: FileMarker) : leaflet.Marker {
+		let newMarker = leaflet.marker(marker.location, { icon: marker.icon || new leaflet.Icon.Default() })
+			.addTo(this.display.map);
+		newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
+			this.goToMarker(marker, event.originalEvent.ctrlKey, true);
+		});
+		newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+			let content = `<p class="map-view-marker-name">${marker.file.name}</p>`;
+			if (marker.snippet)
+				content += `<p class="map-view-marker-snippet">${marker.snippet}</p>`;
+			newMarker.bindPopup(content, {closeButton: false}).openPopup();
+		});
+		newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
+			newMarker.closePopup();
+		});
+		newMarker.getElement().addEventListener('contextmenu', (ev: MouseEvent) => {
+			let mapPopup = new Menu(this.app);
+			mapPopup.setNoIcon();
+			mapPopup.addItem((item: MenuItem) => {
+				item.setTitle('Open note');
+				item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey, true); });
+			});
+			mapPopup.addItem((item: MenuItem) => {
+				item.setTitle('Open in Google Maps');
+				item.onClick(ev => {
+					open(`https://maps.google.com/?q=${marker.location.lat},${marker.location.lng}`);
+				});
+			});
+			mapPopup.showAtPosition(ev);
+			ev.stopPropagation();
+		})
+		return newMarker;
 	}
 
 	async autoFitMapToMarkers() {

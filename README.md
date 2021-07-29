@@ -139,6 +139,8 @@ Then, a note that has both the `#trip` and `#trip-water` tags will have a `fa-hi
 **Consider copying the configuration to an external editor and editing it there.**
 The configuration dialog ignores an invalid JSON object, so if you close it in a state that has a syntax error, your changes will be lost.
 
+Tag rules also support wildcards, e.g. a rule in the form of `"#food*": {...}` will match notes with the tag `#food`, `#food/pizza`, `#food/vegan`, `#food-to-try` etc.
+
 ### Map Sources
 
 By default, Map View uses the [standard tile layer of OpenStreetMap](https://wiki.openstreetmap.org/wiki/Standard_tile_layer).
@@ -173,6 +175,12 @@ There are so many things that I want it to do, and so little time...
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### 0.0.9
+
+- Marker hovers are now much nicer, and in the case of inline notes they also show the snippet around the location (configurable).
+- Smoother view state management including a relevant [bug fix](https://github.com/esm7/obsidian-map-view/issues/14).
+- Tag rules now supports wildcards in the tag name (as asked [here](https://github.com/esm7/obsidian-map-view/issues/10)).
 
 ### 0.0.8
 

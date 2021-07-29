@@ -1,4 +1,4 @@
-import { addIcon, App, Editor, FileView, MarkdownView, MenuItem, Menu, TFile, Plugin, WorkspaceLeaf, PluginSettingTab, Setting, TAbstractFile } from 'obsidian';
+import { addIcon, App, Editor, FileView, MarkdownView, MenuItem, Menu, TFile, Plugin, WorkspaceLeaf, PluginSettingTab, Setting, TAbstractFile, SuggestModal } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
 
@@ -8,6 +8,7 @@ import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src
 
 export default class MapViewPlugin extends Plugin {
 	settings: PluginSettings;
+	public highestVersionSeen: number = 0;
 
 	async onload() {
 		addIcon('globe', consts.RIBBON_ICON);
@@ -78,6 +79,7 @@ export default class MapViewPlugin extends Plugin {
 		await this.app.workspace.getLeaf().setViewState({
 			type: consts.MAP_VIEW_NAME,
 			state: {
+				version: this.highestVersionSeen + 1,	// Make sure this overrides any existing state
 				mapCenter: location,
 				mapZoom: this.settings.zoomOnGoFromNote
 			} as any});
@@ -132,7 +134,7 @@ class SettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Map follows search results')
-			.setDesc('Auto focus the map to fit search results.')
+			.setDesc('Auto zoom & pan the map to fit search results.')
 			.addToggle(component => {component
 				.setValue(this.plugin.settings.autoZoom)
 					.onChange(async (value) => {
@@ -198,7 +200,18 @@ class SettingsTab extends PluginSettingTab {
 					this.plugin.saveSettings();
 				})
 			});
-
+		new Setting(containerEl)
+			.setName('Note lines to show on map marker popup')
+			.setDesc('Number of total lines to show in the snippet displayed for inline location notes.')
+			.addSlider(slider => { slider
+				.setLimits(0, 12, 1)
+				.setDynamicTooltip()
+				.setValue(this.plugin.settings.snippetLines || DEFAULT_SETTINGS.snippetLines)
+				.onChange(async (value: number) => {
+					this.plugin.settings.snippetLines = value;
+					this.plugin.saveSettings();
+				})
+			});
 		new Setting(containerEl)
 			.setName('Default zoom for "show on map" action')
 			.setDesc('When jumping to the map from a note, what should be the display zoom?')

@@ -32,7 +32,8 @@ export default {
 		postcss({ extensions: ['.css'], plugins: [postcss_url({url: 'inline'})] }),
 		copy({
 			targets: [
-				{ src: './manifest.json', dest: 'dist' }
+				{ src: './manifest.json', dest: 'dist' },
+				{ src: './styles.css', dest: 'dist' }
 			]
 		})
 	]

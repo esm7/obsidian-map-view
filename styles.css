@@ -1,0 +1,13 @@
+.map-view-marker-name {
+	font-weight: bold;
+}
+ 
+.map-view-marker-snippet {
+	white-space: pre-line;
+	overflow-wrap: break-word;
+}
+
+.map-view-location {
+	font-weight: bold;
+	text-decoration: underline;
+}
