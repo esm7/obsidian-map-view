@@ -1,4 +1,4 @@
-import { App, TAbstractFile, Editor, ButtonComponent, MarkdownView, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
+import { TAbstractFile, Editor, ButtonComponent, MarkdownView, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
@@ -9,8 +9,8 @@ import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 
 import * as consts from 'src/consts';
-import { PluginSettings, DEFAULT_SETTINGS, isImage } from 'src/settings';
-import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers } from 'src/markers';
+import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
+import { MarkersMap, FileMarker, getIconFromOptions } from 'src/markers';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 
@@ -27,7 +27,7 @@ export class MapView extends ItemView {
 	private state: MapState;
 	private display = new class {
 		map: leaflet.Map;
-		markers: MarkersMap = new Map();
+		markers: MarkersMap;
 		mapDiv: HTMLDivElement;
 		tagsBox: TextComponent;
 	};
@@ -35,6 +35,9 @@ export class MapView extends ItemView {
 	private defaultState: MapState;
 	private newPaneLeaf: WorkspaceLeaf;
 	private isOpen: boolean = false;
+	private createTimer:any;
+	private refreshTimer:any;
+	private boxTimer:any;
 
 	public onAfterOpen: (map: leaflet.Map, markers: MarkersMap) => any = null;
 
@@ -50,21 +53,42 @@ export class MapView extends ItemView {
 			tags: this.settings.defaultTags || consts.DEFAULT_TAGS,
 			version: 0
 		};
-		this.setState = async (state: MapState, result) => {
+
+		this.getState = () => this.state;
+		this.setState = async (state: MapState, result: any = null)  => {
 			if (state) {
 				console.log(`Received setState:`, state);
 				// We give the given state priority by setting a high version
 				state.version = 100;
-				await this.updateMapToState(state);
+				this.updateMapToState(state);
 			}
 		};
-		this.getState = (): MapState => {
-			return this.state;
-		};
 
-		this.app.vault.on('delete', file => this.updateMarkersWithRelationToFile(file.path, null, true));
-		this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
-		this.app.metadataCache.on('changed', file => this.updateMarkersWithRelationToFile(file.path, file, false));
+		this.app.metadataCache.on('resolved', () => {
+			this.app.workspace.onLayoutReady(() => {
+				this.display.map.whenReady(() => {
+					this.updateMapToState(this.defaultState).then(() => {
+						this.refreshView();
+						if (this.onAfterOpen != null)
+							this.onAfterOpen(this.display.map, this.display.markers);
+					});
+				});
+
+				this.app.vault.on('rename', (file, oldPath) => this.handleRenameMarker(file, oldPath));
+				this.app.metadataCache.on('changed', file => this.handleUpdateMarker(file));
+				this.app.vault.on('delete', file => this.handleRemoveMarker(file));
+
+				// unfortunately create recieves an abstract file so whenever we detect created files we have to refresh the cache,
+				// in case of rapid creation we do this on a timeout in order to refresh only once
+				this.app.vault.on('create', () => {
+					if (this.createTimer) { window.clearTimeout(this.createTimer); this.createTimer = null; }
+					this.createTimer = window.setTimeout(() => {
+						this.createTimer = null;
+						this.plugin.cacheReset().then(() => this.updateMapToState(this.state,true));
+					}, 2000);
+				});
+			});
+		});
 	}
 
 	getViewType() { return 'map'; }
@@ -84,8 +108,12 @@ export class MapView extends ItemView {
 		this.display.tagsBox = new TextComponent(controlsDiv);
 		this.display.tagsBox.setPlaceholder('Tags, e.g. "#one,#two"');
 		this.display.tagsBox.onChange(async (tagsBox: string) => {
-			that.state.tags = tagsBox.split(',').filter(t => t.length > 0);
-			await this.updateMapToState(this.state, this.settings.autoZoom);
+			if (this.boxTimer) { window.clearTimeout(this.boxTimer); this.boxTimer = null; }
+			this.boxTimer = window.setTimeout(() => {
+				this.boxTimer = null;
+				that.state.tags = tagsBox?.length ? tagsBox.split(',').filter(t => t.length > 0) : null;
+				this.updateMapToState(this.state);
+			}, 600); //enough time to not trigger while typing without feeling slow to respond
 		});
 		let tagSuggestions = new DropdownComponent(controlsDiv);
 		tagSuggestions.setValue('Quick add tag');
@@ -105,14 +133,14 @@ export class MapView extends ItemView {
 		goDefault
 			.setButtonText('Reset')
 			.setTooltip('Reset the view to the defined default.')
-			.onClick(async () => {
+			.onClick(() => {
 				let newState = {
 					mapZoom: this.settings.defaultZoom || consts.DEFAULT_ZOOM,
 					mapCenter: this.settings.defaultMapCenter || consts.DEFAULT_CENTER,
 					tags: this.settings.defaultTags || consts.DEFAULT_TAGS,
 					version: this.state.version + 1
 				};
-				await this.updateMapToState(newState);
+				this.updateMapToState(newState);
 			});
 		let fitButton = new ButtonComponent(controlsDiv);
 		fitButton
@@ -153,7 +181,6 @@ export class MapView extends ItemView {
 	}
 
 	async createMap() {
-		var that = this;
 		// LeafletJS compatability: disable tree-shaking for the full-screen module
 		var dummy = leafletFullscreen;
 		this.display.map = new leaflet.Map(this.display.mapDiv, {
@@ -241,94 +268,141 @@ export class MapView extends ItemView {
 			});
 			mapPopup.showAtPosition(event.originalEvent);
 		});
-		this.display.map.whenReady(async () => {
-			await that.updateMapToState(this.defaultState, !this.settings.defaultZoom);
-			if (this.onAfterOpen != null)
-				this.onAfterOpen(this.display.map, this.display.markers);
-		});
-
 	}
 
 	// Updates the map to the given state and then sets the state accordingly, but only if the given state version
 	// is not lower than the current state version (so concurrent async updates always keep the latest one)
-	async updateMapToState(state: MapState, autoFit: boolean = false) {
-		const files = await this.getFileListByQuery(state.tags);
-		let newMarkers = await buildMarkers(files, this.settings, this.app);
-		if (state.version < this.state.version) {
-			// If the state we were asked to update is old (e.g. because while we were building markers a newer instance
-			// of the method was called), cancel the update
-			return;
-		}
-		this.state = state;
-		this.updateMapMarkers(newMarkers);
+	async updateMapToState(state: MapState, updateFromCache = false) {
+		// If the state we we're asked to update is old (e.g. because while we were building markers a newer instance
+		// of the method was called), cancel the update
+		if (state.version < this.state.version) return;
+		else this.state = state;
 		this.state.tags = this.state.tags || [];
 		this.display.tagsBox.setValue(this.state.tags.filter(tag => tag.length > 0).join(','));
-		if (this.state.mapCenter && this.state.mapZoom)
-			this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
-		if (autoFit)
-			this.autoFitMapToMarkers();
+
+		this.fetchAndUpdateMapMarkers(updateFromCache);
+		this.cleanMarkers();
+		for(let marker of this.markerQuery(state.tags)) this.showOrHideMarker(marker);	
 	}
 
-	async getFileListByQuery(tags: string[]) {
-		let results: TFile[] = [];
-		const allFiles = this.app.vault.getFiles();
-		for (const file of allFiles) {
-			// only show images when not filtering by tag, currently not a clean way of adding tags to images
-			console.log(`this.settings.detectImageLocations`, this.settings.detectImageLocations);
-			if (!tags?.length && this.settings.detectImageLocations && isImage(file)) results.push(file);
-			else if (!tags?.length || this.app.metadataCache.getFileCache(file)?.tags?.some(t => tags.includes(t.tag)))
-				results.push(file);
-		}
-		return results;
-	}
-
-	updateMapMarkers(newMarkers: FileMarker[]) {
-		let newMarkersMap: MarkersMap = new Map();
-		for (let marker of newMarkers) {
-			if (isImage(marker.file) && !this.settings.detectImageLocations) continue; //don't update if the setting has been changed
-			const existingMarker = this.display.markers.has(marker.id) ?
-				this.display.markers.get(marker.id) : null;
-			if (existingMarker && existingMarker.isSame(marker)) {
-				// This marker exists, so just keep it
-				newMarkersMap.set(marker.id, this.display.markers.get(marker.id));
-				this.display.markers.delete(marker.id);
-			} else {
-				// New marker - create it
-				marker.mapMarker = leaflet.marker(marker.location, { icon: marker.icon || new leaflet.Icon.Default() })
-					.addTo(this.display.map)
-					.bindTooltip(marker.file.name);
-				marker.mapMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
-					this.goToMarker(marker, event.originalEvent.ctrlKey, true);
+	private fetchAndUpdateMapMarkers(updateFromCache = false) {
+		if (!this.display.markers || updateFromCache) {
+			this.display.markers ??= new Map();
+			for (const promise of this.plugin.fileCache) {
+				promise.then(async marker => {
+					if (!marker) return;
+					this.updateMarker(marker);
 				});
-				marker.mapMarker.getElement().addEventListener('contextmenu', (ev: MouseEvent) => {
-					let mapPopup = new Menu(this.app);
-					mapPopup.setNoIcon();
-					mapPopup.addItem((item: MenuItem) => {
-						item.setTitle('Open note');
-						item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey, true); });
-					});
-					mapPopup.addItem((item: MenuItem) => {
-						item.setTitle('Open in Google Maps');
-						item.onClick(ev => {
-							open(`https://maps.google.com/?q=${marker.location.lat},${marker.location.lng}`);
-						});
-					});
-					mapPopup.showAtPosition(ev);
-					ev.stopPropagation();
-				});
-				newMarkersMap.set(marker.id, marker);
 			}
+		} else for (const marker of this.display.markers.values())
+			this.updateMarker(marker);
+	}
+
+	private async handleRemoveMarker(removed: TAbstractFile) {
+		if (!this.display.map || !this.isOpen) return;
+		this.display.markers.forEach(marker =>{
+			if(marker.file.path == removed.path) {
+				this.display.markers.delete(marker.id);
+				marker.mapMarker.removeFrom(this.display.map);
+			}
+		});
+	}
+	private handleRenameMarker(renamed: TAbstractFile, oldPath: string) {
+		if (!this.display.map || !this.isOpen) return;
+		this.display.markers.forEach(marker => {if(marker.file.path == oldPath) Object.assign(marker.file,renamed)});
+	}
+	/* 
+		this currently recalculates all markers for a file that is changed while the map is open,
+		which could potentially be a bottleneck on a huge file with tons of markers,
+		but it's doubtful this would ever be an issue and finding exactly which marker changed adds unnecessary complexity
+	*/
+	private async handleUpdateMarker(changed: TFile) {
+		if (!this.display.map || !this.isOpen) return;
+		this.handleRemoveMarker(changed);
+		this.plugin.cacheRemove(changed);
+		for(let promise of this.plugin.cacheAdd(changed))
+			promise.then(marker => this.updateMarker(marker));
+	}
+
+	updateMarker(marker: FileMarker|FileMarker[]) {
+		if(!marker) return;
+	
+		if (marker instanceof Array) {
+			marker.forEach(m => this.updateMarker(m));
+			return;
 		}
-		for (let [key, value] of this.display.markers) {
-			value.mapMarker.removeFrom(this.display.map);
+
+		let existingMarker = this.display.markers.get(marker.id);
+		if (!existingMarker?.isSame(marker))  {
+			// New marker - create it
+			marker.mapMarker = leaflet.marker(marker.location, { icon: marker.icon || new leaflet.Icon.Default() })
+				.addTo(this.display.map)
+				.bindTooltip(marker.file.name);
+			marker.mapMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
+				this.goToMarker(marker, event.originalEvent.ctrlKey, true);
+			});
+			marker.mapMarker.getElement().addEventListener('contextmenu', (ev: MouseEvent) => {
+				let mapPopup = new Menu(this.app);
+				mapPopup.setNoIcon();
+				mapPopup.addItem((item: MenuItem) => {
+					item.setTitle('Open note');
+					item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey, true); });
+				});
+				mapPopup.addItem((item: MenuItem) => {
+					item.setTitle('Open in Google Maps');
+					item.onClick(ev => {
+						open(`https://maps.google.com/?q=${marker.location.lat},${marker.location.lng}`);
+					});
+				});
+				mapPopup.showAtPosition(ev);
+				ev.stopPropagation();
+			});
+			this.display.markers.set(marker.id, marker);
+			this.refreshView();
 		}
-		this.display.markers = newMarkersMap;
+	}
+
+	/** has "side effect" of marking unmatched markers dirty so they are removed  */
+	*markerQuery(tags: string[]) {
+		//NOTE: this way of doing things means any tag filtering automatically excludes non-markdown files
+		//TODO: make it possible to insert multiple inclusion strategies, e.g. filter by file type
+		for (const [markerId,marker] of this.display.markers) {
+			if (tags?.length && !this.app.metadataCache.getFileCache(marker.file)?.tags?.some(t => tags.includes(t.tag)))
+				 marker.dirty = true;
+			yield marker;
+		}
+	}
+	cleanMarkers(){
+		this.display.markers.forEach(marker => marker.dirty = false);
+	}
+	showOrHideMarker(marker: FileMarker) {
+		if (marker?.dirty) marker.mapMarker.removeFrom(this.display.map);
+		else marker.mapMarker.addTo(this.display.map);
+		this.refreshView();
+	}
+
+	// each refresh request resets the timer unless it's been more than a second since the first request
+	// this causes periodic refreshes every second when getting many sequential requests
+	refreshStartTime:number;
+	refreshView() {
+		this.refreshStartTime ??= Date.now();
+		if (this.refreshTimer){
+			if(Date.now() - this.refreshStartTime < 1000) window.clearTimeout(this.refreshTimer);
+			else return;
+		}
+		this.refreshTimer = window.setTimeout(async () => {
+			this.refreshTimer = null;
+			this.refreshStartTime = null;
+			if (this.state.mapCenter && this.state.mapZoom)
+				this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
+			if(this.settings.autoZoom) this.autoFitMapToMarkers();
+		}, 100);
+
 	}
 
 	async autoFitMapToMarkers() {
 		if (this.display.markers.size > 0) {
 			const locations: leaflet.LatLng[] = Array.from(this.display.markers.values()).map(fileMarker => fileMarker.location);
-			console.log(`Auto fit by state:`, this.state);
 			this.display.map.fitBounds(leaflet.latLngBounds(locations));
 		}
 	}
@@ -406,18 +480,6 @@ export class MapView extends ItemView {
 		return null;
 	}
 
-	private async updateMarkersWithRelationToFile(fileRemoved: string, fileAddedOrChanged: TAbstractFile, skipMetadata: boolean) {
-		if (!this.display.map || !this.isOpen)
-			return;
-		let newMarkers: FileMarker[] = [];
-		for (let [markerId, fileMarker] of this.display.markers) {
-			if (fileMarker.file.path !== fileRemoved)
-				newMarkers.push(fileMarker);
-		}
-		if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
-			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app);
-		this.updateMapMarkers(newMarkers);
-	}
-
 }
+
 

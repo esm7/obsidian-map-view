@@ -3,11 +3,29 @@ import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
 
 import { MapView } from 'src/mapView';
-import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
-import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
+import { PluginSettings, DEFAULT_SETTINGS, isImage } from 'src/settings';
+import { FileMarker, markersFromMd, getFrontMatterLocation, getIconFromOptions, matchInlineLocation, verifyLocation } from 'src/markers';
+import exifr from "exifr";
+
+type Extractor = (f: TFile) => Promise<FileMarker|FileMarker[]>;
+type Predicate = (f: TFile) => boolean;
+type Rule = {pred:Predicate, extract:Extractor};
+
 
 export default class MapViewPlugin extends Plugin {
 	settings: PluginSettings;
+
+	CACHE_RULES: Rule[] = [
+		{ pred: (f: TFile) => this.settings.detectImageLocations && isImage(f), extract: (f: TFile) => this.getImageCoords(f) },
+		{ pred: (f: TFile) => f.extension == 'md', extract: (f: TFile) => markersFromMd(f, this.settings, this.app) },
+	];
+	private _fileCache: Map<string, [TFile, Rule, FileMarker|FileMarker[]]>;
+	private *cacheGen () { for (let val of this._fileCache.values()) yield Promise.resolve(val[2]); }
+	// BUG: sometimes this gets called twice before the cache has been populated, which parses all the files multiple times (only affects performance)
+	public get fileCache() {
+		if (!this._fileCache) return this.cacheAdd();
+		else return this.cacheGen();
+	}
 
 	async onload() {
 		addIcon('globe', consts.RIBBON_ICON);
@@ -39,7 +57,7 @@ export default class MapViewPlugin extends Plugin {
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
-						item.onClick(async () => await this.openMapWithLocation(location));
+						item.onClick(() => this.openMapWithLocation(location));
 					});
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open in Google Maps');
@@ -60,7 +78,7 @@ export default class MapViewPlugin extends Plugin {
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
-						item.onClick(async () => await this.openMapWithLocation(location));
+						item.onClick(() => this.openMapWithLocation(location));
 					});
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open in Google Maps');
@@ -71,7 +89,7 @@ export default class MapViewPlugin extends Plugin {
 				}
 			}
 		});
-
+		this.app.vault.on('delete',file => this.cacheRemove(file));
 	}
 
 	private async openMapWithLocation(location: leaflet.LatLng) {
@@ -80,7 +98,8 @@ export default class MapViewPlugin extends Plugin {
 			state: {
 				mapCenter: location,
 				mapZoom: this.settings.zoomOnGoFromNote
-			} as any});
+			} as any
+		});
 	}
 
 	private getLocationOnEditorLine(editor: Editor, view: FileView): leaflet.LatLng {
@@ -89,8 +108,7 @@ export default class MapViewPlugin extends Plugin {
 		let selectedLocation = null;
 		if (match)
 			selectedLocation = new leaflet.LatLng(parseFloat(match[1]), parseFloat(match[2]));
-		else
-		{
+		else {
 			const fmLocation = getFrontMatterLocation(view.file, this.app);
 			if (line.indexOf('location') > -1 && fmLocation)
 				selectedLocation = fmLocation;
@@ -106,14 +124,64 @@ export default class MapViewPlugin extends Plugin {
 	}
 
 	async loadSettings() {
+		//TODO: loading and saving the cache from/to a json file would make the map ready faster for large vaults
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-}
 
+	async getImageCoords(file: TFile) {
+		try{
+			let { latitude, longitude } = await exifr.parse(await this.app.vault.adapter.readBinary(file.path));
+			if(!latitude  || !longitude) throw 0;
+			let leafletMarker = new FileMarker(file, new leaflet.LatLng(latitude, longitude));
+			leafletMarker.icon = this.getImageMarker(this.settings);
+			return leafletMarker;
+		} catch{/* just ignore file parsing errors or empty location data for now*/}
+		return null;
+	}
+
+	//TODO: as more filetypes are supported, icons should be configurable for each
+	getImageMarker(settings: PluginSettings) {
+		return getIconFromOptions(Object.assign({}, settings.markerIcons.default, { "prefix": "fas", "icon": "fa-camera" }));
+	}
+
+	// TODO: should probably make the cache it's own class
+	public cacheGet(file: TFile) { return this._fileCache.get(file.path)[2]; }
+	public cacheRemove(...files: TAbstractFile[]) { if (files?.length) for (let file of files) this._fileCache.delete(file.path); }
+	async cacheReset() {
+		this._fileCache = null;
+		for (let f of this.cacheAdd());
+	}
+	
+	*cacheAdd(...files: TFile[]) {
+		let add = async (file: TFile) => {
+			let existing = this._fileCache.get(file.path);
+			if (existing) return existing[2];
+			for (const rule of this.CACHE_RULES)
+				if (rule.pred(file)) {
+					let marker = await rule.extract(file);
+					if (marker) {
+						this._fileCache.set(file.path, [file, rule, marker]);
+						return marker;
+					}
+				}
+			return null;
+		};
+		if (!this._fileCache) this._fileCache = new Map();
+		if (files?.length) for (let file of files) yield add(file);
+		else {
+			console.log('Loading cache...');
+			// md files will be faster to extract from so we do them first
+			let markdownFilesFirst = this.app.vault.getFiles().sort((a, b) =>
+				a.extension == b.extension ? 0 : a.extension == 'md' ? 1 : -1
+			);
+			for (let file of markdownFilesFirst) yield add(file);
+		}
+	}
+}
 
 class SettingsTab extends PluginSettingTab {
 	plugin: MapViewPlugin;
@@ -138,6 +206,7 @@ class SettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.detectImageLocations)
 				.onChange(async (value) => {
 					this.plugin.settings.detectImageLocations = value;
+					this.plugin.cacheReset();
 					await this.plugin.saveSettings();
 				});
 			});

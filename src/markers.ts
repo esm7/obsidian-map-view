@@ -1,14 +1,15 @@
-import { App, TFile } from 'obsidian';
-import * as leaflet from 'leaflet';
 import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
+
+import * as consts from 'src/consts';
+import * as leaflet from 'leaflet';
+
+import { App, TFile } from 'obsidian';
+import { PluginSettings } from 'src/settings';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 let localL = L;
 
-import { isImage, PluginSettings } from 'src/settings';
-import * as consts from 'src/consts';
-import exifr from "exifr";
 
 type MarkerId = string;
 
@@ -19,6 +20,7 @@ export class FileMarker {
 	icon?: leaflet.Icon<leaflet.BaseIconOptions>;
 	mapMarker?: leaflet.Marker;
 	id: MarkerId;
+	dirty:boolean = false;
 
 	constructor(file: TFile, location: leaflet.LatLng) {
 		this.file = file;
@@ -41,6 +43,7 @@ export class FileMarker {
 			this.icon?.options?.shape === other.icon?.options?.shape;
 	}
 
+	//NOTE: given two of the same locations in the same file this results in only one marker eventually being created (which I assume is always ok)
 	generateId() : MarkerId {
 		return this.file.name + this.location.lat.toString() + this.location.lng.toString();
 	}
@@ -48,47 +51,24 @@ export class FileMarker {
 
 export type MarkersMap = Map<MarkerId, FileMarker>;
 
-export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], file: TFile, settings: PluginSettings, app: App, skipMetadata?: boolean) {
-	if (isImage(file)) { await getImageCoords(mapToAppendTo, file, settings, app); return; }
-
+export async function markersFromMd(file: TFile, settings: PluginSettings, app: App) {
 	const fileCache = app.metadataCache.getFileCache(file);
 	const frontMatter = fileCache?.frontmatter;
 	if (frontMatter) {
-		if (!skipMetadata) {
+		if ('locations' in frontMatter) {
+			const markersFromFile = await getMarkersFromFileContent(file, settings, app);
+			return markersFromFile;
+		}
+		else {
 			const location = getFrontMatterLocation(file, app);
 			if (location) {
 				verifyLocation(location);
 				let leafletMarker = new FileMarker(file, location);
 				leafletMarker.icon = getIconForMarker(leafletMarker, settings, app);
-				mapToAppendTo.push(leafletMarker);
+				return leafletMarker;
 			}
 		}
-		if ('locations' in frontMatter) {
-			const markersFromFile = await getMarkersFromFileContent(file, settings, app);
-			mapToAppendTo.push(...markersFromFile);
-		}
 	}
-}
-async function getImageCoords(mapToAppendTo: FileMarker[], file: TFile, settings: PluginSettings, app: App) {
-	let jeff = await exifr.parse(await app.vault.adapter.readBinary(file.path));
-	let { latitude, longitude } = jeff;
-	if (latitude && longitude) {
-		let leafletMarker = new FileMarker(file, new leaflet.LatLng(latitude, longitude));
-		leafletMarker.icon = getImageMarker(settings);
-		mapToAppendTo.push(leafletMarker);
-	}
-}
-function getImageMarker(settings: PluginSettings) {
-	return getIconFromOptions(Object.assign({}, settings.markerIcons.default, { "prefix": "fas", "icon": "fa-camera" }));
-}
-
-
-export async function buildMarkers(files: TFile[], settings: PluginSettings, app: App): Promise<FileMarker[]> {
-	let markers: FileMarker[] = [];
-	for (const file of files) {
-		await buildAndAppendFileMarkers(markers, file, settings, app);
-	}
-	return markers;
 }
 
 function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.Icon {
