@@ -11,7 +11,7 @@ You can set different icons for different note types, filter the displayed notes
 
 ![](search.png)
 
-This plugin is in preliminary stages, but its guiding philosophy and goal is to provide a **personal GIS system** as a complementary view for your notes.
+The plugin's guiding philosophy and goal is to provide a **personal GIS system** as a complementary view for your notes.
 I wrote it because I wanted my ever-growing Zettelkasten to be able to answer questions like...
 
 - If I'm visiting somewhere, what interesting places do I know in the area?
@@ -21,21 +21,10 @@ And many more.
 
 Just like the Obsidian graph view lets you visualize associative relations between some of your notes, the map view lets you visualize geographic ones.
 
-## Disclaimer
-
-This plugin has a lot of potential for growth; it can have many more useful features (and hopefully eventually it will).
-It can also be much more visually polished and much easier to use.
-
-However, it is the result of just a few restless evenings on which I wanted to quickly build a solution to a problem that I had.
-I will not be able to give it the attention it deserves to fulfill its full potential, because it requires a lot more work.
-I'm sure many will have great ideas for taking it to the next level, but unfortunately I don't expect to have the availability required for that, so at this point feature request will mostly have to go unattended.
-
-I believe that it can be useful enough for many users as-is, and I hope that as the user base grows, a few developers will pitch in to help continue the vision.
-
 ## Limitations
 
 - Although both light & dark themes are supported, the map itself is currently only light.
-- Experience in mobile is not as good as it should be. Most notably there's no GPS location support due to permission limitations of the Obsidian app.
+- Experience in mobile is not as good as it should be. Most notably there's no GPS location support due to permission limitations of the Obsidian app. Please help us ask the Obsidian developers to get these permissions added!
 
 ## User Guide
 
@@ -54,7 +43,7 @@ location: [40.6892494,-74.0466891]
 This is useful for notes that represent a single specific location.
 It's also compatible with the way other useful plugins like [obsidian-leaflet](https://github.com/valentine195/obsidian-leaflet-plugin) read locations, and allows some interoperability.
 
-Another way that the plugin parses location data is through inline location URLs in the format of `[link name](geo:40.68,-74.04)`, which allow multiple markers in the same note.
+Another way that the plugin parses location data is through inline location URLs in the format of `[link-name](geo:40.68,-74.04)`, which allow multiple markers in the same note.
 To prevent the need to scan the full content of all your notes, it requires an empty `locations:` tag in the note front matter ('locations' and not 'location').
 Example:
 
@@ -76,7 +65,7 @@ Notes with multiple markers will contain multiple markers on the map with the sa
 For many cases inline locations are superior because `geo:` is a [native URL scheme](https://en.wikipedia.org/wiki/Geo_URI_scheme), so if you click it in Obsidian (including mobile), your default maps app (or an app selector for a location) will be triggered.
 The front matter method, however, is currently better if you want interoperability with plugins that use it.
 
-Note: older versions of this plugin used the notation ` `location: ...` ` for inline locations.
+Note: older versions of this plugin used the notation `location: ...` for inline locations.
 This notation is still supported but the standard `geo:` one is the default and encouraged one.
 
 ### Finding a Location
@@ -198,10 +187,20 @@ There are so many things that I want it to do, and so little time...
 
 - A new experimental geosearch functionality was added ("convert to location"), see documentation above.
 - Small usability fixes that make the app better on mobile.
-- Conversion: 
+- The inline location format was changed to standard [geo URLs](https://en.wikipedia.org/wiki/Geo_URI_scheme), as pointed out by @D-side in [this issue](https://github.com/esm7/obsidian-map-view/issues/18). This is superior to the previous format in many ways:
+  - These URLs are clickable and launch the default app or an app selection in desktop and mobile.
+  - They make much more sense in Preview Mode.
+  - They have a name, making something nicer to present in the note hover popup.
+
+**The previous `location:` format is still supported for backwards compatibility,** but you are encouraged to convert your inline locations to enjoy the benefits of the new format.
+
+If you're using Vim (the real one, not Obsidian's Vim mode), you can use a substitute command for each note with inline locations:
 ```
 %s/`location:.*\[\(.*,.*\)]`/[](geo:\1)/g
 ```
+
+(remove `\[` and `\]` if you were using the syntax without brackets)
+
 
 ### 0.0.9
 
