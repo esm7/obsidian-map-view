@@ -20,6 +20,7 @@ export class FileMarker {
 	mapMarker?: leaflet.Marker;
 	id: MarkerId;
 	snippet?: string;
+	extraName?: string;
 
 	constructor(file: TFile, location: leaflet.LatLng) {
 		this.file = file;
@@ -31,6 +32,7 @@ export class FileMarker {
 		return this.file.name === other.file.name &&
 			this.location.toString() === other.location.toString() &&
 			this.fileLocation === other.fileLocation &&
+			this.extraName === other.extraName &&
 			this.icon?.options?.iconUrl === other.icon?.options?.iconUrl &&
 			// @ts-ignore
 			this.icon?.options?.icon === other.icon?.options?.icon &&
@@ -39,7 +41,7 @@ export class FileMarker {
 			// @ts-ignore
 			this.icon?.options?.markerColor === other.icon?.options?.markerColor &&
 			// @ts-ignore
-			this.icon?.options?.shape === other.icon?.options?.shape;
+			this.icon?.options?.shape === other.icon?.options?.shape
 	}
 
 	generateId() : MarkerId {
@@ -70,10 +72,14 @@ export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], fil
 }
 
 export async function buildMarkers(files: TFile[], settings: PluginSettings, app: App): Promise<FileMarker[]> {
+	if (settings.debug)
+		console.time('buildMarkers');
 	let markers: FileMarker[] = [];
 	for (const file of files) {
 		await buildAndAppendFileMarkers(markers, file, settings, app);
 	}
+	if (settings.debug)
+		console.timeEnd('buildMarkers');
 	return markers;
 }
 
@@ -119,10 +125,14 @@ export function verifyLocation(location: leaflet.LatLng) {
 		throw Error(`Lat ${location.lat} is outside the allowed limits`);
 }
 
-export function matchInlineLocation(content: string) {
-	const locationRegex = /\`location:\s*\[?(.+)\s*,\s*(.+)\]?\`/g;
-	const matches = content.matchAll(locationRegex);
-	return matches;
+export function matchInlineLocation(content: string): RegExpMatchArray[] {
+	// Old syntax of ` `location: ... ` `. This syntax doesn't support a name so we leave an empty capture group
+	const locationRegex1 = /\`()location:\s*\[?([0-9.\-]+)\s*,\s*([0-9.\-]+)\]?\`/g;
+	// New syntax of `[name](geo:...)`
+	const locationRegex2 = /\[(.*)\]\(geo:([0-9.\-]+),([0-9.\-]+)\)/g;
+	const matches1 = content.matchAll(locationRegex1);
+	const matches2 = content.matchAll(locationRegex2);
+	return Array.from(matches1).concat(Array.from(matches2));
 }
 
 async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, app: App): Promise<FileMarker[]> {
@@ -131,9 +141,11 @@ async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, 
 	const matches = matchInlineLocation(content);
 	for (const match of matches) {
 		try {
-			const location = new leaflet.LatLng(parseFloat(match[1]), parseFloat(match[2]));
+			const location = new leaflet.LatLng(parseFloat(match[2]), parseFloat(match[3]));
 			verifyLocation(location);
 			const marker = new FileMarker(file, location);
+			if (match[1] && match[1].length > 0)
+				marker.extraName = match[1];
 			marker.fileLocation = match.index;
 			marker.icon = getIconForMarker(marker, settings, app);
 			marker.snippet = await makeTextSnippet(file, content, marker.fileLocation, settings);
@@ -158,7 +170,7 @@ async function makeTextSnippet(file: TFile, fileContent: string, fileLocation: n
 			const prevLine = fileContent.lastIndexOf('\n', snippetStart - 1);
 			const line = fileContent.substring(snippetStart, prevLine);
 			// If the new line above contains another location, don't include it and stop
-			if (!matchInlineLocation(line).next().done)
+			if (matchInlineLocation(line).length > 0)
 				break;
 			snippetStart = prevLine;
 			linesAbove -= 1;
@@ -172,7 +184,7 @@ async function makeTextSnippet(file: TFile, fileContent: string, fileLocation: n
 			const nextLine = fileContent.indexOf('\n', snippetEnd + 1);
 			const line = fileContent.substring(snippetEnd, nextLine > -1 ? nextLine : fileContent.length);
 			// If the new line below contains another location, don't include it and stop
-			if (!matchInlineLocation(line).next().done)
+			if (matchInlineLocation(line).length > 0)
 				break;
 			snippetEnd = nextLine;
 			linesBelow -= 1;
@@ -181,6 +193,7 @@ async function makeTextSnippet(file: TFile, fileContent: string, fileLocation: n
 			snippetEnd = fileContent.length;
 		snippet = fileContent.substring(snippetStart, snippetEnd);
 		snippet = snippet.replace(/\`location:.*\`/g, '<span class="map-view-location">`location:...`</span>');
+		snippet = snippet.replace(/(\[.*\])\(.+\)/g, '<span class="map-view-location">$1(geo:...)</span>');
 	}
 	return snippet;
 }

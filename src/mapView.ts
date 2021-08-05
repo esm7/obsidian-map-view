@@ -143,6 +143,10 @@ export class MapView extends ItemView {
 			el.style.height = '100%';
 		});
 		this.contentEl.append(this.display.mapDiv);
+		// Make touch move nicer on mobile
+		this.contentEl.addEventListener('touchmove', (ev) => {
+			ev.stopPropagation();
+		});
 
 		await this.createMap();
 
@@ -203,7 +207,7 @@ export class MapView extends ItemView {
 					const newFileName = utils.formatWithTemplates(this.settings.newNoteNameFormat);
 					const file: TFile = await utils.newNote(this.app, 'singleLocation', this.settings.newNotePath,
 						newFileName, location, this.settings.newNoteTemplate);
-					this.goToFile(file, ev.ctrlKey);
+					this.goToFile(file, ev.ctrlKey, utils.handleNewNoteCursorMarker);
 				});
 			})
 			mapPopup.addItem((item: MenuItem) => {
@@ -213,14 +217,14 @@ export class MapView extends ItemView {
 					const newFileName = utils.formatWithTemplates(this.settings.newNoteNameFormat);
 					const file: TFile = await utils.newNote(this.app, 'multiLocation', this.settings.newNotePath,
 						newFileName, location, this.settings.newNoteTemplate);
-					this.goToFile(file, ev.ctrlKey);
+					this.goToFile(file, ev.ctrlKey, utils.handleNewNoteCursorMarker);
 				});
 			})
 			mapPopup.addItem((item: MenuItem) => {
 				const location = `${event.latlng.lat},${event.latlng.lng}`;
 				item.setTitle(`Copy location as inline`);
 				item.onClick(_ev => {
-					navigator.clipboard.writeText(`\`location: [${location}]\``);
+					navigator.clipboard.writeText(`[](geo:${location})`);
 				});
 			});
 			mapPopup.addItem((item: MenuItem) => {
@@ -238,6 +242,12 @@ export class MapView extends ItemView {
 				});
 			});
 			mapPopup.addItem((item: MenuItem) => {
+				item.setTitle('Open as geolocation');
+				item.onClick(_ev => {
+					open(`geo:${event.latlng.lat},${event.latlng.lng}`);
+				});
+			});
+			mapPopup.addItem((item: MenuItem) => {
 				item.setTitle('Open in Google Maps');
 				item.onClick(_ev => {
 					open(`https://maps.google.com/?q=${event.latlng.lat},${event.latlng.lng}`);
@@ -250,6 +260,8 @@ export class MapView extends ItemView {
 	// Updates the map to the given state and then sets the state accordingly, but only if the given state version
 	// is not lower than the current state version (so concurrent async updates always keep the latest one)
 	async updateMapToState(state: MapState, autoFit: boolean = false) {
+		if (this.settings.debug)
+			console.time('updateMapToState');
 		const files = this.getFileListByQuery(state.tags);
 		let newMarkers = await buildMarkers(files, this.settings, this.app);
 		if (state.version < this.state.version) {
@@ -268,6 +280,8 @@ export class MapView extends ItemView {
 			this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
 		if (autoFit)
 			this.autoFitMapToMarkers();
+		if (this.settings.debug)
+			console.timeEnd('updateMapToState');
 	}
 
 	getFileListByQuery(tags: string[]): TFile[] {
@@ -320,6 +334,8 @@ export class MapView extends ItemView {
 		});
 		newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
 			let content = `<p class="map-view-marker-name">${marker.file.name}</p>`;
+			if (marker.extraName)
+				content += `<p class="map-view-extra-name">${marker.extraName}</p>`;
 			if (marker.snippet)
 				content += `<p class="map-view-marker-snippet">${marker.snippet}</p>`;
 			newMarker.bindPopup(content, {closeButton: false}).openPopup();
@@ -333,6 +349,12 @@ export class MapView extends ItemView {
 			mapPopup.addItem((item: MenuItem) => {
 				item.setTitle('Open note');
 				item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey, true); });
+			});
+			mapPopup.addItem((item: MenuItem) => {
+				item.setTitle('Open as geolocation');
+				item.onClick(ev => {
+					open(`geo:${marker.location.lat},${marker.location.lng}`);
+				});
 			});
 			mapPopup.addItem((item: MenuItem) => {
 				item.setTitle('Open in Google Maps');
@@ -354,7 +376,7 @@ export class MapView extends ItemView {
 		}
 	}
 
-	async goToFile(file: TFile, useCtrlKeyBehavior: boolean, fileLocation?: number, highlight?: boolean) {
+	async goToFile(file: TFile, useCtrlKeyBehavior: boolean, editorAction?: (editor: Editor) => Promise<void>) {
 		let leafToUse = this.app.workspace.activeLeaf;
 		const defaultDifferentPane = this.settings.markerClickBehavior != 'samePane';
 		// Having a pane to reuse means that we previously opened a note in a new pane and that pane still exists (wasn't closed)
@@ -386,24 +408,14 @@ export class MapView extends ItemView {
 			}
 		}
 		await leafToUse.openFile(file);
-		const editor = this.getEditor();
-		if (editor) {
-			if (fileLocation) {
-				let pos = editor.offsetToPos(fileLocation);
-				if (highlight) {
-					editor.setSelection({ch: 0, line: pos.line}, {ch: 1000, line: pos.line});
-				} else {
-					editor.setCursor(pos);
-					editor.refresh();
-				}
-			}
-			editor.focus();
-		}
-
+		const editor = await this.getEditor(leafToUse);
+		if (editor && editorAction)
+			await editorAction(editor);
 	}
 
 	async goToMarker(marker: FileMarker, useCtrlKeyBehavior: boolean, highlight: boolean) {
-		return this.goToFile(marker.file, useCtrlKeyBehavior, marker.fileLocation, highlight);
+		return this.goToFile(marker.file, useCtrlKeyBehavior,
+			async (editor) => { await utils.goToEditorLocation(editor, marker.fileLocation, highlight); });
 	}
 
 	getAllTagNames() : string[] {
@@ -420,8 +432,10 @@ export class MapView extends ItemView {
 		return tags;
 	}
 
-	getEditor() : Editor {
-		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
+	async getEditor(leafToUse?: WorkspaceLeaf) : Promise<Editor> {
+		let view = leafToUse && leafToUse.view instanceof MarkdownView ?
+			leafToUse.view :
+			this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (view)
 			return view.editor;
 		return null;

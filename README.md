@@ -35,7 +35,7 @@ I believe that it can be useful enough for many users as-is, and I hope that as 
 ## Limitations
 
 - Although both light & dark themes are supported, the map itself is currently only light.
-- Was not yet tested & adapted to Obsidian Mobile.
+- Experience in mobile is not as good as it should be. Most notably there's no GPS location support due to permission limitations of the Obsidian app.
 
 ## User Guide
 
@@ -54,7 +54,7 @@ location: [40.6892494,-74.0466891]
 This is useful for notes that represent a single specific location.
 It's also compatible with the way other useful plugins like [obsidian-leaflet](https://github.com/valentine195/obsidian-leaflet-plugin) read locations, and allows some interoperability.
 
-Another way that the plugin parses location data is through inline `` `location` `` markers within notes (note the backticks), which allow multiple markers in the same note.
+Another way that the plugin parses location data is through inline location URLs in the format of `[link name](geo:40.68,-74.04)`, which allow multiple markers in the same note.
 To prevent the need to scan the full content of all your notes, it requires an empty `locations:` tag in the note front matter ('locations' and not 'location').
 Example:
 
@@ -65,28 +65,47 @@ locations:
 
 # Trip Plan
 
-Point 1: Hudson River
-`location: 42.277578,-76.1598107`
+Point 1: [Hudson River](geo:42.277578,-76.1598107)
 ... more note content ...
 
-Point 2: New Haven
-`location: 41.2982672,-72.9991356`
+Point 2: [New Haven](geo:41.2982672,-72.9991356)
 ```
 
 Notes with multiple markers will contain multiple markers on the map with the same note name, and clicking on the marker will jump to the correct location within the note.
 
-Notice how locations in the front matter must contain brackets (`location: [lat, lng]`) and inline locations do not (`location: lat, lng`).
-For inline locations both formats are supported, but for the front matter brackets are mandatory because it needs to compny with the YAML format.
+For many cases inline locations are superior because `geo:` is a [native URL scheme](https://en.wikipedia.org/wiki/Geo_URI_scheme), so if you click it in Obsidian (including mobile), your default maps app (or an app selector for a location) will be triggered.
+The front matter method, however, is currently better if you want interoperability with plugins that use it.
+
+Note: older versions of this plugin used the notation ` `location: ...` ` for inline locations.
+This notation is still supported but the standard `geo:` one is the default and encouraged one.
 
 ### Finding a Location
 
-If you want to log a location in a note, I recommend one of two ways.
+If you want to log a location in a note, I recommend a few ways.
 
+1. Starting from the map: use "new note here" or "new multi-location note here" when right-clicking the map. This will create a new note (based on the template you can change in the settings) with the location you clicked.
+
+![](new-note.png)
+
+Note that the map can be searched using the tool on the upper-right side.
+
+![](search.png)
+
+2. While writing/editing a note: select and right-click a place name, then click "Convert to Location". Map View will search for this location and replace it with a link based on the first search result, and also update the note's front matter if needed.
+
+Note that the first match may not be what you expect and you should verify it really represents what you meant.
+
+![](convert-to-location.png)
+
+This is also available as a "Convert Selection to Location" Obsidian command that you can map to a keyboard shortcut (the command is only available when text is selected).
+
+![](convert-command.png)
+
+3. If you prefer to edit a note manually, use one of the "copy location as..." options when you right-click the map. If you use "copy location as inline", just remember you need the note to start with a front matter that has an empty `locations:` line.
+ 
 ![](copy.png)
 
-1. Use one of the "copy location as..." options when you right-click the map. If you use "copy location as inline", just remember you need the note to start with a front matter that has an empty `locations:` line.
-
-2. Search from something in Google Maps then copy the latitude & longitude parts of the URL, e.g. if you search for "statue of liberty" you get to a link that looks like this: `https://www.google.com/maps/place/Statue+of+Liberty+National+Monument/@40.6892494,-74.0466891,17z/data=!3m1!4b1!4m5!3m4!1s0x89c25090129c363d:0x40c6a5770d25022b!8m2!3d40.6892494!4d-74.0445004`. From that you can take the location: `40.6892494,-74.0466891`.
+4. Search from something in Google Maps then copy the latitude & longitude parts of the URL, e.g. if you search for "statue of liberty" you get to a link that looks like this: `https://www.google.com/maps/place/Statue+of+Liberty+National+Monument/@40.6892494,-74.0466891,17z/data=!3m1!4b1!4m5!3m4!1s0x89c25090129c363d:0x40c6a5770d25022b!8m2!3d40.6892494!4d-74.0445004`. From that you can take the location: `40.6892494,-74.0466891`.
 
 
 ### Filtering by Tags
@@ -167,7 +186,6 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 As noted in the disclaimer above, my wishlist for this plugin is huge and I'm unlikely to get to it all.
 There are so many things that I want it to do, and so little time...
 
-- **Most importantly**: proper mobile support including device location if possible. That's literally on the top of my list.
 - More powerful filtering. I'd love it to be based on the [existing Obsidian query format](https://github.com/obsidianmd/obsidian-api/issues/22). What I see in mind is a powerful text search with a results pane that's linked to the map.
 - Better interoperability with Obsidian Leaflet: support for marker image files, locations as an array and `marker` tags.
 - Better UI, especially for the core functionality like editing icons.
@@ -175,6 +193,15 @@ There are so many things that I want it to do, and so little time...
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### 0.1.0
+
+- A new experimental geosearch functionality was added ("convert to location"), see documentation above.
+- Small usability fixes that make the app better on mobile.
+- Conversion: 
+```
+%s/`location:.*\[\(.*,.*\)]`/[](geo:\1)/g
+```
 
 ### 0.0.9
 

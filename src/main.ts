@@ -1,6 +1,7 @@
 import { addIcon, App, Editor, FileView, MarkdownView, MenuItem, Menu, TFile, Plugin, WorkspaceLeaf, PluginSettingTab, Setting, TAbstractFile, SuggestModal } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
+import { selectionToLink } from 'src/geosearch';
 
 import { MapView } from 'src/mapView';
 import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
@@ -31,6 +32,16 @@ export default class MapViewPlugin extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: 'convert-selection-to-location',
+			name: 'Convert Selection to Location',
+			editorCheckCallback: (checking, editor, view) => {
+				if (checking)
+					return editor.getSelection().length > 0;
+				selectionToLink(editor);
+			}
+		})
+
 		this.addSettingTab(new SettingsTab(this.app, this));
 
 		this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, _source: string, leaf?: WorkspaceLeaf) => {
@@ -41,6 +52,12 @@ export default class MapViewPlugin extends Plugin {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
 						item.onClick(async () => await this.openMapWithLocation(location));
+					});
+					menu.addItem((item: MenuItem) => {
+						item.setTitle('Open as geolocation');
+						item.onClick(_ev => {
+							open(`geo:${location.lat},${location.lng}`);
+						});
 					});
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open in Google Maps');
@@ -64,10 +81,22 @@ export default class MapViewPlugin extends Plugin {
 						item.onClick(async () => await this.openMapWithLocation(location));
 					});
 					menu.addItem((item: MenuItem) => {
+						item.setTitle('Open as geolocation');
+						item.onClick(_ev => {
+							open(`geo:${location.lat},${location.lng}`);
+						});
+					});
+					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open in Google Maps');
 						item.onClick(_ev => {
 							open(`https://maps.google.com/?q=${location.lat},${location.lng}`);
 						});
+					});
+				}
+				if (editor.getSelection()) {
+					menu.addItem((item: MenuItem) => {
+						item.setTitle('Convert to location link');
+						item.onClick(async () => await selectionToLink(editor));
 					});
 				}
 			}
@@ -87,10 +116,10 @@ export default class MapViewPlugin extends Plugin {
 
 	private getLocationOnEditorLine(editor: Editor, view: FileView): leaflet.LatLng {
 		const line = editor.getLine(editor.getCursor().line);
-		const match = matchInlineLocation(line)?.next()?.value;
+		const match = matchInlineLocation(line)[0];
 		let selectedLocation = null;
 		if (match)
-			selectedLocation = new leaflet.LatLng(parseFloat(match[1]), parseFloat(match[2]));
+			selectedLocation = new leaflet.LatLng(parseFloat(match[2]), parseFloat(match[3]));
 		else
 		{
 			const fmLocation = getFrontMatterLocation(view.file, this.app);
@@ -249,5 +278,14 @@ class SettingsTab extends PluginSettingTab {
 					}
 				}));
 
+		new Setting(containerEl)
+			.setName('Debug logs (advanced')
+			.addToggle(component => {component
+				.setValue(this.plugin.settings.debug != null ? this.plugin.settings.debug : DEFAULT_SETTINGS.debug)
+				.onChange(async value => {
+					this.plugin.settings.debug = value;
+					await this.plugin.saveSettings();
+				})
+			});
 	}
 }

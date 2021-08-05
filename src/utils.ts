@@ -1,4 +1,4 @@
-import { App, TFile } from 'obsidian';
+import { Editor, App, TFile } from 'obsidian';
 
 import * as moment_ from 'moment';
 import * as path from 'path';
@@ -14,12 +14,15 @@ export function formatWithTemplates(s: string) {
 
 type NewNoteType = 'singleLocation' | 'multiLocation';
 
+const CURSOR = '$CURSOR$';
+
 export async function newNote(app: App, newNoteType: NewNoteType, directory: string, fileName: string,
 	location: string, templatePath?: string): Promise<TFile>
 {
+	// `$CURSOR$` is used to set the cursor
 	let content = newNoteType === 'singleLocation' ?
-		`---\nlocation: [${location}]\n---\n\n` :
-		`---\nlocations:\n---\n\n\`location: ${location}\`\n`;
+		`---\nlocation: [${location}]\n---\n\n${CURSOR}` :
+		`---\nlocations:\n---\n\n\[${CURSOR}](geo:${location})\n`;
 	let templateContent = '';
 	if (templatePath)
 		templateContent = await app.vault.adapter.read(templatePath);
@@ -32,4 +35,48 @@ export async function newNote(app: App, newNoteType: NewNoteType, directory: str
 	catch (e) {
 		throw Error(`Cannot create file named ${fullName}: ${e}`);
 	}
+}
+
+export async function goToEditorLocation(editor: Editor, fileLocation: number, highlight: boolean) {
+	if (fileLocation) {
+		let pos = editor.offsetToPos(fileLocation);
+		if (highlight) {
+			editor.setSelection({ch: 0, line: pos.line}, {ch: 1000, line: pos.line});
+		} else {
+			editor.setCursor(pos);
+			editor.refresh();
+		}
+	}
+	editor.focus();
+}
+
+export async function handleNewNoteCursorMarker(editor: Editor) {
+	const templateValue = editor.getValue();
+	const cursorMarkerIndex = templateValue.indexOf(CURSOR);
+	if (cursorMarkerIndex > -1) {
+		editor.setValue(templateValue.replace(CURSOR, ''));
+		await goToEditorLocation(editor, cursorMarkerIndex, false);
+	}
+}
+
+// Returns true if a replacement was made
+export function verifyOrAddFrontMatter(editor: Editor): boolean {
+	const content = editor.getValue();
+	const frontMatterRegex = /^---(.*)^---/ms;
+	const frontMatter = content.match(frontMatterRegex);
+	const locations = content.match(/^---.*locations:.*^---/ms);
+	const cursorLocation = editor.getCursor();
+	// That's not the best usage of the API, and rather be converted to editor transactions or something else
+	// that can preserve the cursor position better
+	if (frontMatter && !locations) {
+		const replaced = `---${frontMatter[1]}locations:\n---`;
+		editor.setValue(content.replace(frontMatterRegex, replaced));
+		editor.setCursor(cursorLocation);
+		return true;
+	} else if (!frontMatter) {
+		editor.setValue('---\nlocations:\n---\n\n' + content);
+		editor.setCursor(cursorLocation);
+		return true;
+	}
+	return false;
 }

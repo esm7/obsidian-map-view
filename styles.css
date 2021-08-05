@@ -1,6 +1,10 @@
 .map-view-marker-name {
 	font-weight: bold;
 }
+
+.map-view-extra-name {
+	font-weight: bold;
+}
  
 .map-view-marker-snippet {
 	white-space: pre-line;

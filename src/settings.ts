@@ -17,6 +17,7 @@ export type PluginSettings = {
 	newNotePath?: string;
 	newNoteTemplate?: string;
 	snippetLines?: number;
+	debug?: boolean;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -32,5 +33,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	autoZoom: true,
 	markerClickBehavior: 'samePane',
 	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
-	snippetLines: 3
+	snippetLines: 3,
+	debug: false
 };
