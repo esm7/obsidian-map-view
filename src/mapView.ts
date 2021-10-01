@@ -86,6 +86,7 @@ export class MapView extends ItemView {
 		}, (el: HTMLDivElement) => {
 			el.style.position = 'fixed';
 			el.style.zIndex = '2';
+			el.style.marginTop = '36px';
 		});
 		this.display.tagsBox = new TextComponent(controlsDiv);
 		this.display.tagsBox.setPlaceholder('Tags, e.g. "#one,#two"');
