@@ -1,4 +1,4 @@
-import { App, TFile } from 'obsidian';
+import { App, TFile, getAllTags } from 'obsidian';
 import wildcard from 'wildcard';
 import * as leaflet from 'leaflet';
 import 'leaflet-extra-markers';
@@ -91,13 +91,11 @@ function checkTagPatternMatch(tagPattern: string, fileTags: string[]) {
 function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.Icon {
 	let result = settings.markerIcons.default;
 	const fileCache = app.metadataCache.getFileCache(marker.file);
-	if (fileCache && fileCache.tags) {
-		const fileTags = fileCache.tags.map(tagCache => tagCache.tag);
-		// We iterate over the rules and apply them one by one, so later rules override earlier ones
-		for (const tag in settings.markerIcons) {
-			if (checkTagPatternMatch(tag, fileTags)) {
-				result = Object.assign({}, result, settings.markerIcons[tag]);
-			}
+	const fileTags = getAllTags(fileCache);
+	// We iterate over the rules and apply them one by one, so later rules override earlier ones
+	for (const tag in settings.markerIcons) {
+		if (checkTagPatternMatch(tag, fileTags)) {
+			result = Object.assign({}, result, settings.markerIcons[tag]);
 		}
 	}
 	return getIconFromOptions(result);
