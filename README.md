@@ -65,6 +65,18 @@ Notes with multiple markers will contain multiple markers on the map with the sa
 For many cases inline locations are superior because `geo:` is a [native URL scheme](https://en.wikipedia.org/wiki/Geo_URI_scheme), so if you click it in Obsidian (including mobile), your default maps app (or an app selector for a location) will be triggered.
 The front matter method, however, is currently better if you want interoperability with plugins that use it.
 
+Inline locations also support **inline tags** in the format of `tag:dogs`. For example:
+
+```
+Point 1: [Hudson River](geo:42.277578,-76.1598107) tag:dogs
+```
+
+This will add the tag `#dogs` specifically to that point, regardless of the note's own tags.
+This is useful for notes that contain tags of different types (e.g. a trip log with various types of locations).
+Note that the `tag:` format should be used **without** the `#` sign, because this sets the tag for the whole note.
+Map View will add `#` for the purpose of setting marker icons, as explained below.
+Also note that inline tags do not affect the files that are searched based on the entered search query, so in the example above, if you enter '#dogs' in the search box, your note would **not** appear.
+
 Note: older versions of this plugin used the notation `location: ...` for inline locations.
 This notation is still supported but the standard `geo:` one is the default and encouraged one.
 
@@ -106,6 +118,7 @@ In the search box you can type tags separated by commas and you'll get in your v
 
 Since this method has a single-note granularity, there is currently no way to see just a few locations inlined in the same note.
 If a note's tag is included in the search, all the locations within this note will be displayed on the map.
+This is also the case for inline tags -- the filtering is by file and does not take into consideration tags that don't belong to the whole note.
 
 ### Marker Icons
 
@@ -161,6 +174,26 @@ Although that's the case with this plugin in general, it's worth noting explicit
 
 Note that Google Maps is not in that list, because although it does provide the same standard form of static tiles in the same URL format, the Google Maps terms of service makes it difficult to legally bundle the maps in an application.
 
+### Open In
+
+Many context menus of Map View display a customizable Open In list, which can open a given location in external sources.
+These sources can be Google Maps, OpenStreetMap, specialized mapping tools or pretty much anything you use for viewing locations.
+
+The Open In list is shown:
+- When right-clicking on the map.
+- When right-clicking a marker on the map.
+- When right-clicking a line in a note that has a location.
+- In the context menu of a note that has a front matter location.
+
+This list can be edited through the plugin's settings menu, with a name that will be displayed in the context menus and a URL pattern. The URL pattern has two parameters -- `{x}` and `{y}` -- that will be replaced by the latitude and longitude of the clicked location.
+
+Popular choices may be:
+- Google Maps: `https://maps.google.com/?q={x},{y}`
+- OpenStreetMap: `https://www.openstreetmap.org/#map=16/{x}/{y}` (replace `16` with your preferred zoom level)
+- Waze (online dropped pin): `https://ul.waze.com/ul?ll={x}%2C{y}&navigate=yes&zoom=17` (replace `17` with your preferred zoom level)
+
+And you can figure out many other mapping services just by inspecting the URL.
+
 ## Relation to Other Obsidian Plugins
 
 When thinking about Obsidian and maps, the first plugin that comes to mind is [Obsidian Leaflet](https://github.com/valentine195/obsidian-leaflet-plugin).
@@ -182,6 +215,17 @@ There are so many things that I want it to do, and so little time...
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### 0.2.0
+
+Many usability fixes and improvements.
+
+- Added inline tags in the format of `tag:dogs` following an inline location. See documentation above for more details.
+- Shift filter box down to avoid covering pane title (thanks @huy-vuong!) ([PR here](https://github.com/esm7/obsidian-map-view/pull/25))
+- Fixed a confusing and possibly annoying default behavior of panning the map to view a popup (https://github.com/esm7/obsidian-map-view/issues/22)
+- When clicking "Show on map" inside a note, use an existing map view if such is open (rather than always replacing the current view). Override (always replace current pane) by holding Ctrl.
+- Added a customizable "open in" list. Instead of the old "Open in Google Maps", you can now add your own list of external mapping services.
+- The map controls are now collapsible in order to make them less obstructive on mobile and to make room for more features.
 
 ### 0.1.0
 

@@ -18,6 +18,18 @@ export type PluginSettings = {
 	newNoteTemplate?: string;
 	snippetLines?: number;
 	debug?: boolean;
+	openIn?: OpenInSettings[];
+	mapControls?: MapControls;
+}
+
+export type OpenInSettings = {
+	name: string;
+	urlPattern: string;
+}
+
+export type MapControls = {
+	filtersDisplayed: boolean;
+	viewDisplayed: boolean;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -34,5 +46,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	markerClickBehavior: 'samePane',
 	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
 	snippetLines: 3,
-	debug: false
+	debug: false,
+	openIn: [{name: 'Google Maps', urlPattern: 'https://maps.google.com/?q={x},{y}'}],
+	mapControls: {filtersDisplayed: true, viewDisplayed: true}
 };

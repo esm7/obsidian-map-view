@@ -6,6 +6,7 @@ import { selectionToLink } from 'src/geosearch';
 import { MapView } from 'src/mapView';
 import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
 import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
+import * as utils from 'src/utils';
 
 export default class MapViewPlugin extends Plugin {
 	settings: PluginSettings;
@@ -51,7 +52,7 @@ export default class MapViewPlugin extends Plugin {
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
-						item.onClick(async () => await this.openMapWithLocation(location));
+						item.onClick(async (evt: MouseEvent) => await this.openMapWithLocation(location, evt.ctrlKey));
 					});
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open as geolocation');
@@ -59,12 +60,7 @@ export default class MapViewPlugin extends Plugin {
 							open(`geo:${location.lat},${location.lng}`);
 						});
 					});
-					menu.addItem((item: MenuItem) => {
-						item.setTitle('Open in Google Maps');
-						item.onClick(_ev => {
-							open(`https://maps.google.com/?q=${location.lat},${location.lng}`);
-						});
-					});
+					utils.populateOpenInItems(menu, location, this.settings);
 				}
 			}
 		});
@@ -78,7 +74,7 @@ export default class MapViewPlugin extends Plugin {
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
-						item.onClick(async () => await this.openMapWithLocation(location));
+						item.onClick(async (evt: MouseEvent) => await this.openMapWithLocation(location, evt.ctrlKey));
 					});
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open as geolocation');
@@ -86,12 +82,7 @@ export default class MapViewPlugin extends Plugin {
 							open(`geo:${location.lat},${location.lng}`);
 						});
 					});
-					menu.addItem((item: MenuItem) => {
-						item.setTitle('Open in Google Maps');
-						item.onClick(_ev => {
-							open(`https://maps.google.com/?q=${location.lat},${location.lng}`);
-						});
-					});
+					utils.populateOpenInItems(menu, location, this.settings);
 				}
 				if (editor.getSelection()) {
 					menu.addItem((item: MenuItem) => {
@@ -104,8 +95,17 @@ export default class MapViewPlugin extends Plugin {
 
 	}
 
-	private async openMapWithLocation(location: leaflet.LatLng) {
-		await this.app.workspace.getLeaf().setViewState({
+	private async openMapWithLocation(location: leaflet.LatLng, ctrlKey: boolean) {
+		// Find the best candidate for a leaf to open the map view on.
+		// If there's an open map view, use that, otherwise use the current leaf.
+		// If Ctrl is pressed, override that behavior and always use the current leaf.
+		const maps = this.app.workspace.getLeavesOfType(consts.MAP_VIEW_NAME);
+		let chosenLeaf: WorkspaceLeaf = null;
+		if (maps && !ctrlKey)
+			chosenLeaf = maps[0];
+		else
+			chosenLeaf = this.app.workspace.getLeaf();
+		await chosenLeaf.setViewState({
 			type: consts.MAP_VIEW_NAME,
 			state: {
 				version: this.highestVersionSeen + 1,	// Make sure this overrides any existing state
@@ -265,6 +265,25 @@ class SettingsTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
+			.setHeading().setName('Custom "Open In" Actions')
+			.setDesc("'Open in' actions showing in location-relevant popup menus. URL should have {x} and {y} as parameters to transfer.")
+
+		let openInActionsDiv: HTMLDivElement = null;
+		new Setting(containerEl)
+			.addButton(component => component
+				.setButtonText('New Custom Action')
+				.onClick(() => {
+					this.plugin.settings.openIn.push({name: '', urlPattern: ''});
+					this.refreshOpenInSettings(openInActionsDiv);
+				})
+			);
+		openInActionsDiv = containerEl.createDiv();
+		this.refreshOpenInSettings(openInActionsDiv);
+
+		new Setting(containerEl).
+			setHeading().setName('Advanced');
+
+		new Setting(containerEl)
 			.setName('Edit the marker icons (advanced)')
 			.setDesc("Refer to the plugin documentation for more details.")
 			.addTextArea(component => component
@@ -279,7 +298,7 @@ class SettingsTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Debug logs (advanced')
+			.setName('Debug logs (advanced)')
 			.addToggle(component => {component
 				.setValue(this.plugin.settings.debug != null ? this.plugin.settings.debug : DEFAULT_SETTINGS.debug)
 				.onChange(async value => {
@@ -287,5 +306,34 @@ class SettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			});
+	}
+
+	refreshOpenInSettings(containerEl: HTMLElement) {
+		containerEl.innerHTML = '';
+		for (const setting of this.plugin.settings.openIn) {
+			new Setting(containerEl)
+				.addText(component => {component
+					.setPlaceholder('Name')
+					.setValue(setting.name)
+					.onChange(async (value: string) => {
+						setting.name = value;
+						await this.plugin.saveSettings();
+					})})
+				.addText(component => {component
+					.setPlaceholder('URL template')
+					.setValue(setting.urlPattern)
+					.onChange(async (value: string) => {
+						setting.urlPattern = value;
+						await this.plugin.saveSettings();
+					})})
+				.addButton(component => component
+					.setButtonText('Delete')
+					.onClick(async () => {
+						this.plugin.settings.openIn.remove(setting);
+						await this.plugin.saveSettings();
+						this.refreshOpenInSettings(containerEl);
+					})
+				);
+		}
 	}
 }

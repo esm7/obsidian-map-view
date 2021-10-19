@@ -15,3 +15,23 @@
 	font-weight: bold;
 	text-decoration: underline;
 }
+
+.graph-controls {
+	position: fixed;
+	z-index: 2;
+	margin-top: 36px;
+}
+
+.graph-control-div {
+	display: inline-block;
+}
+
+.graph-control-content {
+	max-height: 0px;
+	overflow: hidden;
+	transition: max-height .25s ease-in-out;
+}
+
+.toggle:checked + .lbl-toggle + .graph-control-content {
+	max-height: 100vh;
+}

@@ -81,20 +81,27 @@ export class MapView extends ItemView {
 		this.isOpen = true;
 		this.state = this.defaultState;
 		let controlsDiv = createDiv({
-			'cls': 'graph-controls',
-			'text': 'Filters'
-		}, (el: HTMLDivElement) => {
-			el.style.position = 'fixed';
-			el.style.zIndex = '2';
-			el.style.marginTop = '36px';
+			'cls': 'graph-controls'
 		});
-		this.display.tagsBox = new TextComponent(controlsDiv);
+		let filtersDiv = controlsDiv.createDiv({'cls': 'graph-control-div'});
+		filtersDiv.innerHTML = `
+			<input id="filtersCollapsible" class="toggle" type="checkbox">
+			<label for="filtersCollapsible" class="lbl-toggle">Filters</label>
+			`;
+		const filtersButton = filtersDiv.getElementsByClassName('toggle')[0] as HTMLInputElement;
+		filtersButton.checked = this.settings.mapControls.filtersDisplayed;
+		filtersButton.onclick = async () => {
+			this.settings.mapControls.filtersDisplayed = filtersButton.checked;
+			this.plugin.saveSettings();
+		}
+		let filtersContent = filtersDiv.createDiv({'cls': 'graph-control-content'});
+		this.display.tagsBox = new TextComponent(filtersContent);
 		this.display.tagsBox.setPlaceholder('Tags, e.g. "#one,#two"');
 		this.display.tagsBox.onChange(async (tagsBox: string) => {
 			that.state.tags = tagsBox.split(',').filter(t => t.length > 0);
 			await this.updateMapToState(this.state, this.settings.autoZoom);
 		});
-		let tagSuggestions = new DropdownComponent(controlsDiv);
+		let tagSuggestions = new DropdownComponent(filtersContent);
 		tagSuggestions.setValue('Quick add tag');
 		tagSuggestions.addOption('', 'Quick add tag');
 		for (const tagName of this.getAllTagNames())
@@ -108,7 +115,20 @@ export class MapView extends ItemView {
 			this.display.tagsBox.inputEl.focus();
 			this.display.tagsBox.onChanged();
 		});
-		let goDefault = new ButtonComponent(controlsDiv);
+
+		let viewDiv = controlsDiv.createDiv({'cls': 'graph-control-div'});
+		viewDiv.innerHTML = `
+			<input id="viewCollapsible" class="toggle" type="checkbox">
+			<label for="viewCollapsible" class="lbl-toggle">View</label>
+			`;
+		const viewButton = viewDiv.getElementsByClassName('toggle')[0] as HTMLInputElement;
+		viewButton.checked = this.settings.mapControls.viewDisplayed;
+		viewButton.onclick = async () => {
+			this.settings.mapControls.viewDisplayed = viewButton.checked;
+			this.plugin.saveSettings();
+		}
+		let viewDivContent = viewDiv.createDiv({'cls': 'graph-control-content'});
+		let goDefault = new ButtonComponent(viewDivContent);
 		goDefault
 			.setButtonText('Reset')
 			.setTooltip('Reset the view to the defined default.')
@@ -121,12 +141,12 @@ export class MapView extends ItemView {
 				};
 				await this.updateMapToState(newState, false);
 			});
-		let fitButton = new ButtonComponent(controlsDiv);
+		let fitButton = new ButtonComponent(viewDivContent);
 		fitButton
 			.setButtonText('Fit')
 			.setTooltip('Set the map view to fit all currently-displayed markers.')
 			.onClick(() => this.autoFitMapToMarkers());
-		let setDefault = new ButtonComponent(controlsDiv);
+		let setDefault = new ButtonComponent(viewDivContent);
 		setDefault
 			.setButtonText('Set as Default')
 			.setTooltip('Set this view (map state & filters) as default.')
@@ -248,12 +268,7 @@ export class MapView extends ItemView {
 					open(`geo:${event.latlng.lat},${event.latlng.lng}`);
 				});
 			});
-			mapPopup.addItem((item: MenuItem) => {
-				item.setTitle('Open in Google Maps');
-				item.onClick(_ev => {
-					open(`https://maps.google.com/?q=${event.latlng.lat},${event.latlng.lng}`);
-				});
-			});
+			utils.populateOpenInItems(mapPopup, event.latlng, this.settings);
 			mapPopup.showAtPosition(event.originalEvent);
 		});
 	}
@@ -339,7 +354,7 @@ export class MapView extends ItemView {
 				content += `<p class="map-view-extra-name">${marker.extraName}</p>`;
 			if (marker.snippet)
 				content += `<p class="map-view-marker-snippet">${marker.snippet}</p>`;
-			newMarker.bindPopup(content, {closeButton: false}).openPopup();
+			newMarker.bindPopup(content, {closeButton: false, autoPan: false}).openPopup();
 		});
 		newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
 			newMarker.closePopup();
@@ -357,12 +372,7 @@ export class MapView extends ItemView {
 					open(`geo:${marker.location.lat},${marker.location.lng}`);
 				});
 			});
-			mapPopup.addItem((item: MenuItem) => {
-				item.setTitle('Open in Google Maps');
-				item.onClick(ev => {
-					open(`https://maps.google.com/?q=${marker.location.lat},${marker.location.lng}`);
-				});
-			});
+			utils.populateOpenInItems(mapPopup, marker.location, this.settings);
 			mapPopup.showAtPosition(ev);
 			ev.stopPropagation();
 		})

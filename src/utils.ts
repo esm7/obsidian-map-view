@@ -1,7 +1,10 @@
-import { Editor, App, TFile } from 'obsidian';
+import { Editor, App, TFile, Menu, MenuItem } from 'obsidian';
 
 import * as moment_ from 'moment';
+import * as leaflet from 'leaflet';
 import * as path from 'path';
+
+import * as settings from './settings';
 
 export function formatWithTemplates(s: string) {
 	const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;
@@ -79,4 +82,18 @@ export function verifyOrAddFrontMatter(editor: Editor): boolean {
 		return true;
 	}
 	return false;
+}
+
+export function populateOpenInItems(menu: Menu, location: leaflet.LatLng, settings: settings.PluginSettings) {
+	for (let setting of settings.openIn) {
+		if (!setting.name || !setting.urlPattern)
+			continue;
+		const fullUrl = setting.urlPattern.replace('{x}', location.lat.toString()).replace('{y}', location.lng.toString());
+		menu.addItem((item: MenuItem) => {
+			item.setTitle(`Open in ${setting.name}`);
+			item.onClick(_ev => {
+				open(fullUrl);
+			});
+		})
+	}
 }

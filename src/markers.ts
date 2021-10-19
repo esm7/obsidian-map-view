@@ -21,6 +21,7 @@ export class FileMarker {
 	id: MarkerId;
 	snippet?: string;
 	extraName?: string;
+	tags: string[] = [];
 
 	constructor(file: TFile, location: leaflet.LatLng) {
 		this.file = file;
@@ -83,18 +84,19 @@ export async function buildMarkers(files: TFile[], settings: PluginSettings, app
 	return markers;
 }
 
-function checkTagPatternMatch(tagPattern: string, fileTags: string[]) {
-	let match = wildcard(tagPattern, fileTags);
+function checkTagPatternMatch(tagPattern: string, tags: string[]) {
+	let match = wildcard(tagPattern, tags);
 	return match && match.length > 0;
 }
 
 function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.Icon {
 	let result = settings.markerIcons.default;
 	const fileCache = app.metadataCache.getFileCache(marker.file);
-	const fileTags = getAllTags(fileCache);
+	// Combine the file tags with the marker-specific tags
+	const tags = getAllTags(fileCache).concat(marker.tags);
 	// We iterate over the rules and apply them one by one, so later rules override earlier ones
 	for (const tag in settings.markerIcons) {
-		if (checkTagPatternMatch(tag, fileTags)) {
+		if (checkTagPatternMatch(tag, tags)) {
 			result = Object.assign({}, result, settings.markerIcons[tag]);
 		}
 	}
@@ -126,8 +128,8 @@ export function verifyLocation(location: leaflet.LatLng) {
 export function matchInlineLocation(content: string): RegExpMatchArray[] {
 	// Old syntax of ` `location: ... ` `. This syntax doesn't support a name so we leave an empty capture group
 	const locationRegex1 = /\`()location:\s*\[?([0-9.\-]+)\s*,\s*([0-9.\-]+)\]?\`/g;
-	// New syntax of `[name](geo:...)`
-	const locationRegex2 = /\[(.*)\]\(geo:([0-9.\-]+),([0-9.\-]+)\)/g;
+	// New syntax of `[name](geo:...)` and an optional tag as `tag:tagName`
+	const locationRegex2 = /\[(.*)\]\(geo:([0-9.\-]+),([0-9.\-]+)\)[ \t]*(tag:[\w\/]+)?/g;
 	const matches1 = content.matchAll(locationRegex1);
 	const matches2 = content.matchAll(locationRegex2);
 	return Array.from(matches1).concat(Array.from(matches2));
@@ -144,6 +146,10 @@ async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, 
 			const marker = new FileMarker(file, location);
 			if (match[1] && match[1].length > 0)
 				marker.extraName = match[1];
+			if (match[4]) {
+				const tagName = '#' + match[4].slice('tag:'.length);
+				marker.tags.push(tagName);
+			}
 			marker.fileLocation = match.index;
 			marker.icon = getIconForMarker(marker, settings, app);
 			marker.snippet = await makeTextSnippet(file, content, marker.fileLocation, settings);
