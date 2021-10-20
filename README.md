@@ -179,6 +179,8 @@ Note that Google Maps is not in that list, because although it does provide the 
 Many context menus of Map View display a customizable Open In list, which can open a given location in external sources.
 These sources can be Google Maps, OpenStreetMap, specialized mapping tools or pretty much anything you use for viewing locations.
 
+![](open-in.png)
+
 The Open In list is shown:
 - When right-clicking on the map.
 - When right-clicking a marker on the map.
@@ -186,6 +188,8 @@ The Open In list is shown:
 - In the context menu of a note that has a front matter location.
 
 This list can be edited through the plugin's settings menu, with a name that will be displayed in the context menus and a URL pattern. The URL pattern has two parameters -- `{x}` and `{y}` -- that will be replaced by the latitude and longitude of the clicked location.
+
+![](custom-open-in.png)
 
 Popular choices may be:
 - Google Maps: `https://maps.google.com/?q={x},{y}`
