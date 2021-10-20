@@ -20,6 +20,7 @@ export type PluginSettings = {
 	debug?: boolean;
 	openIn?: OpenInSettings[];
 	mapControls?: MapControls;
+	maxClusterRadiusPixels: number;
 }
 
 export type OpenInSettings = {
@@ -48,5 +49,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	snippetLines: 3,
 	debug: false,
 	openIn: [{name: 'Google Maps', urlPattern: 'https://maps.google.com/?q={x},{y}'}],
-	mapControls: {filtersDisplayed: true, viewDisplayed: true}
+	mapControls: {filtersDisplayed: true, viewDisplayed: true},
+	maxClusterRadiusPixels: 20
 };

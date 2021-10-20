@@ -7,6 +7,9 @@ import '@fortawesome/fontawesome-free/js/all.min';
 import 'leaflet/dist/leaflet.css';
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
 import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
@@ -27,6 +30,7 @@ export class MapView extends ItemView {
 	private state: MapState;
 	private display = new class {
 		map: leaflet.Map;
+		clusterGroup: leaflet.MarkerClusterGroup;
 		markers: MarkersMap = new Map();
 		mapDiv: HTMLDivElement;
 		tagsBox: TextComponent;
@@ -204,6 +208,9 @@ export class MapView extends ItemView {
 			attribution: attribution,
 			className: this.settings.darkMode ? "dark-mode" : ""
 		}));
+		this.display.clusterGroup = new leaflet.MarkerClusterGroup({
+			maxClusterRadius: this.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels});
+		this.display.map.addLayer(this.display.clusterGroup);
 		const searchControl = GeoSearchControl({
 			provider: new OpenStreetMapProvider(),
 			position: 'topright',
@@ -323,6 +330,8 @@ export class MapView extends ItemView {
 
 	updateMapMarkers(newMarkers: FileMarker[]) {
 		let newMarkersMap: MarkersMap = new Map();
+		let markersToAdd: leaflet.Marker[] = [];
+		let markersToRemove: leaflet.Marker[] = [];
 		for (let marker of newMarkers) {
 			const existingMarker = this.display.markers.has(marker.id) ?
 				this.display.markers.get(marker.id) : null;
@@ -333,18 +342,22 @@ export class MapView extends ItemView {
 			} else {
 				// New marker - create it
 				marker.mapMarker = this.newLeafletMarker(marker);
+				markersToAdd.push(marker.mapMarker);
+				// this.display.clusterGroup.addLayer(marker.mapMarker);
 				newMarkersMap.set(marker.id, marker);
 			}
 		}
 		for (let [key, value] of this.display.markers) {
-			value.mapMarker.removeFrom(this.display.map);
+			markersToRemove.push(value.mapMarker);
+			// this.display.clusterGroup.removeLayer(value.mapMarker);
 		}
+		this.display.clusterGroup.addLayers(markersToAdd);
+		this.display.clusterGroup.removeLayers(markersToRemove);
 		this.display.markers = newMarkersMap;
 	}
 
 	private newLeafletMarker(marker: FileMarker) : leaflet.Marker {
-		let newMarker = leaflet.marker(marker.location, { icon: marker.icon || new leaflet.Icon.Default() })
-			.addTo(this.display.map);
+		let newMarker = leaflet.marker(marker.location, { icon: marker.icon || new leaflet.Icon.Default() });
 		newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
 			this.goToMarker(marker, event.originalEvent.ctrlKey, true);
 		});
@@ -359,23 +372,25 @@ export class MapView extends ItemView {
 		newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
 			newMarker.closePopup();
 		});
-		newMarker.getElement().addEventListener('contextmenu', (ev: MouseEvent) => {
-			let mapPopup = new Menu(this.app);
-			mapPopup.setNoIcon();
-			mapPopup.addItem((item: MenuItem) => {
-				item.setTitle('Open note');
-				item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey, true); });
-			});
-			mapPopup.addItem((item: MenuItem) => {
-				item.setTitle('Open as geolocation');
-				item.onClick(ev => {
-					open(`geo:${marker.location.lat},${marker.location.lng}`);
+		newMarker.on('add', (event: leaflet.LeafletEvent) => {
+			newMarker.getElement().addEventListener('contextmenu', (ev: MouseEvent) => {
+				let mapPopup = new Menu(this.app);
+				mapPopup.setNoIcon();
+				mapPopup.addItem((item: MenuItem) => {
+					item.setTitle('Open note');
+					item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey, true); });
 				});
-			});
-			utils.populateOpenInItems(mapPopup, marker.location, this.settings);
-			mapPopup.showAtPosition(ev);
-			ev.stopPropagation();
-		})
+				mapPopup.addItem((item: MenuItem) => {
+					item.setTitle('Open as geolocation');
+					item.onClick(ev => {
+						open(`geo:${marker.location.lat},${marker.location.lng}`);
+					});
+				});
+				utils.populateOpenInItems(mapPopup, marker.location, this.settings);
+				mapPopup.showAtPosition(ev);
+				ev.stopPropagation();
+			})
+		});
 		return newMarker;
 	}
 

@@ -105,6 +105,8 @@ export default class MapViewPlugin extends Plugin {
 			chosenLeaf = maps[0];
 		else
 			chosenLeaf = this.app.workspace.getLeaf();
+		if (!chosenLeaf)
+			chosenLeaf = this.app.workspace.activeLeaf;
 		await chosenLeaf.setViewState({
 			type: consts.MAP_VIEW_NAME,
 			state: {
@@ -230,12 +232,23 @@ class SettingsTab extends PluginSettingTab {
 				})
 			});
 		new Setting(containerEl)
+			.setName('Max cluster size in pixels')
+			.setDesc('Maximal radius in pixels to cover in a marker cluster. Lower values will produce smaller map clusters. (Requires restart.)')
+			.addSlider(slider => { slider
+				.setLimits(0, 200, 5)
+				.setDynamicTooltip()
+				.setValue(this.plugin.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels)
+				.onChange(async (value: number) => {
+					this.plugin.settings.maxClusterRadiusPixels = value;
+					this.plugin.saveSettings();
+				})});
+		new Setting(containerEl)
 			.setName('Note lines to show on map marker popup')
 			.setDesc('Number of total lines to show in the snippet displayed for inline location notes.')
 			.addSlider(slider => { slider
 				.setLimits(0, 12, 1)
 				.setDynamicTooltip()
-				.setValue(this.plugin.settings.snippetLines || DEFAULT_SETTINGS.snippetLines)
+				.setValue(this.plugin.settings.snippetLines ?? DEFAULT_SETTINGS.snippetLines)
 				.onChange(async (value: number) => {
 					this.plugin.settings.snippetLines = value;
 					this.plugin.saveSettings();

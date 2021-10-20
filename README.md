@@ -216,6 +216,11 @@ There are so many things that I want it to do, and so little time...
 
 ## Changelog
 
+### 0.2.1
+
+- Big upgrade hidden in a small version bump! Added support for marker clusters, with configurable cluster size. This makes Map View much more friendly (and better-performing) for big sets of markers.
+- Small fix to a bug introduced in 0.2.0, of "show on map" not always working.
+
 ### 0.2.0
 
 Many usability fixes and improvements.
