@@ -63,7 +63,7 @@ Point 2: [New Haven](geo:41.2982672,-72.9991356)
 Notes with multiple markers will contain multiple markers on the map with the same note name, and clicking on the marker will jump to the correct location within the note.
 
 For many cases inline locations are superior because `geo:` is a [native URL scheme](https://en.wikipedia.org/wiki/Geo_URI_scheme), so if you click it in Obsidian (including mobile), your default maps app (or an app selector for a location) will be triggered.
-The front matter method, however, is currently better if you want interoperability with plugins that use it.
+The front matter method, however, is currently better if you want interoperability with plugins that use it, or if you want to store lots of filterable meta-data on a location.
 
 Inline locations also support **inline tags** in the format of `tag:dogs`. For example:
 
@@ -109,13 +109,13 @@ At the time of release, this plugin provides just one way to filter notes: an "O
 Your notes are encouraged to contain Obsidian tags that represent their type (e.g. `#hike`, `#food`, `#journal-entry` or whatever you'll want to filter by).
 In the search box you can type tags separated by commas and you'll get in your view just the notes that have one of these tags.
 
-Alternatively, if you follow an inline geolocation link by `tag:#yourTagName`, this tag will be added to that geolocation in addition to the note's tags.
+Alternatively, if you follow an inline geolocation link by `tag:yourTagName`, this tag will be added to that geolocation in addition to the note's tags.
 
 ### Marker Icons
 
 Map View allows you to customize notes' map marker icons based on a powerful rules system. These rules can be edited using the plugin's settings pane or edited as JSON for some even more fine-grained control.
 
-Icons are based on on [Font Awesome](https://fontawesome.com/), so to add a marker icon you'll need to find its name in the Font Awesome catalog.
+Icons are based on [Font Awesome](https://fontawesome.com/), so to add a marker icon you'll need to find its name in the Font Awesome catalog.
 Additionally, there are various marker properties (shape, color and more) that are based on [Leaflet.ExtraMarkers](https://github.com/coryasilva/Leaflet.ExtraMarkers#properties).
 
 To change the map marker icons for your notes, go to the Map View settings and scroll to Marker Icon Rules.
@@ -141,7 +141,7 @@ This allows you to set rules that change just some properties of the icons, e.g.
 
 Here's the example I provide as a probably-not-useful default in the plugin:
 
-```json
+```
 	{ruleName: "default", preset: true, iconDetails: {"prefix": "fas", "icon": "fa-circle", "markerColor": "blue"}},
 	{ruleName: "#trip", preset: false, iconDetails: {"prefix": "fas", "icon": "fa-hiking", "markerColor": "green"}},
 	{ruleName: "#trip-water", preset: false, iconDetails: {"prefix": "fas", "markerColor": "blue"}},
@@ -213,6 +213,21 @@ Popular choices may be:
 - Waze (online dropped pin): `https://ul.waze.com/ul?ll={x}%2C{y}&navigate=yes&zoom=17` (replace `17` with your preferred zoom level)
 
 And you can figure out many other mapping services just by inspecting the URL.
+
+### Paste as Geolocation
+
+Map View monitors the system clipboard, and when a URL is detected to have an encoded geolocation (e.g. a Google Maps URL), a "Paste as geolocation" entry is added to the editor context menu.
+You can thus copy a link from Google Map and paste it as a geolocation inside a note.
+
+Alternatively, you can right-click a URL that is already present in a note and choose "Convert to geolocation".
+
+By default Map View can parse URLs from two services: Google Maps and the OpenStreetMap "show address" link.
+
+If you're fluent enough with regular expressions, you can add your own URL parsing rules through the plugin's settings pane.
+Add a regex with two capture groups, one representing the latitude and another representing the longitude.
+And if you think your added regular expressions are solid enough, please add them to the plugin using a PR so others can benefit!
+
+![](url-parsing.png)
 
 ## Relation to Other Obsidian Plugins
 
