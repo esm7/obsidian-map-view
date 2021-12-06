@@ -14,6 +14,7 @@ import 'leaflet.markercluster';
 import * as consts from 'src/consts';
 import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
 import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers } from 'src/markers';
+import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 
@@ -56,7 +57,6 @@ export class MapView extends ItemView {
 		};
 		this.setState = async (state: MapState, result) => {
 			if (state) {
-				console.log(`Received setState:`, state);
 				if (!state.version) {
 					// We give the given state priority by setting a high version
 					state.version = this.plugin.highestVersionSeen + 1;
@@ -211,8 +211,9 @@ export class MapView extends ItemView {
 		this.display.clusterGroup = new leaflet.MarkerClusterGroup({
 			maxClusterRadius: this.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels});
 		this.display.map.addLayer(this.display.clusterGroup);
+		const suggestor = new LocationSuggest(this.app, this.settings);
 		const searchControl = GeoSearchControl({
-			provider: new OpenStreetMapProvider(),
+			provider: suggestor.searchProvider,
 			position: 'topright',
 			marker: {
 				icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER as leaflet.BaseIconOptions)
@@ -225,22 +226,30 @@ export class MapView extends ItemView {
 		this.display.map.on('moveend', (event: leaflet.LeafletEvent) => {
 			this.state.mapCenter = this.display.map.getCenter();
 		});
+		// --- Work in progress ---
+		// this.display.clusterGroup.on('clustermouseover', cluster => {
+		// 	console.log(cluster.propagatedFrom.getAllChildMarkers());
+		// 	let content = this.contentEl.createDiv();
+		// 	for (const marker of cluster.propagatedFrom.getAllChildMarkers()) {
+		// 		console.log(marker);
+		// 		const iconElement = marker.options.icon.createIcon();
+		// 		let style = iconElement.style;
+		// 		style.marginLeft = style.marginTop = '0';
+		// 		style.position = 'relative';
+		// 		content.appendChild(iconElement);
+		// 	}
+		// 	cluster.propagatedFrom.bindPopup(content, {closeButton: false, autoPan: false}).openPopup();
+		// 	cluster.propagatedFrom.activePopup = content;
+		// });
+		// this.display.clusterGroup.on('clustermouseout', cluster => {
+		// 	// cluster.propagatedFrom.closePopup();
+		// });
 		this.display.map.on('contextmenu', async (event: leaflet.LeafletMouseEvent) => {
 			let mapPopup = new Menu(this.app);
 			mapPopup.setNoIcon();
 			mapPopup.addItem((item: MenuItem) => {
 				const location = `${event.latlng.lat},${event.latlng.lng}`;
-				item.setTitle('New note here');
-				item.onClick(async ev => {
-					const newFileName = utils.formatWithTemplates(this.settings.newNoteNameFormat);
-					const file: TFile = await utils.newNote(this.app, 'singleLocation', this.settings.newNotePath,
-						newFileName, location, this.settings.newNoteTemplate);
-					this.goToFile(file, ev.ctrlKey, utils.handleNewNoteCursorMarker);
-				});
-			})
-			mapPopup.addItem((item: MenuItem) => {
-				const location = `${event.latlng.lat},${event.latlng.lng}`;
-				item.setTitle('New multi-location note');
+				item.setTitle('New note here (inline)');
 				item.onClick(async ev => {
 					const newFileName = utils.formatWithTemplates(this.settings.newNoteNameFormat);
 					const file: TFile = await utils.newNote(this.app, 'multiLocation', this.settings.newNotePath,
@@ -250,27 +259,30 @@ export class MapView extends ItemView {
 			})
 			mapPopup.addItem((item: MenuItem) => {
 				const location = `${event.latlng.lat},${event.latlng.lng}`;
-				item.setTitle(`Copy location as inline`);
+				item.setTitle('New note here (front matter)');
+				item.onClick(async ev => {
+					const newFileName = utils.formatWithTemplates(this.settings.newNoteNameFormat);
+					const file: TFile = await utils.newNote(this.app, 'singleLocation', this.settings.newNotePath,
+						newFileName, location, this.settings.newNoteTemplate);
+					this.goToFile(file, ev.ctrlKey, utils.handleNewNoteCursorMarker);
+				});
+			})
+			mapPopup.addItem((item: MenuItem) => {
+				const location = `${event.latlng.lat},${event.latlng.lng}`;
+				item.setTitle(`Copy geolocation`);
 				item.onClick(_ev => {
 					navigator.clipboard.writeText(`[](geo:${location})`);
 				});
 			});
 			mapPopup.addItem((item: MenuItem) => {
 				const location = `${event.latlng.lat},${event.latlng.lng}`;
-				item.setTitle(`Copy location as front matter`);
+				item.setTitle(`Copy geolocation as front matter`);
 				item.onClick(_ev => {
 					navigator.clipboard.writeText(`---\nlocation: [${location}]\n---\n\n`);
 				});
 			});
 			mapPopup.addItem((item: MenuItem) => {
-				const location = `${event.latlng.lat},${event.latlng.lng}`;
-				item.setTitle(`Copy location as coordinates`);
-				item.onClick(_ev => {
-					navigator.clipboard.writeText(location);
-				});
-			});
-			mapPopup.addItem((item: MenuItem) => {
-				item.setTitle('Open as geolocation');
+				item.setTitle('Open in default app');
 				item.onClick(_ev => {
 					open(`geo:${event.latlng.lat},${event.latlng.lng}`);
 				});
@@ -343,13 +355,11 @@ export class MapView extends ItemView {
 				// New marker - create it
 				marker.mapMarker = this.newLeafletMarker(marker);
 				markersToAdd.push(marker.mapMarker);
-				// this.display.clusterGroup.addLayer(marker.mapMarker);
 				newMarkersMap.set(marker.id, marker);
 			}
 		}
 		for (let [key, value] of this.display.markers) {
 			markersToRemove.push(value.mapMarker);
-			// this.display.clusterGroup.removeLayer(value.mapMarker);
 		}
 		this.display.clusterGroup.addLayers(markersToAdd);
 		this.display.clusterGroup.removeLayers(markersToRemove);
@@ -381,7 +391,7 @@ export class MapView extends ItemView {
 					item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey, true); });
 				});
 				mapPopup.addItem((item: MenuItem) => {
-					item.setTitle('Open as geolocation');
+					item.setTitle('Open geolocation in default app');
 					item.onClick(ev => {
 						open(`geo:${marker.location.lat},${marker.location.lng}`);
 					});

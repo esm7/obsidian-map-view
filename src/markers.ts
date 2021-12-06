@@ -7,7 +7,7 @@ import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 // @ts-ignore
 let localL = L;
 
-import { PluginSettings } from 'src/settings';
+import { PluginSettings, MarkerIconRule } from 'src/settings';
 import * as consts from 'src/consts';
 
 type MarkerId = string;
@@ -90,14 +90,18 @@ function checkTagPatternMatch(tagPattern: string, tags: string[]) {
 }
 
 function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.Icon {
-	let result = settings.markerIcons.default;
 	const fileCache = app.metadataCache.getFileCache(marker.file);
 	// Combine the file tags with the marker-specific tags
 	const tags = getAllTags(fileCache).concat(marker.tags);
+	return getIconFromRules(tags, settings.markerIconRules);
+}
+
+export function getIconFromRules(tags: string[], rules: MarkerIconRule[]) {
 	// We iterate over the rules and apply them one by one, so later rules override earlier ones
-	for (const tag in settings.markerIcons) {
-		if (checkTagPatternMatch(tag, tags)) {
-			result = Object.assign({}, result, settings.markerIcons[tag]);
+	let result = rules.find(item => item.ruleName === 'default').iconDetails;
+	for (const rule of rules) {
+		if (checkTagPatternMatch(rule.ruleName, tags)) {
+			result = Object.assign({}, result, rule.iconDetails);
 		}
 	}
 	return getIconFromOptions(result);

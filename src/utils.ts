@@ -74,11 +74,12 @@ export function verifyOrAddFrontMatter(editor: Editor): boolean {
 	if (frontMatter && !locations) {
 		const replaced = `---${frontMatter[1]}locations:\n---`;
 		editor.setValue(content.replace(frontMatterRegex, replaced));
-		editor.setCursor(cursorLocation);
+		editor.setCursor({line: cursorLocation.line + 1, ch: cursorLocation.ch});
 		return true;
 	} else if (!frontMatter) {
-		editor.setValue('---\nlocations:\n---\n\n' + content);
-		editor.setCursor(cursorLocation);
+		const newFrontMatter = '---\nlocations:\n---\n\n';
+		editor.setValue(newFrontMatter + content);
+		editor.setCursor({line: cursorLocation.line + newFrontMatter.split('\n').length - 1, ch: cursorLocation.ch});
 		return true;
 	}
 	return false;

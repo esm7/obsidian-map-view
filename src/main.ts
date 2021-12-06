@@ -1,16 +1,20 @@
-import { addIcon, App, Editor, FileView, MarkdownView, MenuItem, Menu, TFile, Plugin, WorkspaceLeaf, PluginSettingTab, Setting, TAbstractFile, SuggestModal } from 'obsidian';
+import { addIcon, Notice, Editor, FileView, MarkdownView, MenuItem, Menu, TFile, Plugin, WorkspaceLeaf, TAbstractFile } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
-import { selectionToLink } from 'src/geosearch';
+import { LocationSuggest } from 'src/geosearch';
+import { UrlConvertor } from 'src/urlConvertor';
 
 import { MapView } from 'src/mapView';
-import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
+import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons } from 'src/settings';
 import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
+import { SettingsTab } from 'src/settingsTab';
 import * as utils from 'src/utils';
 
 export default class MapViewPlugin extends Plugin {
 	settings: PluginSettings;
 	public highestVersionSeen: number = 0;
+	private suggestor: LocationSuggest;
+	private urlConvertor: UrlConvertor;
 
 	async onload() {
 		addIcon('globe', consts.RIBBON_ICON);
@@ -25,6 +29,16 @@ export default class MapViewPlugin extends Plugin {
 			return new MapView(leaf, this.settings, this);
 		});
 
+		this.suggestor = new LocationSuggest(this.app, this.settings);
+		this.urlConvertor = new UrlConvertor(this.app, this.settings);
+
+		this.registerEditorSuggest(this.suggestor);
+
+		if (convertLegacyMarkerIcons(this.settings)) {
+			await this.saveSettings();
+			new Notice("Map View: legacy marker icons were converted to the new format");
+		}
+
 		this.addCommand({
 			id: 'open-map-view',
 			name: 'Open Map View',
@@ -35,13 +49,23 @@ export default class MapViewPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'convert-selection-to-location',
-			name: 'Convert Selection to Location',
+			name: 'Convert Selection to Geolocation',
 			editorCheckCallback: (checking, editor, view) => {
 				if (checking)
 					return editor.getSelection().length > 0;
-				selectionToLink(editor);
+				this.suggestor.selectionToLink(editor);
 			}
-		})
+		});
+
+		this.addCommand({
+			id: 'insert-geolink',
+			name: 'Insert Geolocation',
+			editorCallback: (editor, view) => {
+				const positionBeforeInsert = editor.getCursor();
+				editor.replaceSelection('[](geo:)');
+				editor.setCursor({line: positionBeforeInsert.line, ch: positionBeforeInsert.ch + 1});
+			}
+		});
 
 		this.addSettingTab(new SettingsTab(this.app, this));
 
@@ -55,7 +79,7 @@ export default class MapViewPlugin extends Plugin {
 						item.onClick(async (evt: MouseEvent) => await this.openMapWithLocation(location, evt.ctrlKey));
 					});
 					menu.addItem((item: MenuItem) => {
-						item.setTitle('Open as geolocation');
+						item.setTitle('Open with default app');
 						item.onClick(_ev => {
 							open(`geo:${location.lat},${location.lng}`);
 						});
@@ -65,9 +89,7 @@ export default class MapViewPlugin extends Plugin {
 			}
 		});
 
-		// TODO function signature is a guess, revise when API is released
-		// @ts-ignore
-		this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor, view: FileView) => {
+		this.app.workspace.on('editor-menu', async (menu: Menu, editor: Editor, view: MarkdownView) => {
 			if (view instanceof FileView) {
 				const location = this.getLocationOnEditorLine(editor, view);
 				if (location) {
@@ -77,7 +99,7 @@ export default class MapViewPlugin extends Plugin {
 						item.onClick(async (evt: MouseEvent) => await this.openMapWithLocation(location, evt.ctrlKey));
 					});
 					menu.addItem((item: MenuItem) => {
-						item.setTitle('Open as geolocation');
+						item.setTitle('Open with default app');
 						item.onClick(_ev => {
 							open(`geo:${location.lat},${location.lng}`);
 						});
@@ -86,9 +108,28 @@ export default class MapViewPlugin extends Plugin {
 				}
 				if (editor.getSelection()) {
 					menu.addItem((item: MenuItem) => {
-						item.setTitle('Convert to location link');
-						item.onClick(async () => await selectionToLink(editor));
+						item.setTitle('Convert to geolocation (geosearch)');
+						item.onClick(async () => await this.suggestor.selectionToLink(editor));
 					});
+				}
+
+				if (this.urlConvertor.findMatchInLine(editor))
+					menu.addItem((item: MenuItem) => {
+						item.setTitle('Convert to geolocation');
+						item.onClick(async () => {
+							this.urlConvertor.convertUrlAtCursorToGeolocation(editor);
+						});
+					})
+
+				const clipboard = await navigator.clipboard.readText();
+				const clipboardLocation = this.urlConvertor.parseLocationFromUrl(clipboard)?.location;
+				if (clipboardLocation) {
+					menu.addItem((item: MenuItem) => {
+						item.setTitle('Paste as geolocation');
+						item.onClick(async () => {
+							this.urlConvertor.insertLocationToEditor(clipboardLocation, editor);
+						});
+					})
 				}
 			}
 		});
@@ -148,205 +189,3 @@ export default class MapViewPlugin extends Plugin {
 }
 
 
-class SettingsTab extends PluginSettingTab {
-	plugin: MapViewPlugin;
-
-	constructor(app: App, plugin: MapViewPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		let { containerEl } = this;
-
-		containerEl.empty();
-
-		containerEl.createEl('h2', {text: 'Settings for the map view plugin.'});
-
-		new Setting(containerEl)
-			.setName('Map follows search results')
-			.setDesc('Auto zoom & pan the map to fit search results.')
-			.addToggle(component => {component
-				.setValue(this.plugin.settings.autoZoom)
-					.onChange(async (value) => {
-						this.plugin.settings.autoZoom = value;
-						await this.plugin.saveSettings();
-					})
-			});
-
-		new Setting(containerEl)
-			.setName('Default action for map marker click')
-			.setDesc('How should the corresponding note be opened when clicking a map marker? Either way, CTRL reverses the behavior.')
-			.addDropdown(component => { component
-				.addOption('samePane', 'Open in same pane (replace map view)')
-				.addOption('secondPane', 'Open in a 2nd pane and keep reusing it')
-				.addOption('alwaysNew', 'Always open a new pane')
-				.setValue(this.plugin.settings.markerClickBehavior || 'samePane')
-				.onChange(async (value: any) => {
-					this.plugin.settings.markerClickBehavior = value;
-					this.plugin.saveSettings();
-				})
-			});
-
-		new Setting(containerEl)
-			.setName('New pane split direction')
-			.setDesc('Which way should the pane be split when opening in a new pane.')
-			.addDropdown(component => { component
-				.addOption('horizontal', 'Horizontal')
-				.addOption('vertical', 'Vertical')
-				.setValue(this.plugin.settings.newPaneSplitDirection || 'horizontal')
-					.onChange(async (value: any) => {
-						this.plugin.settings.newPaneSplitDirection = value;
-						this.plugin.saveSettings();
-					})
-			});
-
-		new Setting(containerEl)
-			.setName('New note name format')
-			.setDesc('Date/times in the format can be wrapped in {{date:...}}, e.g. "note-{{date:YYYY-MM-DD}}".')
-			.addText(component => { component
-				.setValue(this.plugin.settings.newNoteNameFormat || DEFAULT_SETTINGS.newNoteNameFormat)
-				.onChange(async (value: string) => {
-					this.plugin.settings.newNoteNameFormat = value;
-					this.plugin.saveSettings();
-				})
-			});
-		new Setting(containerEl)
-			.setName('New note location')
-			.setDesc('Location for notes created from the map.')
-			.addText(component => { component
-				.setValue(this.plugin.settings.newNotePath || '')
-				.onChange(async (value: string) => {
-					this.plugin.settings.newNotePath = value;
-					this.plugin.saveSettings();
-				})
-			});
-		new Setting(containerEl)
-			.setName('Template file location')
-			.setDesc('Choose the file to use as a template, e.g. "templates/map-log.md".')
-			.addText(component => { component
-				.setValue(this.plugin.settings.newNoteTemplate || '')
-				.onChange(async (value: string) => {
-					this.plugin.settings.newNoteTemplate = value;
-					this.plugin.saveSettings();
-				})
-			});
-		new Setting(containerEl)
-			.setName('Max cluster size in pixels')
-			.setDesc('Maximal radius in pixels to cover in a marker cluster. Lower values will produce smaller map clusters. (Requires restart.)')
-			.addSlider(slider => { slider
-				.setLimits(0, 200, 5)
-				.setDynamicTooltip()
-				.setValue(this.plugin.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels)
-				.onChange(async (value: number) => {
-					this.plugin.settings.maxClusterRadiusPixels = value;
-					this.plugin.saveSettings();
-				})});
-		new Setting(containerEl)
-			.setName('Note lines to show on map marker popup')
-			.setDesc('Number of total lines to show in the snippet displayed for inline location notes.')
-			.addSlider(slider => { slider
-				.setLimits(0, 12, 1)
-				.setDynamicTooltip()
-				.setValue(this.plugin.settings.snippetLines ?? DEFAULT_SETTINGS.snippetLines)
-				.onChange(async (value: number) => {
-					this.plugin.settings.snippetLines = value;
-					this.plugin.saveSettings();
-				})
-			});
-		new Setting(containerEl)
-			.setName('Default zoom for "show on map" action')
-			.setDesc('When jumping to the map from a note, what should be the display zoom?')
-			.addSlider(component => {component
-				.setLimits(1, 18, 1)
-				.setValue(this.plugin.settings.zoomOnGoFromNote)
-					.onChange(async (value) => {
-						this.plugin.settings.zoomOnGoFromNote = value;
-						await this.plugin.saveSettings();
-					})
-			});
-
-		new Setting(containerEl)
-			.setName('Map source (advanced)')
-			.setDesc('Source for the map tiles, see the documentation for more details. Requires to close & reopen the map.')
-			.addText(component => {component
-				.setValue(this.plugin.settings.tilesUrl)
-				.onChange(async (value) => {
-					this.plugin.settings.tilesUrl = value;
-					await this.plugin.saveSettings();
-				})
-			});
-
-		new Setting(containerEl)
-			.setHeading().setName('Custom "Open In" Actions')
-			.setDesc("'Open in' actions showing in location-relevant popup menus. URL should have {x} and {y} as parameters to transfer.")
-
-		let openInActionsDiv: HTMLDivElement = null;
-		new Setting(containerEl)
-			.addButton(component => component
-				.setButtonText('New Custom Action')
-				.onClick(() => {
-					this.plugin.settings.openIn.push({name: '', urlPattern: ''});
-					this.refreshOpenInSettings(openInActionsDiv);
-				})
-			);
-		openInActionsDiv = containerEl.createDiv();
-		this.refreshOpenInSettings(openInActionsDiv);
-
-		new Setting(containerEl).
-			setHeading().setName('Advanced');
-
-		new Setting(containerEl)
-			.setName('Edit the marker icons (advanced)')
-			.setDesc("Refer to the plugin documentation for more details.")
-			.addTextArea(component => component
-				.setValue(JSON.stringify(this.plugin.settings.markerIcons, null, 2))
-				.onChange(async value => {
-					try {
-						const newMarkerIcons = JSON.parse(value);
-						this.plugin.settings.markerIcons = newMarkerIcons;
-						await this.plugin.saveSettings();
-					} catch (e) {
-					}
-				}));
-
-		new Setting(containerEl)
-			.setName('Debug logs (advanced)')
-			.addToggle(component => {component
-				.setValue(this.plugin.settings.debug != null ? this.plugin.settings.debug : DEFAULT_SETTINGS.debug)
-				.onChange(async value => {
-					this.plugin.settings.debug = value;
-					await this.plugin.saveSettings();
-				})
-			});
-	}
-
-	refreshOpenInSettings(containerEl: HTMLElement) {
-		containerEl.innerHTML = '';
-		for (const setting of this.plugin.settings.openIn) {
-			new Setting(containerEl)
-				.addText(component => {component
-					.setPlaceholder('Name')
-					.setValue(setting.name)
-					.onChange(async (value: string) => {
-						setting.name = value;
-						await this.plugin.saveSettings();
-					})})
-				.addText(component => {component
-					.setPlaceholder('URL template')
-					.setValue(setting.urlPattern)
-					.onChange(async (value: string) => {
-						setting.urlPattern = value;
-						await this.plugin.saveSettings();
-					})})
-				.addButton(component => component
-					.setButtonText('Delete')
-					.onClick(async () => {
-						this.plugin.settings.openIn.remove(setting);
-						await this.plugin.saveSettings();
-						this.refreshOpenInSettings(containerEl);
-					})
-				);
-		}
-	}
-}

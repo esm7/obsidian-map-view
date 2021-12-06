@@ -35,3 +35,7 @@
 .toggle:checked + .lbl-toggle + .graph-control-content {
 	max-height: 100vh;
 }
+
+.settings-dense-button {
+	margin-right: 0;
+}

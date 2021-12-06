@@ -4,7 +4,9 @@ import { SplitDirection } from 'obsidian';
 
 export type PluginSettings = {
 	darkMode: boolean;
-	markerIcons: Record<string, any>;
+	// Deprecated
+	markerIcons?: Record<string, any>;
+	markerIconRules?: MarkerIconRule[];
 	zoomOnGoFromNote: number;
 	tilesUrl: string;
 	defaultMapCenter?: LatLng;
@@ -19,8 +21,11 @@ export type PluginSettings = {
 	snippetLines?: number;
 	debug?: boolean;
 	openIn?: OpenInSettings[];
+	urlParsingRules?: UrlParsingRule[];
 	mapControls?: MapControls;
 	maxClusterRadiusPixels: number;
+	searchProvider?: 'osm' | 'google';
+	geocodingApiKey?: string;
 }
 
 export type OpenInSettings = {
@@ -28,19 +33,32 @@ export type OpenInSettings = {
 	urlPattern: string;
 }
 
+export type UrlParsingRule = {
+	name: string;
+	regExp: string;
+	order: 'latFirst' | 'lngFirst';
+	preset: boolean;
+}
+
 export type MapControls = {
 	filtersDisplayed: boolean;
 	viewDisplayed: boolean;
 }
 
+export type MarkerIconRule = {
+	ruleName: string;
+	preset: boolean;
+	iconDetails: any;
+}
+
 export const DEFAULT_SETTINGS: PluginSettings = {
 	darkMode: false,
-	markerIcons: {
-		"default": {"prefix": "fas", "icon": "fa-circle", "markerColor": "blue"},
-		"#trip": {"prefix": "fas", "icon": "fa-hiking", "markerColor": "green"},
-		"#trip-water": {"prefix": "fas", "markerColor": "blue"},
-		"#dogs": {"prefix": "fas", "icon": "fa-paw"},
-	},
+	markerIconRules: [
+		{ruleName: "default", preset: true, iconDetails: {"prefix": "fas", "icon": "fa-circle", "markerColor": "blue"}},
+		{ruleName: "#trip", preset: false, iconDetails: {"prefix": "fas", "icon": "fa-hiking", "markerColor": "green"}},
+		{ruleName: "#trip-water", preset: false, iconDetails: {"prefix": "fas", "markerColor": "blue"}},
+		{ruleName: "#dogs", preset: false, iconDetails: {"prefix": "fas", "icon": "fa-paw"}},
+	],
 	zoomOnGoFromNote: 15,
 	tilesUrl: consts.TILES_URL_OPENSTREETMAP,
 	autoZoom: true,
@@ -49,6 +67,24 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	snippetLines: 3,
 	debug: false,
 	openIn: [{name: 'Google Maps', urlPattern: 'https://maps.google.com/?q={x},{y}'}],
+	urlParsingRules: [
+		{name: 'Google Maps', regExp: /https:\/\/\S*\@([0-9\.\-]+),([0-9\.\-]+)\S*/.source, order: 'latFirst', preset: true},
+		{name: 'OpenStreetMap Show Address', regExp: /https:\/\/www.openstreetmap.org\S*query=([0-9\.\-]+%2C[0-9\.\-]+)\S*/.source, order: 'latFirst', preset: true}
+	],
 	mapControls: {filtersDisplayed: true, viewDisplayed: true},
-	maxClusterRadiusPixels: 20
+	maxClusterRadiusPixels: 20,
+	searchProvider: 'osm'
 };
+
+export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
+	if (settings.markerIcons) {
+		settings.markerIconRules = [];
+		for (let key in settings.markerIcons) {
+			const newRule: MarkerIconRule = {ruleName: key, preset: key === 'default', iconDetails: settings.markerIcons[key]};
+			settings.markerIconRules.push(newRule);
+		}
+		settings.markerIcons = null;
+		return true;
+	}
+	return false;
+}
