@@ -3,12 +3,15 @@ import { LatLng } from 'leaflet';
 import { SplitDirection } from 'obsidian';
 
 export type PluginSettings = {
-	darkMode: boolean;
 	// Deprecated
 	markerIcons?: Record<string, any>;
 	markerIconRules?: MarkerIconRule[];
 	zoomOnGoFromNote: number;
-	tilesUrl: string;
+	// Deprecated
+	tilesUrl?: string;
+	mapSources: TileSource[];
+	chosenMapSource?: number;
+	chosenMapMode?: MapLightDark;
 	defaultMapCenter?: LatLng;
 	defaultZoom?: number;
 	defaultTags?: string[];
@@ -26,6 +29,15 @@ export type PluginSettings = {
 	maxClusterRadiusPixels: number;
 	searchProvider?: 'osm' | 'google';
 	geocodingApiKey?: string;
+}
+
+export type MapLightDark = 'auto' | 'light' | 'dark';
+
+export type TileSource = {
+	name: string;
+	urlLight: string;
+	urlDark?: string;
+	currentMode?: MapLightDark;
 }
 
 export type OpenInSettings = {
@@ -52,7 +64,6 @@ export type MarkerIconRule = {
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
-	darkMode: false,
 	markerIconRules: [
 		{ruleName: "default", preset: true, iconDetails: {"prefix": "fas", "icon": "fa-circle", "markerColor": "blue"}},
 		{ruleName: "#trip", preset: false, iconDetails: {"prefix": "fas", "icon": "fa-hiking", "markerColor": "green"}},
@@ -73,7 +84,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	],
 	mapControls: {filtersDisplayed: true, viewDisplayed: true},
 	maxClusterRadiusPixels: 20,
-	searchProvider: 'osm'
+	searchProvider: 'osm',
+	mapSources: [{name: 'OpenStreetMap', urlLight: consts.TILES_URL_OPENSTREETMAP}],
+	chosenMapMode: 'auto'
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
@@ -84,6 +97,15 @@ export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
 			settings.markerIconRules.push(newRule);
 		}
 		settings.markerIcons = null;
+		return true;
+	}
+	return false;
+}
+
+export function convertLegacyTilesUrl(settings: PluginSettings): boolean {
+	if (settings.tilesUrl) {
+		settings.mapSources = [{name: 'Default', urlLight: settings.tilesUrl}];
+		settings.tilesUrl = null;
 		return true;
 	}
 	return false;

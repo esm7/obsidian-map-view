@@ -12,7 +12,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
-import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
+import { PluginSettings, MapLightDark, DEFAULT_SETTINGS } from 'src/settings';
 import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers } from 'src/markers';
 import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
@@ -33,6 +33,7 @@ export class MapView extends ItemView {
 		map: leaflet.Map;
 		clusterGroup: leaflet.MarkerClusterGroup;
 		markers: MarkersMap = new Map();
+		controlsDiv: HTMLDivElement;
 		mapDiv: HTMLDivElement;
 		tagsBox: TextComponent;
 	};
@@ -75,15 +76,48 @@ export class MapView extends ItemView {
 		this.app.vault.on('delete', file => this.updateMarkersWithRelationToFile(file.path, null, true));
 		this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
 		this.app.metadataCache.on('changed', file => this.updateMarkersWithRelationToFile(file.path, file, false));
+		this.app.workspace.on('css-change', () => {
+			console.log('Map view: map refresh due to CSS change');
+			this.refreshMap();
+		});
 	}
 
 	getViewType() { return 'map'; }
 	getDisplayText() { return 'Interactive Map View'; }
 
+	isDarkMode(settings: PluginSettings): boolean {
+		if (settings.chosenMapMode === 'dark')
+			return true;
+		if (settings.chosenMapMode === 'light')
+			return false;
+		// Auto mode - check if the theme is dark
+		if ((this.app.vault as any).getConfig('theme') === 'obsidian')
+			return true;
+		return false;
+	}
+
+	public updateMapSources = () => {};
+
 	async onOpen() {
-		var that = this;
 		this.isOpen = true;
 		this.state = this.defaultState;
+		this.display.controlsDiv = this.createControls();
+		this.display.mapDiv = createDiv({cls: 'map'}, (el: HTMLDivElement) => {
+			el.style.zIndex = '1';
+			el.style.width = '100%';
+			el.style.height = '100%';
+		});
+		this.contentEl.append(this.display.mapDiv);
+		// Make touch move nicer on mobile
+		this.contentEl.addEventListener('touchmove', (ev) => {
+			ev.stopPropagation();
+		});
+		await this.createMap();
+		return super.onOpen();
+	}
+
+	createControls() {
+		var that = this;
 		let controlsDiv = createDiv({
 			'cls': 'graph-controls'
 		});
@@ -132,6 +166,26 @@ export class MapView extends ItemView {
 			this.plugin.saveSettings();
 		}
 		let viewDivContent = viewDiv.createDiv({'cls': 'graph-control-content'});
+		let mapSource = new DropdownComponent(viewDivContent);
+		for (const [index, source] of this.settings.mapSources.entries()) {
+			mapSource.addOption(index.toString(), source.name);
+		}
+		this.updateMapSources();
+		mapSource.onChange(async (value: string) => {
+			this.settings.chosenMapSource = parseInt(value);
+			await this.plugin.saveSettings();
+			this.refreshMap();
+		});
+		const chosenMapSource = this.settings.chosenMapSource ?? 0;
+		mapSource.setValue(chosenMapSource.toString());
+		let sourceMode = new DropdownComponent(viewDivContent);
+		sourceMode.addOptions({auto: 'Auto', light: 'Light', dark: 'Dark'})
+			.setValue(this.settings.chosenMapMode ?? 'auto')
+			.onChange(async value => {
+				this.settings.chosenMapMode = value as MapLightDark;
+				await this.plugin.saveSettings();
+				this.refreshMap();
+			});
 		let goDefault = new ButtonComponent(viewDivContent);
 		goDefault
 			.setButtonText('Reset')
@@ -162,20 +216,7 @@ export class MapView extends ItemView {
 			});
 		this.contentEl.style.padding = '0px 0px';
 		this.contentEl.append(controlsDiv);
-		this.display.mapDiv = createDiv({cls: 'map'}, (el: HTMLDivElement) => {
-			el.style.zIndex = '1';
-			el.style.width = '100%';
-			el.style.height = '100%';
-		});
-		this.contentEl.append(this.display.mapDiv);
-		// Make touch move nicer on mobile
-		this.contentEl.addEventListener('touchmove', (ev) => {
-			ev.stopPropagation();
-		});
-
-		await this.createMap();
-
-		return super.onOpen();
+		return controlsDiv;
 	}
 
 	onClose() {
@@ -187,8 +228,19 @@ export class MapView extends ItemView {
 		this.display.map.invalidateSize();
 	}
 
+	async refreshMap() {
+		this.display?.map?.off();
+		this.display?.map?.remove();
+		this.display?.markers?.clear();
+		this.display?.controlsDiv.remove();
+		this.display.controlsDiv = this.createControls();
+		this.createMap();
+		this.updateMapToState(this.state, false, true);
+	}
+
 	async createMap() {
 		var that = this;
+		const isDark = this.isDarkMode(this.settings);
 		// LeafletJS compatability: disable tree-shaking for the full-screen module
 		var dummy = leafletFullscreen;
 		this.display.map = new leaflet.Map(this.display.mapDiv, {
@@ -200,13 +252,22 @@ export class MapView extends ItemView {
 		leaflet.control.zoom({
 			position: 'topright'
 		}).addTo(this.display.map);
-		const attribution = this.settings.tilesUrl === DEFAULT_SETTINGS.tilesUrl ?
+		const chosenMapSource = this.settings.mapSources[this.settings.chosenMapSource ?? 0];
+		const attribution = chosenMapSource.urlLight === DEFAULT_SETTINGS.mapSources[0].urlLight ?
 			'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' : '';
-		this.display.map.addLayer(new leaflet.TileLayer(this.settings.tilesUrl, {
+		let revertMap = false;
+		let mapSourceUrl = chosenMapSource.urlLight;
+		if (isDark) {
+			if (chosenMapSource.urlDark)
+				mapSourceUrl = chosenMapSource.urlDark;
+			else
+				revertMap = true;
+		}
+		this.display.map.addLayer(new leaflet.TileLayer(mapSourceUrl, {
 			maxZoom: 20,
 			subdomains:['mt0','mt1','mt2','mt3'],
 			attribution: attribution,
-			className: this.settings.darkMode ? "dark-mode" : ""
+			className: revertMap ? "dark-mode" : ""
 		}));
 		this.display.clusterGroup = new leaflet.MarkerClusterGroup({
 			maxClusterRadius: this.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels});
@@ -294,12 +355,12 @@ export class MapView extends ItemView {
 
 	// Updates the map to the given state and then sets the state accordingly, but only if the given state version
 	// is not lower than the current state version (so concurrent async updates always keep the latest one)
-	async updateMapToState(state: MapState, autoFit: boolean = false) {
+	async updateMapToState(state: MapState, autoFit: boolean = false, force: boolean = false) {
 		if (this.settings.debug)
 			console.time('updateMapToState');
 		const files = this.getFileListByQuery(state.tags);
 		let newMarkers = await buildMarkers(files, this.settings, this.app);
-		if (state.version < this.state.version) {
+		if (state.version < this.state.version && !force) {
 			// If the state we were asked to update is old (e.g. because while we were building markers a newer instance
 			// of the method was called), cancel the update
 			return;
@@ -377,7 +438,7 @@ export class MapView extends ItemView {
 				content += `<p class="map-view-extra-name">${marker.extraName}</p>`;
 			if (marker.snippet)
 				content += `<p class="map-view-marker-snippet">${marker.snippet}</p>`;
-			newMarker.bindPopup(content, {closeButton: false, autoPan: false}).openPopup();
+			newMarker.bindPopup(content, {closeButton: true, autoPan: false}).openPopup();
 		});
 		newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
 			newMarker.closePopup();

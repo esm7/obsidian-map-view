@@ -5,7 +5,7 @@ import { LocationSuggest } from 'src/geosearch';
 import { UrlConvertor } from 'src/urlConvertor';
 
 import { MapView } from 'src/mapView';
-import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons } from 'src/settings';
+import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl } from 'src/settings';
 import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
 import { SettingsTab } from 'src/settingsTab';
 import * as utils from 'src/utils';
@@ -37,6 +37,10 @@ export default class MapViewPlugin extends Plugin {
 		if (convertLegacyMarkerIcons(this.settings)) {
 			await this.saveSettings();
 			new Notice("Map View: legacy marker icons were converted to the new format");
+		}
+		if (convertLegacyTilesUrl(this.settings)) {
+			await this.saveSettings();
+			new Notice("Map View: legacy tiles URL was converted to the new format");
 		}
 
 		this.addCommand({

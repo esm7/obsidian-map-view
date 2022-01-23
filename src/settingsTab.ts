@@ -3,9 +3,12 @@ import { App, TextComponent, PluginSettingTab, TextAreaComponent, Setting } from
 import MapViewPlugin from 'src/main';
 import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
 import { getIconFromOptions, getIconFromRules } from 'src/markers';
+import { MapView } from 'src/mapView';
+import * as consts from 'src/consts';
 
 export class SettingsTab extends PluginSettingTab {
 	plugin: MapViewPlugin;
+	private refreshPluginOnHide: boolean = false;
 
 	constructor(app: App, plugin: MapViewPlugin) {
 		super(app, plugin);
@@ -155,15 +158,21 @@ export class SettingsTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName('Map source (advanced)')
-			.setDesc('Source for the map tiles, see the documentation for more details. Requires to close & reopen the map.')
-			.addText(component => {component
-				.setValue(this.plugin.settings.tilesUrl)
-				.onChange(async (value) => {
-					this.plugin.settings.tilesUrl = value;
-					await this.plugin.saveSettings();
+			.setHeading().setName('Map Sources')
+			.setDesc('Change and switch between sources for map tiles. An optional dark mode URL can be defined for each source. If no such URL is defined and dark mode is used, the map colors are reverted. See the documentation for more details.');
+
+		let mapSourcesDiv: HTMLDivElement = null;
+		new Setting(containerEl)
+			.addButton(component => component
+				.setButtonText('New map source')
+				.onClick(() => {
+					this.plugin.settings.mapSources.push({name: '', urlLight: '', currentMode: 'auto'});
+					this.refreshMapSourceSettings(mapSourcesDiv);
+					this.refreshPluginOnHide = true;
 				})
-			});
+		);
+		mapSourcesDiv = containerEl.createDiv();
+		this.refreshMapSourceSettings(mapSourcesDiv);
 
 		new Setting(containerEl)
 			.setHeading().setName('Custom "Open In" Actions')
@@ -226,6 +235,59 @@ export class SettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			});
+	}
+
+	hide() {
+		if (this.refreshPluginOnHide) {
+			const mapViews = this.app.workspace.getLeavesOfType(consts.MAP_VIEW_NAME);
+			for (const leaf of mapViews) {
+				const mapView = leaf.view as MapView;
+				mapView.refreshMap();
+				mapView.updateMapSources();
+			}
+		}
+	}
+
+	refreshMapSourceSettings(containerEl: HTMLElement) {
+		containerEl.innerHTML = '';
+		for (const setting of this.plugin.settings.mapSources) {
+			const controls = new Setting(containerEl)
+				.addText(component => {component
+					.setPlaceholder('Name')
+					.setValue(setting.name)
+					.onChange(async (value: string) => {
+						setting.name = value;
+						this.refreshPluginOnHide = true;
+						await this.plugin.saveSettings();
+					})
+					.inputEl.style.width = '10em'; })
+				.addText(component => {component
+					.setPlaceholder('URL (light/default)')
+					.setValue(setting.urlLight)
+						.onChange(async (value: string) => {
+							setting.urlLight = value;
+							this.refreshPluginOnHide = true;
+							await this.plugin.saveSettings();
+					})})
+				.addText(component => {component
+					.setPlaceholder('URL (dark) (optional)')
+					.setValue(setting.urlDark)
+						.onChange(async (value: string) => {
+							setting.urlDark = value;
+							this.refreshPluginOnHide = true;
+							await this.plugin.saveSettings();
+					})})
+				.addButton(component => component
+					.setButtonText('Delete')
+					.onClick(async () => {
+						this.plugin.settings.mapSources.remove(setting);
+						this.refreshPluginOnHide = true;
+						await this.plugin.saveSettings();
+						this.refreshMapSourceSettings(containerEl);
+					}));
+			controls.settingEl.style.padding = '5px';
+			controls.settingEl.style.borderTop = 'none';
+		}
 	}
 
 	refreshOpenInSettings(containerEl: HTMLElement) {

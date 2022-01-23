@@ -23,7 +23,6 @@ Just like the Obsidian graph view lets you visualize associative relations betwe
 
 ## Limitations
 
-- Although both light & dark themes are supported, the map itself is currently only light.
 - Experience in mobile is not as good as it should be. Most notably there's no GPS location support due to permission limitations of the Obsidian app. Please help us ask the Obsidian developers to get these permissions added!
 
 ## User Guide
@@ -79,6 +78,10 @@ Also note that inline tags do not affect the files that are searched based on th
 
 Note: older versions of this plugin used the notation `location: ...` for inline locations.
 This notation is still supported but the standard `geo:` one is the default and encouraged one.
+
+Multiple inline tags can be separated with a whitespace: `[](geo:42.2,-76.15) tag:dogs tag:trip`.
+
+Multiple inline locations can be added in the same line, and the tags that follow them will be associated to the location on the left, but the right-click editor context menu will not know to choose the location that was selected.
 
 ### Adding a Location to a Note
 
@@ -181,7 +184,7 @@ See [here](https://developers.google.com/maps/documentation/javascript/get-api-k
 ### Map Sources
 
 By default, Map View uses the [standard tile layer of OpenStreetMap](https://wiki.openstreetmap.org/wiki/Standard_tile_layer).
-However, you can change the map source in the configuration to any service that has a tiles API using a standard URL syntax.
+However, you can change or add map sources in the configuration with any service that has a tiles API using a standard URL syntax.
 
 There are many services of localized, specialized or just beautifully-rendered maps that you can use, sometimes following a free registration.
 See a pretty comprehensive list [here](https://wiki.openstreetmap.org/wiki/Tiles).
@@ -189,6 +192,10 @@ See a pretty comprehensive list [here](https://wiki.openstreetmap.org/wiki/Tiles
 Although that's the case with this plugin in general, it's worth noting explicitly that using 3rd party map data properly, and making sure you are not violating any terms of use, is your own responsibility.
 
 Note that Google Maps is not in that list, because although it does provide the same standard form of static tiles in the same URL format, the Google Maps terms of service makes it difficult to legally bundle the maps in an application.
+
+If you have multiple map sources, they can be switched from the View pane.
+Additionally, you can set an optional different dark theme URL for each map source.
+If a dark theme is detected, or if you specifically change the map source type to Dark (using the drop down in the View pane), you will get the Dark URL if one is configured.
 
 ### Open In
 
@@ -245,10 +252,18 @@ There are so many things that I want it to do, and so little time...
 
 - More powerful filtering. I'd love it to be based on the [existing Obsidian query format](https://github.com/obsidianmd/obsidian-api/issues/22). What I see in mind is a powerful text search with a results pane that's linked to the map.
 - Better interoperability with Obsidian Leaflet: support for marker image files, locations as an array and `marker` tags.
-- Dark mode.
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### 1.1.0
+
+- The plugin now supports a configurable list of map sources, switchable from the View pane on the map, including optional separate URLs for light & dark themes.
+- Support dark mode using a CSS hue revert, as [recommended for Leaflet](https://gist.github.com/BrendonKoz/b1df234fe3ee388b402cd8e98f7eedbd) and as done by obsidian-leaflet.
+- [Support multiple inline locations per line](https://github.com/esm7/obsidian-map-view/issues/35).
+- [Support multiple tags per inline location](https://github.com/esm7/obsidian-map-view/issues/32).
+- Fixed an [issue](https://github.com/esm7/obsidian-map-view/issues/30) of inline tags not properly including the dash (`-`) character.
+- Popups now have a close button (to make them more mobile-friendly).
 
 ### 1.0.0
 
