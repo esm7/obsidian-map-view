@@ -133,7 +133,7 @@ export function matchInlineLocation(content: string): RegExpMatchArray[] {
 	// Old syntax of ` `location: ... ` `. This syntax doesn't support a name so we leave an empty capture group
 	const locationRegex1 = /\`()location:\s*\[?([0-9.\-]+)\s*,\s*([0-9.\-]+)\]?\`/g;
 	// New syntax of `[name](geo:...)` and an optional tags as `tag:tagName` separated by whitespaces
-	const locationRegex2 = /\[(.*?)\]\(geo:([0-9.\-]+),([0-9.\-]+)\)[ \t]*((?:tag:[\w\/\-]+\s+)*)/g;
+	const locationRegex2 = /\[(.*?)\]\(geo:([0-9.\-]+),([0-9.\-]+)\)[ \t]*((?:tag:[\w\/\-]+[\s\.]+)*)/g;
 	const matches1 = content.matchAll(locationRegex1);
 	const matches2 = content.matchAll(locationRegex2);
 	return Array.from(matches1).concat(Array.from(matches2));

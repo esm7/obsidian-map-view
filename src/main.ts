@@ -8,6 +8,7 @@ import { MapView } from 'src/mapView';
 import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl } from 'src/settings';
 import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
 import { SettingsTab } from 'src/settingsTab';
+import { NewNoteDialog } from 'src/newNoteDialog';
 import * as utils from 'src/utils';
 
 export default class MapViewPlugin extends Plugin {
@@ -63,11 +64,20 @@ export default class MapViewPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'insert-geolink',
-			name: 'Insert Geolocation',
+			name: 'Insert Inline Geolocation',
 			editorCallback: (editor, view) => {
 				const positionBeforeInsert = editor.getCursor();
 				editor.replaceSelection('[](geo:)');
 				editor.setCursor({line: positionBeforeInsert.line, ch: positionBeforeInsert.ch + 1});
+			}
+		});
+
+		this.addCommand({
+			id: 'new-geolocation-note',
+			name: 'New geolocation note',
+			callback: () => {
+				const dialog = new NewNoteDialog(this.app, this.settings);
+				dialog.open();
 			}
 		});
 

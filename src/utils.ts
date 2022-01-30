@@ -1,10 +1,11 @@
-import { Editor, App, TFile, Menu, MenuItem } from 'obsidian';
+import { WorkspaceLeaf, MarkdownView, Editor, App, TFile, Menu, MenuItem } from 'obsidian';
 
 import * as moment_ from 'moment';
 import * as leaflet from 'leaflet';
 import * as path from 'path';
-
 import * as settings from './settings';
+import * as consts from './consts';
+import { MapView } from './mapView';
 
 export function formatWithTemplates(s: string) {
 	const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;
@@ -44,7 +45,8 @@ export async function goToEditorLocation(editor: Editor, fileLocation: number, h
 	if (fileLocation) {
 		let pos = editor.offsetToPos(fileLocation);
 		if (highlight) {
-			editor.setSelection({ch: 0, line: pos.line}, {ch: 1000, line: pos.line});
+			const lineContent = editor.getLine(pos.line);
+			editor.setSelection({ch: 0, line: pos.line}, {ch: lineContent.length, line: pos.line});
 		} else {
 			editor.setCursor(pos);
 			editor.refresh();
@@ -97,4 +99,19 @@ export function populateOpenInItems(menu: Menu, location: leaflet.LatLng, settin
 			});
 		})
 	}
+}
+
+export function findOpenMapView(app: App) {
+	const maps = app.workspace.getLeavesOfType(consts.MAP_VIEW_NAME);
+	if (maps && maps.length > 0)
+		return maps[0].view as MapView;
+}
+
+export async function getEditor(app: App, leafToUse?: WorkspaceLeaf) : Promise<Editor> {
+	let view = leafToUse && leafToUse.view instanceof MarkdownView ?
+		leafToUse.view :
+		app.workspace.getActiveViewOfType(MarkdownView);
+	if (view)
+		return view.editor;
+	return null;
 }

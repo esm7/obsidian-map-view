@@ -26,7 +26,8 @@ export class UrlConvertor {
 					return {
 						location: new leaflet.LatLng(parseFloat(result[1]), parseFloat(result[2])),
 						index: result.index,
-						matchLength: result[0].length
+						matchLength: result[0].length,
+						ruleName: rule.name
 					};
 				}
 				catch (e) { }

@@ -7,9 +7,11 @@ It searches your notes for encoded geolocations (see below) and places them as m
 
 You can set different icons for different note types, filter the displayed notes and much more.
 
+It also provides a wide range of tools to add geolocations to your notes, including address searches and parsing of URLs from external sources such as Google Maps.
+
 ![](sample.png)
 
-![](search.png)
+![](intro.gif)
 
 The plugin's guiding philosophy and goal is to provide a **personal GIS system** as a complementary view for your notes.
 I wrote it because I wanted my ever-growing Zettelkasten to be able to answer questions like...
@@ -25,9 +27,7 @@ Just like the Obsidian graph view lets you visualize associative relations betwe
 
 - Experience in mobile is not as good as it should be. Most notably there's no GPS location support due to permission limitations of the Obsidian app. Please help us ask the Obsidian developers to get these permissions added!
 
-## User Guide
-
-### Parsing Location Data
+## Parsing Location Data
 
 The plugin scans all your notes and parses two types of location data.
 
@@ -83,11 +83,33 @@ Multiple inline tags can be separated with a whitespace: `[](geo:42.2,-76.15) ta
 
 Multiple inline locations can be added in the same line, and the tags that follow them will be associated to the location on the left, but the right-click editor context menu will not know to choose the location that was selected.
 
-### Adding a Location to a Note
+## Adding a Location to a Note
 
-If you want to log a location in a note, you have a few options.
+Map View offers many ways to add locations to notes.
 
-1. Starting from the map: use "new note here" when right-clicking the map. This will create a new note (based on the template you can change in the settings) with the location you clicked.
+### Anywhere in Obsidian
+
+Map View adds an Obsidian command named "New geolocation note", which you can map to a hotkey and use anywhere in Obsidian.
+
+This opens a dialog on which you can search (address or location based on your [configured geocoding provider](#changing-a-geocoding-provider)) or paste a URL using the built-in or custom [URL parsing rules](#url-parsing-rules).
+
+![](new-note-popup.png)
+
+### In an Existing Note
+
+There are multiple ways to add a geolocation to an existing note.
+
+1. Create a geolocation link in the format of `[](geo:)`, and if you start typing inside the link name (the brackets), Map View will initiate a location search. If you confirm one of the options, it will fill-in the location's coordinates. See more on this in the ["In-Note Location Search"](#in-note-location-search--auto-complete) section below.
+
+To make this more streamlined, Map View adds to Obsidian a command named Insert Geolocation which you can map to a keyboard shortcut.
+
+2. If you have a location in some other mapping service that you wish to log, e.g. from Google Maps, you can copy the URL from that service, right-click in your note and select "Paste as Geolocation". The supported services are configurable, see [below](#url-parsing-rules) for more details.
+
+### From the Map
+
+The map offers several tools to create notes.
+
+1. Use "new note here" when right-clicking the map. This will create a new note (based on the template you can change in the settings) with the location you clicked. You can create either an empty note with a front matter (single geolocation) or an empty note with an inline geolocation.
 
 ![](new-note.png)
 
@@ -95,17 +117,21 @@ Note that the map can be searched using the tool on the upper-right side.
 
 ![](search.png)
 
-2. While writing/editing a note: create a geolocation link in the format of `[](geo:)`, and if you start typing inside the link name (the brackets), Map View will initiate a location search. If you confirm one of the options, it will fill-in the location's coordinates. See more on this in the "In-Note Location Search" section below.
-
-To make this more streamlined, Map View adds to Obsidian a command named Insert Geolocation which you can map to a keyboard shortcut.
-
-3. If you have a location in some other mapping service that you wish to log, e.g. from Google Maps, you can copy the URL from that service, right-click in your note and select "Paste as Geolocation". The supported services are configurable, see below for more details.
-
-4. If you prefer to edit it manually, use one of the "copy geolocation" options when you right-click the map. If you use "copy geolocation", just remember you need the note to start with a front matter that has an empty `locations:` line.
+2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map. If you use "copy geolocation", just remember you need the note to start with a front matter that has an empty `locations:` line.
  
 ![](copy.png)
 
-### Filtering by Tags
+
+## Paste as Geolocation
+
+Map View monitors the system clipboard, and when a URL is detected to have an encoded geolocation (e.g. a Google Maps URL), a "Paste as geolocation" entry is added to the editor context menu.
+You can thus copy a link from Google Map and paste it as a geolocation inside a note.
+
+Alternatively, you can right-click a URL that is already present in a note and choose "Convert to geolocation".
+
+By default Map View can parse URLs from two services: Google Maps and the OpenStreetMap "show address" link.
+
+## Filtering by Tags
 
 At the time of release, this plugin provides just one way to filter notes: an "OR" search by tags.
 
@@ -114,7 +140,7 @@ In the search box you can type tags separated by commas and you'll get in your v
 
 Alternatively, if you follow an inline geolocation link by `tag:yourTagName`, this tag will be added to that geolocation in addition to the note's tags.
 
-### Marker Icons
+## Marker Icons
 
 Map View allows you to customize notes' map marker icons based on a powerful rules system. These rules can be edited using the plugin's settings pane or edited as JSON for some even more fine-grained control.
 
@@ -136,7 +162,7 @@ To add a marker with a bus icon, click New Icon Rule, search Font Awesome (in th
 Once you enter `fa-bus` in the icon name, you should immediately see your icon in the preview.
 To make this icon apply for notes with the `#travel` tag, type `#travel` in the Tag Name box.
 
-#### Tag Rules
+### Tag Rules
 
 To apply an icon to a note with geolocation data, Map View scans the complete list of rules by their order, always starting from `default`.
 A rule matches if the tag that it lists is included in the note, and then the rule's fields will overwrite the corresponding fields of the previous matching rules, until all rules were scanned.
@@ -159,7 +185,7 @@ Tag rules also support wildcards, e.g. a rule in the form of `"#food*": {...}` w
 
 The settings also allow advanced users to manually edit the configuration tree, and there you can use more properties based on the [Leaflet.ExtraMarkers](https://github.com/coryasilva/Leaflet.ExtraMarkers#properties) properties. Manual edits update the GUI in real-time.
 
-### In-Note Location Search & Auto-Complete
+## In-Note Location Search & Auto-Complete
 
 Map View adds an Obsidian command named Insert Inline Location, that you can (and encouraged) to map to a keyboard shortcut, e.g. `Ctrl+L` or `Ctrl+Shift+L`.
 This command inserts an empty inline location template: `[](geo:)`.
@@ -171,7 +197,7 @@ Selecting one of the suggestions will fill-in the coordinates of the chosen loca
 
 If your note is not yet marked as one including locations (by a `locations:`) tag in the front matter, this is added automatically.
 
-#### Changing a Geocoding Provider
+### Changing a Geocoding Provider
 
 By default, Map View is configured to use OpenStreetMap as the search provider.
 If you prefer to use the Google Maps search, you can configure this in the plugin settings.
@@ -181,7 +207,7 @@ See [here](https://developers.google.com/maps/documentation/javascript/get-api-k
 
 **Note:** usage of any geocoding provider is at your own risk, and it's your own responsibility to verify you are not violating the service's terms of usage.
 
-### Map Sources
+## Map Sources
 
 By default, Map View uses the [standard tile layer of OpenStreetMap](https://wiki.openstreetmap.org/wiki/Standard_tile_layer).
 However, you can change or add map sources in the configuration with any service that has a tiles API using a standard URL syntax.
@@ -197,7 +223,7 @@ If you have multiple map sources, they can be switched from the View pane.
 Additionally, you can set an optional different dark theme URL for each map source.
 If a dark theme is detected, or if you specifically change the map source type to Dark (using the drop down in the View pane), you will get the Dark URL if one is configured.
 
-### Open In
+## Open In
 
 Many context menus of Map View display a customizable Open In list, which can open a given location in external sources.
 These sources can be Google Maps, OpenStreetMap, specialized mapping tools or pretty much anything you use for viewing locations.
@@ -221,17 +247,18 @@ Popular choices may be:
 
 And you can figure out many other mapping services just by inspecting the URL.
 
-### Paste as Geolocation
+## URL Parsing Rules
 
-Map View monitors the system clipboard, and when a URL is detected to have an encoded geolocation (e.g. a Google Maps URL), a "Paste as geolocation" entry is added to the editor context menu.
-You can thus copy a link from Google Map and paste it as a geolocation inside a note.
+As described above, Map View uses *URL parsing rules* in several places to provide the ability to parse URLs (or other strings) from external sources and convert them to standard geolocations.
 
-Alternatively, you can right-click a URL that is already present in a note and choose "Convert to geolocation".
+1. When right-clicking a line with a recognized link, a "Convert to Geolocation" entry will be shown in the editor context menu.
+2. When a recognized link is detected in the system clipboard, a "Paste as Geolocation" entry will be added in the editor context menu.
+3. In the "New geolocation note" dialog, pasting a supported URL will parse the geolocation.
 
-By default Map View can parse URLs from two services: Google Maps and the OpenStreetMap "show address" link.
+URL parsing rules can be configured in the plugin's configuration pane and requires familiarity with regular expressions.
 
-If you're fluent enough with regular expressions, you can add your own URL parsing rules through the plugin's settings pane.
-Add a regex with two capture groups, one representing the latitude and another representing the longitude.
+The syntax expects two captures group and you can configure if they are parsed as `lat, lng` (most common) or `lng, lat`.
+
 And if you think your added regular expressions are solid enough, please add them to the plugin using a PR so others can benefit!
 
 ![](url-parsing.png)
@@ -255,6 +282,13 @@ There are so many things that I want it to do, and so little time...
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### 1.2.0
+
+- Added a "new geolocation note" Obsidian command with an interactive search and URL parser.
+- Fixed a bug of highlighting more than the intended line after clicking a map marker and opening a note.
+- Fixed a bug of inline tags not recognized if immediately followed by a dot (which is a common pattern).
+- Fixed an exception that could prevent settings to be applied after closing the settings dialog.
 
 ### 1.1.0
 

@@ -241,9 +241,11 @@ export class SettingsTab extends PluginSettingTab {
 		if (this.refreshPluginOnHide) {
 			const mapViews = this.app.workspace.getLeavesOfType(consts.MAP_VIEW_NAME);
 			for (const leaf of mapViews) {
-				const mapView = leaf.view as MapView;
-				mapView.refreshMap();
-				mapView.updateMapSources();
+				if (leaf.view) {
+					const mapView = leaf.view as MapView;
+					mapView.refreshMap();
+					mapView.updateMapSources();
+				}
 			}
 		}
 	}

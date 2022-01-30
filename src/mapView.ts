@@ -505,7 +505,7 @@ export class MapView extends ItemView {
 			}
 		}
 		await leafToUse.openFile(file);
-		const editor = await this.getEditor(leafToUse);
+		const editor = await utils.getEditor(this.app, leafToUse);
 		if (editor && editorAction)
 			await editorAction(editor);
 	}
@@ -527,15 +527,6 @@ export class MapView extends ItemView {
 		}
 		tags = tags.sort();
 		return tags;
-	}
-
-	async getEditor(leafToUse?: WorkspaceLeaf) : Promise<Editor> {
-		let view = leafToUse && leafToUse.view instanceof MarkdownView ?
-			leafToUse.view :
-			this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (view)
-			return view.editor;
-		return null;
 	}
 
 	private async updateMarkersWithRelationToFile(fileRemoved: string, fileAddedOrChanged: TAbstractFile, skipMetadata: boolean) {
