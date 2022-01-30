@@ -93,7 +93,7 @@ Map View adds an Obsidian command named "New geolocation note", which you can ma
 
 This opens a dialog on which you can search (address or location based on your [configured geocoding provider](#changing-a-geocoding-provider)) or paste a URL using the built-in or custom [URL parsing rules](#url-parsing-rules).
 
-![](new-note-popup.png)
+![](new-note-popup.gif)
 
 ### In an Existing Note
 
