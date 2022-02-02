@@ -7,12 +7,14 @@ import * as settings from './settings';
 import * as consts from './consts';
 import { MapView } from './mapView';
 
-export function formatWithTemplates(s: string) {
+export function formatWithTemplates(s: string, query = '') {
 	const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;
+	const queryPattern = /{{query}}/g;
 	const replaced = s.replace(datePattern, (_, pattern) => {
 		// @ts-ignore
 		return moment().format(pattern);
-	});
+	}).replace(queryPattern, query);
+	
 	return replaced;
 }
 
@@ -64,22 +66,24 @@ export async function handleNewNoteCursorMarker(editor: Editor) {
 	}
 }
 
-// Returns true if a replacement was made
-export function verifyOrAddFrontMatter(editor: Editor): boolean {
+// Creates or modifies a front matter that has the field `fieldName: fieldValue`.
+// Returns true if a change to the note was made.
+export function verifyOrAddFrontMatter(editor: Editor, fieldName: string, fieldValue: string): boolean {
 	const content = editor.getValue();
 	const frontMatterRegex = /^---(.*)^---/ms;
 	const frontMatter = content.match(frontMatterRegex);
-	const locations = content.match(/^---.*locations:.*^---/ms);
+	const existingFieldRegex = new RegExp(`^---.*${fieldName}:.*^---`, 'ms');
+	const existingField = content.match(existingFieldRegex);
 	const cursorLocation = editor.getCursor();
 	// That's not the best usage of the API, and rather be converted to editor transactions or something else
 	// that can preserve the cursor position better
-	if (frontMatter && !locations) {
-		const replaced = `---${frontMatter[1]}locations:\n---`;
+	if (frontMatter && !existingField) {
+		const replaced = `---${frontMatter[1]}${fieldName}: ${fieldValue}\n---`;
 		editor.setValue(content.replace(frontMatterRegex, replaced));
 		editor.setCursor({line: cursorLocation.line + 1, ch: cursorLocation.ch});
 		return true;
 	} else if (!frontMatter) {
-		const newFrontMatter = '---\nlocations:\n---\n\n';
+		const newFrontMatter = `---\n${fieldName}: ${fieldValue}\n---\n\n`;
 		editor.setValue(newFrontMatter + content);
 		editor.setCursor({line: cursorLocation.line + newFrontMatter.split('\n').length - 1, ch: cursorLocation.ch});
 		return true;

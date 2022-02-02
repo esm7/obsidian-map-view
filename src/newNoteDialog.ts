@@ -23,11 +23,16 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 	private lastSearch = '';
 	private lastSearchResults: SuggestInfo[] = [];
 
-	constructor(app: App, settings: PluginSettings) {
+	private dialogAction: 'newNote' | 'addToNote' = 'newNote';
+	private editor: Editor = null;
+
+	constructor(app: App, settings: PluginSettings, dialogAction: 'newNote' | 'addToNote' = 'newNote', editor: Editor = null) {
 		super(app);
 		this.settings = settings;
 		this.suggestor = new LocationSuggest(this.app, this.settings);
 		this.urlConvertor = new UrlConvertor(this.app, this.settings);
+		this.dialogAction = dialogAction;
+		this.editor = editor;
 
 		this.setPlaceholder('Type a search query or paste a supported URL');
 		this.setInstructions([{command: 'enter', purpose: 'to use'}]);
@@ -50,12 +55,15 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 	}
 
 	onChooseSuggestion(value: SuggestInfo, evt: MouseEvent | KeyboardEvent) {
-		this.newNote(value.location, evt);
+		if (this.dialogAction == 'newNote')
+			this.newNote(value.location, evt, value.name);
+		else if (this.dialogAction == 'addToNote')
+			this.addToNote(value.location, evt, value.name);
 	}
 
-	async newNote(location: leaflet.LatLng, ev: MouseEvent | KeyboardEvent) {
+	async newNote(location: leaflet.LatLng, ev: MouseEvent | KeyboardEvent, query: string) {
 		const locationString = `${location.lat},${location.lng}`;
-		const newFileName = utils.formatWithTemplates(this.settings.newNoteNameFormat);
+		const newFileName = utils.formatWithTemplates(this.settings.newNoteNameFormat, query);
 		const file: TFile = await utils.newNote(this.app, 'singleLocation', this.settings.newNotePath,
 			newFileName, locationString, this.settings.newNoteTemplate);
 		// If there is an open map view, use it to decide how and where to open the file.
@@ -71,6 +79,11 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 			if (editor)
 				await utils.handleNewNoteCursorMarker(editor);
 		}
+	}
+
+	async addToNote(location: leaflet.LatLng, ev: MouseEvent | KeyboardEvent, query: string) {
+		const locationString = `[${location.lat},${location.lng}]`;
+		utils.verifyOrAddFrontMatter(this.editor, 'location', locationString);
 	}
 
 	async getSearchResultsWithDelay(query: string) {

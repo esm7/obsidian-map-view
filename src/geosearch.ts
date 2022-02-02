@@ -58,7 +58,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
 			finalResult,
 			{line: currentCursor.line, ch: linkOfCursor.index},
 			{line: currentCursor.line, ch: linkOfCursor.linkEnd});
-		if (utils.verifyOrAddFrontMatter(value.context.editor))
+		if (utils.verifyOrAddFrontMatter(value.context.editor, 'locations', ''))
 			new Notice("The note's front matter was updated to denote locations are present");
 	}
 
@@ -100,7 +100,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
 			const firstResult = results[0];
 			editor.replaceSelection(`[${selection}](geo:${firstResult.y},${firstResult.x})`);
 			new Notice(firstResult.label, 10 * 1000);
-			if (utils.verifyOrAddFrontMatter(editor))
+			if (utils.verifyOrAddFrontMatter(editor, 'locations', ''))
 				new Notice("The note's front matter was updated to denote locations are present");
 		}
 		else {

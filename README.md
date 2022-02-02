@@ -99,11 +99,13 @@ This opens a dialog on which you can search (address or location based on your [
 
 There are multiple ways to add a geolocation to an existing note.
 
-1. Create a geolocation link in the format of `[](geo:)`, and if you start typing inside the link name (the brackets), Map View will initiate a location search. If you confirm one of the options, it will fill-in the location's coordinates. See more on this in the ["In-Note Location Search"](#in-note-location-search--auto-complete) section below.
+1. Create an inline geolocation link in the format of `[](geo:)`, and if you start typing inside the link name (the brackets), Map View will initiate a location search. If you confirm one of the options, it will fill-in the location's coordinates. See more on this in the ["In-Note Location Search"](#in-note-location-search--auto-complete) section below.
 
-To make this more streamlined, Map View adds to Obsidian a command named Insert Geolocation which you can map to a keyboard shortcut.
+To make this more streamlined, Map View adds to Obsidian a command named 'Add inline geolocation link' which you can map to a keyboard shortcut.
 
-2. If you have a location in some other mapping service that you wish to log, e.g. from Google Maps, you can copy the URL from that service, right-click in your note and select "Paste as Geolocation". The supported services are configurable, see [below](#url-parsing-rules) for more details.
+2. Add a front matter geolocation by using the Obsidian command 'Add geolocation (front matter) to current note'. This opens the same dialog as "new geolocation note" which allows you to search for a location name or paste a [URL parsing rules](#url-parsing-rules).
+
+3. If you have a location in some other mapping service that you wish to log, e.g. from Google Maps, you can copy the URL from that service, right-click in your note and select "Paste as Geolocation". The supported services are configurable, see [below](#url-parsing-rules) for more details.
 
 ### From the Map
 
@@ -187,7 +189,7 @@ The settings also allow advanced users to manually edit the configuration tree, 
 
 ## In-Note Location Search & Auto-Complete
 
-Map View adds an Obsidian command named Insert Inline Location, that you can (and encouraged) to map to a keyboard shortcut, e.g. `Ctrl+L` or `Ctrl+Shift+L`.
+Map View adds an Obsidian command named 'Add inline geolocation link', that you can (and encouraged) to map to a keyboard shortcut, e.g. `Ctrl+L` or `Ctrl+Shift+L`.
 This command inserts an empty inline location template: `[](geo:)`.
 
 When editing an inline location in this format, whether if you added it manually or using the command, if you start entering a link name, Map View will start offering locations based on a geocoding service.
@@ -282,6 +284,11 @@ There are so many things that I want it to do, and so little time...
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### 1.2.1
+
+- The "new geolocation note" dialog can now also be used to add a location to an existing note, both via a new Obsidian command and a file menu action (https://github.com/esm7/obsidian-map-view/issues/46).
+- Added a `{{query}}` file name template option to auto-add the search query for new location notes (https://github.com/esm7/obsidian-map-view/issues/45).
 
 ### 1.2.0
 

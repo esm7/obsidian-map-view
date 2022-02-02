@@ -64,7 +64,7 @@ export default class MapViewPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'insert-geolink',
-			name: 'Insert Inline Geolocation',
+			name: 'Add inline geolocation link',
 			editorCallback: (editor, view) => {
 				const positionBeforeInsert = editor.getCursor();
 				editor.replaceSelection('[](geo:)');
@@ -77,6 +77,15 @@ export default class MapViewPlugin extends Plugin {
 			name: 'New geolocation note',
 			callback: () => {
 				const dialog = new NewNoteDialog(this.app, this.settings);
+				dialog.open();
+			}
+		});
+
+		this.addCommand({
+			id: 'add-frontmatter-geolocation',
+			name: 'Add geolocation (front matter) to current note',
+			editorCallback: (editor, view) => {
+				const dialog = new NewNoteDialog(this.app, this.settings, 'addToNote', editor);
 				dialog.open();
 			}
 		});
@@ -99,6 +108,19 @@ export default class MapViewPlugin extends Plugin {
 						});
 					});
 					utils.populateOpenInItems(menu, location, this.settings);
+				} else {
+					if (leaf && leaf.view instanceof MarkdownView) {
+						const editor = leaf.view.editor;
+						menu.addItem((item: MenuItem) => {
+							item.setTitle('Add geolocation (front matter)');
+							item.setIcon('globe');
+							item.onClick(async (evt: MouseEvent) => {
+								const dialog = new NewNoteDialog(this.app, this.settings, 'addToNote', editor);
+								dialog.open();
+							});
+						});
+
+					}
 				}
 			}
 		});
