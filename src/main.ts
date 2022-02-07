@@ -107,20 +107,17 @@ export default class MapViewPlugin extends Plugin {
 							open(`geo:${coordinate.lat},${coordinate.lng}`);
 						});
 					});
-				} else {
-					if (leaf && leaf.view instanceof MarkdownView) {
-						const editor = leaf.view.editor;
-						menu.addItem((item: MenuItem) => {
-							item.setTitle('Add geolocation (front matter)');
-							item.setIcon('globe');
-							item.onClick(async (evt: MouseEvent) => {
-								const dialog = new NewNoteDialog(this.app, this.settings, 'addToNote', editor);
-								dialog.open();
-							});
 					utils.populateOpenInItems(menu, coordinate, this.settings);
+				} else if (leaf && leaf.view instanceof MarkdownView) {
+					const editor = leaf.view.editor;
+					menu.addItem((item: MenuItem) => {
+						item.setTitle('Add geolocation (front matter)');
+						item.setIcon('globe');
+						item.onClick(async (evt: MouseEvent) => {
+							const dialog = new NewNoteDialog(this.app, this.settings, 'addToNote', editor);
+							dialog.open();
 						});
-
-					}
+					});
 				}
 			}
 		});
