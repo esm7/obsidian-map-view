@@ -24,7 +24,7 @@ export default class MapViewPlugin extends Plugin {
 		// When the plugin loads
 
 		// Register a new icon
-		addIcon('globe', consts.RIBBON_ICON);
+		addIcon('globe', consts.GLOBE_ICON);
 
 		// Load the settings
 		await this.loadSettings();
