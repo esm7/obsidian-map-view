@@ -3,7 +3,7 @@ import * as leaflet from 'leaflet';
 
 import { PluginSettings } from 'src/settings';
 import { LocationSuggest } from 'src/geosearch';
-import { UrlConvertor } from 'src/urlConvertor';
+import { CoordinateParser } from 'src/coordinateParser';
 import { MapView } from 'src/mapView';
 import * as utils from 'src/utils';
 import * as consts from 'src/consts';
@@ -17,7 +17,7 @@ class SuggestInfo {
 export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 	private settings: PluginSettings;
 	private suggestor: LocationSuggest;
-	private urlConvertor: UrlConvertor;
+	private coordinateParser: CoordinateParser;
 	private lastSearchTime = 0;
 	private delayInMs = 250;
 	private lastSearch = '';
@@ -30,7 +30,7 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 		super(app);
 		this.settings = settings;
 		this.suggestor = new LocationSuggest(this.app, this.settings);
-		this.urlConvertor = new UrlConvertor(this.app, this.settings);
+		this.coordinateParser = new CoordinateParser(this.app, this.settings);
 		this.dialogAction = dialogAction;
 		this.editor = editor;
 
@@ -112,7 +112,7 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 	}
 
 	parseLocationAsUrl(query: string): SuggestInfo {
-		const result = this.urlConvertor.parseLocationFromUrl(query);
+		const result = this.coordinateParser.parseCoordinateFromString(query);
 		if (result)
 			return {
 				name: `Parsed from ${result.ruleName}: ${result.location.lat}, ${result.location.lng}`,

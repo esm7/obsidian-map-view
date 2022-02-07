@@ -4,23 +4,35 @@ import * as leaflet from 'leaflet';
 import { PluginSettings } from 'src/settings';
 import * as utils from 'src/utils';
 
-export class UrlConvertor {
+/**
+ * A class to convert a URL string into coordinates
+ */
+export class CoordinateParser {
 	private settings: PluginSettings;
 
 	constructor(app: App, settings: PluginSettings) {
 		this.settings = settings;
 	}
 
-	findMatchInLine(editor: Editor) {
+	/**
+	 * Find a coordinate in the current editor line
+	 * @param editor The obsidian Editor instance to use
+	 */
+	parseCoordinateFromLine(editor: Editor) {
 		const cursor = editor.getCursor();
-		const result = this.parseLocationFromUrl(editor.getLine(cursor.line));
+		const result = this.parseCoordinateFromString(editor.getLine(cursor.line));
 		return result?.location;
 	}
 
-	parseLocationFromUrl(line: string) {
+	/**
+	 * Get coordinates from an encoded string (usually a URL).
+	 * Will try each url parsing rule until one succeeds.
+	 * @param str The string to decode
+	 */
+	parseCoordinateFromString(str: string) {
 		for (const rule of this.settings.urlParsingRules) {
 			const regexp = RegExp(rule.regExp, 'g');
-			const results = line.matchAll(regexp);
+			const results = str.matchAll(regexp);
 			for (let result of results) {
 				try {
 					return {
@@ -52,7 +64,7 @@ export class UrlConvertor {
 
 	convertUrlAtCursorToGeolocation(editor: Editor) {
 		const cursor = editor.getCursor();
-		const result = this.parseLocationFromUrl(editor.getLine(cursor.line));
+		const result = this.parseCoordinateFromString(editor.getLine(cursor.line));
 		if (result)
 			this.insertLocationToEditor(result.location, editor, {line: cursor.line, ch: result.index}, result.matchLength);
 	}

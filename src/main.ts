@@ -2,7 +2,7 @@ import { addIcon, Notice, Editor, FileView, MarkdownView, MenuItem, Menu, TFile,
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
 import { LocationSuggest } from 'src/geosearch';
-import { UrlConvertor } from 'src/urlConvertor';
+import { CoordinateParser } from 'src/coordinateParser';
 
 import { MapView } from 'src/mapView';
 import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl } from 'src/settings';
@@ -15,7 +15,7 @@ export default class MapViewPlugin extends Plugin {
 	settings: PluginSettings;
 	public highestVersionSeen: number = 0;
 	private suggestor: LocationSuggest;
-	private urlConvertor: UrlConvertor;
+	private coordinateParser: CoordinateParser;
 
 	async onload() {
 		addIcon('globe', consts.RIBBON_ICON);
@@ -31,7 +31,7 @@ export default class MapViewPlugin extends Plugin {
 		});
 
 		this.suggestor = new LocationSuggest(this.app, this.settings);
-		this.urlConvertor = new UrlConvertor(this.app, this.settings);
+		this.coordinateParser = new CoordinateParser(this.app, this.settings);
 
 		this.registerEditorSuggest(this.suggestor);
 
@@ -146,27 +146,26 @@ export default class MapViewPlugin extends Plugin {
 					});
 				}
 
-				if (this.urlConvertor.findMatchInLine(editor))
+				if (this.coordinateParser.parseCoordinateFromLine(editor))
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Convert to geolocation');
 						item.onClick(async () => {
-							this.urlConvertor.convertUrlAtCursorToGeolocation(editor);
+							this.coordinateParser.convertUrlAtCursorToGeolocation(editor);
 						});
 					})
 
 				const clipboard = await navigator.clipboard.readText();
-				const clipboardLocation = this.urlConvertor.parseLocationFromUrl(clipboard)?.location;
+				const clipboardLocation = this.coordinateParser.parseCoordinateFromString(clipboard)?.location;
 				if (clipboardLocation) {
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Paste as geolocation');
 						item.onClick(async () => {
-							this.urlConvertor.insertLocationToEditor(clipboardLocation, editor);
+							this.coordinateParser.insertLocationToEditor(clipboardLocation, editor);
 						});
 					})
 				}
 			}
 		});
-
 	}
 
 	/**
