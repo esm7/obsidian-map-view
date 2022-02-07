@@ -94,20 +94,19 @@ export default class MapViewPlugin extends Plugin {
 
 		this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, _source: string, leaf?: WorkspaceLeaf) => {
 			if (file instanceof TFile) {
-				const location = getFrontMatterCoordinate(file, this.app);
-				if (location) {
+				const coordinate = getFrontMatterCoordinate(file, this.app);
+				if (coordinate) {
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
-						item.onClick(async (evt: MouseEvent) => await this.openMapWithLocation(location, evt.ctrlKey));
+						item.onClick(async (evt: MouseEvent) => await this.openMapAtCoordinate(coordinate, evt.ctrlKey));
 					});
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open with default app');
 						item.onClick(_ev => {
-							open(`geo:${location.lat},${location.lng}`);
+							open(`geo:${coordinate.lat},${coordinate.lng}`);
 						});
 					});
-					utils.populateOpenInItems(menu, location, this.settings);
 				} else {
 					if (leaf && leaf.view instanceof MarkdownView) {
 						const editor = leaf.view.editor;
@@ -118,6 +117,7 @@ export default class MapViewPlugin extends Plugin {
 								const dialog = new NewNoteDialog(this.app, this.settings, 'addToNote', editor);
 								dialog.open();
 							});
+					utils.populateOpenInItems(menu, coordinate, this.settings);
 						});
 
 					}
@@ -127,20 +127,20 @@ export default class MapViewPlugin extends Plugin {
 
 		this.app.workspace.on('editor-menu', async (menu: Menu, editor: Editor, view: MarkdownView) => {
 			if (view instanceof FileView) {
-				const location = this.getLocationOnEditorLine(editor, view);
-				if (location) {
+				const coordinate = this.getEditorLineCoordinate(editor, view);
+				if (coordinate) {
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
-						item.onClick(async (evt: MouseEvent) => await this.openMapWithLocation(location, evt.ctrlKey));
+						item.onClick(async (evt: MouseEvent) => await this.openMapAtCoordinate(coordinate, evt.ctrlKey));
 					});
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open with default app');
 						item.onClick(_ev => {
-							open(`geo:${location.lat},${location.lng}`);
+							open(`geo:${coordinate.lat},${coordinate.lng}`);
 						});
 					});
-					utils.populateOpenInItems(menu, location, this.settings);
+					utils.populateOpenInItems(menu, coordinate, this.settings);
 				}
 				if (editor.getSelection()) {
 					menu.addItem((item: MenuItem) => {
@@ -172,7 +172,13 @@ export default class MapViewPlugin extends Plugin {
 
 	}
 
-	private async openMapWithLocation(location: leaflet.LatLng, ctrlKey: boolean) {
+	/**
+	 * Open an instance of the map at the given coordinate
+	 * @param coordinate The coordinate to open the map at
+	 * @param ctrlKey Was the control key pressed. If true will open a map in the current leaf rather than using an open map.
+	 * @private
+	 */
+	private async openMapAtCoordinate(coordinate: leaflet.LatLng, ctrlKey: boolean) {
 		// Find the best candidate for a leaf to open the map view on.
 		// If there's an open map view, use that, otherwise use the current leaf.
 		// If Ctrl is pressed, override that behavior and always use the current leaf.
@@ -188,12 +194,19 @@ export default class MapViewPlugin extends Plugin {
 			type: consts.MAP_VIEW_NAME,
 			state: {
 				version: this.highestVersionSeen + 1,	// Make sure this overrides any existing state
-				mapCenter: location,
+				mapCenter: coordinate,
 				mapZoom: this.settings.zoomOnGoFromNote
-			} as any});
+			} as any
+		});
 	}
 
-	private getLocationOnEditorLine(editor: Editor, view: FileView): leaflet.LatLng {
+	/**
+	 * Get the coordinate on the current editor line
+	 * @param editor obsidian Editor instance
+	 * @param view obsidian FileView instance
+	 * @private
+	 */
+	private getEditorLineCoordinate(editor: Editor, view: FileView): leaflet.LatLng {
 		const line = editor.getLine(editor.getCursor().line);
 		const match = matchInlineLocation(line)[0];
 		let selectedLocation = null;
