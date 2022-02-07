@@ -181,23 +181,23 @@ export default class MapViewPlugin extends Plugin {
 					});
 				}
 
-				if (this.coordinateParser.parseCoordinateFromLine(editor))
+				if (this.coordinateParser.parseEditorLine(editor))
 					// if the line contains a valid string coordinate
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Convert to geolocation');
 						item.onClick(async () => {
-							this.coordinateParser.convertUrlAtCursorToGeolocation(editor);
+							this.coordinateParser.editorLineToGeolocation(editor);
 						});
 					})
 
 				const clipboard = await navigator.clipboard.readText();
-				const clipboardLocation = this.coordinateParser.parseCoordinateFromString(clipboard)?.location;
+				const clipboardLocation = this.coordinateParser.parseString(clipboard)?.location;
 				if (clipboardLocation) {
 					// if the clipboard contains a valid string coordinate
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Paste as geolocation');
 						item.onClick(async () => {
-							this.coordinateParser.insertLocationToEditor(clipboardLocation, editor);
+							this.coordinateParser.editorInsertGeolocation(editor, clipboardLocation);
 						});
 					})
 				}

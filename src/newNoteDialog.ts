@@ -112,7 +112,7 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 	}
 
 	parseLocationAsUrl(query: string): SuggestInfo {
-		const result = this.coordinateParser.parseCoordinateFromString(query);
+		const result = this.coordinateParser.parseString(query);
 		if (result)
 			return {
 				name: `Parsed from ${result.ruleName}: ${result.location.lat}, ${result.location.lng}`,
