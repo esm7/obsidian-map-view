@@ -6,7 +6,7 @@ import { UrlConvertor } from 'src/urlConvertor';
 
 import { MapView } from 'src/mapView';
 import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl } from 'src/settings';
-import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
+import { getFrontMatterCoordinate, matchInlineLocation, verifyLocation } from 'src/markers';
 import { SettingsTab } from 'src/settingsTab';
 import { NewNoteDialog } from 'src/newNoteDialog';
 import * as utils from 'src/utils';
@@ -94,7 +94,7 @@ export default class MapViewPlugin extends Plugin {
 
 		this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, _source: string, leaf?: WorkspaceLeaf) => {
 			if (file instanceof TFile) {
-				const location = getFrontMatterLocation(file, this.app);
+				const location = getFrontMatterCoordinate(file, this.app);
 				if (location) {
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
@@ -201,7 +201,7 @@ export default class MapViewPlugin extends Plugin {
 			selectedLocation = new leaflet.LatLng(parseFloat(match[2]), parseFloat(match[3]));
 		else
 		{
-			const fmLocation = getFrontMatterLocation(view.file, this.app);
+			const fmLocation = getFrontMatterCoordinate(view.file, this.app);
 			if (line.indexOf('location') > -1 && fmLocation)
 				selectedLocation = fmLocation;
 		}

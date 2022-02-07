@@ -57,7 +57,7 @@ export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], fil
 	const frontMatter = fileCache?.frontmatter;
 	if (frontMatter) {
 		if (!skipMetadata) {
-			const location = getFrontMatterLocation(file, app);
+			const location = getFrontMatterCoordinate(file, app);
 			if (location) {
 				verifyLocation(location);
 				let leafletMarker = new FileMarker(file, location);
@@ -210,7 +210,12 @@ async function makeTextSnippet(file: TFile, fileContent: string, fileLocation: n
 	return snippet;
 }
 
-export function getFrontMatterLocation(file: TFile, app: App) : leaflet.LatLng {
+/**
+ * Get the coordinates stored in the front matter of a file
+ * @param file The file to load the front matter from
+ * @param app The app to load the file from
+ */
+export function getFrontMatterCoordinate(file: TFile, app: App) : leaflet.LatLng {
 	const fileCache = app.metadataCache.getFileCache(file);
 	const frontMatter = fileCache?.frontmatter;
 	if (frontMatter && frontMatter?.location) {
