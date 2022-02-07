@@ -11,6 +11,9 @@ import { SettingsTab } from 'src/settingsTab';
 import { NewNoteDialog } from 'src/newNoteDialog';
 import * as utils from 'src/utils';
 
+/**
+ * A plugin to implement map support
+ */
 export default class MapViewPlugin extends Plugin {
 	settings: PluginSettings;
 	public highestVersionSeen: number = 0;
@@ -18,15 +21,23 @@ export default class MapViewPlugin extends Plugin {
 	private coordinateParser: CoordinateParser;
 
 	async onload() {
+		// When the plugin loads
+
+		// Register a new icon
 		addIcon('globe', consts.RIBBON_ICON);
 
+		// Load the settings
 		await this.loadSettings();
 
+		// Add a new ribbon entry to the left bar
 		this.addRibbonIcon('globe', 'Open map view', () => {
+			// when clicked change the active view to the map
 			this.app.workspace.getLeaf().setViewState({type: consts.MAP_VIEW_NAME});
 		});
 
+		// Register a new viewer for maps
 		this.registerView(consts.MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
+			// Create a new map instance
 			return new MapView(leaf, this.settings, this);
 		});
 
@@ -35,6 +46,7 @@ export default class MapViewPlugin extends Plugin {
 
 		this.registerEditorSuggest(this.suggestor);
 
+		// convert old data
 		if (convertLegacyMarkerIcons(this.settings)) {
 			await this.saveSettings();
 			new Notice("Map View: legacy marker icons were converted to the new format");
@@ -44,24 +56,31 @@ export default class MapViewPlugin extends Plugin {
 			new Notice("Map View: legacy tiles URL was converted to the new format");
 		}
 
+		// Register commands to the command palette
+		// command that opens the map view (same as clicking the map icon)
 		this.addCommand({
 			id: 'open-map-view',
 			name: 'Open Map View',
 			callback: () => {
+				// The command to run
 				this.app.workspace.getLeaf().setViewState({type: consts.MAP_VIEW_NAME});
 			},
 		});
 
+		// command that looks up the selected text to find the location
 		this.addCommand({
 			id: 'convert-selection-to-location',
 			name: 'Convert Selection to Geolocation',
 			editorCheckCallback: (checking, editor, view) => {
+				// This is run once when building the command list and again when it is actually run
+				// In the former checking is true and in the latter it is false
 				if (checking)
 					return editor.getSelection().length > 0;
 				this.suggestor.selectionToLink(editor);
 			}
 		});
 
+		// command that adds a blank inline location at the cursor location
 		this.addCommand({
 			id: 'insert-geolink',
 			name: 'Add inline geolocation link',
@@ -72,6 +91,7 @@ export default class MapViewPlugin extends Plugin {
 			}
 		});
 
+		// command that opens the location search dialog and creates a new note from this location
 		this.addCommand({
 			id: 'new-geolocation-note',
 			name: 'New geolocation note',
@@ -81,6 +101,7 @@ export default class MapViewPlugin extends Plugin {
 			}
 		});
 
+		// command that opens the location search dialog and adds the location to the current note
 		this.addCommand({
 			id: 'add-frontmatter-geolocation',
 			name: 'Add geolocation (front matter) to current note',
@@ -92,24 +113,32 @@ export default class MapViewPlugin extends Plugin {
 
 		this.addSettingTab(new SettingsTab(this.app, this));
 
+		// Modify the file context menu (run when the context menu is built)
 		this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, _source: string, leaf?: WorkspaceLeaf) => {
 			if (file instanceof TFile) {
 				const coordinate = getFrontMatterCoordinate(file, this.app);
 				if (coordinate) {
+					// If there is a coordinate in the front matter of the file
+					// add an option to open it in the map
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
 						item.onClick(async (evt: MouseEvent) => await this.openMapAtCoordinate(coordinate, evt.ctrlKey));
 					});
+					// add an option to open it in the default app
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open with default app');
 						item.onClick(_ev => {
 							open(`geo:${coordinate.lat},${coordinate.lng}`);
 						});
 					});
+					// populate user defined url formats
 					utils.populateOpenInItems(menu, coordinate, this.settings);
 				} else if (leaf && leaf.view instanceof MarkdownView) {
+					// If there is no valid location field in the file
+					// and the context menu came from the leaf (three dots in the top right)
 					const editor = leaf.view.editor;
+					// add a menu item to create the front matter
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Add geolocation (front matter)');
 						item.setIcon('globe');
@@ -122,24 +151,30 @@ export default class MapViewPlugin extends Plugin {
 			}
 		});
 
+		// Modify the editor context menu (run when the context menu is built)
 		this.app.workspace.on('editor-menu', async (menu: Menu, editor: Editor, view: MarkdownView) => {
 			if (view instanceof FileView) {
 				const coordinate = this.getEditorLineCoordinate(editor, view);
 				if (coordinate) {
+					// If there is a coordinate one the line
+					// add an option to open it in the map
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
 						item.onClick(async (evt: MouseEvent) => await this.openMapAtCoordinate(coordinate, evt.ctrlKey));
 					});
+					// add an option to open it in the default app
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open with default app');
 						item.onClick(_ev => {
 							open(`geo:${coordinate.lat},${coordinate.lng}`);
 						});
 					});
+					// populate user defined url formats
 					utils.populateOpenInItems(menu, coordinate, this.settings);
 				}
 				if (editor.getSelection()) {
+					// If there is text selected add a menu item to convert it to coordinates
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Convert to geolocation (geosearch)');
 						item.onClick(async () => await this.suggestor.selectionToLink(editor));
@@ -147,6 +182,7 @@ export default class MapViewPlugin extends Plugin {
 				}
 
 				if (this.coordinateParser.parseCoordinateFromLine(editor))
+					// if the line contains a valid string coordinate
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Convert to geolocation');
 						item.onClick(async () => {
@@ -157,6 +193,7 @@ export default class MapViewPlugin extends Plugin {
 				const clipboard = await navigator.clipboard.readText();
 				const clipboardLocation = this.coordinateParser.parseCoordinateFromString(clipboard)?.location;
 				if (clipboardLocation) {
+					// if the clipboard contains a valid string coordinate
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Paste as geolocation');
 						item.onClick(async () => {
@@ -224,10 +261,16 @@ export default class MapViewPlugin extends Plugin {
 	onunload() {
 	}
 
+	/**
+	 * Load the settings from disk
+	 */
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
+	/**
+	 * Save the settings to disk
+	 */
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
