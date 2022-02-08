@@ -1,4 +1,4 @@
-import { WorkspaceLeaf, MarkdownView, Editor, App, TFile, Menu, MenuItem } from 'obsidian';
+import {WorkspaceLeaf, MarkdownView, Editor, App, TFile, Menu, MenuItem, stringifyYaml, parseYaml, Notice} from 'obsidian';
 
 import * as moment_ from 'moment';
 import * as leaflet from 'leaflet';
@@ -66,36 +66,97 @@ export async function handleNewNoteCursorMarker(editor: Editor) {
 	}
 }
 
-// Creates or modifies a front matter that has the field `fieldName: fieldValue`.
-// Returns true if a change to the note was made.
-export function verifyOrAddFrontMatter(editor: Editor, fieldName: string, fieldValue: string): boolean {
+/**
+ * A utility for reading, modifying and writing back front matter.
+ * Load front matter from the current file and pass it to edit_callback.
+ * The returned value from the callback replaces the original front matter
+ * Return true if the yaml is changed
+ * @param editor The obsidian editor instance
+ * @param edit_callback The callback to modify the parsed object. Must return the modified object or null if no changes were made.
+ */
+export function updateFrontMatter(
+	editor: Editor,
+	edit_callback: (frontMatter: any) => any | null
+){
 	const content = editor.getValue();
-	const frontMatterRegex = /^---(.*)^---/ms;
-	const frontMatter = content.match(frontMatterRegex);
-	const existingFieldRegex = new RegExp(`^---.*${fieldName}:.*^---`, 'ms');
-	const existingField = content.match(existingFieldRegex);
-	const cursorLocation = editor.getCursor();
-	// That's not the best usage of the API, and rather be converted to editor transactions or something else
-	// that can preserve the cursor position better
-	if (frontMatter && !existingField) {
-		const replaced = `---${frontMatter[1]}${fieldName}: ${fieldValue}\n---`;
-		editor.setValue(content.replace(frontMatterRegex, replaced));
-		editor.setCursor({line: cursorLocation.line + 1, ch: cursorLocation.ch});
-		return true;
-	} else if (!frontMatter) {
-		const newFrontMatter = `---\n${fieldName}: ${fieldValue}\n---\n\n`;
-		editor.setValue(newFrontMatter + content);
-		editor.setCursor({line: cursorLocation.line + newFrontMatter.split('\n').length - 1, ch: cursorLocation.ch});
-		return true;
+	const frontMatterRegex = /^---(.*?)\n---/s;
+	const frontMatterMatch = content.match(frontMatterRegex);
+	let frontMatter: any
+	if (frontMatterMatch){
+		// found valid front matter
+		const frontMatterYaml = frontMatterMatch[1];
+		try {
+			// parse the front matter into an object for easier handling
+			frontMatter = parseYaml(frontMatterYaml);
+		} catch (error) {
+			new Notice("Could not parse front matter yaml.\n" + error);
+			return false
+		}
+		if (typeof frontMatter === "object") {
+			frontMatter = edit_callback(frontMatter);
+			if (frontMatter) {
+				const newFrontMatter = `---\n${stringifyYaml(frontMatter)}\n---`;
+				const cursorLocation = editor.getCursor();
+				editor.setValue(content.replace(frontMatterRegex, newFrontMatter));
+				editor.setCursor({line: cursorLocation.line + 1, ch: cursorLocation.ch});
+				return true;
+			}
+		} else {
+			new Notice("Expected yaml front matter root to be an object/dictionary.");
+		}
+	} else {
+		// did not find valid front matter
+		frontMatter = {};
+		frontMatter = edit_callback(frontMatter);
+		if (frontMatter) {
+			const newFrontMatter = `---\n${stringifyYaml(frontMatter)}\n---\n\n`;
+			const cursorLocation = editor.getCursor();
+			editor.setValue(newFrontMatter + content);
+			editor.setCursor({line: cursorLocation.line + newFrontMatter.split('\n').length - 1, ch: cursorLocation.ch});
+			return true;
+		}
 	}
 	return false;
 }
 
-export function populateOpenInItems(menu: Menu, location: leaflet.LatLng, settings: settings.PluginSettings) {
+/**
+ * Create or modify a front matter that has the field `fieldName: fieldValue`.
+ * Returns true if a change to the note was made.
+ * @param editor The obsidian Editor instance
+ * @param key_name The key to set in the yaml front matter
+ * @param default_value The default value to populate with if not defined. Defaults to null.
+ */
+export function frontMatterSetDefault(editor: Editor, key_name: string, default_value?: any): boolean {
+	return updateFrontMatter(
+		editor,
+		(frontMatter) => {
+			if (frontMatter.hasOwnProperty(key_name)) {
+				// if the front matter already has this key
+				if (frontMatter[key_name] === null && default_value !== null) {
+					// if the key exists but the value is null
+					frontMatter[key_name] = default_value
+					return frontMatter
+				}
+				return null;
+			} else {
+				frontMatter[key_name] = default_value
+				return frontMatter
+			}
+		}
+	)
+}
+
+/**
+ * Populate a context menu from the user configurable urls
+ * @param menu The menu to attach
+ * @param coordinate The coordinate to use in the menu item
+ * @param settings Plugin settings
+ */
+export function populateOpenInItems(menu: Menu, coordinate: leaflet.LatLng, settings: settings.PluginSettings) {
 	for (let setting of settings.openIn) {
 		if (!setting.name || !setting.urlPattern)
 			continue;
-		const fullUrl = setting.urlPattern.replace('{x}', location.lat.toString()).replace('{y}', location.lng.toString());
+		const fullUrl = setting.urlPattern.replace('{x}', coordinate.lat.toString()).replace('{y}', coordinate.lng.toString());
 		menu.addItem((item: MenuItem) => {
 			item.setTitle(`Open in ${setting.name}`);
 			item.onClick(_ev => {

@@ -84,7 +84,7 @@ export class CoordinateParser {
 		editor.setCursor(newCursorPos);
 		// TODO: This will modify in a second operation.
 		//  Is there a way to make it apply in one operation so that one undo undoes both changes
-		utils.verifyOrAddFrontMatter(editor, 'locations', '');
+		utils.frontMatterSetDefault(editor, 'locations');
 	}
 
 	/**

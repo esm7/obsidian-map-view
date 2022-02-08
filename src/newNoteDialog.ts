@@ -81,9 +81,9 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 		}
 	}
 
-	async addToNote(location: leaflet.LatLng, ev: MouseEvent | KeyboardEvent, query: string) {
-		const locationString = `[${location.lat},${location.lng}]`;
-		utils.verifyOrAddFrontMatter(this.editor, 'location', locationString);
+	async addToNote(coordinate: leaflet.LatLng, ev: MouseEvent | KeyboardEvent, query: string) {
+		const coordianteArray = [coordinate.lat,coordinate.lng];
+		utils.frontMatterSetDefault(this.editor, 'location', coordianteArray);
 	}
 
 	async getSearchResultsWithDelay(query: string) {
