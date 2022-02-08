@@ -43,9 +43,15 @@ export async function newNote(app: App, newNoteType: NewNoteType, directory: str
 	}
 }
 
-export async function goToEditorLocation(editor: Editor, fileLocation: number, highlight: boolean) {
-	if (fileLocation) {
-		let pos = editor.offsetToPos(fileLocation);
+/**
+ * Go to a character index in the note
+ * @param editor The obsidian Editor instance
+ * @param characterIndex The character index in the file to go to
+ * @param highlight If true will select the whole line
+ */
+export async function goToEditorLocation(editor: Editor, characterIndex: number, highlight: boolean) {
+	if (characterIndex) {
+		let pos = editor.offsetToPos(characterIndex);
 		if (highlight) {
 			const lineContent = editor.getLine(pos.line);
 			editor.setSelection({ch: 0, line: pos.line}, {ch: lineContent.length, line: pos.line});
