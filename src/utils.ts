@@ -22,21 +22,35 @@ type NewNoteType = 'singleLocation' | 'multiLocation';
 
 const CURSOR = '$CURSOR$';
 
-export async function newNote(app: App, newNoteType: NewNoteType, directory: string, fileName: string,
-	location: string, templatePath?: string): Promise<TFile>
+/**
+ * Create a new markdown note and populate with the location
+ * @param app The obsidian app instance
+ * @param newNoteType The location format to encode as
+ * @param directory The directory path to put the file in
+ * @param fileName The name of the file
+ * @param coordinate The coordinate
+ * @param templatePath Optional path to a file to populate the file with
+ */
+export async function newNote(
+	app: App,
+	newNoteType: NewNoteType,
+	directory: string,
+	fileName: string,
+	coordinate: string,
+	templatePath?: string
+): Promise<TFile>
 {
 	// `$CURSOR$` is used to set the cursor
 	let content = newNoteType === 'singleLocation' ?
-		`---\nlocation: [${location}]\n---\n\n${CURSOR}` :
-		`---\nlocations:\n---\n\n\[${CURSOR}](geo:${location})\n`;
-	let templateContent = '';
+		`---\nlocation: [${coordinate}]\n---\n\n${CURSOR}` :
+		`---\nlocations:\n---\n\n\[${CURSOR}](geo:${coordinate})\n`;
 	if (templatePath)
-		templateContent = await app.vault.adapter.read(templatePath);
+		content = content + await app.vault.adapter.read(templatePath);
 	let fullName = path.join(directory || '', fileName);
 	if (await app.vault.adapter.exists(fullName + '.md'))
 		fullName += Math.random() * 1000;
 	try {
-		return app.vault.create(fullName + '.md', content + templateContent);
+		return app.vault.create(fullName + '.md', content);
 	}
 	catch (e) {
 		throw Error(`Cannot create file named ${fullName}: ${e}`);
