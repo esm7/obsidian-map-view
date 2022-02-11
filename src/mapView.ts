@@ -1,11 +1,11 @@
-import { App, TAbstractFile, Editor, ButtonComponent, MarkdownView, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
+import { TAbstractFile, Editor, ButtonComponent, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 import * as leafletFullscreen from 'leaflet-fullscreen';
 import '@fortawesome/fontawesome-free/js/all.min';
 import 'leaflet/dist/leaflet.css';
-import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
+import { GeoSearchControl } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -18,35 +18,101 @@ import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 
+/**
+ * The state of the map instance
+ */
 type MapState = {
+	/**
+	 * The zoom level of the map
+	 */
 	mapZoom: number;
+	/**
+	 * The viewed center of the map
+	 */
 	mapCenter: leaflet.LatLng;
+	/**
+	 * The tags that the user specified
+	 */
 	tags: string[];
+	/**
+	 * The version of the map to track if data is old
+	 */
 	version: number;
-} 
+}
 
+/**
+ * The map viewer class
+ */
 export class MapView extends ItemView {
 	private settings: PluginSettings;
 	// The private state needs to be updated solely via updateMapToState
 	private state: MapState;
+	/**
+	 * The map data
+	 * @private
+	 */
 	private display = new class {
+		/**
+		 * The leaflet map instance for this map viewer
+		 */
 		map: leaflet.Map;
+		/**
+		 * The cluster management class
+		 */
 		clusterGroup: leaflet.MarkerClusterGroup;
+		/**
+		 * The markers currently on the map
+		 */
 		markers: MarkersMap = new Map();
+		/**
+		 * The HTML element containing the map controls
+		 */
 		controlsDiv: HTMLDivElement;
+		/**
+		 * The HTML element holding the map
+		 */
 		mapDiv: HTMLDivElement;
+		/**
+		 * The HTML text entry the user can type tags in
+		 */
 		tagsBox: TextComponent;
 	};
+	/**
+	 * The plugin instance
+	 * @private
+	 */
 	private plugin: MapViewPlugin;
+	/**
+	 * The map state
+	 * @private
+	 */
 	private defaultState: MapState;
+	/**
+	 * The leaf (obsidian sub-window) that a note was last opened in.
+	 * This is cached so that it can be reused when opening notes in the future
+	 * @private
+	 */
 	private newPaneLeaf: WorkspaceLeaf;
+	/**
+	 * Has the view been opened
+	 * @private
+	 */
 	private isOpen: boolean = false;
 
+	/**
+	 * TODO: unused what does this do?
+	 */
 	public onAfterOpen: (map: leaflet.Map, markers: MarkersMap) => any = null;
 
+	/**
+	 * Construct a new map instance
+	 * @param leaf The leaf the map should be put in
+	 * @param settings The plugin settings
+	 * @param plugin The plugin instance
+	 */
 	constructor(leaf: WorkspaceLeaf, settings: PluginSettings, plugin: MapViewPlugin) {
 		super(leaf);
-		this.navigation = true;
+		this.navigation = true;  // TODO: unused?
 		this.settings = settings;
 		this.plugin = plugin;
 		// Create the default state by the configuration
@@ -73,18 +139,39 @@ export class MapView extends ItemView {
 			return this.state;
 		}
 
-		this.app.vault.on('delete', file => this.updateMarkersWithRelationToFile(file.path, null, true));
-		this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
-		this.app.metadataCache.on('changed', file => this.updateMarkersWithRelationToFile(file.path, file, false));
+		// Listen to file changes so we can rebuild the UI
+		this.app.vault.on(
+			'delete',
+			file => this.onFileChange(file.path, null, true)
+		);
+		this.app.vault.on(
+			'rename',
+			(file, oldPath) => this.onFileChange(oldPath, file, true)
+		);
+		this.app.metadataCache.on(
+			'changed',
+			file => this.onFileChange(file.path, file, false)
+		);
 		this.app.workspace.on('css-change', () => {
 			console.log('Map view: map refresh due to CSS change');
 			this.refreshMap();
 		});
 	}
 
-	getViewType() { return 'map'; }
+	/**
+	 * The name of the view type
+	 */
+	getViewType() { return consts.MAP_VIEW_NAME; }
+
+	/**
+	 * The display name for the view
+	 */
 	getDisplayText() { return 'Interactive Map View'; }
 
+	/**
+	 * Is the map in dark mode
+	 * @param settings
+	 */
 	isDarkMode(settings: PluginSettings): boolean {
 		if (settings.chosenMapMode === 'dark')
 			return true;
@@ -98,6 +185,9 @@ export class MapView extends ItemView {
 
 	public updateMapSources = () => {};
 
+	/**
+	 * Run when the view is opened
+	 */
 	async onOpen() {
 		this.isOpen = true;
 		this.state = this.defaultState;
@@ -117,7 +207,6 @@ export class MapView extends ItemView {
 	}
 
 	createControls() {
-		var that = this;
 		let controlsDiv = createDiv({
 			'cls': 'graph-controls'
 		});
@@ -136,7 +225,7 @@ export class MapView extends ItemView {
 		this.display.tagsBox = new TextComponent(filtersContent);
 		this.display.tagsBox.setPlaceholder('Tags, e.g. "#one,#two"');
 		this.display.tagsBox.onChange(async (tagsBox: string) => {
-			that.state.tags = tagsBox.split(',').filter(t => t.length > 0);
+			this.state.tags = tagsBox.split(',').filter(t => t.length > 0);
 			await this.updateMapToState(this.state, this.settings.autoZoom);
 		});
 		let tagSuggestions = new DropdownComponent(filtersContent);
@@ -219,18 +308,27 @@ export class MapView extends ItemView {
 		return controlsDiv;
 	}
 
+	/**
+	 * On view close
+	 */
 	onClose() {
 		this.isOpen = false;
 		return super.onClose();
 	}
 
+	/**
+	 * On window resize
+	 */
 	onResize() {
 		this.display.map.invalidateSize();
 	}
 
 	async refreshMap() {
+		// remove all event listeners
 		this.display?.map?.off();
+		// destroy the map and event listeners
 		this.display?.map?.remove();
+		// clear the marker storage
 		this.display?.markers?.clear();
 		this.display?.controlsDiv.remove();
 		this.display.controlsDiv = this.createControls();
@@ -239,16 +337,19 @@ export class MapView extends ItemView {
 	}
 
 	async createMap() {
-		var that = this;
 		const isDark = this.isDarkMode(this.settings);
 		// LeafletJS compatability: disable tree-shaking for the full-screen module
 		var dummy = leafletFullscreen;
-		this.display.map = new leaflet.Map(this.display.mapDiv, {
-			center: this.defaultState.mapCenter,
-			zoom: this.defaultState.mapZoom,
-			zoomControl: false,
-			worldCopyJump: true,
-			maxBoundsViscosity: 1.0});
+		this.display.map = new leaflet.Map(
+			this.display.mapDiv,
+			{
+				center: this.defaultState.mapCenter,
+				zoom: this.defaultState.mapZoom,
+				zoomControl: false,
+				worldCopyJump: true,
+				maxBoundsViscosity: 1.0
+			}
+		);
 		leaflet.control.zoom({
 			position: 'topright'
 		}).addTo(this.display.map);
@@ -270,7 +371,8 @@ export class MapView extends ItemView {
 			className: revertMap ? "dark-mode" : ""
 		}));
 		this.display.clusterGroup = new leaflet.MarkerClusterGroup({
-			maxClusterRadius: this.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels});
+			maxClusterRadius: this.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels
+		});
 		this.display.map.addLayer(this.display.clusterGroup);
 		const suggestor = new LocationSuggest(this.app, this.settings);
 		const searchControl = GeoSearchControl({
@@ -353,8 +455,13 @@ export class MapView extends ItemView {
 		});
 	}
 
-	// Updates the map to the given state and then sets the state accordingly, but only if the given state version
-	// is not lower than the current state version (so concurrent async updates always keep the latest one)
+	/**
+	 * Updates the map to the given state and then sets the state accordingly, but only if the given state version
+	 * is not lower than the current state version (so concurrent async updates always keep the latest one)
+	 * @param state
+	 * @param autoFit
+	 * @param force
+	 */
 	async updateMapToState(state: MapState, autoFit: boolean = false, force: boolean = false) {
 		if (this.settings.debug)
 			console.time('updateMapToState');
@@ -380,6 +487,10 @@ export class MapView extends ItemView {
 			console.timeEnd('updateMapToState');
 	}
 
+	/**
+	 * Get a list of files containing at least one of the tags
+	 * @param tags A list of string tags to match
+	 */
 	getFileListByQuery(tags: string[]): TFile[] {
 		let results: TFile[] = [];
 		const allFiles = this.app.vault.getFiles();
@@ -401,6 +512,10 @@ export class MapView extends ItemView {
 		return results;
 	}
 
+	/**
+	 * Remove markers that have changed or been removed and add the new ones
+	 * @param newMarkers The new array of FileMarkers
+	 */
 	updateMapMarkers(newMarkers: FileMarker[]) {
 		let newMarkersMap: MarkersMap = new Map();
 		let markersToAdd: leaflet.Marker[] = [];
@@ -465,6 +580,9 @@ export class MapView extends ItemView {
 		return newMarker;
 	}
 
+	/**
+	 * Zoom the map to fit all markers on the screen
+	 */
 	async autoFitMapToMarkers() {
 		if (this.display.markers.size > 0) {
 			const locations: leaflet.LatLng[] = Array.from(this.display.markers.values()).map(fileMarker => fileMarker.location);
@@ -473,6 +591,12 @@ export class MapView extends ItemView {
 		}
 	}
 
+	/**
+	 * Open a file in an editor window
+	 * @param file The file descriptor to open
+	 * @param useCtrlKeyBehavior If true will open the file in a different editor instance
+	 * @param editorAction Optional callback to run when the file is opened
+	 */
 	async goToFile(file: TFile, useCtrlKeyBehavior: boolean, editorAction?: (editor: Editor) => Promise<void>) {
 		let leafToUse = this.app.workspace.activeLeaf;
 		const defaultDifferentPane = this.settings.markerClickBehavior != 'samePane';
@@ -510,11 +634,23 @@ export class MapView extends ItemView {
 			await editorAction(editor);
 	}
 
+	/**
+	 * Open the marker in an editor instance
+	 * @param marker The file marker to open
+	 * @param useCtrlKeyBehavior If true the file will be opened in a new instance
+	 * @param highlight If true will highlight the line
+	 */
 	async goToMarker(marker: FileMarker, useCtrlKeyBehavior: boolean, highlight: boolean) {
-		return this.goToFile(marker.file, useCtrlKeyBehavior,
-			async (editor) => { await utils.goToEditorLocation(editor, marker.fileLocation, highlight); });
+		return this.goToFile(
+			marker.file,
+			useCtrlKeyBehavior,
+			async (editor) => { await utils.goToEditorLocation(editor, marker.fileLocation, highlight); }
+		);
 	}
 
+	/**
+	 * Get a list of all tags in the archive
+	 */
 	getAllTagNames() : string[] {
 		let tags: string[] = [];
 		const allFiles = this.app.vault.getFiles();
@@ -529,9 +665,18 @@ export class MapView extends ItemView {
 		return tags;
 	}
 
-	private async updateMarkersWithRelationToFile(fileRemoved: string, fileAddedOrChanged: TAbstractFile, skipMetadata: boolean) {
-		if (!this.display.map || !this.isOpen)
+	/**
+	 * Run when a file is deleted, renamed or changed
+	 * @param fileRemoved The old file path
+	 * @param fileAddedOrChanged The new file data
+	 * @param skipMetadata currently unused TODO: what is this for?
+	 * @private
+	 */
+	private async onFileChange(fileRemoved: string, fileAddedOrChanged: TAbstractFile, skipMetadata: boolean): Promise<void> {
+		if (!this.display.map || !this.isOpen) {
+			// If the map has not been set up yet then do nothing
 			return;
+		}
 		let newMarkers: FileMarker[] = [];
 		for (let [markerId, fileMarker] of this.display.markers) {
 			if (fileMarker.file.path !== fileRemoved)
@@ -541,6 +686,4 @@ export class MapView extends ItemView {
 			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app)
 		this.updateMapMarkers(newMarkers);
 	}
-
 }
-
