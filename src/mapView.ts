@@ -44,7 +44,7 @@ type MapState = {
  * The map viewer class
  */
 export class MapView extends ItemView {
-	private settings: PluginSettings;
+	readonly settings: PluginSettings;
 	// The private state needs to be updated solely via updateMapToState
 	private state: MapState;
 	/**
@@ -410,6 +410,8 @@ export class MapView extends ItemView {
 		// this.display.clusterGroup.on('clustermouseout', cluster => {
 		// 	// cluster.propagatedFrom.closePopup();
 		// });
+
+		// build the right click context menu
 		this.display.map.on('contextmenu', async (event: leaflet.LeafletMouseEvent) => {
 			let mapPopup = new Menu(this.app);
 			mapPopup.setNoIcon();
@@ -532,55 +534,18 @@ export class MapView extends ItemView {
 				this.display.markers.delete(marker.id);
 			} else {
 				// New marker - create it
-				marker.mapMarker = this.newLeafletMarker(marker);
-				markersToAdd.push(marker.mapMarker);
+				marker.initGeoLayer(this)
+				markersToAdd.push(marker.geoLayer);
 				newMarkersMap.set(marker.id, marker);
 			}
 		}
 		for (let [key, value] of this.display.markers) {
-			markersToRemove.push(value.mapMarker);
+			markersToRemove.push(value.geoLayer);
 		}
 		this.display.clusterGroup.addLayers(markersToAdd);
 		this.display.clusterGroup.removeLayers(markersToRemove);
-		this.display.markers = newMarkersMap;
-	}
 
-	private newLeafletMarker(marker: FileMarker) : leaflet.Marker {
-		let newMarker = leaflet.marker(marker.location, { icon: marker.icon || new leaflet.Icon.Default() });
-		newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
-			this.goToMarker(marker, event.originalEvent.ctrlKey, true);
-		});
-		newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
-			let content = `<p class="map-view-marker-name">${marker.file.name}</p>`;
-			if (marker.extraName)
-				content += `<p class="map-view-extra-name">${marker.extraName}</p>`;
-			if (marker.snippet)
-				content += `<p class="map-view-marker-snippet">${marker.snippet}</p>`;
-			newMarker.bindPopup(content, {closeButton: true, autoPan: false}).openPopup();
-		});
-		newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
-			newMarker.closePopup();
-		});
-		newMarker.on('add', (event: leaflet.LeafletEvent) => {
-			newMarker.getElement().addEventListener('contextmenu', (ev: MouseEvent) => {
-				let mapPopup = new Menu(this.app);
-				mapPopup.setNoIcon();
-				mapPopup.addItem((item: MenuItem) => {
-					item.setTitle('Open note');
-					item.onClick(async ev => { this.goToMarker(marker, ev.ctrlKey, true); });
-				});
-				mapPopup.addItem((item: MenuItem) => {
-					item.setTitle('Open geolocation in default app');
-					item.onClick(ev => {
-						open(`geo:${marker.location.lat},${marker.location.lng}`);
-					});
-				});
-				utils.populateOpenInItems(mapPopup, marker.location, this.settings);
-				mapPopup.showAtPosition(ev);
-				ev.stopPropagation();
-			})
-		});
-		return newMarker;
+		this.display.markers = newMarkersMap;
 	}
 
 	/**

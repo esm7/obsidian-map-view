@@ -1,4 +1,4 @@
-import { App, TFile, getAllTags } from 'obsidian';
+import {App, TFile, getAllTags, Menu, MenuItem} from 'obsidian';
 import wildcard from 'wildcard';
 import * as leaflet from 'leaflet';
 import 'leaflet-extra-markers';
@@ -9,6 +9,8 @@ let localL = L;
 
 import { PluginSettings, MarkerIconRule } from 'src/settings';
 import * as consts from 'src/consts';
+import * as utils from "src/utils";
+import type {MapView} from "src/mapView"
 
 type MarkerId = string;
 
@@ -55,7 +57,6 @@ export class FileMarker extends BaseGeoLayer {
 	 * The image icon to display
 	 */
 	icon?: leaflet.Icon<leaflet.BaseIconOptions>;
-	mapMarker?: leaflet.Marker;
 	/**
 	 * The clickable object on the map
 	 */
@@ -99,6 +100,62 @@ export class FileMarker extends BaseGeoLayer {
 	generateId() : MarkerId {
 		return this.file.name + this.location.lat.toString() + this.location.lng.toString();
 	}
+
+	/**
+	 * Create a leaflet layer and add it to the map
+	 */
+	initGeoLayer(map: MapView): void {
+		this.icon = getIconForMarker(this, map.settings, map.app);
+		// create the leaflet marker instance
+		this.geoLayer = leaflet.marker(this.location, { icon: this.icon || new leaflet.Icon.Default() });
+		// when clicked, open the marker in an editor
+		this.geoLayer.on('click', (event: leaflet.LeafletMouseEvent) => {
+			map.goToMarker(this, event.originalEvent.ctrlKey, true);
+		});
+		// when hovered
+		this.geoLayer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+			let content = `<p class="map-view-marker-name">${this.file.name}</p>`;
+			if (this.extraName)
+				content += `<p class="map-view-extra-name">${this.extraName}</p>`;
+			if (this.snippet)
+				content += `<p class="map-view-marker-snippet">${this.snippet}</p>`;
+			this.geoLayer.bindPopup(content, {closeButton: true, autoPan: false}).openPopup();
+		});
+		// when stop hovering
+		this.geoLayer.on(
+			'mouseout',
+			(event: leaflet.LeafletMouseEvent) => {
+				this.geoLayer.closePopup();
+			}
+		);
+		// run when the layer is added to the map
+		this.geoLayer.on(
+			'add',
+			(event: leaflet.LeafletEvent) => {
+				this.geoLayer.getElement().addEventListener(
+					'contextmenu',
+					(ev: MouseEvent) => {
+						// on context menu creation
+						let mapPopup = new Menu(map.app);
+						mapPopup.setNoIcon();
+						mapPopup.addItem((item: MenuItem) => {
+							item.setTitle('Open note');
+							item.onClick(async ev => { map.goToMarker(this, ev.ctrlKey, true); });
+						});
+						mapPopup.addItem((item: MenuItem) => {
+							item.setTitle('Open geolocation in default app');
+							item.onClick(ev => {
+								open(`geo:${this.location.lat},${this.location.lng}`);
+							});
+						});
+						utils.populateOpenInItems(mapPopup, this.location, map.settings);
+						mapPopup.showAtPosition(ev);
+						ev.stopPropagation();
+					}
+				)
+			}
+		);
+	}
 }
 
 export type MarkersMap = Map<MarkerId, FileMarker>;
@@ -120,7 +177,6 @@ export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], fil
 			if (location) {
 				verifyLocation(location);
 				let leafletMarker = new FileMarker(file, location);
-				leafletMarker.icon = getIconForMarker(leafletMarker, settings, app);
 				mapToAppendTo.push(leafletMarker);
 			}
 		}
@@ -245,7 +301,6 @@ async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, 
 						marker.tags.push('#' + tag[1]);
 			}
 			marker.fileLocation = match.index;
-			marker.icon = getIconForMarker(marker, settings, app);
 			marker.snippet = await makeTextSnippet(file, content, marker.fileLocation, settings);
 			markers.push(marker);
 		}
