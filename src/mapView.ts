@@ -364,12 +364,15 @@ export class MapView extends ItemView {
 			else
 				revertMap = true;
 		}
-		this.display.map.addLayer(new leaflet.TileLayer(mapSourceUrl, {
-			maxZoom: 20,
-			subdomains:['mt0','mt1','mt2','mt3'],
-			attribution: attribution,
-			className: revertMap ? "dark-mode" : ""
-		}));
+		this.display.map.addLayer(
+			new leaflet.TileLayer(mapSourceUrl, {
+				maxZoom: 25,
+				maxNativeZoom: 19,
+				subdomains:['mt0','mt1','mt2','mt3'],
+				attribution: attribution,
+				className: revertMap ? "dark-mode" : ""
+			})
+		);
 		this.display.clusterGroup = new leaflet.MarkerClusterGroup({
 			maxClusterRadius: this.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels
 		});
