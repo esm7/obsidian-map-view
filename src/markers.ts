@@ -12,12 +12,54 @@ import * as consts from 'src/consts';
 
 type MarkerId = string;
 
-export class FileMarker {
+export abstract class BaseGeoLayer {
+	/**
+	 * The file descriptor
+	 */
 	file: TFile;
+	/**
+	 * The character position in the file the coordinate comes from
+	 */
 	fileLocation?: number;
+
+	/**
+	 * The leaflet layer on the map
+	 */
+	geoLayer?: leaflet.Layer;
+
+	/**
+	 * Construct a new map pin object
+	 * @param file
+	 */
+	protected constructor(file: TFile) {
+		this.file = file;
+	}
+
+	/**
+	 * Init the leaflet geographic layer from the data
+	 * @param map
+	 */
+	abstract initGeoLayer(map: MapView): void;
+}
+
+
+/**
+ * A class to hold all the data for a map pin
+ */
+export class FileMarker extends BaseGeoLayer {
+	/**
+	 * The coordinate for the geographic layer
+	 */
 	location: leaflet.LatLng;
+	/**
+	 * The image icon to display
+	 */
 	icon?: leaflet.Icon<leaflet.BaseIconOptions>;
 	mapMarker?: leaflet.Marker;
+	/**
+	 * The clickable object on the map
+	 */
+	geoLayer?: leaflet.Marker;
 	id: MarkerId;
 	snippet?: string;
 	extraName?: string;
@@ -29,7 +71,7 @@ export class FileMarker {
 	 * @param location
 	 */
 	constructor(file: TFile, location: leaflet.LatLng) {
-		this.file = file;
+		super(file)
 		this.location = location;
 		this.id = this.generateId();
 	}
