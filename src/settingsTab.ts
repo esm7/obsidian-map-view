@@ -244,7 +244,6 @@ export class SettingsTab extends PluginSettingTab {
 				if (leaf.view) {
 					const mapView = leaf.view as MapView;
 					mapView.refreshMap();
-					mapView.updateMapSources();
 				}
 			}
 		}

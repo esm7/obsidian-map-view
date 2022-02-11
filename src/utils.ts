@@ -22,6 +22,11 @@ type NewNoteType = 'singleLocation' | 'multiLocation';
 
 const CURSOR = '$CURSOR$';
 
+function sanitizeFileName(s: string) {
+	const illegalChars = /[\/\?<>\\:\*\|":]/g;
+	return s.replace(illegalChars, '-');
+}
+
 export async function newNote(app: App, newNoteType: NewNoteType, directory: string, fileName: string,
 	location: string, templatePath?: string): Promise<TFile>
 {
@@ -32,7 +37,7 @@ export async function newNote(app: App, newNoteType: NewNoteType, directory: str
 	let templateContent = '';
 	if (templatePath)
 		templateContent = await app.vault.adapter.read(templatePath);
-	let fullName = path.join(directory || '', fileName);
+	let fullName = sanitizeFileName(path.join(directory || '', fileName));
 	if (await app.vault.adapter.exists(fullName + '.md'))
 		fullName += Math.random() * 1000;
 	try {

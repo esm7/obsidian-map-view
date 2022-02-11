@@ -5,7 +5,7 @@ import { LocationSuggest } from 'src/geosearch';
 import { UrlConvertor } from 'src/urlConvertor';
 
 import { MapView } from 'src/mapView';
-import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl } from 'src/settings';
+import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl, convertLegacyDefaultState, MapState } from 'src/settings';
 import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
 import { SettingsTab } from 'src/settingsTab';
 import { NewNoteDialog } from 'src/newNoteDialog';
@@ -42,6 +42,10 @@ export default class MapViewPlugin extends Plugin {
 		if (convertLegacyTilesUrl(this.settings)) {
 			await this.saveSettings();
 			new Notice("Map View: legacy tiles URL was converted to the new format");
+		}
+		if (convertLegacyDefaultState(this.settings)) {
+			await this.saveSettings();
+			new Notice("Map View: legacy default state was converted to the new format");
 		}
 
 		this.addCommand({
@@ -173,6 +177,10 @@ export default class MapViewPlugin extends Plugin {
 	}
 
 	private async openMapWithLocation(location: leaflet.LatLng, ctrlKey: boolean) {
+		await this.openMapWithState({mapCenter: location, mapZoom: this.settings.zoomOnGoFromNote} as MapState, ctrlKey);
+	}
+
+	private async openMapWithState(state: MapState, ctrlKey: boolean) {
 		// Find the best candidate for a leaf to open the map view on.
 		// If there's an open map view, use that, otherwise use the current leaf.
 		// If Ctrl is pressed, override that behavior and always use the current leaf.
@@ -184,13 +192,7 @@ export default class MapViewPlugin extends Plugin {
 			chosenLeaf = this.app.workspace.getLeaf();
 		if (!chosenLeaf)
 			chosenLeaf = this.app.workspace.activeLeaf;
-		await chosenLeaf.setViewState({
-			type: consts.MAP_VIEW_NAME,
-			state: {
-				version: this.highestVersionSeen + 1,	// Make sure this overrides any existing state
-				mapCenter: location,
-				mapZoom: this.settings.zoomOnGoFromNote
-			} as any});
+		await chosenLeaf.setViewState({type: consts.MAP_VIEW_NAME, state: state});
 	}
 
 	private getLocationOnEditorLine(editor: Editor, view: FileView): leaflet.LatLng {

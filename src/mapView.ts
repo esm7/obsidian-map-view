@@ -1,48 +1,40 @@
-import { App, TAbstractFile, Editor, ButtonComponent, MarkdownView, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
+import { App, TAbstractFile, Editor, ItemView, MenuItem, Menu, TFile, WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 import * as leafletFullscreen from 'leaflet-fullscreen';
 import '@fortawesome/fontawesome-free/js/all.min';
 import 'leaflet/dist/leaflet.css';
-import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
+import { GeoSearchControl } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
-import { PluginSettings, MapLightDark, DEFAULT_SETTINGS } from 'src/settings';
+import { PluginSettings, MapState, DEFAULT_SETTINGS, mergeStates } from 'src/settings';
 import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers } from 'src/markers';
 import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
-
-type MapState = {
-	mapZoom: number;
-	mapCenter: leaflet.LatLng;
-	tags: string[];
-	version: number;
-} 
+import { ViewControls } from 'src/viewControls';
 
 export class MapView extends ItemView {
 	private settings: PluginSettings;
-	// The private state needs to be updated solely via updateMapToState
+	// The private state needs to be updated solely via updateMarkersToState
 	private state: MapState;
 	private display = new class {
+		mapDiv: HTMLDivElement;
 		map: leaflet.Map;
+		tileLayer: leaflet.TileLayer;
 		clusterGroup: leaflet.MarkerClusterGroup;
 		markers: MarkersMap = new Map();
-		controlsDiv: HTMLDivElement;
-		mapDiv: HTMLDivElement;
-		tagsBox: TextComponent;
+		controls: ViewControls;
 	};
 	private plugin: MapViewPlugin;
 	private defaultState: MapState;
 	private newPaneLeaf: WorkspaceLeaf;
 	private isOpen: boolean = false;
-
-	public onAfterOpen: (map: leaflet.Map, markers: MarkersMap) => any = null;
 
 	constructor(leaf: WorkspaceLeaf, settings: PluginSettings, plugin: MapViewPlugin) {
 		super(leaf);
@@ -50,24 +42,11 @@ export class MapView extends ItemView {
 		this.settings = settings;
 		this.plugin = plugin;
 		// Create the default state by the configuration
-		this.defaultState = {
-			mapZoom: this.settings.defaultZoom || consts.DEFAULT_ZOOM,
-			mapCenter: this.settings.defaultMapCenter || consts.DEFAULT_CENTER,
-			tags: this.settings.defaultTags || consts.DEFAULT_TAGS,
-			version: 0
-		};
+		this.defaultState = this.settings.defaultState;
 		this.setState = async (state: MapState, result) => {
-			if (state) {
-				if (!state.version) {
-					// We give the given state priority by setting a high version
-					state.version = this.plugin.highestVersionSeen + 1;
-				}
-				if (!state.mapCenter || !state.mapZoom) {
-					state.mapCenter = this.defaultState.mapCenter;
-					state.mapZoom = this.defaultState.mapZoom;
-				}
-				await this.updateMapToState(state, false);
-			}
+			await this.setViewState(state, true, false);
+			if (this.display.controls)
+				this.display.controls.tryToGuessPreset();
 		}
 		this.getState = (): MapState => {
 			return this.state;
@@ -96,12 +75,12 @@ export class MapView extends ItemView {
 		return false;
 	}
 
-	public updateMapSources = () => {};
-
 	async onOpen() {
 		this.isOpen = true;
 		this.state = this.defaultState;
-		this.display.controlsDiv = this.createControls();
+		this.display.controls = new ViewControls(this.contentEl, this.settings, this.app, this, this.plugin);
+		this.contentEl.style.padding = '0px 0px';
+		this.display.controls.createControls();
 		this.display.mapDiv = createDiv({cls: 'map'}, (el: HTMLDivElement) => {
 			el.style.zIndex = '1';
 			el.style.width = '100%';
@@ -116,108 +95,6 @@ export class MapView extends ItemView {
 		return super.onOpen();
 	}
 
-	createControls() {
-		var that = this;
-		let controlsDiv = createDiv({
-			'cls': 'graph-controls'
-		});
-		let filtersDiv = controlsDiv.createDiv({'cls': 'graph-control-div'});
-		filtersDiv.innerHTML = `
-			<input id="filtersCollapsible" class="toggle" type="checkbox">
-			<label for="filtersCollapsible" class="lbl-toggle">Filters</label>
-			`;
-		const filtersButton = filtersDiv.getElementsByClassName('toggle')[0] as HTMLInputElement;
-		filtersButton.checked = this.settings.mapControls.filtersDisplayed;
-		filtersButton.onclick = async () => {
-			this.settings.mapControls.filtersDisplayed = filtersButton.checked;
-			this.plugin.saveSettings();
-		}
-		let filtersContent = filtersDiv.createDiv({'cls': 'graph-control-content'});
-		this.display.tagsBox = new TextComponent(filtersContent);
-		this.display.tagsBox.setPlaceholder('Tags, e.g. "#one,#two"');
-		this.display.tagsBox.onChange(async (tagsBox: string) => {
-			that.state.tags = tagsBox.split(',').filter(t => t.length > 0);
-			await this.updateMapToState(this.state, this.settings.autoZoom);
-		});
-		let tagSuggestions = new DropdownComponent(filtersContent);
-		tagSuggestions.setValue('Quick add tag');
-		tagSuggestions.addOption('', 'Quick add tag');
-		for (const tagName of this.getAllTagNames())
-			tagSuggestions.addOption(tagName, tagName);
-		tagSuggestions.onChange(value => {
-			let currentTags = this.display.tagsBox.getValue();
-			if (currentTags.indexOf(value) < 0) {
-				this.display.tagsBox.setValue(currentTags.split(',').filter(tag => tag.length > 0).concat([value]).join(','));
-			}
-			tagSuggestions.setValue('Quick add tag');
-			this.display.tagsBox.inputEl.focus();
-			this.display.tagsBox.onChanged();
-		});
-
-		let viewDiv = controlsDiv.createDiv({'cls': 'graph-control-div'});
-		viewDiv.innerHTML = `
-			<input id="viewCollapsible" class="toggle" type="checkbox">
-			<label for="viewCollapsible" class="lbl-toggle">View</label>
-			`;
-		const viewButton = viewDiv.getElementsByClassName('toggle')[0] as HTMLInputElement;
-		viewButton.checked = this.settings.mapControls.viewDisplayed;
-		viewButton.onclick = async () => {
-			this.settings.mapControls.viewDisplayed = viewButton.checked;
-			this.plugin.saveSettings();
-		}
-		let viewDivContent = viewDiv.createDiv({'cls': 'graph-control-content'});
-		let mapSource = new DropdownComponent(viewDivContent);
-		for (const [index, source] of this.settings.mapSources.entries()) {
-			mapSource.addOption(index.toString(), source.name);
-		}
-		this.updateMapSources();
-		mapSource.onChange(async (value: string) => {
-			this.settings.chosenMapSource = parseInt(value);
-			await this.plugin.saveSettings();
-			this.refreshMap();
-		});
-		const chosenMapSource = this.settings.chosenMapSource ?? 0;
-		mapSource.setValue(chosenMapSource.toString());
-		let sourceMode = new DropdownComponent(viewDivContent);
-		sourceMode.addOptions({auto: 'Auto', light: 'Light', dark: 'Dark'})
-			.setValue(this.settings.chosenMapMode ?? 'auto')
-			.onChange(async value => {
-				this.settings.chosenMapMode = value as MapLightDark;
-				await this.plugin.saveSettings();
-				this.refreshMap();
-			});
-		let goDefault = new ButtonComponent(viewDivContent);
-		goDefault
-			.setButtonText('Reset')
-			.setTooltip('Reset the view to the defined default.')
-			.onClick(async () => {
-				let newState = {
-					mapZoom: this.settings.defaultZoom || consts.DEFAULT_ZOOM,
-					mapCenter: this.settings.defaultMapCenter || consts.DEFAULT_CENTER,
-					tags: this.settings.defaultTags || consts.DEFAULT_TAGS,
-					version: this.state.version + 1
-				};
-				await this.updateMapToState(newState, false);
-			});
-		let fitButton = new ButtonComponent(viewDivContent);
-		fitButton
-			.setButtonText('Fit')
-			.setTooltip('Set the map view to fit all currently-displayed markers.')
-			.onClick(() => this.autoFitMapToMarkers());
-		let setDefault = new ButtonComponent(viewDivContent);
-		setDefault
-			.setButtonText('Set as Default')
-			.setTooltip('Set this view (map state & filters) as default.')
-			.onClick(async () => {
-				this.settings.defaultZoom = this.state.mapZoom;
-				this.settings.defaultMapCenter = this.state.mapCenter;
-				this.settings.defaultTags = this.state.tags;
-				await this.plugin.saveSettings();
-			});
-		this.contentEl.style.padding = '0px 0px';
-		this.contentEl.append(controlsDiv);
-		return controlsDiv;
-	}
 
 	onClose() {
 		this.isOpen = false;
@@ -228,19 +105,61 @@ export class MapView extends ItemView {
 		this.display.map.invalidateSize();
 	}
 
+	public async setViewState(state: MapState, updateControls: boolean, considerAutoFit: boolean) {
+		if (state) {
+			const newState = mergeStates(this.state, state);
+			this.updateTileLayerByState(newState);
+			await this.updateMarkersToState(newState);
+			if (considerAutoFit && this.settings.autoZoom)
+				await this.autoFitMapToMarkers();
+			if (updateControls)
+				this.display.controls.updateControlsToState();
+		}
+	}
+
+	updateTileLayerByState(newState: MapState) {
+		if (this.display.tileLayer && this.state.chosenMapSource != newState.chosenMapSource) {
+			this.display.tileLayer.remove();
+			this.display.tileLayer = null;
+		}
+		this.state.chosenMapSource = newState.chosenMapSource;
+		if (!this.display.tileLayer) {
+			const isDark = this.isDarkMode(this.settings);
+			const chosenMapSource = this.settings.mapSources[this.state.chosenMapSource];
+			const attribution = chosenMapSource.urlLight === DEFAULT_SETTINGS.mapSources[0].urlLight ?
+				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' : '';
+			let revertMap = false;
+			let mapSourceUrl = chosenMapSource.urlLight;
+			if (isDark) {
+				if (chosenMapSource.urlDark)
+					mapSourceUrl = chosenMapSource.urlDark;
+				else
+					revertMap = true;
+			}
+			const neededClassName = revertMap ? "dark-mode" : "";
+			this.display.tileLayer = new leaflet.TileLayer(mapSourceUrl, {
+				maxZoom: 20,
+				subdomains:['mt0','mt1','mt2','mt3'],
+				attribution: attribution,
+				className: neededClassName });
+			this.display.map.addLayer(this.display.tileLayer);
+		}
+	}
+
 	async refreshMap() {
+		this.display?.tileLayer?.remove();
+		this.display.tileLayer = null;
 		this.display?.map?.off();
 		this.display?.map?.remove();
 		this.display?.markers?.clear();
-		this.display?.controlsDiv.remove();
-		this.display.controlsDiv = this.createControls();
-		this.createMap();
-		this.updateMapToState(this.state, false, true);
+		this.display?.controls?.controlsDiv?.remove();
+		this.display.controls?.reload();
+		await this.createMap();
+		this.updateMarkersToState(this.state, true);
+		this.display.controls.updateControlsToState();
 	}
 
 	async createMap() {
-		var that = this;
-		const isDark = this.isDarkMode(this.settings);
 		// LeafletJS compatability: disable tree-shaking for the full-screen module
 		var dummy = leafletFullscreen;
 		this.display.map = new leaflet.Map(this.display.mapDiv, {
@@ -252,23 +171,7 @@ export class MapView extends ItemView {
 		leaflet.control.zoom({
 			position: 'topright'
 		}).addTo(this.display.map);
-		const chosenMapSource = this.settings.mapSources[this.settings.chosenMapSource ?? 0];
-		const attribution = chosenMapSource.urlLight === DEFAULT_SETTINGS.mapSources[0].urlLight ?
-			'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' : '';
-		let revertMap = false;
-		let mapSourceUrl = chosenMapSource.urlLight;
-		if (isDark) {
-			if (chosenMapSource.urlDark)
-				mapSourceUrl = chosenMapSource.urlDark;
-			else
-				revertMap = true;
-		}
-		this.display.map.addLayer(new leaflet.TileLayer(mapSourceUrl, {
-			maxZoom: 20,
-			subdomains:['mt0','mt1','mt2','mt3'],
-			attribution: attribution,
-			className: revertMap ? "dark-mode" : ""
-		}));
+		this.updateTileLayerByState(this.state);
 		this.display.clusterGroup = new leaflet.MarkerClusterGroup({
 			maxClusterRadius: this.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels});
 		this.display.map.addLayer(this.display.clusterGroup);
@@ -283,9 +186,11 @@ export class MapView extends ItemView {
 		this.display.map.addControl(searchControl);
 		this.display.map.on('zoomend', (event: leaflet.LeafletEvent) => {
 			this.state.mapZoom = this.display.map.getZoom();
+			this.display?.controls?.invalidateActivePreset();
 		});
 		this.display.map.on('moveend', (event: leaflet.LeafletEvent) => {
 			this.state.mapCenter = this.display.map.getCenter();
+			this.display?.controls?.invalidateActivePreset();
 		});
 		// --- Work in progress ---
 		// this.display.clusterGroup.on('clustermouseover', cluster => {
@@ -355,29 +260,19 @@ export class MapView extends ItemView {
 
 	// Updates the map to the given state and then sets the state accordingly, but only if the given state version
 	// is not lower than the current state version (so concurrent async updates always keep the latest one)
-	async updateMapToState(state: MapState, autoFit: boolean = false, force: boolean = false) {
+	async updateMarkersToState(state: MapState, force: boolean = false) {
 		if (this.settings.debug)
-			console.time('updateMapToState');
+			console.time('updateMarkersToState');
 		const files = this.getFileListByQuery(state.tags);
 		let newMarkers = await buildMarkers(files, this.settings, this.app);
-		if (state.version < this.state.version && !force) {
-			// If the state we were asked to update is old (e.g. because while we were building markers a newer instance
-			// of the method was called), cancel the update
-			return;
-		}
 		// --- BEYOND THIS POINT NOTHING SHOULD BE ASYNC ---
 		// Saying it again: do not use 'await' below this line!
 		this.state = state;
-		this.plugin.highestVersionSeen = Math.max(this.plugin.highestVersionSeen, this.state.version);
 		this.updateMapMarkers(newMarkers);
-		this.state.tags = this.state.tags || [];
-		this.display.tagsBox.setValue(this.state.tags.filter(tag => tag.length > 0).join(','));
 		if (this.state.mapCenter && this.state.mapZoom)
 			this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
-		if (autoFit)
-			this.autoFitMapToMarkers();
 		if (this.settings.debug)
-			console.timeEnd('updateMapToState');
+			console.timeEnd('updateMarkersToState');
 	}
 
 	getFileListByQuery(tags: string[]): TFile[] {
@@ -465,10 +360,9 @@ export class MapView extends ItemView {
 		return newMarker;
 	}
 
-	async autoFitMapToMarkers() {
+	public async autoFitMapToMarkers() {
 		if (this.display.markers.size > 0) {
 			const locations: leaflet.LatLng[] = Array.from(this.display.markers.values()).map(fileMarker => fileMarker.location);
-			console.log(`Auto fit by state:`, this.state);
 			this.display.map.fitBounds(leaflet.latLngBounds(locations));
 		}
 	}
@@ -513,20 +407,6 @@ export class MapView extends ItemView {
 	async goToMarker(marker: FileMarker, useCtrlKeyBehavior: boolean, highlight: boolean) {
 		return this.goToFile(marker.file, useCtrlKeyBehavior,
 			async (editor) => { await utils.goToEditorLocation(editor, marker.fileLocation, highlight); });
-	}
-
-	getAllTagNames() : string[] {
-		let tags: string[] = [];
-		const allFiles = this.app.vault.getFiles();
-		for (const file of allFiles) {
-			const fileCache = this.app.metadataCache.getFileCache(file);
-			if (fileCache && fileCache.tags) {
-				const fileTagNames = getAllTags(fileCache) || [];
-				tags = tags.concat(fileTagNames.filter(tagName => tags.indexOf(tagName) < 0));
-			}
-		}
-		tags = tags.sort();
-		return tags;
 	}
 
 	private async updateMarkersWithRelationToFile(fileRemoved: string, fileAddedOrChanged: TAbstractFile, skipMetadata: boolean) {

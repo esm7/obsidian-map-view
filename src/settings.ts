@@ -3,17 +3,23 @@ import { LatLng } from 'leaflet';
 import { SplitDirection } from 'obsidian';
 
 export type PluginSettings = {
+	defaultState: MapState;
+	savedStates: MapState[];
 	// Deprecated
 	markerIcons?: Record<string, any>;
 	markerIconRules?: MarkerIconRule[];
 	zoomOnGoFromNote: number;
 	// Deprecated
 	tilesUrl?: string;
-	mapSources: TileSource[];
+	// Deprecated
 	chosenMapSource?: number;
+	mapSources: TileSource[];
 	chosenMapMode?: MapLightDark;
+	// Deprecated
 	defaultMapCenter?: LatLng;
+	// Deprecated
 	defaultZoom?: number;
+	// Deprecated
 	defaultTags?: string[];
 	autoZoom: boolean;
 	markerClickBehavior?: 'samePane' | 'secondPane' | 'alwaysNew';
@@ -29,6 +35,41 @@ export type PluginSettings = {
 	maxClusterRadiusPixels: number;
 	searchProvider?: 'osm' | 'google';
 	geocodingApiKey?: string;
+}
+
+export type MapState = {
+	name: string;
+	mapZoom: number;
+	mapCenter: LatLng;
+	tags: string[];
+	chosenMapSource?: number;
+}
+
+export function mergeStates(state1: MapState, state2: MapState): MapState {
+	// Overwrite an existing state with a new one, that may have null or partial values which need to be ignored
+	// and taken from the existing state
+	const clearedState = Object.fromEntries(Object.entries(state2).filter(([_, value]) => value != null));
+	return {...state1, ...clearedState};
+}
+
+const xor = (a: any, b: any) => (a && !b) || (!a && b);
+
+export function areStatesEqual(state1: MapState, state2: MapState) {
+	if (!state1 || !state2)
+		return false;
+	if (xor(state1.mapCenter, state2.mapCenter))
+		return false;
+	if (state1.mapCenter) {
+		// To compare locations we need to construct an actual LatLng object because state1 may just
+		// be a simple dict and not an actual LatLng
+		const mapCenter1 = new LatLng(state1.mapCenter.lat, state1.mapCenter.lng);
+		const mapCenter2 = new LatLng(state2.mapCenter.lat, state2.mapCenter.lng);
+		if (mapCenter1.distanceTo(mapCenter2) > 1000)
+			return false;
+	}
+	return JSON.stringify(state1.tags) == JSON.stringify(state2.tags) &&
+		state2.mapZoom == state2.mapZoom &&
+		state1.chosenMapSource == state2.chosenMapSource;
 }
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -55,6 +96,7 @@ export type UrlParsingRule = {
 export type MapControls = {
 	filtersDisplayed: boolean;
 	viewDisplayed: boolean;
+	presetsDisplayed: boolean;
 }
 
 export type MarkerIconRule = {
@@ -64,6 +106,14 @@ export type MarkerIconRule = {
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
+	defaultState: {
+		name: 'Default',
+		mapZoom: 1.0,
+		mapCenter: new LatLng(40.44694705960048 ,-180.70312500000003),
+		tags: [],
+		chosenMapSource: 0
+	},
+	savedStates: [],
 	markerIconRules: [
 		{ruleName: "default", preset: true, iconDetails: {"prefix": "fas", "icon": "fa-circle", "markerColor": "blue"}},
 		{ruleName: "#trip", preset: false, iconDetails: {"prefix": "fas", "icon": "fa-hiking", "markerColor": "green"}},
@@ -82,7 +132,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 		{name: 'Google Maps', regExp: /https:\/\/\S*\@([0-9\.\-]+),([0-9\.\-]+)\S*/.source, order: 'latFirst', preset: true},
 		{name: 'OpenStreetMap Show Address', regExp: /https:\/\/www.openstreetmap.org\S*query=([0-9\.\-]+%2C[0-9\.\-]+)\S*/.source, order: 'latFirst', preset: true}
 	],
-	mapControls: {filtersDisplayed: true, viewDisplayed: true},
+	mapControls: {filtersDisplayed: true, viewDisplayed: true, presetsDisplayed: false},
 	maxClusterRadiusPixels: 20,
 	searchProvider: 'osm',
 	mapSources: [{name: 'OpenStreetMap', urlLight: consts.TILES_URL_OPENSTREETMAP}],
@@ -106,6 +156,21 @@ export function convertLegacyTilesUrl(settings: PluginSettings): boolean {
 	if (settings.tilesUrl) {
 		settings.mapSources = [{name: 'Default', urlLight: settings.tilesUrl}];
 		settings.tilesUrl = null;
+		return true;
+	}
+	return false;
+}
+
+export function convertLegacyDefaultState(settings: PluginSettings): boolean {
+	if (settings.defaultTags || settings.defaultZoom || settings.defaultMapCenter || settings.chosenMapSource) {
+		settings.defaultState = {
+			name: 'Default',
+			mapZoom: settings.defaultZoom || DEFAULT_SETTINGS.defaultState.mapZoom,
+			mapCenter: settings.defaultMapCenter || DEFAULT_SETTINGS.defaultState.mapCenter,
+			tags: settings.defaultTags || DEFAULT_SETTINGS.defaultState.tags,
+			chosenMapSource: settings.chosenMapSource ?? DEFAULT_SETTINGS.defaultState.chosenMapSource
+		};
+		settings.defaultTags = settings.defaultZoom = settings.defaultMapCenter = settings.chosenMapSource = null;
 		return true;
 	}
 	return false;

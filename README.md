@@ -285,6 +285,13 @@ There are so many things that I want it to do, and so little time...
 
 ## Changelog
 
+### 1.3.0
+
+- Introduction of **Presets** as a way to save the state of the view including the map state, filters and optionally the chosen map source.
+  - As part of this, the 'default view' functionality was converted to a built-in 'Default' preset and the UI was revamped accordingly.
+- As part of the above, the internal structure of the plugin had to be reorganized and many features needed to be rewired. **I put major effort to test the entire functionality of the plugin, but pretty much anything could break and I may have missed some bugs.** Please open issues if something had stopped working.
+- When using `{{query}}` in file name templates, the file name is sanitized so the creation won't fail on illegal strings.
+
 ### 1.2.1
 
 - The "new geolocation note" dialog can now also be used to add a location to an existing note, both via a new Obsidian command and a file menu action (https://github.com/esm7/obsidian-map-view/issues/46).
@@ -319,84 +326,4 @@ There are so many things that I want it to do, and so little time...
 - With relation to the above, the search tool in the map can now use the selected geocoding service too, meaning you can use Google Maps to search for locations if you have an API key.
 - New "paste as geolocation" and "convert to geolocation" right-click editor menu items, that can automatically convert URLs in the clipboard or URLs in the note to a geolocation link.
   - The rules that convert URLs to geolocations are configurable in the settings.
-
-### 0.2.1
-
-- Big upgrade hidden in a small version bump! Added support for marker clusters, with configurable cluster size. This makes Map View much more friendly (and better-performing) for big sets of markers.
-- Small fix to a bug introduced in 0.2.0, of "show on map" not always working.
-
-### 0.2.0
-
-Many usability fixes and improvements.
-
-- Added inline tags in the format of `tag:dogs` following an inline location. See documentation above for more details.
-- Shift filter box down to avoid covering pane title (thanks @huy-vuong!) ([PR here](https://github.com/esm7/obsidian-map-view/pull/25))
-- Fixed a confusing and possibly annoying default behavior of panning the map to view a popup (https://github.com/esm7/obsidian-map-view/issues/22)
-- When clicking "Show on map" inside a note, use an existing map view if such is open (rather than always replacing the current view). Override (always replace current pane) by holding Ctrl.
-- Added a customizable "open in" list. Instead of the old "Open in Google Maps", you can now add your own list of external mapping services.
-- The map controls are now collapsible in order to make them less obstructive on mobile and to make room for more features.
-
-### 0.1.0
-
-- A new experimental geosearch functionality was added ("convert to location"), see documentation above.
-- Small usability fixes that make the app better on mobile.
-- The inline location format was changed to standard [geo URLs](https://en.wikipedia.org/wiki/Geo_URI_scheme), as pointed out by @D-side in [this issue](https://github.com/esm7/obsidian-map-view/issues/18). This is superior to the previous format in many ways:
-  - These URLs are clickable and launch the default app or an app selection in desktop and mobile.
-  - They make much more sense in Preview Mode.
-  - They have a name, making something nicer to present in the note hover popup.
-
-**The previous `location:` format is still supported for backwards compatibility,** but you are encouraged to convert your inline locations to enjoy the benefits of the new format.
-
-If you're using Vim (the real one, not Obsidian's Vim mode), you can use a substitute command for each note with inline locations:
-```
-%s/`location:.*\[\(.*,.*\)]`/[](geo:\1)/g
-```
-
-(remove `\[` and `\]` if you were using the syntax without brackets)
-
-
-### 0.0.9
-
-- Marker hovers are now much nicer, and in the case of inline notes they also show the snippet around the location (configurable).
-- Smoother view state management including a relevant [bug fix](https://github.com/esm7/obsidian-map-view/issues/14).
-- Tag rules now supports wildcards in the tag name (as asked [here](https://github.com/esm7/obsidian-map-view/issues/10)).
-
-### 0.0.8
-
-- Fixed [a bug](https://github.com/esm7/obsidian-map-view/issues/12) allowing to confusingly add markers out of earth's proper bounds.
-- "New note here" right-click option with configuration options.
-- Markers now updated dynamically when relevant notes are added/deleted/modified.
-- Tweaks to opening notes in a 2nd pane (be able to use a 2nd pane if it already existed).
-- When jumping to a location within a note, the corresponding note line is now highlighted.
-- "Open in Google Maps" menu item within notes with locations (both note menu and right-click on a location).
-
-### 0.0.7
-
-Tiny fix to an annoying bug of the default not being applied.
-
-### 0.0.6
-
-Small fixes before the plugin formal release.
-
-### 0.0.5
-
-- New "show on map" menu item in the editor.
-- Fixed a nasty compatibility issue with obsidian-leaflet, see [here](https://github.com/esm7/obsidian-map-view/issues/6).
-
-### 0.0.4
-
-- Added settings (and Ctrl key) to open a note in a separate pane (https://github.com/esm7/obsidian-map-view/issues/3).
-
-### 0.0.3
-
-- Proper view and state management (hopefully).
-- Fixed a bug in location parsing.
-
-### 0.0.2
-
-Various cleanups, better copyright handling and generally more readiness for releasing the plugin.
-
-### 0.0.1
-
-Initial alpha release.
 
