@@ -122,22 +122,6 @@ export class MapView extends ItemView {
 			tags: this.settings.defaultTags || consts.DEFAULT_TAGS,
 			version: 0
 		};
-		this.setState = async (state: MapState, result) => {
-			if (state) {
-				if (!state.version) {
-					// We give the given state priority by setting a high version
-					state.version = this.plugin.highestVersionSeen + 1;
-				}
-				if (!state.mapCenter || !state.mapZoom) {
-					state.mapCenter = this.defaultState.mapCenter;
-					state.mapZoom = this.defaultState.mapZoom;
-				}
-				await this.updateMapToState(state, false);
-			}
-		}
-		this.getState = (): MapState => {
-			return this.state;
-		}
 
 		// Listen to file changes so we can rebuild the UI
 		this.app.vault.on(
@@ -156,6 +140,32 @@ export class MapView extends ItemView {
 			console.log('Map view: map refresh due to CSS change');
 			this.refreshMap();
 		});
+	}
+
+	/**
+	 * Set the maps state. Used as part of the forwards/backwards arrows
+	 * @param state The map state to set
+	 * @param result
+	 */
+	async setState(state: MapState, result: ViewStateResult): Promise<void> {
+		if (state) {
+			if (!state.version) {
+				// We give the given state priority by setting a high version
+				state.version = this.plugin.highestVersionSeen + 1;
+			}
+			if (!state.mapCenter || !state.mapZoom) {
+				state.mapCenter = this.defaultState.mapCenter;
+				state.mapZoom = this.defaultState.mapZoom;
+			}
+			await this.setMapState(state, false);
+		}
+	}
+
+	/**
+	 * Get the maps state. Used as part of the forwards/backwards arrows
+	 */
+	async getState(): Promise<MapState> {
+		return this.state;
 	}
 
 	/**
