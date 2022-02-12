@@ -44,8 +44,19 @@ type MapState = {
  * The map viewer class
  */
 export class MapView extends ItemView {
+	/**
+	 * The settings for the plugin
+	 */
 	readonly settings: PluginSettings;
-	// The private state needs to be updated solely via updateMapToState
+	/**
+	 * The default map state
+	 * @private
+	 */
+	private defaultState: MapState;
+	/**
+	 * The private map state. Must only be updated in setMapState
+	 * @private
+	 */
 	private state: MapState;
 	/**
 	 * The map data
@@ -82,11 +93,6 @@ export class MapView extends ItemView {
 	 * @private
 	 */
 	private plugin: MapViewPlugin;
-	/**
-	 * The map state
-	 * @private
-	 */
-	private defaultState: MapState;
 	/**
 	 * The leaf (obsidian sub-window) that a note was last opened in.
 	 * This is cached so that it can be reused when opening notes in the future
