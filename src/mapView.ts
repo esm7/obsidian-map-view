@@ -521,7 +521,7 @@ export class MapView extends ItemView {
 		// Saying it again: do not use 'await' below this line!
 		this.state = state;
 		this.plugin.highestVersionSeen = Math.max(this.plugin.highestVersionSeen, this.state.version);
-		this.updateMapMarkers(newMarkers);
+		this.setMapMarkers(newMarkers);
 		this.state.tags = this.state.tags || [];
 		this.display.tagsBox.setValue(this.state.tags.filter(tag => tag.length > 0).join(','));
 		if (this.state.mapCenter && this.state.mapZoom)
@@ -558,14 +558,14 @@ export class MapView extends ItemView {
 	}
 
 	/**
-	 * Remove markers that have changed or been removed and add the new ones
-	 * @param newMarkers The new array of FileMarkers
+	 * Set the markers on the map.
+	 * @param markers The new array of FileMarkers
 	 */
-	updateMapMarkers(newMarkers: FileMarker[]) {
+	setMapMarkers(markers: FileMarker[]) {
 		let newMarkersMap: MarkersMap = new Map();
 		let markersToAdd: leaflet.Marker[] = [];
 		let markersToRemove: leaflet.Marker[] = [];
-		for (let marker of newMarkers) {
+		for (let marker of markers) {
 			const existingMarker = this.display.markers.has(marker.id) ?
 				this.display.markers.get(marker.id) : null;
 			if (existingMarker && existingMarker.isSame(marker)) {
@@ -694,6 +694,6 @@ export class MapView extends ItemView {
 		if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
 			// add file markers from the added file
 			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app)
-		this.updateMapMarkers(newMarkers);
+		this.setMapMarkers(newMarkers);
 	}
 }
