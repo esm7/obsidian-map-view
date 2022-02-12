@@ -180,12 +180,11 @@ export class MapView extends ItemView {
 
 	/**
 	 * Is the map in dark mode
-	 * @param settings
 	 */
-	isDarkMode(settings: PluginSettings): boolean {
-		if (settings.chosenMapMode === 'dark')
+	isDarkMode(): boolean {
+		if (this.settings.chosenMapMode === 'dark')
 			return true;
-		if (settings.chosenMapMode === 'light')
+		if (this.settings.chosenMapMode === 'light')
 			return false;
 		// Auto mode - check if the theme is dark
 		if ((this.app.vault as any).getConfig('theme') === 'obsidian')
@@ -347,7 +346,7 @@ export class MapView extends ItemView {
 	}
 
 	async createMap() {
-		const isDark = this.isDarkMode(this.settings);
+		const isDark = this.isDarkMode();
 		// LeafletJS compatability: disable tree-shaking for the full-screen module
 		var dummy = leafletFullscreen;
 		this.display.map = new leaflet.Map(
