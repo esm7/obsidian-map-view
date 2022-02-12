@@ -241,7 +241,7 @@ export class MapView extends ItemView {
 		this.display.tagsBox.setPlaceholder('Tags, e.g. "#one,#two"');
 		this.display.tagsBox.onChange(async (tagsBox: string) => {
 			this.state.tags = tagsBox.split(',').filter(t => t.length > 0);
-			await this.updateMapToState(this.state, this.settings.autoZoom);
+			await this.setMapState(this.state, this.settings.autoZoom);
 		});
 		let tagSuggestions = new DropdownComponent(filtersContent);
 		tagSuggestions.setValue('Quick add tag');
@@ -301,7 +301,7 @@ export class MapView extends ItemView {
 					tags: this.settings.defaultTags || consts.DEFAULT_TAGS,
 					version: this.state.version + 1
 				};
-				await this.updateMapToState(newState, false);
+				await this.setMapState(newState, false);
 			});
 		let fitButton = new ButtonComponent(viewDivContent);
 		fitButton
@@ -348,7 +348,7 @@ export class MapView extends ItemView {
 		this.display?.controlsDiv.remove();
 		this.display.controlsDiv = this.createControls();
 		this.createMap();
-		this.updateMapToState(this.state, false, true);
+		this.setMapState(this.state, false, true);
 	}
 
 	async createMap() {
@@ -476,15 +476,15 @@ export class MapView extends ItemView {
 	}
 
 	/**
-	 * Updates the map to the given state and then sets the state accordingly, but only if the given state version
-	 * is not lower than the current state version (so concurrent async updates always keep the latest one)
-	 * @param state
-	 * @param autoFit
-	 * @param force
+	 * Set the map state if the state version is not lower than the current state version
+	 * (so concurrent async updates always keep the latest one)
+	 * @param state The map state to set
+	 * @param autoFit Should the view be fit to the markers
+	 * @param force Force setting the state. Will ignore if the state is old
 	 */
-	async updateMapToState(state: MapState, autoFit: boolean = false, force: boolean = false) {
+	async setMapState(state: MapState, autoFit: boolean = false, force: boolean = false) {
 		if (this.settings.debug)
-			console.time('updateMapToState');
+			console.time('setMapState');
 		const files = this.getFileListByQuery(state.tags);
 		let newMarkers = await buildMarkers(files, this.settings, this.app);
 		if (state.version < this.state.version && !force) {
@@ -504,7 +504,7 @@ export class MapView extends ItemView {
 		if (autoFit)
 			this.autoFitMapToMarkers();
 		if (this.settings.debug)
-			console.timeEnd('updateMapToState');
+			console.timeEnd('setMapState');
 	}
 
 	/**
