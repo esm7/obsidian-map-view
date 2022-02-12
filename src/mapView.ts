@@ -1,4 +1,4 @@
-import { TAbstractFile, Editor, ButtonComponent, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf } from 'obsidian';
+import {TAbstractFile, Editor, ButtonComponent, getAllTags, ItemView, MenuItem, Menu, TFile, TextComponent, DropdownComponent, WorkspaceLeaf, ViewStateResult} from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
