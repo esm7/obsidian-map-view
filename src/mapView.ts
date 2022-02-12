@@ -221,10 +221,16 @@ export class MapView extends ItemView {
 		return super.onOpen();
 	}
 
+	/**
+	 * Set up the map controls
+	 */
 	createControls() {
+		// html div container for the controls
 		let controlsDiv = createDiv({
 			'cls': 'graph-controls'
 		});
+
+		// html div container for the filter entries
 		let filtersDiv = controlsDiv.createDiv({'cls': 'graph-control-div'});
 		filtersDiv.innerHTML = `
 			<input id="filtersCollapsible" class="toggle" type="checkbox">
@@ -237,12 +243,16 @@ export class MapView extends ItemView {
 			this.plugin.saveSettings();
 		}
 		let filtersContent = filtersDiv.createDiv({'cls': 'graph-control-content'});
+
+		// tag text entry
 		this.display.tagsBox = new TextComponent(filtersContent);
 		this.display.tagsBox.setPlaceholder('Tags, e.g. "#one,#two"');
 		this.display.tagsBox.onChange(async (tagsBox: string) => {
 			this.state.tags = tagsBox.split(',').filter(t => t.length > 0);
 			await this.setMapState(this.state, this.settings.autoZoom);
 		});
+
+		// tag drop down
 		let tagSuggestions = new DropdownComponent(filtersContent);
 		tagSuggestions.setValue('Quick add tag');
 		tagSuggestions.addOption('', 'Quick add tag');
@@ -258,6 +268,7 @@ export class MapView extends ItemView {
 			this.display.tagsBox.onChanged();
 		});
 
+		// html div container for the view entries
 		let viewDiv = controlsDiv.createDiv({'cls': 'graph-control-div'});
 		viewDiv.innerHTML = `
 			<input id="viewCollapsible" class="toggle" type="checkbox">
@@ -269,6 +280,8 @@ export class MapView extends ItemView {
 			this.settings.mapControls.viewDisplayed = viewButton.checked;
 			this.plugin.saveSettings();
 		}
+
+		// map source drop down
 		let viewDivContent = viewDiv.createDiv({'cls': 'graph-control-content'});
 		let mapSource = new DropdownComponent(viewDivContent);
 		for (const [index, source] of this.settings.mapSources.entries()) {
@@ -282,6 +295,8 @@ export class MapView extends ItemView {
 		});
 		const chosenMapSource = this.settings.chosenMapSource ?? 0;
 		mapSource.setValue(chosenMapSource.toString());
+
+		// the map theme drop down
 		let sourceMode = new DropdownComponent(viewDivContent);
 		sourceMode.addOptions({auto: 'Auto', light: 'Light', dark: 'Dark'})
 			.setValue(this.settings.chosenMapMode ?? 'auto')
@@ -290,6 +305,8 @@ export class MapView extends ItemView {
 				await this.plugin.saveSettings();
 				this.refreshMap();
 			});
+
+		// The reset view button
 		let goDefault = new ButtonComponent(viewDivContent);
 		goDefault
 			.setButtonText('Reset')
@@ -303,11 +320,15 @@ export class MapView extends ItemView {
 				};
 				await this.setMapState(newState, false);
 			});
+
+		// The fit view button
 		let fitButton = new ButtonComponent(viewDivContent);
 		fitButton
 			.setButtonText('Fit')
 			.setTooltip('Set the map view to fit all currently-displayed markers.')
 			.onClick(() => this.autoFitMapToMarkers());
+
+		// The set view as default button
 		let setDefault = new ButtonComponent(viewDivContent);
 		setDefault
 			.setButtonText('Set as Default')
@@ -318,6 +339,7 @@ export class MapView extends ItemView {
 				this.settings.defaultTags = this.state.tags;
 				await this.plugin.saveSettings();
 			});
+
 		this.contentEl.style.padding = '0px 0px';
 		this.contentEl.append(controlsDiv);
 		return controlsDiv;
@@ -351,6 +373,9 @@ export class MapView extends ItemView {
 		this.setMapState(this.state, false, true);
 	}
 
+	/**
+	 * Create the leaflet map
+	 */
 	async createMap() {
 		const isDark = this.isDarkMode();
 		// LeafletJS compatability: disable tree-shaking for the full-screen module
@@ -661,11 +686,13 @@ export class MapView extends ItemView {
 			return;
 		}
 		let newMarkers: FileMarker[] = [];
+		// create an array of all file markers not in the removed file
 		for (let [markerId, fileMarker] of this.display.markers) {
 			if (fileMarker.file.path !== fileRemoved)
 				newMarkers.push(fileMarker);
 		}
 		if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
+			// add file markers from the added file
 			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app)
 		this.updateMapMarkers(newMarkers);
 	}
