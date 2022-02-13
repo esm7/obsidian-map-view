@@ -20,14 +20,29 @@ export abstract class BaseGeoLayer {
 	 */
 	file: TFile;
 	/**
+	 * The unique identifier for this geographic layer
+	 */
+	id: MarkerId;
+	/**
 	 * The character position in the file the coordinate comes from
 	 */
 	fileLocation?: number;
-
 	/**
 	 * The leaflet layer on the map
 	 */
 	geoLayer?: leaflet.Layer;
+	/**
+	 * Snippet of the file to show in the hover bubble
+	 */
+	snippet?: string;
+	/**
+	 * Optional extra name. Used by geo urls with a prefixed name
+	 */
+	extraName?: string;
+	/**
+	 * Any tags specified with the geographic layer
+	 */
+	tags: string[] = [];
 
 	/**
 	 * Construct a new map pin object
@@ -42,6 +57,18 @@ export abstract class BaseGeoLayer {
 	 * @param map
 	 */
 	abstract initGeoLayer(map: MapView): void;
+
+	/**
+	 * Generate a unique identifier for this layer
+	 */
+	abstract generateId(): MarkerId;
+
+	/**
+	 * Is this geographic layer identical to the other object.
+	 * Used to compare to existing data to minimise creation.
+	 * @param other The other object to compare to
+	 */
+	abstract isSame(other: BaseGeoLayer): boolean;
 }
 
 
@@ -49,6 +76,8 @@ export abstract class BaseGeoLayer {
  * A class to hold all the data for a map pin
  */
 export class FileMarker extends BaseGeoLayer {
+	geoLayer?: leaflet.Marker;
+
 	/**
 	 * The coordinate for the geographic layer
 	 */
@@ -60,11 +89,6 @@ export class FileMarker extends BaseGeoLayer {
 	/**
 	 * The clickable object on the map
 	 */
-	geoLayer?: leaflet.Marker;
-	id: MarkerId;
-	snippet?: string;
-	extraName?: string;
-	tags: string[] = [];
 
 	/**
 	 * Construct a new map pin object
@@ -81,7 +105,7 @@ export class FileMarker extends BaseGeoLayer {
 	 * Is the other data equal to this
 	 * @param other A FileMarker to compare to
 	 */
-	isSame(other: FileMarker) {
+	isSame(other: FileMarker): boolean {
 		return this.file.name === other.file.name &&
 			this.location.toString() === other.location.toString() &&
 			this.fileLocation === other.fileLocation &&
