@@ -265,14 +265,14 @@ export function verifyLocation(location: leaflet.LatLng) {
  * Find all inline coordinates in a string
  * @param content The file contents to find the coordinates in
  */
-export function matchInlineLocation(content: string): RegExpMatchArray[] {
+export function matchInlineCoordinates(content: string): RegExpMatchArray[] {
 	// Old syntax of ` `location: ... ` `. This syntax doesn't support a name so we leave an empty capture group
-	const locationRegex1 = /\`()location:\s*\[?([0-9.\-]+)\s*,\s*([0-9.\-]+)\]?\`/g;
+	const legacyLocationRegex = /`location:\s*\[?(?<lat>[+-]?([0-9]*[.])?[0-9]+)\s*,\s*(?<long>[+-]?([0-9]*[.])?[0-9]+)]?`/g
 	// New syntax of `[name](geo:...)` and an optional tags as `tag:tagName` separated by whitespaces
-	const locationRegex2 = /\[(.*?)\]\(geo:([0-9.\-]+),([0-9.\-]+)\)[ \t]*((?:tag:[\w\/\-]+[\s\.]+)*)/g;
-	const matches1 = content.matchAll(locationRegex1);
-	const matches2 = content.matchAll(locationRegex2);
-	return Array.from(matches1).concat(Array.from(matches2));
+	const geoURLlocationRegex = /\[(?<name>.*?)]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<long>[+-]?([0-9]*[.])?[0-9]+)\)[ \t]*(?<tags>(tag:[\w\/\-]+[\s.]+)*)/g;
+	const legacyMatches = content.matchAll(legacyLocationRegex);
+	const geoURLMatches = content.matchAll(geoURLlocationRegex);
+	return Array.from(legacyMatches).concat(Array.from(geoURLMatches));
 }
 
 /**
@@ -284,28 +284,28 @@ export function matchInlineLocation(content: string): RegExpMatchArray[] {
 async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, app: App): Promise<FileMarker[]> {
 	let markers: FileMarker[] = [];
 	const content = await app.vault.read(file);
-	const matches = matchInlineLocation(content);
+	const matches = matchInlineCoordinates(content);
 	for (const match of matches) {
 		try {
-			const location = new leaflet.LatLng(parseFloat(match[2]), parseFloat(match[3]));
+			const location = new leaflet.LatLng(parseFloat(match.groups.lat), parseFloat(match.groups.long));
 			verifyLocation(location);
 			const marker = new FileMarker(file, location);
-			if (match[1] && match[1].length > 0)
-				marker.extraName = match[1];
-			if (match[4]) {
+			if (match.groups.name && match.groups.name.length > 0)
+				marker.extraName = match.groups.name;
+			if (match.groups.tags) {
 				// Parse the list of tags
-				const tagRegex = /tag:([\w\/\-]+)/g;
-				const tags = match[4].matchAll(tagRegex);
+				const tagRegex = /tag:(?<tag>[\w\/\-]+)/g;
+				const tags = match.groups.tags.matchAll(tagRegex);
 				for (const tag of tags)
-					if (tag[1])
-						marker.tags.push('#' + tag[1]);
+					if (tag.groups.tag)
+						marker.tags.push('#' + tag.groups.tag);
 			}
 			marker.fileLocation = match.index;
 			marker.snippet = await makeTextSnippet(file, content, marker.fileLocation, settings);
 			markers.push(marker);
 		}
 		catch (e) {
-			console.log(`Error converting location in file ${file.name}: could not parse ${match[1]} or ${match[2]}`, e);
+			console.log(`Error converting location in file ${file.name}: could not parse ${match[0]}`, e);
 		}
 	}
 	return markers;
@@ -323,7 +323,7 @@ async function makeTextSnippet(file: TFile, fileContent: string, fileLocation: n
 			const prevLine = fileContent.lastIndexOf('\n', snippetStart - 1);
 			const line = fileContent.substring(snippetStart, prevLine);
 			// If the new line above contains another location, don't include it and stop
-			if (matchInlineLocation(line).length > 0)
+			if (matchInlineCoordinates(line).length > 0)
 				break;
 			snippetStart = prevLine;
 			linesAbove -= 1;
@@ -337,7 +337,7 @@ async function makeTextSnippet(file: TFile, fileContent: string, fileLocation: n
 			const nextLine = fileContent.indexOf('\n', snippetEnd + 1);
 			const line = fileContent.substring(snippetEnd, nextLine > -1 ? nextLine : fileContent.length);
 			// If the new line below contains another location, don't include it and stop
-			if (matchInlineLocation(line).length > 0)
+			if (matchInlineCoordinates(line).length > 0)
 				break;
 			snippetEnd = nextLine;
 			linesBelow -= 1;

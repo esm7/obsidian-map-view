@@ -6,7 +6,7 @@ import { CoordinateParser } from 'src/coordinateParser';
 
 import { MapView } from 'src/mapView';
 import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl } from 'src/settings';
-import { getFrontMatterCoordinate, matchInlineLocation, verifyLocation } from 'src/markers';
+import { getFrontMatterCoordinate, matchInlineCoordinates, verifyLocation } from 'src/markers';
 import { SettingsTab } from 'src/settingsTab';
 import { NewNoteDialog } from 'src/newNoteDialog';
 import * as utils from 'src/utils';
@@ -241,10 +241,10 @@ export default class MapViewPlugin extends Plugin {
 	 */
 	private getEditorLineCoordinate(editor: Editor, view: FileView): leaflet.LatLng {
 		const line = editor.getLine(editor.getCursor().line);
-		const match = matchInlineLocation(line)[0];
+		const match = matchInlineCoordinates(line)[0];
 		let selectedLocation = null;
 		if (match)
-			selectedLocation = new leaflet.LatLng(parseFloat(match[2]), parseFloat(match[3]));
+			selectedLocation = new leaflet.LatLng(parseFloat(match.groups.lat), parseFloat(match.groups.long));
 		else
 		{
 			const fmLocation = getFrontMatterCoordinate(view.file, this.app);
