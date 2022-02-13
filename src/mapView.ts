@@ -13,7 +13,7 @@ import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
 import { PluginSettings, MapLightDark, DEFAULT_SETTINGS } from 'src/settings';
-import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers } from 'src/markers';
+import { MarkersMap, BaseGeoLayer, buildMarkers, getIconFromOptions, buildAndAppendGeoLayers } from 'src/markers';
 import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
@@ -35,7 +35,7 @@ type MapState = {
 	 */
 	tags: string[];
 	/**
-	 * The version of the map to track if data is old
+	 * The version of the state to work out which is newest
 	 */
 	version: number;
 }
@@ -510,7 +510,9 @@ export class MapView extends ItemView {
 	async setMapState(state: MapState, autoFit: boolean = false, force: boolean = false) {
 		if (this.settings.debug)
 			console.time('setMapState');
+		// get a list of all files matching the tags
 		const files = this.getFileListByQuery(state.tags);
+		// build the tags for all files matching the tag
 		let newMarkers = await buildMarkers(files, this.settings, this.app);
 		if (state.version < this.state.version && !force) {
 			// If the state we were asked to update is old (e.g. because while we were building markers a newer instance
@@ -561,10 +563,10 @@ export class MapView extends ItemView {
 	 * Set the markers on the map.
 	 * @param markers The new array of FileMarkers
 	 */
-	setMapMarkers(markers: FileMarker[]) {
+	setMapMarkers(markers: BaseGeoLayer[]) {
 		let newMarkersMap: MarkersMap = new Map();
-		let markersToAdd: leaflet.Marker[] = [];
-		let markersToRemove: leaflet.Marker[] = [];
+		let markersToAdd: leaflet.Layer[] = [];
+		let markersToRemove: leaflet.Layer[] = [];
 		for (let marker of markers) {
 			const existingMarker = this.display.markers.has(marker.id) ?
 				this.display.markers.get(marker.id) : null;
@@ -648,7 +650,7 @@ export class MapView extends ItemView {
 	 * @param useCtrlKeyBehavior If true the file will be opened in a new instance
 	 * @param highlight If true will highlight the line
 	 */
-	async goToMarker(marker: FileMarker, useCtrlKeyBehavior: boolean, highlight: boolean) {
+	async goToMarker(marker: BaseGeoLayer, useCtrlKeyBehavior: boolean, highlight: boolean) {
 		return this.goToFile(
 			marker.file,
 			useCtrlKeyBehavior,
@@ -685,15 +687,15 @@ export class MapView extends ItemView {
 			// If the map has not been set up yet then do nothing
 			return;
 		}
-		let newMarkers: FileMarker[] = [];
+		let newGeoLayers: BaseGeoLayer[] = [];
 		// create an array of all file markers not in the removed file
-		for (let [markerId, fileMarker] of this.display.markers) {
-			if (fileMarker.file.path !== fileRemoved)
-				newMarkers.push(fileMarker);
+		for (let [markerId, geoLayer] of this.display.markers) {
+			if (geoLayer.file.path !== fileRemoved)
+				newGeoLayers.push(geoLayer);
 		}
 		if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
 			// add file markers from the added file
-			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app)
-		this.setMapMarkers(newMarkers);
+			await buildAndAppendGeoLayers(newGeoLayers, fileAddedOrChanged, this.settings, this.app)
+		this.setMapMarkers(newGeoLayers);
 	}
 }

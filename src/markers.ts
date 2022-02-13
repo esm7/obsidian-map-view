@@ -103,10 +103,11 @@ export class FileMarker extends BaseGeoLayer {
 
 	/**
 	 * Is the other data equal to this
-	 * @param other A FileMarker to compare to
+	 * @param other A BaseGeoLayer to compare to
 	 */
-	isSame(other: FileMarker): boolean {
-		return this.file.name === other.file.name &&
+	isSame(other: BaseGeoLayer): boolean {
+		return other instanceof FileMarker &&
+			this.file.name === other.file.name &&
 			this.location.toString() === other.location.toString() &&
 			this.fileLocation === other.fileLocation &&
 			this.extraName === other.extraName &&
@@ -182,7 +183,7 @@ export class FileMarker extends BaseGeoLayer {
 	}
 }
 
-export type MarkersMap = Map<MarkerId, FileMarker>;
+export type MarkersMap = Map<MarkerId, BaseGeoLayer>;
 
 /**
  * Create file markers for every coordinate in the front matter and file body
@@ -192,7 +193,7 @@ export type MarkersMap = Map<MarkerId, FileMarker>;
  * @param app The obsidian app instance
  * @param skipMetadata If true will not find markers in the front matter
  */
-export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], file: TFile, settings: PluginSettings, app: App, skipMetadata?: boolean) {
+export async function buildAndAppendGeoLayers(mapToAppendTo: BaseGeoLayer[], file: TFile, settings: PluginSettings, app: App, skipMetadata?: boolean) {
 	const fileCache = app.metadataCache.getFileCache(file);
 	const frontMatter = fileCache?.frontmatter;
 	if (frontMatter) {
@@ -217,12 +218,12 @@ export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], fil
  * @param settings
  * @param app
  */
-export async function buildMarkers(files: TFile[], settings: PluginSettings, app: App): Promise<FileMarker[]> {
+export async function buildMarkers(files: TFile[], settings: PluginSettings, app: App): Promise<BaseGeoLayer[]> {
 	if (settings.debug)
 		console.time('buildMarkers');
-	let markers: FileMarker[] = [];
+	let markers: BaseGeoLayer[] = [];
 	for (const file of files) {
-		await buildAndAppendFileMarkers(markers, file, settings, app);
+		await buildAndAppendGeoLayers(markers, file, settings, app);
 	}
 	if (settings.debug)
 		console.timeEnd('buildMarkers');
@@ -240,7 +241,7 @@ function checkTagPatternMatch(tagPattern: string, tags: string[]) {
  * @param settings The plugin settings
  * @param app The obsidian app instance
  */
-function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.Icon {
+function getIconForMarker(marker: BaseGeoLayer, settings: PluginSettings, app: App) : leaflet.Icon {
 	const fileCache = app.metadataCache.getFileCache(marker.file);
 	// Combine the file tags with the marker-specific tags
 	const tags = getAllTags(fileCache).concat(marker.tags);
