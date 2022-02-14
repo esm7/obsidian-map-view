@@ -12,7 +12,6 @@ import * as consts from 'src/consts';
 import * as utils from "src/utils";
 import type {MapView} from "src/mapView"
 import {GeoJsonObject} from 'geojson';
-import {Arr} from "tern";
 
 type MarkerId = string;
 
