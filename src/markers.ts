@@ -11,8 +11,28 @@ import { PluginSettings, MarkerIconRule } from 'src/settings';
 import * as consts from 'src/consts';
 import * as utils from "src/utils";
 import type {MapView} from "src/mapView"
+import {GeoJsonObject} from 'geojson';
+import {Arr} from "tern";
 
 type MarkerId = string;
+
+
+if (!(leaflet.Polygon.prototype as any).getLatLng) {
+	// extend the Polygon behaviour to support clustering
+	leaflet.Polygon.addInitHook(function() {
+		console.log(this.getBounds().getCenter())
+		this._latlng = this.getBounds().getCenter();
+	});
+
+	leaflet.Polygon.include({
+		getLatLng: function() {
+			return this._latlng;
+		},
+		setLatLng: function() {} // Dummy method.
+	});
+}
+
+
 
 export abstract class BaseGeoLayer {
 	/**
@@ -74,6 +94,48 @@ export abstract class BaseGeoLayer {
 	 * Get the bounds of the data
 	 */
 	abstract getBounds(): leaflet.LatLng[];
+}
+
+
+export class GeoJSON extends BaseGeoLayer {
+	/**
+	 * The raw geoJSON data
+	 */
+	geoJSON: GeoJsonObject;
+
+	/**
+	 * The GeoJSON leaflet object
+	 */
+	geoLayer?: leaflet.GeoJSON
+
+	constructor(file: TFile, geoJSON: GeoJsonObject) {
+		super(file);
+		this.geoJSON = geoJSON
+		this.id = this.generateId();
+	}
+
+	initGeoLayer(map: MapView) {
+		try {
+			this.geoLayer = new leaflet.GeoJSON(this.geoJSON);
+		} catch (e) {
+			console.log("geoJSON is not valid geoJSON", this.geoJSON)
+			throw e;
+		}
+	}
+
+	generateId(): MarkerId {
+		return this.file.name + JSON.stringify(this.geoJSON);
+	}
+
+	isSame(other: BaseGeoLayer): boolean {
+		return other instanceof GeoJSON &&
+			other.geoJSON == this.geoJSON;
+	}
+
+	getBounds(): leaflet.LatLng[] {
+		let bounds = this.geoLayer.getBounds()
+		return [bounds.getNorthEast(), bounds.getSouthWest()];
+	}
 }
 
 
@@ -213,10 +275,16 @@ export async function buildAndAppendGeoLayers(mapToAppendTo: BaseGeoLayer[], fil
 				let leafletMarker = new FileMarker(file, location);
 				mapToAppendTo.push(leafletMarker);
 			}
+			let geoJSON = getFrontMatterGeoJSON(file, app);
+			if (geoJSON) {
+				mapToAppendTo.push(new GeoJSON(file, geoJSON));
+			}
 		}
 		if ('locations' in frontMatter) {
-			const markersFromFile = await getMarkersFromFileContent(file, settings, app);
-			mapToAppendTo.push(...markersFromFile);
+			const inlineCoordiantes = await getInlineFileMarkers(file, settings, app);
+			mapToAppendTo.push(...inlineCoordiantes);
+			const inlineGeoJSON = await getInlineGeoJSON(file, settings, app);
+			mapToAppendTo.push(...inlineGeoJSON);
 		}
 	}
 }
@@ -310,12 +378,23 @@ export function matchInlineCoordinates(content: string): RegExpMatchArray[] {
 }
 
 /**
+ * Find all inline geoJSON in a string
+ * @param content The file contents to find the coordinates in
+ */
+export function matchInlineGeoJSON(content: string): RegExpMatchArray[] {
+	// New syntax of `[name](geo:...)` and an optional tags as `tag:tagName` separated by whitespaces
+	const geoJSONlocationRegex = /```geoJSON\n(?<geoJSON>.*?)```/gs;
+	const geoJSONMatches = content.matchAll(geoJSONlocationRegex);
+	return Array.from(geoJSONMatches);
+}
+
+/**
  * Get markers from within the file body
  * @param file The file descriptor to load
  * @param settings The plugin settings
  * @param app The obsidian app instance
  */
-async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, app: App): Promise<FileMarker[]> {
+async function getInlineFileMarkers(file: TFile, settings: PluginSettings, app: App): Promise<FileMarker[]> {
 	let markers: FileMarker[] = [];
 	const content = await app.vault.read(file);
 	const matches = matchInlineCoordinates(content);
@@ -340,6 +419,38 @@ async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, 
 		}
 		catch (e) {
 			console.log(`Error converting location in file ${file.name}: could not parse ${match[0]}`, e);
+		}
+	}
+	return markers;
+}
+
+/**
+ * Get geoJSON from within the file body
+ * @param file The file descriptor to load
+ * @param settings The plugin settings
+ * @param app The obsidian app instance
+ */
+async function getInlineGeoJSON(file: TFile, settings: PluginSettings, app: App): Promise<GeoJSON[]> {
+	let markers: GeoJSON[] = [];
+	const content = await app.vault.read(file);
+	const matches = matchInlineGeoJSON(content);
+	for (const match of matches) {
+		try {
+			const geoJSONData = JSON.parse(match.groups.geoJSON);
+			const geoJSON = new GeoJSON(file, geoJSONData);
+			if (geoJSONData instanceof Object && geoJSONData.tags && geoJSONData.tags instanceof Array) {
+				for (const tag of geoJSONData.tags) {
+					if (tag instanceof String) {
+						geoJSON.tags.push('#' + tag);
+					}
+				}
+			}
+			geoJSON.fileLocation = match.index;
+			geoJSON.snippet = await makeTextSnippet(file, content, geoJSON.fileLocation, settings);
+			markers.push(geoJSON);
+		}
+		catch (e) {
+			console.log(`Error converting inline geoJSON from ${file.name}: could not parse ${match.groups.geoJSON}`, e);
 		}
 	}
 	return markers;
@@ -408,6 +519,21 @@ export function getFrontMatterCoordinate(file: TFile, app: App) : leaflet.LatLng
 		catch (e) {
 			console.log(`Error converting location in file ${file.name}:`, e);
 		}
+	}
+	return null;
+}
+
+/**
+ * Get the geoJSON stored in the front matter of a file
+ * @param file The file to load the front matter from
+ * @param app The app to load the file from
+ */
+export function getFrontMatterGeoJSON(file: TFile, app: App) : GeoJsonObject {
+	const fileCache = app.metadataCache.getFileCache(file);
+	const frontMatter = fileCache?.frontmatter;
+	if (frontMatter && frontMatter?.geoJSON) {
+		console.log(frontMatter);
+		return frontMatter.geoJSON;
 	}
 	return null;
 }

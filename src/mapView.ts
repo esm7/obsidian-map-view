@@ -576,9 +576,11 @@ export class MapView extends ItemView {
 				this.display.markers.delete(marker.id);
 			} else {
 				// New marker - create it
-				marker.initGeoLayer(this)
-				markersToAdd.push(marker.geoLayer);
-				newMarkersMap.set(marker.id, marker);
+				try {
+					marker.initGeoLayer(this)
+					markersToAdd.push(marker.geoLayer);
+					newMarkersMap.set(marker.id, marker);
+				} catch (e) {}
 			}
 		}
 		for (let [key, value] of this.display.markers) {
