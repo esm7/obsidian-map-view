@@ -19,7 +19,6 @@ type MarkerId = string;
 if (!(leaflet.Polygon.prototype as any).getLatLng) {
 	// extend the Polygon behaviour to support clustering
 	leaflet.Polygon.addInitHook(function() {
-		console.log(this.getBounds().getCenter())
 		this._latlng = this.getBounds().getCenter();
 	});
 
@@ -96,12 +95,16 @@ export abstract class BaseGeoLayer {
 }
 
 
-export class GeoJSON extends BaseGeoLayer {
+export class GeoJSONLayer extends BaseGeoLayer {
 	/**
 	 * The raw geoJSON data
 	 */
 	geoJSON: GeoJsonObject;
 
+	/**
+	 * The image icon to display for pins
+	 */
+	icon?: leaflet.Icon<leaflet.BaseIconOptions>;
 	/**
 	 * The GeoJSON leaflet object
 	 */
@@ -114,8 +117,42 @@ export class GeoJSON extends BaseGeoLayer {
 	}
 
 	initGeoLayer(map: MapView) {
+		const geoJSONLayer = this;
 		try {
-			this.geoLayer = new leaflet.GeoJSON(this.geoJSON);
+			this.geoLayer = new leaflet.GeoJSON(
+				this.geoJSON,
+				{
+					onEachFeature(_, layer: leaflet.Layer) {
+						if (layer instanceof leaflet.Marker){
+							if (!geoJSONLayer.icon){
+								geoJSONLayer.icon = getIconForMarker(geoJSONLayer, map.settings, map.app);
+							}
+							layer.setIcon(geoJSONLayer.icon)
+						}
+
+						// when clicked, open the marker in an editor
+						layer.on('click', (event: leaflet.LeafletMouseEvent) => {
+							map.goToMarker(geoJSONLayer, event.originalEvent.ctrlKey, true);
+						});
+						// when hovered
+						layer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+							let content = `<p class="map-view-marker-name">${geoJSONLayer.file.name}</p>`;
+							if (geoJSONLayer.extraName)
+								content += `<p class="map-view-extra-name">${geoJSONLayer.extraName}</p>`;
+							if (geoJSONLayer.snippet)
+								content += `<p class="map-view-marker-snippet">${geoJSONLayer.snippet}</p>`;
+							layer.bindPopup(content, {closeButton: true, autoPan: false}).openPopup();
+						});
+						// when stop hovering
+						layer.on(
+							'mouseout',
+							(event: leaflet.LeafletMouseEvent) => {
+								layer.closePopup();
+							}
+						);
+					}
+				}
+			);
 		} catch (e) {
 			console.log("geoJSON is not valid geoJSON", this.geoJSON)
 			throw e;
@@ -127,7 +164,7 @@ export class GeoJSON extends BaseGeoLayer {
 	}
 
 	isSame(other: BaseGeoLayer): boolean {
-		return other instanceof GeoJSON &&
+		return other instanceof GeoJSONLayer &&
 			other.geoJSON == this.geoJSON;
 	}
 
@@ -152,9 +189,6 @@ export class FileMarker extends BaseGeoLayer {
 	 * The image icon to display
 	 */
 	icon?: leaflet.Icon<leaflet.BaseIconOptions>;
-	/**
-	 * The clickable object on the map
-	 */
 
 	/**
 	 * Construct a new map pin object
@@ -276,7 +310,7 @@ export async function buildAndAppendGeoLayers(mapToAppendTo: BaseGeoLayer[], fil
 			}
 			let geoJSON = getFrontMatterGeoJSON(file, app);
 			if (geoJSON) {
-				mapToAppendTo.push(new GeoJSON(file, geoJSON));
+				mapToAppendTo.push(new GeoJSONLayer(file, geoJSON));
 			}
 		}
 		if ('locations' in frontMatter) {
@@ -429,14 +463,14 @@ async function getInlineFileMarkers(file: TFile, settings: PluginSettings, app: 
  * @param settings The plugin settings
  * @param app The obsidian app instance
  */
-async function getInlineGeoJSON(file: TFile, settings: PluginSettings, app: App): Promise<GeoJSON[]> {
-	let markers: GeoJSON[] = [];
+async function getInlineGeoJSON(file: TFile, settings: PluginSettings, app: App): Promise<GeoJSONLayer[]> {
+	let markers: GeoJSONLayer[] = [];
 	const content = await app.vault.read(file);
 	const matches = matchInlineGeoJSON(content);
 	for (const match of matches) {
 		try {
 			const geoJSONData = JSON.parse(match.groups.geoJSON);
-			const geoJSON = new GeoJSON(file, geoJSONData);
+			const geoJSON = new GeoJSONLayer(file, geoJSONData);
 			if (geoJSONData instanceof Object && geoJSONData.tags && geoJSONData.tags instanceof Array) {
 				for (const tag of geoJSONData.tags) {
 					if (tag instanceof String) {
@@ -531,7 +565,6 @@ export function getFrontMatterGeoJSON(file: TFile, app: App) : GeoJsonObject {
 	const fileCache = app.metadataCache.getFileCache(file);
 	const frontMatter = fileCache?.frontmatter;
 	if (frontMatter && frontMatter?.geoJSON) {
-		console.log(frontMatter);
 		return frontMatter.geoJSON;
 	}
 	return null;
