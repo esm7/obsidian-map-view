@@ -69,6 +69,11 @@ export abstract class BaseGeoLayer {
 	 * @param other The other object to compare to
 	 */
 	abstract isSame(other: BaseGeoLayer): boolean;
+
+	/**
+	 * Get the bounds of the data
+	 */
+	abstract getBounds(): leaflet.LatLng[];
 }
 
 
@@ -180,6 +185,10 @@ export class FileMarker extends BaseGeoLayer {
 				)
 			}
 		);
+	}
+
+	getBounds(): leaflet.LatLng[] {
+		return [this.location];
 	}
 }
 

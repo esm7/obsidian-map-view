@@ -595,7 +595,10 @@ export class MapView extends ItemView {
 	 */
 	async autoFitMapToMarkers() {
 		if (this.display.markers.size > 0) {
-			const locations: leaflet.LatLng[] = Array.from(this.display.markers.values()).map(fileMarker => fileMarker.location);
+			let locations: leaflet.LatLng[] = []
+			for (let layer of this.display.markers.values()) {
+				locations.push(...layer.getBounds());
+			}
 			console.log(`Auto fit by state:`, this.state);
 			this.display.map.fitBounds(leaflet.latLngBounds(locations));
 		}
