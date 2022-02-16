@@ -225,6 +225,20 @@ If you have multiple map sources, they can be switched from the View pane.
 Additionally, you can set an optional different dark theme URL for each map source.
 If a dark theme is detected, or if you specifically change the map source type to Dark (using the drop down in the View pane), you will get the Dark URL if one is configured.
 
+## Presets
+
+If there is a map state you would like to save and easily come back to, you can save it as a preset.
+To do so, open the Presets pane in the main plugin's controls, and click 'Save as' to save the current view with a name you can easily go back to.
+
+If you enter an already-existing name, that preset will be overwritten.
+
+The saved preset includes the map state (zoom & pan), the filters used, and if you check the box in the "save as" dialog -- also the chosen map source.
+If you do not include the map source as part of the preset, switching to the newly-saved preset will use the currently-selected map source.
+
+Presets *do not* store the map's theme (light/dark).
+
+The Default preset is special; you can save it using the 'Save as Default' button, and come back to it by clicking the Reset button, by choosing the Default preset from the box, or by opening a fresh Map View that has no previously saved state.
+
 ## Open In
 
 Many context menus of Map View display a customizable Open In list, which can open a given location in external sources.
