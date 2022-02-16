@@ -12,9 +12,7 @@ interface FindResult {
 	ruleName: string
 }
 
-/**
- * A class to convert a string (usually a URL) into coordinate format
- */
+/** A class to convert a string (usually a URL) into coordinate format */
 export class CoordinateParser {
 	private settings: PluginSettings;
 

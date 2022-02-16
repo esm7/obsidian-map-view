@@ -11,9 +11,7 @@ import { SettingsTab } from 'src/settingsTab';
 import { NewNoteDialog } from 'src/newNoteDialog';
 import * as utils from 'src/utils';
 
-/**
- * A plugin to implement map support
- */
+/** A plugin to implement map support */
 export default class MapViewPlugin extends Plugin {
 	settings: PluginSettings;
 	public highestVersionSeen: number = 0;
@@ -261,16 +259,12 @@ export default class MapViewPlugin extends Plugin {
 	onunload() {
 	}
 
-	/**
-	 * Load the settings from disk
-	 */
+	/** Load the settings from disk */
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
-	/**
-	 * Save the settings to disk
-	 */
+	/** Save the settings to disk */
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}

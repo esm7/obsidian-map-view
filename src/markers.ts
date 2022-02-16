@@ -33,33 +33,19 @@ if (!(leaflet.Polygon.prototype as any).getLatLng) {
 
 
 export abstract class BaseGeoLayer {
-	/**
-	 * The file descriptor
-	 */
+	/** The file descriptor */
 	file: TFile;
-	/**
-	 * The unique identifier for this geographic layer
-	 */
+	/** The unique identifier for this geographic layer */
 	id: MarkerId;
-	/**
-	 * The character position in the file the coordinate comes from
-	 */
+	/** The character position in the file the coordinate comes from */
 	fileLocation?: number;
-	/**
-	 * The leaflet layer on the map
-	 */
+	/** The leaflet layer on the map */
 	geoLayer?: leaflet.Layer;
-	/**
-	 * Snippet of the file to show in the hover bubble
-	 */
+	/** Snippet of the file to show in the hover bubble */
 	snippet?: string;
-	/**
-	 * Optional extra name. Used by geo urls with a prefixed name
-	 */
+	/** Optional extra name. Used by geo urls with a prefixed name */
 	extraName?: string;
-	/**
-	 * Any tags specified with the geographic layer
-	 */
+	/** Any tags specified with the geographic layer */
 	tags: string[] = [];
 
 	/**
@@ -76,9 +62,7 @@ export abstract class BaseGeoLayer {
 	 */
 	abstract initGeoLayer(map: MapView): void;
 
-	/**
-	 * Generate a unique identifier for this layer
-	 */
+	/** Generate a unique identifier for this layer */
 	abstract generateId(): MarkerId;
 
 	/**
@@ -88,26 +72,18 @@ export abstract class BaseGeoLayer {
 	 */
 	abstract isSame(other: BaseGeoLayer): boolean;
 
-	/**
-	 * Get the bounds of the data
-	 */
+	/** Get the bounds of the data */
 	abstract getBounds(): leaflet.LatLng[];
 }
 
 
 export class GeoJSONLayer extends BaseGeoLayer {
-	/**
-	 * The raw geoJSON data
-	 */
+	/** The raw geoJSON data */
 	geoJSON: GeoJsonObject;
 
-	/**
-	 * The image icon to display for pins
-	 */
+	/** The image icon to display for pins */
 	icon?: leaflet.Icon<leaflet.BaseIconOptions>;
-	/**
-	 * The GeoJSON leaflet object
-	 */
+	/** The GeoJSON leaflet object */
 	geoLayer?: leaflet.GeoJSON
 
 	constructor(file: TFile, geoJSON: GeoJsonObject) {
@@ -175,19 +151,13 @@ export class GeoJSONLayer extends BaseGeoLayer {
 }
 
 
-/**
- * A class to hold all the data for a map pin
- */
+/** A class to hold all the data for a map pin */
 export class FileMarker extends BaseGeoLayer {
 	geoLayer?: leaflet.Marker;
 
-	/**
-	 * The coordinate for the geographic layer
-	 */
+	/** The coordinate for the geographic layer */
 	location: leaflet.LatLng;
-	/**
-	 * The image icon to display
-	 */
+	/** The image icon to display */
 	icon?: leaflet.Icon<leaflet.BaseIconOptions>;
 
 	/**
@@ -226,9 +196,7 @@ export class FileMarker extends BaseGeoLayer {
 		return this.file.name + this.location.lat.toString() + this.location.lng.toString();
 	}
 
-	/**
-	 * Create a leaflet layer and add it to the map
-	 */
+	/** Create a leaflet layer and add it to the map */
 	initGeoLayer(map: MapView): void {
 		this.icon = getIconForMarker(this, map.settings, map.app);
 		// create the leaflet marker instance

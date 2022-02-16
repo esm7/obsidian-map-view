@@ -18,35 +18,21 @@ import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 
-/**
- * The state of the map instance
- */
+/** The state of the map instance */
 type MapState = {
-	/**
-	 * The zoom level of the map
-	 */
+	/** The zoom level of the map */
 	mapZoom: number;
-	/**
-	 * The viewed center of the map
-	 */
+	/** The viewed center of the map */
 	mapCenter: leaflet.LatLng;
-	/**
-	 * The tags that the user specified
-	 */
+	/** The tags that the user specified */
 	tags: string[];
-	/**
-	 * The version of the state to work out which is newest
-	 */
+	/** The version of the state to work out which is newest */
 	version: number;
 }
 
-/**
- * The map viewer class
- */
+/** The map viewer class */
 export class MapView extends ItemView {
-	/**
-	 * The settings for the plugin
-	 */
+	/** The settings for the plugin */
 	readonly settings: PluginSettings;
 	/**
 	 * The default map state
@@ -63,29 +49,17 @@ export class MapView extends ItemView {
 	 * @private
 	 */
 	private display = new class {
-		/**
-		 * The leaflet map instance for this map viewer
-		 */
+		/** The leaflet map instance for this map viewer */
 		map: leaflet.Map;
-		/**
-		 * The cluster management class
-		 */
+		/** The cluster management class */
 		clusterGroup: leaflet.MarkerClusterGroup;
-		/**
-		 * The markers currently on the map
-		 */
+		/** The markers currently on the map */
 		markers: MarkersMap = new Map();
-		/**
-		 * The HTML element containing the map controls
-		 */
+		/** The HTML element containing the map controls */
 		controlsDiv: HTMLDivElement;
-		/**
-		 * The HTML element holding the map
-		 */
+		/** The HTML element holding the map */
 		mapDiv: HTMLDivElement;
-		/**
-		 * The HTML text entry the user can type tags in
-		 */
+		/** The HTML text entry the user can type tags in */
 		tagsBox: TextComponent;
 	};
 	/**
@@ -105,9 +79,7 @@ export class MapView extends ItemView {
 	 */
 	private isOpen: boolean = false;
 
-	/**
-	 * TODO: unused what does this do?
-	 */
+	/** TODO: unused what does this do? */
 	public onAfterOpen: (map: leaflet.Map, markers: MarkersMap) => any = null;
 
 	/**
@@ -167,26 +139,18 @@ export class MapView extends ItemView {
 		}
 	}
 
-	/**
-	 * Get the maps state. Used as part of the forwards/backwards arrows
-	 */
+	/** Get the maps state. Used as part of the forwards/backwards arrows */
 	async getState(): Promise<MapState> {
 		return this.state;
 	}
 
-	/**
-	 * The name of the view type
-	 */
+	/** The name of the view type */
 	getViewType() { return consts.MAP_VIEW_NAME; }
 
-	/**
-	 * The display name for the view
-	 */
+	/** The display name for the view */
 	getDisplayText() { return 'Interactive Map View'; }
 
-	/**
-	 * Is the map in dark mode
-	 */
+	/** Is the map in dark mode */
 	isDarkMode(): boolean {
 		if (this.settings.chosenMapMode === 'dark')
 			return true;
@@ -200,9 +164,7 @@ export class MapView extends ItemView {
 
 	public updateMapSources = () => {};
 
-	/**
-	 * Run when the view is opened
-	 */
+	/** Run when the view is opened */
 	async onOpen() {
 		this.isOpen = true;
 		this.state = this.defaultState;
@@ -221,9 +183,7 @@ export class MapView extends ItemView {
 		return super.onOpen();
 	}
 
-	/**
-	 * Set up the map controls
-	 */
+	/** Set up the map controls */
 	createControls() {
 		// html div container for the controls
 		let controlsDiv = createDiv({
@@ -345,17 +305,13 @@ export class MapView extends ItemView {
 		return controlsDiv;
 	}
 
-	/**
-	 * On view close
-	 */
+	/** On view close */
 	onClose() {
 		this.isOpen = false;
 		return super.onClose();
 	}
 
-	/**
-	 * On window resize
-	 */
+	/** On window resize */
 	onResize() {
 		this.display.map.invalidateSize();
 	}
@@ -373,9 +329,7 @@ export class MapView extends ItemView {
 		this.setMapState(this.state, false, true);
 	}
 
-	/**
-	 * Create the leaflet map
-	 */
+	/** Create the leaflet map */
 	async createMap() {
 		const isDark = this.isDarkMode();
 		// LeafletJS compatability: disable tree-shaking for the full-screen module
@@ -592,9 +546,7 @@ export class MapView extends ItemView {
 		this.display.markers = newMarkersMap;
 	}
 
-	/**
-	 * Zoom the map to fit all markers on the screen
-	 */
+	/** Zoom the map to fit all markers on the screen */
 	async autoFitMapToMarkers() {
 		if (this.display.markers.size > 0) {
 			let locations: leaflet.LatLng[] = []
@@ -663,9 +615,7 @@ export class MapView extends ItemView {
 		);
 	}
 
-	/**
-	 * Get a list of all tags in the archive
-	 */
+	/** Get a list of all tags in the archive */
 	getAllTagNames() : string[] {
 		let tags: string[] = [];
 		const allFiles = this.app.vault.getFiles();
