@@ -27,6 +27,10 @@ Just like the Obsidian graph view lets you visualize associative relations betwe
 
 - Experience in mobile is not as good as it should be. Most notably there's no GPS location support due to permission limitations of the Obsidian app. Please help us ask the Obsidian developers to get these permissions added!
 
+## Support the Development
+
+If you want to support the development of this plugin, please consider to [buy me a coffee](https://www.buymeacoffee.com/esm7).
+
 ## Parsing Location Data
 
 The plugin scans all your notes and parses two types of location data.
