@@ -2,6 +2,10 @@
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/esm7)
 
+> :warning: **OpenStreetMap Issue Note**
+>
+> Due to OpenStreetMap starting to block requests from this and other plugins, see [here](https://github.com/esm7/obsidian-map-view/issues/59#issuecomment-1066789021) how to switch to a different provider.
+
 ## Intro
 
 This plugin introduces an **interactive map view** for the [Obsidian.md](https://obsidian.md/) editor.
