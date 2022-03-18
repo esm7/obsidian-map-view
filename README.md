@@ -15,9 +15,9 @@ You can set different icons for different note types, filter the displayed notes
 
 It also provides a wide range of tools to add geolocations to your notes, including address searches and parsing of URLs from external sources such as Google Maps.
 
-![](sample.png)
+![](img/sample.png)
 
-![](intro.gif)
+![](img/intro.gif)
 
 The plugin's guiding philosophy and goal is to provide a **personal GIS system** as a complementary view for your notes.
 I wrote it because I wanted my ever-growing Zettelkasten to be able to answer questions like...
@@ -103,7 +103,7 @@ Map View adds an Obsidian command named "New geolocation note", which you can ma
 
 This opens a dialog on which you can search (address or location based on your [configured geocoding provider](#changing-a-geocoding-provider)) or paste a URL using the built-in or custom [URL parsing rules](#url-parsing-rules).
 
-![](new-note-popup.gif)
+![](img/new-note-popup.gif)
 
 ### In an Existing Note
 
@@ -123,15 +123,15 @@ The map offers several tools to create notes.
 
 1. Use "new note here" when right-clicking the map. This will create a new note (based on the template you can change in the settings) with the location you clicked. You can create either an empty note with a front matter (single geolocation) or an empty note with an inline geolocation.
 
-![](new-note.png)
+![](img/new-note.png)
 
 Note that the map can be searched using the tool on the upper-right side.
 
-![](search.png)
+![](img/search.png)
 
 2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map. If you use "copy geolocation", just remember you need the note to start with a front matter that has an empty `locations:` line.
  
-![](copy.png)
+![](img/copy.png)
 
 
 ## Paste as Geolocation
@@ -165,7 +165,7 @@ A single marker is defined with a *tag pattern* and *icon details*.
 The tag pattern is usually a tag name (e.g. `#dogs`), but it can also be with a wildcard (e.g. `#trips/*`).
 Icon details are a few properties: icon name (taken from the Font Awesome catalog), color and shape.
 
-![](marker-rules.png)
+![](img/marker-rules.png)
 
 A single marker is defined in the following JSON structure:
 `{"prefix": "fas", "icon": "fa-bus", "shape": "circle", "color": "red"}`
@@ -205,7 +205,7 @@ This command inserts an empty inline location template: `[](geo:)`.
 When editing an inline location in this format, whether if you added it manually or using the command, if you start entering a link name, Map View will start offering locations based on a geocoding service.
 Selecting one of the suggestions will fill-in the coordinates of the chosen locations, *not* change your link name (assuming you prefer your own name rather than the formal one offered by the geocoding service), and jump the cursor to beyond the link so you can continue typing.
 
-![](geosearch-suggest.gif)
+![](img/geosearch-suggest.gif)
 
 If your note is not yet marked as one including locations (by a `locations:`) tag in the front matter, this is added automatically.
 
@@ -254,7 +254,7 @@ The Default preset is special; you can save it using the 'Save as Default' butto
 Many context menus of Map View display a customizable Open In list, which can open a given location in external sources.
 These sources can be Google Maps, OpenStreetMap, specialized mapping tools or pretty much anything you use for viewing locations.
 
-![](open-in.png)
+![](img/open-in.png)
 
 The Open In list is shown:
 - When right-clicking on the map.
@@ -264,7 +264,7 @@ The Open In list is shown:
 
 This list can be edited through the plugin's settings menu, with a name that will be displayed in the context menus and a URL pattern. The URL pattern has two parameters -- `{x}` and `{y}` -- that will be replaced by the latitude and longitude of the clicked location.
 
-![](custom-open-in.png)
+![](img/custom-open-in.png)
 
 Popular choices may be:
 - Google Maps: `https://maps.google.com/?q={x},{y}`
@@ -287,7 +287,7 @@ The syntax expects two captures group and you can configure if they are parsed a
 
 And if you think your added regular expressions are solid enough, please add them to the plugin using a PR so others can benefit!
 
-![](url-parsing.png)
+![](img/url-parsing.png)
 
 ## Relation to Other Obsidian Plugins
 
