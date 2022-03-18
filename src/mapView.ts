@@ -474,7 +474,6 @@ export class MapView extends ItemView {
 	 * @param fileRemoved The old file path
 	 * @param fileAddedOrChanged The new file data
 	 * @param skipMetadata currently unused TODO: what is this for?
-	 * @private
 	 */
 	private async updateMarkersWithRelationToFile(fileRemoved: string, fileAddedOrChanged: TAbstractFile, skipMetadata: boolean) {
 		if (!this.display.map || !this.isOpen)

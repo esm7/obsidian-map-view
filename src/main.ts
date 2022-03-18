@@ -214,7 +214,6 @@ export default class MapViewPlugin extends Plugin {
 	 * Open an instance of the map at the given coordinate
 	 * @param location The coordinate to open the map at
 	 * @param ctrlKey Was the control key pressed. If true will open a map in the current leaf rather than using an open map.
-	 * @private
 	 */
 	private async openMapWithLocation(location: leaflet.LatLng, ctrlKey: boolean) {
 		await this.openMapWithState({mapCenter: location, mapZoom: this.settings.zoomOnGoFromNote} as MapState, ctrlKey);
