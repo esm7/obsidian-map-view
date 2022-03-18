@@ -1,1 +1,1 @@
-declare module 'wildcard';
+declare module "wildcard";

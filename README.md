@@ -9,7 +9,7 @@
 ## Intro
 
 This plugin introduces an **interactive map view** for the [Obsidian.md](https://obsidian.md/) editor.
-It searches your notes for encoded geolocations (see below) and places them as markers on a map.  
+It searches your notes for encoded geolocations (see below) and places them as markers on a map.
 
 You can set different icons for different note types, filter the displayed notes and much more.
 
@@ -45,7 +45,7 @@ First is a location tag in a note's [front matter](https://help.obsidian.md/Adva
 
 ```yaml
 ---
-location: [40.6892494,-74.0466891]
+location: [40.6892494, -74.0466891]
 ---
 ```
 
@@ -130,9 +130,8 @@ Note that the map can be searched using the tool on the upper-right side.
 ![](search.png)
 
 2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map. If you use "copy geolocation", just remember you need the note to start with a front matter that has an empty `locations:` line.
- 
-![](copy.png)
 
+![](copy.png)
 
 ## Paste as Geolocation
 
@@ -161,7 +160,7 @@ Additionally, there are various marker properties (shape, color and more) that a
 
 To change the map marker icons for your notes, go to the Map View settings and scroll to Marker Icon Rules.
 
-A single marker is defined with a *tag pattern* and *icon details*.
+A single marker is defined with a _tag pattern_ and _icon details_.
 The tag pattern is usually a tag name (e.g. `#dogs`), but it can also be with a wildcard (e.g. `#trips/*`).
 Icon details are a few properties: icon name (taken from the Font Awesome catalog), color and shape.
 
@@ -203,7 +202,7 @@ Map View adds an Obsidian command named 'Add inline geolocation link', that you 
 This command inserts an empty inline location template: `[](geo:)`.
 
 When editing an inline location in this format, whether if you added it manually or using the command, if you start entering a link name, Map View will start offering locations based on a geocoding service.
-Selecting one of the suggestions will fill-in the coordinates of the chosen locations, *not* change your link name (assuming you prefer your own name rather than the formal one offered by the geocoding service), and jump the cursor to beyond the link so you can continue typing.
+Selecting one of the suggestions will fill-in the coordinates of the chosen locations, _not_ change your link name (assuming you prefer your own name rather than the formal one offered by the geocoding service), and jump the cursor to beyond the link so you can continue typing.
 
 ![](geosearch-suggest.gif)
 
@@ -245,7 +244,7 @@ If you enter an already-existing name, that preset will be overwritten.
 The saved preset includes the map state (zoom & pan), the filters used, and if you check the box in the "save as" dialog -- also the chosen map source.
 If you do not include the map source as part of the preset, switching to the newly-saved preset will use the currently-selected map source.
 
-Presets *do not* store the map's theme (light/dark).
+Presets _do not_ store the map's theme (light/dark).
 
 The Default preset is special; you can save it using the 'Save as Default' button, and come back to it by clicking the Reset button, by choosing the Default preset from the box, or by opening a fresh Map View that has no previously saved state.
 
@@ -257,6 +256,7 @@ These sources can be Google Maps, OpenStreetMap, specialized mapping tools or pr
 ![](open-in.png)
 
 The Open In list is shown:
+
 - When right-clicking on the map.
 - When right-clicking a marker on the map.
 - When right-clicking a line in a note that has a location.
@@ -267,6 +267,7 @@ This list can be edited through the plugin's settings menu, with a name that wil
 ![](custom-open-in.png)
 
 Popular choices may be:
+
 - Google Maps: `https://maps.google.com/?q={x},{y}`
 - OpenStreetMap: `https://www.openstreetmap.org/#map=16/{x}/{y}` (replace `16` with your preferred zoom level)
 - Waze (online dropped pin): `https://ul.waze.com/ul?ll={x}%2C{y}&navigate=yes&zoom=17` (replace `17` with your preferred zoom level)
@@ -275,7 +276,7 @@ And you can figure out many other mapping services just by inspecting the URL.
 
 ## URL Parsing Rules
 
-As described above, Map View uses *URL parsing rules* in several places to provide the ability to parse URLs (or other strings) from external sources and convert them to standard geolocations.
+As described above, Map View uses _URL parsing rules_ in several places to provide the ability to parse URLs (or other strings) from external sources and convert them to standard geolocations.
 
 1. When right-clicking a line with a recognized link, a "Convert to Geolocation" entry will be shown in the editor context menu.
 2. When a recognized link is detected in the system clipboard, a "Paste as Geolocation" entry will be added in the editor context menu.
@@ -344,10 +345,9 @@ There are so many things that I want it to do, and so little time...
   - "Copy as coordinates" was removed, believing it's not really useful anymore. Please drop me a note if you find it important.
   - Several other tweaks to make the plugin easier to use.
 - At last, a settings UI for editing marker icons! Check it out under the plugin settings.
-  - In order to do this, the rule format in the plugin's data file had to be changed. The plugin will auto-convert your existing rules to the new format when first launched. After this conversion, *do not* manually enter rules under the old key!
+  - In order to do this, the rule format in the plugin's data file had to be changed. The plugin will auto-convert your existing rules to the new format when first launched. After this conversion, _do not_ manually enter rules under the old key!
   - You may still edit rules manually, through the plugin's "edit marker icons as JSON" box or directly in the data file, but **only use the new key** `markerIconRules`.
 - Added an inline geolocation search, which can get results from either OSM or Google (with an API key), and a command to insert a geolocation.
 - With relation to the above, the search tool in the map can now use the selected geocoding service too, meaning you can use Google Maps to search for locations if you have an API key.
 - New "paste as geolocation" and "convert to geolocation" right-click editor menu items, that can automatically convert URLs in the clipboard or URLs in the note to a geolocation link.
   - The rules that convert URLs to geolocations are configurable in the settings.
-
