@@ -4,31 +4,27 @@ import * as leaflet from 'leaflet';
 import { PluginSettings } from 'src/settings';
 import * as utils from 'src/utils';
 
-/** A class to convert a string (usually a URL) into coordinate format */
+/** A class to convert a string (usually a URL) into geolocation format */
 export class UrlConvertor {
 	private settings: PluginSettings;
 
-	/**
-	 * construct an instance of CoordinateParser
-	 * @param app The obsidian App instance
-	 * @param settings The plugin settings
-	 */
 	constructor(app: App, settings: PluginSettings) {
 		this.settings = settings;
 	}
 
 	/**
-	 * Parse the line where the cursor is in the editor
-	 * @param editor The obsidian Editor instance to use
+	 * Parse the current editor line using the user defined URL parsers.
+	 * Returns leaflet.LatLng on success and null on failure.
+	 * @param editor The Obsidian Editor instance to use
 	 */
-	findMatchInLine(editor: Editor) {
+	findMatchInLine(editor: Editor): leaflet.LatLng | null {
 		const cursor = editor.getCursor();
 		const result = this.parseLocationFromUrl(editor.getLine(cursor.line));
 		return result?.location;
 	}
 
 	/**
-	 * Get coordinate from an encoded string (usually a URL).
+	 * Get geolocation from an encoded string (usually a URL).
 	 * Will try each url parsing rule until one succeeds.
 	 * @param line The string to decode
 	 */
@@ -53,8 +49,8 @@ export class UrlConvertor {
 
 	/**
 	 * Insert a geo link into the editor at the cursor position
-	 * @param location The coordinate to insert into the editor
-	 * @param editor The obsidian Editor instance
+	 * @param location The geolocation to convert to text and insert
+	 * @param editor The Obsidian Editor instance
 	 * @param replaceStart The EditorPosition to start the replacement at. If null will replace any text selected
 	 * @param replaceLength The EditorPosition to stop the replacement at. If null will replace any text selected
 	 */
@@ -74,7 +70,7 @@ export class UrlConvertor {
 
 	/**
 	 * Replace the text at the cursor location with a geo link
-	 * @param editor The obsidian Editor instance
+	 * @param editor The Obsidian Editor instance
 	 */
 	convertUrlAtCursorToGeolocation(editor: Editor) {
 		const cursor = editor.getCursor();

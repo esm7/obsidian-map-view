@@ -29,12 +29,12 @@ function sanitizeFileName(s: string) {
 
 /**
  * Create a new markdown note and populate with the location
- * @param app The obsidian app instance
+ * @param app The Obsidian App instance
  * @param newNoteType The location format to encode as
  * @param directory The directory path to put the file in
  * @param fileName The name of the file
- * @param location The coordinate
- * @param templatePath Optional path to a file to populate the file with
+ * @param location The geolocation
+ * @param templatePath Optional path to a template to use for constructing the new file
  */
 export async function newNote(app: App, newNoteType: NewNoteType, directory: string, fileName: string,
 	location: string, templatePath?: string): Promise<TFile>
@@ -59,7 +59,7 @@ export async function newNote(app: App, newNoteType: NewNoteType, directory: str
 
 /**
  * Go to a character index in the note
- * @param editor The obsidian Editor instance
+ * @param editor The Obsidian Editor instance
  * @param fileLocation The character index in the file to go to
  * @param highlight If true will select the whole line
  */
@@ -112,9 +112,9 @@ export function verifyOrAddFrontMatter(editor: Editor, fieldName: string, fieldV
 }
 
 /**
- * Populate a context menu from the user configurable urls
+ * Populate a context menu from the user configurable URLs
  * @param menu The menu to attach
- * @param location The coordinate to use in the menu item
+ * @param location The geolocation to use in the menu item
  * @param settings Plugin settings
  */
 export function populateOpenInItems(menu: Menu, location: leaflet.LatLng, settings: settings.PluginSettings) {

@@ -37,14 +37,12 @@ export type PluginSettings = {
 	geocodingApiKey?: string;
 }
 
-/** The state of the map instance */
+/** Represents a logical state of the map, in separation from the map display */
 export type MapState = {
 	name: string;
-	/** The zoom level of the map */
 	mapZoom: number;
-	/** The viewed center of the map */
 	mapCenter: LatLng;
-	/** The tags that the user specified */
+	/** The tags that the user specified (including the # character) */
 	tags: string[];
 	chosenMapSource?: number;
 }

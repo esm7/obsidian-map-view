@@ -12,27 +12,28 @@ import * as consts from 'src/consts';
 
 type MarkerId = string;
 
+/** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
 export class FileMarker {
-	/** The file descriptor */
+	/** The file object on which this location was found */
 	file: TFile;
-	/** The character position in the file the coordinate comes from */
+	/** In the case of an inline location, the position within the file where the location was found */
 	fileLocation?: number;
 	location: leaflet.LatLng;
 	icon?: leaflet.Icon<leaflet.BaseIconOptions>;
 	mapMarker?: leaflet.Marker;
-	/** The unique identifier for this geographic layer */
+	/** An ID to recognize the marker */
 	id: MarkerId;
-	/** Snippet of the file to show in the hover bubble */
+	/** Snippet of the file to show in the map marker popup */
 	snippet?: string;
-	/** Optional extra name. Used by geo urls with a prefixed name */
+	/** Optional extra name that can be set for geolocation links (this is the link name rather than the file name) */
 	extraName?: string;
-	/** Any tags specified with the geographic layer */
+	/** Tags that this marker includes */
 	tags: string[] = [];
 
 	/**
-	 * Construct a new map pin object
+	 * Construct a new FileMarker object
 	 * @param file The file the pin comes from
-	 * @param location The coordinate
+	 * @param location The geolocation
 	 */
 	constructor(file: TFile, location: leaflet.LatLng) {
 		this.file = file;
@@ -64,11 +65,11 @@ export class FileMarker {
 export type MarkersMap = Map<MarkerId, FileMarker>;
 
 /**
- * Create file markers for every coordinate in the front matter and file body
+ * Create a FileMarker for every front matter and inline geolocation in the given file.
  * @param mapToAppendTo The list of file markers to append to
- * @param file The file descriptor to parse
+ * @param file The file object to parse
  * @param settings The plugin settings
- * @param app The obsidian app instance
+ * @param app The Obsidian App instance
  * @param skipMetadata If true will not find markers in the front matter
  */
 export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], file: TFile, settings: PluginSettings, app: App, skipMetadata?: boolean) {
@@ -92,10 +93,10 @@ export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], fil
 }
 
 /**
- * Create file marker instances for all the files in the vault
- * @param files
- * @param settings
- * @param app
+ * Create FileMarker instances for all the files in the given list
+ * @param files The list of file objects to find geolocations in.
+ * @param settings The plugin settings
+ * @param app The Obsidian App instance
  */
 export async function buildMarkers(files: TFile[], settings: PluginSettings, app: App): Promise<FileMarker[]> {
 	if (settings.debug)
@@ -116,9 +117,9 @@ function checkTagPatternMatch(tagPattern: string, tags: string[]) {
 
 /**
  * Create a leaflet icon for the marker
- * @param marker The file marker to create the icon for
+ * @param marker The FileMarker to create the icon for
  * @param settings The plugin settings
- * @param app The obsidian app instance
+ * @param app The Obsidian App instance
  */
 function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.Icon {
 	const fileCache = app.metadataCache.getFileCache(marker.file);
@@ -166,7 +167,7 @@ export function verifyLocation(location: leaflet.LatLng) {
 }
 
 /**
- * Find all inline coordinates in a string
+ * Find all inline geolocations in a string
  * @param content The file contents to find the coordinates in
  */
 export function matchInlineLocation(content: string): RegExpMatchArray[] {
@@ -180,10 +181,10 @@ export function matchInlineLocation(content: string): RegExpMatchArray[] {
 }
 
 /**
- * Get markers from within the file body
- * @param file The file descriptor to load
+ * Build markers from inline locations in the file body
+ * @param file The file object to load
  * @param settings The plugin settings
- * @param app The obsidian app instance
+ * @param app The Obsidian App instance
  */
 async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, app: App): Promise<FileMarker[]> {
 	let markers: FileMarker[] = [];
@@ -257,9 +258,9 @@ async function makeTextSnippet(file: TFile, fileContent: string, fileLocation: n
 }
 
 /**
- * Get the coordinates stored in the front matter of a file
+ * Get the geolocation stored in the front matter of a file
  * @param file The file to load the front matter from
- * @param app The app to load the file from
+ * @param app The Obsidian App instance
  */
 export function getFrontMatterLocation(file: TFile, app: App) : leaflet.LatLng {
 	const fileCache = app.metadataCache.getFileCache(file);

@@ -19,17 +19,17 @@ import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import { ViewControls } from 'src/viewControls';
 
-/** The map viewer class */
+
 export class MapView extends ItemView {
-	/** The settings for the plugin */
 	private settings: PluginSettings;
-	/** The private map state. Must only be updated in updateMarkersToState */
+	/** The displayed controls and objects of the map, separated from its logical state.
+	 * Must only be updated in updateMarkersToState */
 	private state: MapState;
 	/** The map data */
 	private display = new class {
 		/** The HTML element holding the map */
 		mapDiv: HTMLDivElement;
-		/** The leaflet map instance for this map viewer */
+		/** The leaflet map instance */
 		map: leaflet.Map;
 		tileLayer: leaflet.TileLayer;
 		/** The cluster management class */
@@ -38,16 +38,15 @@ export class MapView extends ItemView {
 		markers: MarkersMap = new Map();
 		controls: ViewControls;
 	};
-	/** The plugin instance */
 	private plugin: MapViewPlugin;
-	/** The default map state */
+	/** The default state as saved in the plugin settings */
 	private defaultState: MapState;
 	/**
-	 * The leaf (obsidian sub-window) that a note was last opened in.
-	 * This is cached so that it can be reused when opening notes in the future
+	 * The Workspace Leaf that a note was last opened in.
+	 * This is saved so the same leaf can be reused when opening subsequent notes, making the flow consistent & predictable for the user.
 	 */
 	private newPaneLeaf: WorkspaceLeaf;
-	/** Has the view been opened */
+	/** Is the view currently open */
 	private isOpen: boolean = false;
 
 	/**
@@ -72,7 +71,7 @@ export class MapView extends ItemView {
 			return this.state;
 		}
 
-		// Listen to file changes so we can rebuild the UI
+		// Listen to file changes so we can update markers accordingly
 		this.app.vault.on('delete', file => this.updateMarkersWithRelationToFile(file.path, null, true));
 		this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
 		this.app.metadataCache.on('changed', file => this.updateMarkersWithRelationToFile(file.path, file, false));
@@ -82,13 +81,9 @@ export class MapView extends ItemView {
 		});
 	}
 
-	/** The name of the view type */
 	getViewType() { return 'map'; }
-
-	/** The display name for the view */
 	getDisplayText() { return 'Interactive Map View'; }
 
-	/** Is the map in dark mode */
 	isDarkMode(settings: PluginSettings): boolean {
 		if (settings.chosenMapMode === 'dark')
 			return true;
@@ -100,7 +95,6 @@ export class MapView extends ItemView {
 		return false;
 	}
 
-	/** Run when the view is opened */
 	async onOpen() {
 		this.isOpen = true;
 		this.state = this.defaultState;
@@ -121,13 +115,11 @@ export class MapView extends ItemView {
 		return super.onOpen();
 	}
 
-	/** On view close */
 	onClose() {
 		this.isOpen = false;
 		return super.onClose();
 	}
 
-	/** On window resize */
 	onResize() {
 		this.display.map.invalidateSize();
 	}
@@ -176,11 +168,8 @@ export class MapView extends ItemView {
 	async refreshMap() {
 		this.display?.tileLayer?.remove();
 		this.display.tileLayer = null;
-		// remove all event listeners
 		this.display?.map?.off();
-		// destroy the map and event listeners
 		this.display?.map?.remove();
-		// clear the marker storage
 		this.display?.markers?.clear();
 		this.display?.controls?.controlsDiv?.remove();
 		this.display.controls?.reload();
@@ -189,7 +178,6 @@ export class MapView extends ItemView {
 		this.display.controls.updateControlsToState();
 	}
 
-	/** Create the leaflet map */
 	async createMap() {
 		// LeafletJS compatability: disable tree-shaking for the full-screen module
 		var dummy = leafletFullscreen;
@@ -242,7 +230,7 @@ export class MapView extends ItemView {
 		// 	// cluster.propagatedFrom.closePopup();
 		// });
 
-		// build the right click context menu
+		// Build the map marker right-click context menu
 		this.display.map.on('contextmenu', async (event: leaflet.LeafletMouseEvent) => {
 			let mapPopup = new Menu(this.app);
 			mapPopup.setNoIcon();
@@ -292,17 +280,16 @@ export class MapView extends ItemView {
 	}
 
 	/**
-	 * Set the map state if the state version is not lower than the current state version
-	 * (so concurrent async updates always keep the latest one)
+	 * Set the map state
 	 * @param state The map state to set
 	 * @param force Force setting the state. Will ignore if the state is old
 	 */
 	async updateMarkersToState(state: MapState, force: boolean = false) {
 		if (this.settings.debug)
 			console.time('updateMarkersToState');
-		// get a list of all files matching the tags
+		// Get a list of all files matching the tags
 		const files = this.getFileListByQuery(state.tags);
-		// build the tags for all files matching the tag
+		// Build the markers for all files matching the tag
 		let newMarkers = await buildMarkers(files, this.settings, this.app);
 		// --- BEYOND THIS POINT NOTHING SHOULD BE ASYNC ---
 		// Saying it again: do not use 'await' below this line!
@@ -340,7 +327,8 @@ export class MapView extends ItemView {
 	}
 
 	/**
-	 * Set the markers on the map.
+	 * Update the actual Leaflet markers of the map according to a new list of logical markers.
+	 * Unchanged markers are not touched, new markers are created and old markers that are not in the updated list are removed.
 	 * @param newMarkers The new array of FileMarkers
 	 */
 	updateMapMarkers(newMarkers: FileMarker[]) {
@@ -417,8 +405,8 @@ export class MapView extends ItemView {
 
 	/**
 	 * Open a file in an editor window
-	 * @param file The file descriptor to open
-	 * @param useCtrlKeyBehavior If true will open the file in a different editor instance
+	 * @param file The file object to open
+	 * @param useCtrlKeyBehavior If true will use the alternative behaviour, as set in the settings
 	 * @param editorAction Optional callback to run when the file is opened
 	 */
 	async goToFile(file: TFile, useCtrlKeyBehavior: boolean, editorAction?: (editor: Editor) => Promise<void>) {
@@ -459,9 +447,9 @@ export class MapView extends ItemView {
 	}
 
 	/**
-	 * Open the marker in an editor instance
-	 * @param marker The file marker to open
-	 * @param useCtrlKeyBehavior If true the file will be opened in a new instance
+	 * Open and go to the editor location represented by the marker
+	 * @param marker The FileMarker to open
+	 * @param useCtrlKeyBehavior If true will use the alternative behaviour, as set in the settings
 	 * @param highlight If true will highlight the line
 	 */
 	async goToMarker(marker: FileMarker, useCtrlKeyBehavior: boolean, highlight: boolean) {
@@ -470,7 +458,8 @@ export class MapView extends ItemView {
 	}
 
 	/**
-	 * Run when a file is deleted, renamed or changed
+	 * Update the map markers with a list of markers not from the removed file plus the markers from the new file.
+	 * Run when a file is deleted, renamed or changed.
 	 * @param fileRemoved The old file path
 	 * @param fileAddedOrChanged The new file data
 	 * @param skipMetadata currently unused TODO: what is this for?
@@ -480,13 +469,13 @@ export class MapView extends ItemView {
 			// If the map has not been set up yet then do nothing
 			return;
 		let newMarkers: FileMarker[] = [];
-		// create an array of all file markers not in the removed file
+		// Create an array of all file markers not in the removed file
 		for (let [markerId, fileMarker] of this.display.markers) {
 			if (fileMarker.file.path !== fileRemoved)
 				newMarkers.push(fileMarker);
 		}
 		if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
-			// add file markers from the added file
+			// Add file markers from the added file
 			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app)
 		this.updateMapMarkers(newMarkers);
 	}
