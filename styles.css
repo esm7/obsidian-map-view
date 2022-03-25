@@ -1,43 +1,43 @@
 .map-view-marker-name {
-	font-weight: bold;
+    font-weight: bold;
 }
 
 .map-view-extra-name {
-	font-weight: bold;
+    font-weight: bold;
 }
- 
+
 .map-view-marker-snippet {
-	white-space: pre-line;
-	overflow-wrap: break-word;
+    white-space: pre-line;
+    overflow-wrap: break-word;
 }
 
 .map-view-location {
-	font-weight: bold;
-	text-decoration: underline;
+    font-weight: bold;
+    text-decoration: underline;
 }
 
 .graph-controls {
-	position: fixed;
-	z-index: 2;
-	margin-top: 36px;
+    position: fixed;
+    z-index: 2;
+    margin-top: 36px;
 }
 
 .graph-control-div {
-	display: inline-block;
+    display: inline-block;
 }
 
 .graph-control-content {
-	max-height: 0px;
-	overflow: hidden;
-	transition: max-height .25s ease-in-out;
+    max-height: 0px;
+    overflow: hidden;
+    transition: max-height 0.25s ease-in-out;
 }
 
 .toggle:checked + .lbl-toggle + .graph-control-content {
-	max-height: 100vh;
+    max-height: 100vh;
 }
 
 .settings-dense-button {
-	margin-right: 0;
+    margin-right: 0;
 }
 
 .leaflet-container .dark-mode {
@@ -46,10 +46,10 @@
 }
 
 .newPresetDialogGrid {
-	display: grid;
-	grid-row-gap: 10px;
+    display: grid;
+    grid-row-gap: 10px;
 }
 
 .newPresetDialogLine {
-	display: inline-block;
+    display: inline-block;
 }

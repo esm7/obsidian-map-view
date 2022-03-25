@@ -1,16 +1,16 @@
 name: Stylecheck
 
 on:
-  push:
-    branches: [master, main]
-  pull_request:
+    push:
+        branches: [master, main]
+    pull_request:
 
 jobs:
-  stylecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: |
-          npm install
-      - run: |
-          npm run stylecheck
+    stylecheck:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - run: |
+                  npm install
+            - run: |
+                  npm run stylecheck
