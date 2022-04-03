@@ -22,7 +22,9 @@ export default class MapViewPlugin extends Plugin {
 
 		await this.loadSettings();
 
+		// Add a new ribbon entry to the left bar
 		this.addRibbonIcon('globe', 'Open map view', () => {
+			// When clicked change the active view to the map
 			this.app.workspace.getLeaf().setViewState({type: consts.MAP_VIEW_NAME});
 		});
 
@@ -35,6 +37,7 @@ export default class MapViewPlugin extends Plugin {
 
 		this.registerEditorSuggest(this.suggestor);
 
+		// Convert old settings formats that are no longer supported
 		if (convertLegacyMarkerIcons(this.settings)) {
 			await this.saveSettings();
 			new Notice("Map View: legacy marker icons were converted to the new format");
@@ -48,6 +51,8 @@ export default class MapViewPlugin extends Plugin {
 			new Notice("Map View: legacy default state was converted to the new format");
 		}
 
+		// Register commands to the command palette
+		// Command that opens the map view (same as clicking the map icon)
 		this.addCommand({
 			id: 'open-map-view',
 			name: 'Open Map View',
@@ -56,6 +61,7 @@ export default class MapViewPlugin extends Plugin {
 			},
 		});
 
+		// Command that looks up the selected text to find the location
 		this.addCommand({
 			id: 'convert-selection-to-location',
 			name: 'Convert Selection to Geolocation',
@@ -66,6 +72,7 @@ export default class MapViewPlugin extends Plugin {
 			}
 		});
 
+		// Command that adds a blank inline location at the cursor location
 		this.addCommand({
 			id: 'insert-geolink',
 			name: 'Add inline geolocation link',
@@ -76,6 +83,7 @@ export default class MapViewPlugin extends Plugin {
 			}
 		});
 
+		// Command that opens the location search dialog and creates a new note from this location
 		this.addCommand({
 			id: 'new-geolocation-note',
 			name: 'New geolocation note',
@@ -85,6 +93,7 @@ export default class MapViewPlugin extends Plugin {
 			}
 		});
 
+		// Command that opens the location search dialog and adds the location to the current note
 		this.addCommand({
 			id: 'add-frontmatter-geolocation',
 			name: 'Add geolocation (front matter) to current note',
@@ -96,24 +105,31 @@ export default class MapViewPlugin extends Plugin {
 
 		this.addSettingTab(new SettingsTab(this.app, this));
 
+		// Add items to the file context menu (run when the context menu is built)
+		// This is the context menu in the File Explorer and clicking "More options" (three dots) from within a file.
 		this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, _source: string, leaf?: WorkspaceLeaf) => {
 			if (file instanceof TFile) {
 				const location = getFrontMatterLocation(file, this.app);
 				if (location) {
+					// If there is a geolocation in the front matter of the file
+					// Add an option to open it in the map
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
 						item.onClick(async (evt: MouseEvent) => await this.openMapWithLocation(location, evt.ctrlKey));
 					});
+					// Add an option to open it in the default app
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open with default app');
 						item.onClick(_ev => {
 							open(`geo:${location.lat},${location.lng}`);
 						});
 					});
+					// Populate menu items from user defined "Open In" strings
 					utils.populateOpenInItems(menu, location, this.settings);
 				} else {
 					if (leaf && leaf.view instanceof MarkdownView) {
+						// If there is no valid geolocation in the front matter, add a menu item to populate it.
 						const editor = leaf.view.editor;
 						menu.addItem((item: MenuItem) => {
 							item.setTitle('Add geolocation (front matter)');
@@ -129,24 +145,31 @@ export default class MapViewPlugin extends Plugin {
 			}
 		});
 
+		// Add items to the editor context menu (run when the context menu is built)
+		// This is the context menu when right clicking within an editor view.
 		this.app.workspace.on('editor-menu', async (menu: Menu, editor: Editor, view: MarkdownView) => {
 			if (view instanceof FileView) {
 				const location = this.getLocationOnEditorLine(editor, view);
 				if (location) {
+					// If there is a geolocation on the line
+					// Add an option to open it in the map
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Show on map');
 						item.setIcon('globe');
 						item.onClick(async (evt: MouseEvent) => await this.openMapWithLocation(location, evt.ctrlKey));
 					});
+					// Add an option to open it in the default app
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Open with default app');
 						item.onClick(_ev => {
 							open(`geo:${location.lat},${location.lng}`);
 						});
 					});
+					// Populate menu items from user defined "Open In" strings
 					utils.populateOpenInItems(menu, location, this.settings);
 				}
 				if (editor.getSelection()) {
+					// If there is text selected, add a menu item to convert it to coordinates using geosearch
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Convert to geolocation (geosearch)');
 						item.onClick(async () => await this.suggestor.selectionToLink(editor));
@@ -154,6 +177,7 @@ export default class MapViewPlugin extends Plugin {
 				}
 
 				if (this.urlConvertor.findMatchInLine(editor))
+					// If the line contains a recognized geolocation that can be converted from a URL parsing rule
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Convert to geolocation');
 						item.onClick(async () => {
@@ -164,6 +188,7 @@ export default class MapViewPlugin extends Plugin {
 				const clipboard = await navigator.clipboard.readText();
 				const clipboardLocation = this.urlConvertor.parseLocationFromUrl(clipboard)?.location;
 				if (clipboardLocation) {
+					// If the clipboard contains a recognized geolocation that can be converted from a URL parsing rule
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Paste as geolocation');
 						item.onClick(async () => {
@@ -176,6 +201,11 @@ export default class MapViewPlugin extends Plugin {
 
 	}
 
+	/**
+	 * Open an instance of the map at the given geolocation
+	 * @param location The geolocation to open the map at
+	 * @param ctrlKey Was the control key pressed
+	 */
 	private async openMapWithLocation(location: leaflet.LatLng, ctrlKey: boolean) {
 		await this.openMapWithState({mapCenter: location, mapZoom: this.settings.zoomOnGoFromNote} as MapState, ctrlKey);
 	}
@@ -195,6 +225,12 @@ export default class MapViewPlugin extends Plugin {
 		await chosenLeaf.setViewState({type: consts.MAP_VIEW_NAME, state: state});
 	}
 
+	/**
+	 * Get the geolocation on the current editor line
+	 * @param editor obsidian Editor instance
+	 * @param view obsidian FileView instance
+	 * @private
+	 */
 	private getLocationOnEditorLine(editor: Editor, view: FileView): leaflet.LatLng {
 		const line = editor.getLine(editor.getCursor().line);
 		const match = matchInlineLocation(line)[0];
@@ -217,13 +253,13 @@ export default class MapViewPlugin extends Plugin {
 	onunload() {
 	}
 
+	/** Initialise the plugin settings from Obsidian's cache */
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
+	/** Save the plugin settings to Obsidian's cache so it can be reused later. */
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
 }
-
-

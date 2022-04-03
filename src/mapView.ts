@@ -19,23 +19,42 @@ import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import { ViewControls } from 'src/viewControls';
 
+
 export class MapView extends ItemView {
 	private settings: PluginSettings;
-	// The private state needs to be updated solely via updateMarkersToState
+	/** The displayed controls and objects of the map, separated from its logical state.
+	 * Must only be updated in updateMarkersToState */
 	private state: MapState;
+	/** The map data */
 	private display = new class {
+		/** The HTML element holding the map */
 		mapDiv: HTMLDivElement;
+		/** The leaflet map instance */
 		map: leaflet.Map;
 		tileLayer: leaflet.TileLayer;
+		/** The cluster management class */
 		clusterGroup: leaflet.MarkerClusterGroup;
+		/** The markers currently on the map */
 		markers: MarkersMap = new Map();
 		controls: ViewControls;
 	};
 	private plugin: MapViewPlugin;
+	/** The default state as saved in the plugin settings */
 	private defaultState: MapState;
+	/**
+	 * The Workspace Leaf that a note was last opened in.
+	 * This is saved so the same leaf can be reused when opening subsequent notes, making the flow consistent & predictable for the user.
+	 */
 	private newPaneLeaf: WorkspaceLeaf;
+	/** Is the view currently open */
 	private isOpen: boolean = false;
 
+	/**
+	 * Construct a new map instance
+	 * @param leaf The leaf the map should be put in
+	 * @param settings The plugin settings
+	 * @param plugin The plugin instance
+	 */
 	constructor(leaf: WorkspaceLeaf, settings: PluginSettings, plugin: MapViewPlugin) {
 		super(leaf);
 		this.navigation = true;
@@ -52,6 +71,7 @@ export class MapView extends ItemView {
 			return this.state;
 		}
 
+		// Listen to file changes so we can update markers accordingly
 		this.app.vault.on('delete', file => this.updateMarkersWithRelationToFile(file.path, null, true));
 		this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
 		this.app.metadataCache.on('changed', file => this.updateMarkersWithRelationToFile(file.path, file, false));
@@ -94,7 +114,6 @@ export class MapView extends ItemView {
 		await this.createMap();
 		return super.onOpen();
 	}
-
 
 	onClose() {
 		this.isOpen = false;
@@ -210,6 +229,8 @@ export class MapView extends ItemView {
 		// this.display.clusterGroup.on('clustermouseout', cluster => {
 		// 	// cluster.propagatedFrom.closePopup();
 		// });
+
+		// Build the map marker right-click context menu
 		this.display.map.on('contextmenu', async (event: leaflet.LeafletMouseEvent) => {
 			let mapPopup = new Menu(this.app);
 			mapPopup.setNoIcon();
@@ -258,12 +279,17 @@ export class MapView extends ItemView {
 		});
 	}
 
-	// Updates the map to the given state and then sets the state accordingly, but only if the given state version
-	// is not lower than the current state version (so concurrent async updates always keep the latest one)
+	/**
+	 * Set the map state
+	 * @param state The map state to set
+	 * @param force Force setting the state. Will ignore if the state is old
+	 */
 	async updateMarkersToState(state: MapState, force: boolean = false) {
 		if (this.settings.debug)
 			console.time('updateMarkersToState');
+		// Get a list of all files matching the tags
 		const files = this.getFileListByQuery(state.tags);
+		// Build the markers for all files matching the tag
 		let newMarkers = await buildMarkers(files, this.settings, this.app);
 		// --- BEYOND THIS POINT NOTHING SHOULD BE ASYNC ---
 		// Saying it again: do not use 'await' below this line!
@@ -275,6 +301,10 @@ export class MapView extends ItemView {
 			console.timeEnd('updateMarkersToState');
 	}
 
+	/**
+	 * Get a list of files containing at least one of the tags
+	 * @param tags A list of string tags to match
+	 */
 	getFileListByQuery(tags: string[]): TFile[] {
 		let results: TFile[] = [];
 		const allFiles = this.app.vault.getFiles();
@@ -296,6 +326,11 @@ export class MapView extends ItemView {
 		return results;
 	}
 
+	/**
+	 * Update the actual Leaflet markers of the map according to a new list of logical markers.
+	 * Unchanged markers are not touched, new markers are created and old markers that are not in the updated list are removed.
+	 * @param newMarkers The new array of FileMarkers
+	 */
 	updateMapMarkers(newMarkers: FileMarker[]) {
 		let newMarkersMap: MarkersMap = new Map();
 		let markersToAdd: leaflet.Marker[] = [];
@@ -360,6 +395,7 @@ export class MapView extends ItemView {
 		return newMarker;
 	}
 
+	/** Zoom the map to fit all markers on the screen */
 	public async autoFitMapToMarkers() {
 		if (this.display.markers.size > 0) {
 			const locations: leaflet.LatLng[] = Array.from(this.display.markers.values()).map(fileMarker => fileMarker.location);
@@ -367,6 +403,12 @@ export class MapView extends ItemView {
 		}
 	}
 
+	/**
+	 * Open a file in an editor window
+	 * @param file The file object to open
+	 * @param useCtrlKeyBehavior If true will use the alternative behaviour, as set in the settings
+	 * @param editorAction Optional callback to run when the file is opened
+	 */
 	async goToFile(file: TFile, useCtrlKeyBehavior: boolean, editorAction?: (editor: Editor) => Promise<void>) {
 		let leafToUse = this.app.workspace.activeLeaf;
 		const defaultDifferentPane = this.settings.markerClickBehavior != 'samePane';
@@ -404,20 +446,36 @@ export class MapView extends ItemView {
 			await editorAction(editor);
 	}
 
+	/**
+	 * Open and go to the editor location represented by the marker
+	 * @param marker The FileMarker to open
+	 * @param useCtrlKeyBehavior If true will use the alternative behaviour, as set in the settings
+	 * @param highlight If true will highlight the line
+	 */
 	async goToMarker(marker: FileMarker, useCtrlKeyBehavior: boolean, highlight: boolean) {
 		return this.goToFile(marker.file, useCtrlKeyBehavior,
 			async (editor) => { await utils.goToEditorLocation(editor, marker.fileLocation, highlight); });
 	}
 
+	/**
+	 * Update the map markers with a list of markers not from the removed file plus the markers from the new file.
+	 * Run when a file is deleted, renamed or changed.
+	 * @param fileRemoved The old file path
+	 * @param fileAddedOrChanged The new file data
+	 * @param skipMetadata currently unused TODO: what is this for?
+	 */
 	private async updateMarkersWithRelationToFile(fileRemoved: string, fileAddedOrChanged: TAbstractFile, skipMetadata: boolean) {
 		if (!this.display.map || !this.isOpen)
+			// If the map has not been set up yet then do nothing
 			return;
 		let newMarkers: FileMarker[] = [];
+		// Create an array of all file markers not in the removed file
 		for (let [markerId, fileMarker] of this.display.markers) {
 			if (fileMarker.file.path !== fileRemoved)
 				newMarkers.push(fileMarker);
 		}
 		if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
+			// Add file markers from the added file
 			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app)
 		this.updateMapMarkers(newMarkers);
 	}
