@@ -4,7 +4,8 @@
   "description": "An interactive map view for Obsidian.md",
   "main": "main.js",
   "scripts": {
-    "dev": "rollup --config rollup.config.js -w",
+    "dev": "rollup --config rollup.config.js -w --environment BUILD:development",
+    "dev-dist": "rollup --config rollup.config.js -w",
     "build": "rollup --config rollup.config.js --environment BUILD:production"
   },
   "keywords": [],
