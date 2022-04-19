@@ -134,17 +134,23 @@ export class SettingsTab extends PluginSettingTab {
 					this.plugin.saveSettings();
 				})});
 		new Setting(containerEl)
-			.setName('Note lines to show on map marker popup')
-			.setDesc('Number of total lines to show in the snippet displayed for inline geolocation notes.')
-			.addSlider(slider => { slider
-				.setLimits(0, 12, 1)
-				.setDynamicTooltip()
-				.setValue(this.plugin.settings.snippetLines ?? DEFAULT_SETTINGS.snippetLines)
-				.onChange(async (value: number) => {
-					this.plugin.settings.snippetLines = value;
-					this.plugin.saveSettings();
-				})
-			});
+			.setName('Show note preview on map marker hover')
+			.setDesc('In addition to the note and internal link name, show the native Obsidian note preview.')
+			.addToggle(component => {component
+				.setValue(this.plugin.settings.showNotePreview)
+				.onChange(async value => {
+					this.plugin.settings.showNotePreview = value;
+					await this.plugin.saveSettings();
+				})});
+		new Setting(containerEl)
+			.setName('Show preview for marker clusters')
+			.setDesc('Show a hover popup summarizing the icons inside a marker cluster. Changes are applied after restart.')
+			.addToggle(component => {component
+				.setValue(this.plugin.settings.showClusterPreview)
+				.onChange(async value => {
+					this.plugin.settings.showClusterPreview = value;
+					await this.plugin.saveSettings();
+				})});
 		new Setting(containerEl)
 			.setName('Default zoom for "show on map" action')
 			.setDesc('When jumping to the map from a note, what should be the display zoom?')
@@ -277,8 +283,9 @@ export class SettingsTab extends PluginSettingTab {
 							setting.urlDark = value;
 							this.refreshPluginOnHide = true;
 							await this.plugin.saveSettings();
-					})})
-				.addButton(component => component
+					})});
+			if (!setting.preset)
+				controls.addButton(component => component
 					.setButtonText('Delete')
 					.onClick(async () => {
 						this.plugin.settings.mapSources.remove(setting);

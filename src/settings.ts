@@ -27,7 +27,10 @@ export type PluginSettings = {
 	newNoteNameFormat?: string;
 	newNotePath?: string;
 	newNoteTemplate?: string;
+	// Deprecated
 	snippetLines?: number;
+	showNotePreview?: boolean;
+	showClusterPreview?: boolean,
 	debug?: boolean;
 	openIn?: OpenInSettings[];
 	urlParsingRules?: UrlParsingRule[];
@@ -81,6 +84,8 @@ export type TileSource = {
 	urlLight: string;
 	urlDark?: string;
 	currentMode?: MapLightDark;
+	preset?: boolean;
+	ignoreErrors?: boolean;
 }
 
 export type OpenInSettings = {
@@ -123,21 +128,22 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 		{ruleName: "#dogs", preset: false, iconDetails: {"prefix": "fas", "icon": "fa-paw"}},
 	],
 	zoomOnGoFromNote: 15,
-	tilesUrl: consts.TILES_URL_OPENSTREETMAP,
 	autoZoom: true,
 	markerClickBehavior: 'samePane',
 	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
-	snippetLines: 3,
+	showNotePreview: true,
+	showClusterPreview: false,
 	debug: false,
 	openIn: [{name: 'Google Maps', urlPattern: 'https://maps.google.com/?q={x},{y}'}],
 	urlParsingRules: [
-		{name: 'Google Maps', regExp: /https:\/\/\S*\@([0-9\.\-]+),([0-9\.\-]+)\S*/.source, order: 'latFirst', preset: true},
-		{name: 'OpenStreetMap Show Address', regExp: /https:\/\/www.openstreetmap.org\S*query=([0-9\.\-]+%2C[0-9\.\-]+)\S*/.source, order: 'latFirst', preset: true}
+		{name: 'OpenStreetMap Show Address', regExp: /https:\/\/www.openstreetmap.org\S*query=([0-9\.\-]+%2C[0-9\.\-]+)\S*/.source, order: 'latFirst', preset: true},
+		{name: 'Generic Lat,Lng', regExp: /([0-9\.\-]+), ([0-9\.\-]+)/.source, order: 'latFirst', preset: true}
 	],
 	mapControls: {filtersDisplayed: true, viewDisplayed: true, presetsDisplayed: false},
 	maxClusterRadiusPixels: 20,
 	searchProvider: 'osm',
-	mapSources: [{name: 'OpenStreetMap', urlLight: consts.TILES_URL_OPENSTREETMAP}],
+	mapSources: [{name: 'CartoDB', urlLight: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', preset: true}],
+	// mapSources: [{name: 'OpenStreetMap', urlLight: consts.TILES_URL_OPENSTREETMAP}],
 	chosenMapMode: 'auto'
 };
 
@@ -173,6 +179,19 @@ export function convertLegacyDefaultState(settings: PluginSettings): boolean {
 			chosenMapSource: settings.chosenMapSource ?? DEFAULT_SETTINGS.defaultState.chosenMapSource
 		};
 		settings.defaultTags = settings.defaultZoom = settings.defaultMapCenter = settings.chosenMapSource = null;
+		return true;
+	}
+	return false;
+}
+
+export function removeLegacyPresets1(settings: PluginSettings): boolean {
+	const googleMapsParsingRule = settings.urlParsingRules.findIndex(rule => rule.name == 'Google Maps' && rule.preset );
+	if (googleMapsParsingRule > -1) {
+		settings.urlParsingRules.splice(googleMapsParsingRule, 1);
+		return true;
+	}
+	if (settings.mapSources.findIndex(item => item.name == DEFAULT_SETTINGS.mapSources[0].name) === -1) {
+		settings.mapSources.unshift(DEFAULT_SETTINGS.mapSources[0]);
 		return true;
 	}
 	return false;

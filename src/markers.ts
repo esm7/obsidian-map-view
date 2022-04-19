@@ -18,6 +18,8 @@ export class FileMarker {
 	file: TFile;
 	/** In the case of an inline location, the position within the file where the location was found */
 	fileLocation?: number;
+	/** In case of an inline location, the line within the file where the geolocation was found */
+	fileLine?: number;
 	location: leaflet.LatLng;
 	icon?: leaflet.Icon<leaflet.BaseIconOptions>;
 	mapMarker?: leaflet.Marker;
@@ -206,6 +208,7 @@ async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, 
 						marker.tags.push('#' + tag[1]);
 			}
 			marker.fileLocation = match.index;
+			marker.fileLine = content.substring(0, marker.fileLocation).split('\n').length - 1;
 			marker.icon = getIconForMarker(marker, settings, app);
 			marker.snippet = await makeTextSnippet(file, content, marker.fileLocation, settings);
 			markers.push(marker);

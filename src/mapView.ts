@@ -1,4 +1,4 @@
-import { App, TAbstractFile, Editor, ItemView, MenuItem, Menu, TFile, WorkspaceLeaf } from 'obsidian';
+import { App, TAbstractFile, Loc, Editor, ItemView, MenuItem, Menu, TFile, WorkspaceLeaf, Notice } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
@@ -162,6 +162,17 @@ export class MapView extends ItemView {
 				attribution: attribution,
 				className: neededClassName });
 			this.display.map.addLayer(this.display.tileLayer);
+
+			if (!chosenMapSource?.ignoreErrors) {
+				let recentTileError = false;
+				this.display.tileLayer.on('tileerror', (event: leaflet.TileErrorEvent) => {
+					if (!recentTileError) {
+						new Notice(`Map view: unable to load map tiles. Try switching the map source using the View controls.`, 20000);
+						recentTileError = true;
+						setTimeout(() => { recentTileError = false; }, 5000);
+					}
+				});
+			}
 		}
 	}
 
@@ -194,6 +205,7 @@ export class MapView extends ItemView {
 		this.display.clusterGroup = new leaflet.MarkerClusterGroup({
 			maxClusterRadius: this.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels});
 		this.display.map.addLayer(this.display.clusterGroup);
+
 		const suggestor = new LocationSuggest(this.app, this.settings);
 		const searchControl = GeoSearchControl({
 			provider: suggestor.searchProvider,
@@ -211,24 +223,26 @@ export class MapView extends ItemView {
 			this.state.mapCenter = this.display.map.getCenter();
 			this.display?.controls?.invalidateActivePreset();
 		});
-		// --- Work in progress ---
-		// this.display.clusterGroup.on('clustermouseover', cluster => {
-		// 	console.log(cluster.propagatedFrom.getAllChildMarkers());
-		// 	let content = this.contentEl.createDiv();
-		// 	for (const marker of cluster.propagatedFrom.getAllChildMarkers()) {
-		// 		console.log(marker);
-		// 		const iconElement = marker.options.icon.createIcon();
-		// 		let style = iconElement.style;
-		// 		style.marginLeft = style.marginTop = '0';
-		// 		style.position = 'relative';
-		// 		content.appendChild(iconElement);
-		// 	}
-		// 	cluster.propagatedFrom.bindPopup(content, {closeButton: false, autoPan: false}).openPopup();
-		// 	cluster.propagatedFrom.activePopup = content;
-		// });
-		// this.display.clusterGroup.on('clustermouseout', cluster => {
-		// 	// cluster.propagatedFrom.closePopup();
-		// });
+
+		if (this.settings.showClusterPreview) {
+			this.display.clusterGroup.on('clustermouseover', cluster => {
+				let content = this.contentEl.createDiv();
+				content.classList.add('clusterPreviewContainer');
+				for (const m of cluster.propagatedFrom.getAllChildMarkers()) {
+					const marker = m as leaflet.Marker;
+					const iconElement = marker.options.icon.createIcon();
+					iconElement.classList.add('clusterPreviewIcon');
+					content.appendChild(iconElement);
+					if (content.children.length >= consts.MAX_CLUSTER_PREVIEW_ICONS)
+						break;
+				}
+				cluster.propagatedFrom.bindPopup(content, {closeButton: true, autoPan: false}).openPopup();
+				cluster.propagatedFrom.activePopup = content;
+			});
+			this.display.clusterGroup.on('clustermouseout', cluster => {
+				cluster.propagatedFrom.closePopup();
+			});
+		}
 
 		// Build the map marker right-click context menu
 		this.display.map.on('contextmenu', async (event: leaflet.LeafletMouseEvent) => {
@@ -363,11 +377,18 @@ export class MapView extends ItemView {
 			this.goToMarker(marker, event.originalEvent.ctrlKey, true);
 		});
 		newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+			if (this.settings.showNotePreview) {
+				const previewDetails = {
+					scroll: marker.fileLine,
+					line: marker.fileLine,
+					startLoc: {line: marker.fileLine, col: 0, offset: marker.fileLocation} as Loc,
+					endLoc: {line: marker.fileLine, col: 0, offset: marker.fileLocation} as Loc
+				};
+				this.app.workspace.trigger('link-hover', newMarker.getElement(), newMarker.getElement(), marker.file.path, '', previewDetails);
+			}
 			let content = `<p class="map-view-marker-name">${marker.file.name}</p>`;
 			if (marker.extraName)
 				content += `<p class="map-view-extra-name">${marker.extraName}</p>`;
-			if (marker.snippet)
-				content += `<p class="map-view-marker-snippet">${marker.snippet}</p>`;
 			newMarker.bindPopup(content, {closeButton: true, autoPan: false}).openPopup();
 		});
 		newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
@@ -462,7 +483,6 @@ export class MapView extends ItemView {
 	 * Run when a file is deleted, renamed or changed.
 	 * @param fileRemoved The old file path
 	 * @param fileAddedOrChanged The new file data
-	 * @param skipMetadata currently unused TODO: what is this for?
 	 */
 	private async updateMarkersWithRelationToFile(fileRemoved: string, fileAddedOrChanged: TAbstractFile, skipMetadata: boolean) {
 		if (!this.display.map || !this.isOpen)

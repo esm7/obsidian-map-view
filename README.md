@@ -2,10 +2,6 @@
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/esm7)
 
-> :warning: **OpenStreetMap Issue Note**
->
-> Due to OpenStreetMap starting to block requests from this and other plugins, see [here](https://github.com/esm7/obsidian-map-view/issues/59#issuecomment-1066789021) how to switch to a different provider.
-
 ## Intro
 
 This plugin introduces an **interactive map view** for the [Obsidian.md](https://obsidian.md/) editor.
@@ -13,7 +9,7 @@ It searches your notes for encoded geolocations (see below) and places them as m
 
 You can set different icons for different note types, filter the displayed notes and much more.
 
-It also provides a wide range of tools to add geolocations to your notes, including address searches and parsing of URLs from external sources such as Google Maps.
+It also provides a wide range of tools to add geolocations to your notes, including address searches and parsing of geolocations from external sources such as Google Maps.
 
 ![](img/sample.png)
 
@@ -115,7 +111,7 @@ To make this more streamlined, Map View adds to Obsidian a command named 'Add in
 
 2. Add a front matter geolocation by using the Obsidian command 'Add geolocation (front matter) to current note'. This opens the same dialog as "new geolocation note" which allows you to search for a location name or paste a [URL parsing rules](#url-parsing-rules).
 
-3. If you have a location in some other mapping service that you wish to log, e.g. from Google Maps, you can copy the URL from that service, right-click in your note and select "Paste as Geolocation". The supported services are configurable, see [below](#url-parsing-rules) for more details.
+3. If you have a location in some other mapping service that you wish to log, e.g. from Google Maps, you can copy the URL or "lat,lng" geolocation from that service, right-click in your note and select "Paste as Geolocation". The supported services are configurable, see [below](#url-parsing-rules) for more details.
 
 ### From the Map
 
@@ -136,12 +132,12 @@ Note that the map can be searched using the tool on the upper-right side.
 
 ## Paste as Geolocation
 
-Map View monitors the system clipboard, and when a URL is detected to have an encoded geolocation (e.g. a Google Maps URL), a "Paste as geolocation" entry is added to the editor context menu.
-You can thus copy a link from Google Map and paste it as a geolocation inside a note.
+Map View monitors the system clipboard, and when a URL is detected to have an encoded geolocation (e.g. a Google Maps "lat, lng" location), a "Paste as geolocation" entry is added to the editor context menu.
+For example, if you right-click a location in Google Maps and click the first item in the menu (coordinates in lat,lng format), you can then paste it as a geolocation inside a note.
 
 Alternatively, you can right-click a URL that is already present in a note and choose "Convert to geolocation".
 
-By default Map View can parse URLs from two services: Google Maps and the OpenStreetMap "show address" link.
+By default Map View can parse URLs from two services: the OpenStreetMap "show address" link and a generic "lat, lng" encoding used by many URLs.
 
 ## Filtering by Tags
 
@@ -221,7 +217,7 @@ See [here](https://developers.google.com/maps/documentation/javascript/get-api-k
 
 ## Map Sources
 
-By default, Map View uses the [standard tile layer of OpenStreetMap](https://wiki.openstreetmap.org/wiki/Standard_tile_layer).
+By default, Map View uses the [CartoDB Voyager Map](https://github.com/CartoDB/basemap-styles), which is free for up to 75K requests per month.
 However, you can change or add map sources in the configuration with any service that has a tiles API using a standard URL syntax.
 
 There are many services of localized, specialized or just beautifully-rendered maps that you can use, sometimes following a free registration.
@@ -308,6 +304,15 @@ There are so many things that I want it to do, and so little time...
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### 1.4.0
+
+- Replaced OpenStreetMap with CartoDB as the new default map source (https://github.com/esm7/obsidian-map-view/issues/59).
+- Map View now displays a more useful error when tiles fail to load.
+- Removed the "Google Maps" default URL parsing rule because apparently it was incorrect (https://github.com/esm7/obsidian-map-view/issues/57). It is now replaced by a more generic "lat,lng" rule that can also be used with Google Maps, *not* by parsing the URL but by right-clicking the map in Google Maps and choosing the first menu item that copies the coordinates.
+- Hovering on a map marker now opens the Obsidian note preview, scrolled to the correct line (https://github.com/esm7/obsidian-map-view/issues/60). This is configurable in the settings and comes *in addition* to the existing note pop-up (without a snippet), because the preview does not include the note name.
+	- **Important note:** this replaces the "snippet" functionality of previous versions.
+- Marker clusters now show a preview of their own; they show a popup with the first 4 icons in the cluster.
 
 ### 1.3.0
 

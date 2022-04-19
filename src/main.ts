@@ -5,7 +5,7 @@ import { LocationSuggest } from 'src/geosearch';
 import { UrlConvertor } from 'src/urlConvertor';
 
 import { MapView } from 'src/mapView';
-import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl, convertLegacyDefaultState, MapState } from 'src/settings';
+import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl, convertLegacyDefaultState, removeLegacyPresets1, MapState } from 'src/settings';
 import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
 import { SettingsTab } from 'src/settingsTab';
 import { NewNoteDialog } from 'src/newNoteDialog';
@@ -49,6 +49,10 @@ export default class MapViewPlugin extends Plugin {
 		if (convertLegacyDefaultState(this.settings)) {
 			await this.saveSettings();
 			new Notice("Map View: legacy default state was converted to the new format");
+		}
+		if (removeLegacyPresets1(this.settings)) {
+			await this.saveSettings();
+			new Notice("Map View: legacy URL parsing rules and/or map sources were converted. See the release notes");
 		}
 
 		// Register commands to the command palette

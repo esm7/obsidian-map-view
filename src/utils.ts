@@ -23,7 +23,7 @@ type NewNoteType = 'singleLocation' | 'multiLocation';
 const CURSOR = '$CURSOR$';
 
 function sanitizeFileName(s: string) {
-	const illegalChars = /[\/\?<>\\:\*\|":]/g;
+	const illegalChars = /[\?<>\\:\*\|":]/g;
 	return s.replace(illegalChars, '-');
 }
 

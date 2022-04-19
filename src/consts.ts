@@ -7,6 +7,7 @@ export const RIBBON_ICON = '<path fill="currentColor" stroke="currentColor" d="m
 
 export const TILES_URL_OPENSTREETMAP = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const SEARCH_RESULT_MARKER = {prefix: 'fas', icon: 'fa-search', markerColor: 'blue'};
+export const MAX_CLUSTER_PREVIEW_ICONS = 4;
 
 export const LAT_LIMITS = [-90, 90];
 export const LNG_LIMITS = [-180, 180];
