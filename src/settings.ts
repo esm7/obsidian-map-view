@@ -38,6 +38,7 @@ export type PluginSettings = {
 	maxClusterRadiusPixels: number;
 	searchProvider?: 'osm' | 'google';
 	geocodingApiKey?: string;
+	saveHistory?: boolean;
 }
 
 /** Represents a logical state of the map, in separation from the map display */
@@ -48,6 +49,7 @@ export type MapState = {
 	/** The tags that the user specified (including the # character) */
 	tags: string[];
 	chosenMapSource?: number;
+	forceHistorySave?: boolean;
 }
 
 export function mergeStates(state1: MapState, state2: MapState): MapState {
@@ -144,7 +146,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	searchProvider: 'osm',
 	mapSources: [{name: 'CartoDB', urlLight: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', preset: true}],
 	// mapSources: [{name: 'OpenStreetMap', urlLight: consts.TILES_URL_OPENSTREETMAP}],
-	chosenMapMode: 'auto'
+	chosenMapMode: 'auto',
+	saveHistory: true
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {

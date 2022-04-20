@@ -1,4 +1,4 @@
-import { App, TAbstractFile, Loc, Editor, ItemView, MenuItem, Menu, TFile, WorkspaceLeaf, Notice } from 'obsidian';
+import { App, TAbstractFile, Loc, Editor, ItemView, MenuItem, Menu, TFile, WorkspaceLeaf, Notice, ViewState } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
@@ -25,6 +25,8 @@ export class MapView extends ItemView {
 	/** The displayed controls and objects of the map, separated from its logical state.
 	 * Must only be updated in updateMarkersToState */
 	private state: MapState;
+	/** The state that was last saved to Obsidian's history stack */
+	private lastSavedState: MapState;
 	/** The map data */
 	private display = new class {
 		/** The HTML element holding the map */
@@ -62,23 +64,54 @@ export class MapView extends ItemView {
 		this.plugin = plugin;
 		// Create the default state by the configuration
 		this.defaultState = this.settings.defaultState;
-		this.setState = async (state: MapState, result) => {
-			await this.setViewState(state, true, false);
-			if (this.display.controls)
-				this.display.controls.tryToGuessPreset();
-		}
-		this.getState = (): MapState => {
-			return this.state;
-		}
 
 		// Listen to file changes so we can update markers accordingly
 		this.app.vault.on('delete', file => this.updateMarkersWithRelationToFile(file.path, null, true));
-		this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
 		this.app.metadataCache.on('changed', file => this.updateMarkersWithRelationToFile(file.path, file, false));
+		// On rename we don't need to do anything because the markers hold a TFile, and the TFile object doesn't change
+		// when the file name changes. Only its internal path field changes accordingly.
+		// this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
 		this.app.workspace.on('css-change', () => {
 			console.log('Map view: map refresh due to CSS change');
 			this.refreshMap();
 		});
+	}
+
+	async setState(state: MapState, result: any) {
+		if (this.shouldSaveToHistory(state)) {
+			result.history = true;
+			this.lastSavedState = Object.assign({}, state);
+		}
+		await this.setViewState(state, true, false);
+		if (this.display.controls)
+			this.display.controls.tryToGuessPreset();
+	}
+
+	getState() {
+		return this.state;
+	}
+
+	/** Decides and returns true if the given state change, compared to the last saved state, is substantial
+	 * enough to be saved as an Obsidian history state */
+	shouldSaveToHistory(newState: MapState) {
+		if (!this.settings.saveHistory)
+			return false;
+		if (!this.lastSavedState)
+			return true;
+		if (newState.forceHistorySave) {
+			newState.forceHistorySave = false;
+			return true;
+		}
+		// If the zoom changed by HISTORY_SAVE_ZOOM_DIFF -- save the history
+		if (Math.abs(newState.mapZoom - this.lastSavedState.mapZoom) >= consts.HISTORY_SAVE_ZOOM_DIFF)
+			return true;
+		// If the previous center is no longer visible -- save the history
+		// (this is partially cheating because we use the actual map and not the state object)
+		if (this.lastSavedState.mapCenter && !this.display.map.getBounds().contains(this.lastSavedState.mapCenter))
+			return true;
+		if (newState.tags != this.lastSavedState.tags || newState.chosenMapSource != this.lastSavedState.chosenMapSource)
+			return true;
+		return false;
 	}
 
 	getViewType() { return 'map'; }
@@ -217,11 +250,16 @@ export class MapView extends ItemView {
 		this.display.map.addControl(searchControl);
 		this.display.map.on('zoomend', (event: leaflet.LeafletEvent) => {
 			this.state.mapZoom = this.display.map.getZoom();
+			this.state.mapCenter = this.display.map.getCenter();
 			this.display?.controls?.invalidateActivePreset();
+			const state = this.leaf.getViewState();
+			this.leaf.setViewState(state);
 		});
 		this.display.map.on('moveend', (event: leaflet.LeafletEvent) => {
 			this.state.mapCenter = this.display.map.getCenter();
 			this.display?.controls?.invalidateActivePreset();
+			const state = this.leaf.getViewState();
+			this.leaf.setViewState(state);
 		});
 
 		if (this.settings.showClusterPreview) {
@@ -241,6 +279,12 @@ export class MapView extends ItemView {
 			});
 			this.display.clusterGroup.on('clustermouseout', cluster => {
 				cluster.propagatedFrom.closePopup();
+			});
+			this.display.clusterGroup.on('clusterclick', cluster => {
+				const state = this.leaf.getViewState();
+				// After a cluster click always save the history, the user expects 'back' to really go back
+				state.state.forceHistorySave = true;
+				this.leaf.setViewState(state);
 			});
 		}
 
@@ -309,8 +353,7 @@ export class MapView extends ItemView {
 		// Saying it again: do not use 'await' below this line!
 		this.state = state;
 		this.updateMapMarkers(newMarkers);
-		if (this.state.mapCenter && this.state.mapZoom)
-			this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
+		this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
 		if (this.settings.debug)
 			console.timeEnd('updateMarkersToState');
 	}

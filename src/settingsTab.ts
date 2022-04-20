@@ -162,6 +162,15 @@ export class SettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			});
+		new Setting(containerEl)
+			.setName('Save back/forward history')
+			.setDesc("While making changes to the map, save the history to be browsable through Obsidian back/forward buttons.")
+			.addToggle(component => {component
+				.setValue(this.plugin.settings.saveHistory)
+				.onChange(async value => {
+					this.plugin.settings.saveHistory = value;
+					await this.plugin.saveSettings();
+				})});
 
 		new Setting(containerEl)
 			.setHeading().setName('Map Sources')

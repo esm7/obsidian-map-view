@@ -305,6 +305,11 @@ There are so many things that I want it to do, and so little time...
 
 ## Changelog
 
+### 1.5.0
+
+- Map View now saves its state to the Obsidian back/forward mechanism (unless configured not to).
+- Fixed an issue with markers temporarily duplicating (until the map is refreshed) when their note is renamed.
+
 ### 1.4.0
 
 - Replaced OpenStreetMap with CartoDB as the new default map source (https://github.com/esm7/obsidian-map-view/issues/59).
