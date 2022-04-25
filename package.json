@@ -6,7 +6,7 @@
   "scripts": {
 	"dev": "rollup --config rollup.config.js -w --environment BUILD:development",
     "dev-dist": "rollup --config rollup.config.js -w",
-    "build": "rollup --config rollup.config.js --environment BUILD:production"
+    "build": "rollup --config rollup.config.js --environment BUILD:production",
     "prettier": "npx prettier --write .",
     "stylecheck": "npx prettier --check ."
   },
