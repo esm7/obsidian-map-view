@@ -1,11 +1,12 @@
 {
   "name": "obsidian-map-view",
-  "version": "1.3.0",
+  "version": "1.5.0",
   "description": "An interactive map view for Obsidian.md",
   "main": "main.js",
   "scripts": {
-    "dev": "rollup --config rollup.config.js -w",
-    "build": "rollup --config rollup.config.js --environment BUILD:production",
+	"dev": "rollup --config rollup.config.js -w --environment BUILD:development",
+    "dev-dist": "rollup --config rollup.config.js -w",
+    "build": "rollup --config rollup.config.js --environment BUILD:production"
     "prettier": "npx prettier --write .",
     "stylecheck": "npx prettier --check ."
   },

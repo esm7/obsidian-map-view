@@ -17,7 +17,7 @@ if you want to view the source visit the plugins github repository
 export default {
 	input: 'src/main.ts',
 	output: {
-		dir: './dist',
+		dir: process.env.BUILD === 'development' ? '.' : './dist',
 		sourcemap: isProd ? false : 'inline',
 		sourcemapExcludeSources: isProd,
 		format: 'cjs',
@@ -30,11 +30,13 @@ export default {
 		nodeResolve({browser: true}),
 		commonjs(),
 		postcss({ extensions: ['.css'], plugins: [postcss_url({url: 'inline'})] }),
-		copy({
-			targets: [
-				{ src: './manifest.json', dest: 'dist' },
-				{ src: './styles.css', dest: 'dist' }
-			]
-		})
+		...(process.env.BUILD !== 'development' ? [
+			copy({
+				targets: [
+					{ src: './manifest.json', dest: 'dist' },
+					{ src: './styles.css', dest: 'dist' }
+				]
+			})
+		] : []),
 	]
 };
