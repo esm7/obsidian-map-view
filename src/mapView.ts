@@ -248,7 +248,11 @@ export class MapView extends ItemView {
             }
             const neededClassName = revertMap ? 'dark-mode' : '';
             this.display.tileLayer = new leaflet.TileLayer(mapSourceUrl, {
-                maxZoom: 20,
+                maxZoom: 25,
+                maxNativeZoom:
+                    typeof chosenMapSource.maxZoom === 'number'
+                        ? chosenMapSource.maxZoom
+                        : 19,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                 attribution: attribution,
                 className: neededClassName,

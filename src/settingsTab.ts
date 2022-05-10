@@ -258,6 +258,7 @@ export class SettingsTab extends PluginSettingTab {
                 this.plugin.settings.mapSources.push({
                     name: '',
                     urlLight: '',
+                    maxZoom: 19,
                     currentMode: 'auto',
                 });
                 this.refreshMapSourceSettings(mapSourcesDiv);
@@ -392,6 +393,25 @@ export class SettingsTab extends PluginSettingTab {
                             setting.urlDark = value;
                             this.refreshPluginOnHide = true;
                             await this.plugin.saveSettings();
+                        });
+                })
+                .addText((component) => {
+                    component
+                        .setPlaceholder('Max Tile Zoom')
+                        .setValue(
+                            (typeof setting.maxZoom === 'number'
+                                ? setting.maxZoom
+                                : 19
+                            ).toString()
+                        )
+                        .onChange(async (value: string) => {
+                            let zoom = parseInt(value);
+                            if (typeof zoom == 'number') {
+                                zoom = Math.min(Math.max(0, zoom), 25);
+                                setting.maxZoom = zoom;
+                                this.refreshPluginOnHide = true;
+                                await this.plugin.saveSettings();
+                            }
                         });
                 });
             if (!setting.preset)

@@ -95,6 +95,7 @@ export type TileSource = {
     currentMode?: MapLightDark;
     preset?: boolean;
     ignoreErrors?: boolean;
+    maxZoom?: number;
 };
 
 export type OpenInSettings = {
@@ -200,6 +201,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             name: 'CartoDB',
             urlLight:
                 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+            maxZoom: 19,
             preset: true,
         },
     ],
@@ -228,7 +230,7 @@ export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
 export function convertLegacyTilesUrl(settings: PluginSettings): boolean {
     if (settings.tilesUrl) {
         settings.mapSources = [
-            { name: 'Default', urlLight: settings.tilesUrl },
+            { name: 'Default', urlLight: settings.tilesUrl, maxZoom: 19 },
         ];
         settings.tilesUrl = null;
         return true;
