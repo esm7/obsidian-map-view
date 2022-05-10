@@ -21,7 +21,7 @@ export class FileMarker {
     /** In case of an inline location, the line within the file where the geolocation was found */
     fileLine?: number;
     location: leaflet.LatLng;
-    icon?: leaflet.Icon<leaflet.BaseIconOptions>;
+    icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
     mapMarker?: leaflet.Marker;
     /** An ID to recognize the marker */
     id: MarkerId;
@@ -169,7 +169,7 @@ export function getIconFromRules(tags: string[], rules: MarkerIconRule[]) {
 }
 
 export function getIconFromOptions(
-    iconSpec: leaflet.BaseIconOptions
+    iconSpec: leaflet.ExtraMarkers.IconOptions
 ): leaflet.Icon {
     // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
     // @ts-ignore
