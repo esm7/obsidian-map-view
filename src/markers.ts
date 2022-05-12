@@ -18,6 +18,7 @@ export class FileMarker {
     file: TFile;
     /** In the case of an inline location, the position within the file where the location was found */
     fileLocation?: number;
+    fileLength?: number;
     /** In case of an inline location, the line within the file where the geolocation was found */
     fileLine?: number;
     location: leaflet.LatLng;
@@ -249,6 +250,7 @@ async function getMarkersFromFileContent(
                     if (tag[1]) marker.tags.push('#' + tag[1]);
             }
             marker.fileLocation = match.index;
+            marker.fileLength = match[0].length;
             marker.fileLine =
                 content.substring(0, marker.fileLocation).split('\n').length -
                 1;

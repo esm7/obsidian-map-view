@@ -73,6 +73,8 @@ export class MapView extends ItemView {
     /** Is the view currently open */
     private isOpen: boolean = false;
 
+    private editPin: FileMarker = null;
+
     /**
      * Construct a new map instance
      * @param leaf The leaf the map should be put in
@@ -449,6 +451,25 @@ export class MapView extends ItemView {
                 mapPopup.showAtPosition(event.originalEvent);
             }
         );
+
+        this.display.map.on(
+            'click',
+            async (event: leaflet.LeafletMouseEvent) => {
+                if (this.editPin !== null) {
+                    const location = `${event.latlng.lat},${event.latlng.lng}`;
+                    if (this.editPin.fileLocation === null){
+                        // is a front matter location
+
+                    } else {
+                        // is an inline location
+                        const old_file = await this.app.vault.cachedRead(this.editPin.file);
+                        const new_file = old_file.slice(0, this.editPin.fileLocation) + `[](geo:${location})` + old_file.slice(this.editPin.fileLocation + this.editPin.fileLength);
+                        await this.app.vault.modify(this.editPin.file, new_file);
+                    }
+                    this.editPin = null;
+                }
+            }
+        )
     }
 
     /**
@@ -582,6 +603,12 @@ export class MapView extends ItemView {
                         item.setTitle('Open note');
                         item.onClick(async (ev) => {
                             this.goToMarker(marker, ev.ctrlKey, true);
+                        });
+                    });
+                    mapPopup.addItem((item: MenuItem) => {
+                        item.setTitle('Edit location');
+                        item.onClick(async (ev) => {
+                            this.editPin = marker;
                         });
                     });
                     mapPopup.addItem((item: MenuItem) => {
