@@ -1,5 +1,4 @@
 {
     "tabWidth": 4,
-    "singleQuote": true,
-    "endOfLine": "crlf"
+    "singleQuote": true
 }
