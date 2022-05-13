@@ -41,6 +41,7 @@ import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import { ViewControls } from 'src/viewControls';
+import { DragEndEvent, LeafletEvent } from 'leaflet';
 
 export class MapView extends ItemView {
     private settings: PluginSettings;
@@ -73,7 +74,7 @@ export class MapView extends ItemView {
     /** Is the view currently open */
     private isOpen: boolean = false;
 
-    private editPin: FileMarker = null;
+    private editable: boolean = false;
 
     /**
      * Construct a new map instance
@@ -451,25 +452,6 @@ export class MapView extends ItemView {
                 mapPopup.showAtPosition(event.originalEvent);
             }
         );
-
-        this.display.map.on(
-            'click',
-            async (event: leaflet.LeafletMouseEvent) => {
-                if (this.editPin !== null) {
-                    const location = `${event.latlng.lat},${event.latlng.lng}`;
-                    if (this.editPin.fileLocation === null){
-                        // is a front matter location
-
-                    } else {
-                        // is an inline location
-                        const old_file = await this.app.vault.cachedRead(this.editPin.file);
-                        const new_file = old_file.slice(0, this.editPin.fileLocation) + `[](geo:${location})` + old_file.slice(this.editPin.fileLocation + this.editPin.fileLength);
-                        await this.app.vault.modify(this.editPin.file, new_file);
-                    }
-                    this.editPin = null;
-                }
-            }
-        )
     }
 
     /**
@@ -594,6 +576,30 @@ export class MapView extends ItemView {
             newMarker.closePopup();
         });
         newMarker.on('add', (event: leaflet.LeafletEvent) => {
+            if (this.editable) {
+                newMarker.dragging.enable();
+            }
+        });
+        newMarker.on('dragstart', async (event: leaflet.LeafletEvent) => {
+            // if dragging the balloons are quite irritating
+            newMarker.closePopup();
+        });
+        newMarker.on('dragend', async (event: leaflet.DragEndEvent) => {
+            const latlng = newMarker.getLatLng();
+            const location = `${latlng.lat},${latlng.lng}`;
+            if (marker.fileLocation === null) {
+                // is a front matter location
+            } else {
+                // is an inline location
+                const old_file = await this.app.vault.cachedRead(marker.file);
+                const new_file =
+                    old_file.slice(0, marker.fileLocation) +
+                    `[](geo:${location})` +
+                    old_file.slice(marker.fileLocation + marker.fileLength);
+                await this.app.vault.modify(marker.file, new_file);
+            }
+        });
+        newMarker.on('add', (event: leaflet.LeafletEvent) => {
             newMarker
                 .getElement()
                 .addEventListener('contextmenu', (ev: MouseEvent) => {
@@ -603,12 +609,6 @@ export class MapView extends ItemView {
                         item.setTitle('Open note');
                         item.onClick(async (ev) => {
                             this.goToMarker(marker, ev.ctrlKey, true);
-                        });
-                    });
-                    mapPopup.addItem((item: MenuItem) => {
-                        item.setTitle('Edit location');
-                        item.onClick(async (ev) => {
-                            this.editPin = marker;
                         });
                     });
                     mapPopup.addItem((item: MenuItem) => {
@@ -754,5 +754,19 @@ export class MapView extends ItemView {
                 this.app
             );
         this.updateMapMarkers(newMarkers);
+    }
+
+    /** Set the markers edit state. */
+    setEditable(editable: boolean) {
+        this.editable = editable;
+        for (let [markerId, fileMarker] of this.display.markers) {
+            if (fileMarker.mapMarker.dragging) {
+                if (editable) {
+                    fileMarker.mapMarker.dragging.enable();
+                } else {
+                    fileMarker.mapMarker.dragging.disable();
+                }
+            }
+        }
     }
 }
