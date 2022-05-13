@@ -1,6 +1,7 @@
 import * as consts from 'src/consts';
 import { LatLng } from 'leaflet';
 import { SplitDirection } from 'obsidian';
+import { DEFAULT_MAX_TILE_ZOOM } from 'src/consts';
 
 export type PluginSettings = {
     defaultState: MapState;
@@ -201,7 +202,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             name: 'CartoDB',
             urlLight:
                 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-            maxZoom: 19,
+            maxZoom: DEFAULT_MAX_TILE_ZOOM,
             preset: true,
         },
     ],
@@ -230,7 +231,11 @@ export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
 export function convertLegacyTilesUrl(settings: PluginSettings): boolean {
     if (settings.tilesUrl) {
         settings.mapSources = [
-            { name: 'Default', urlLight: settings.tilesUrl, maxZoom: 19 },
+            {
+                name: 'Default',
+                urlLight: settings.tilesUrl,
+                maxZoom: DEFAULT_MAX_TILE_ZOOM,
+            },
         ];
         settings.tilesUrl = null;
         return true;

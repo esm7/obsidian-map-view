@@ -41,6 +41,7 @@ import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import { ViewControls } from 'src/viewControls';
+import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
 
 export class MapView extends ItemView {
     private settings: PluginSettings;
@@ -248,11 +249,11 @@ export class MapView extends ItemView {
             }
             const neededClassName = revertMap ? 'dark-mode' : '';
             this.display.tileLayer = new leaflet.TileLayer(mapSourceUrl, {
-                maxZoom: 25,
+                maxZoom: MAX_ZOOM,
                 maxNativeZoom:
                     typeof chosenMapSource.maxZoom === 'number'
                         ? chosenMapSource.maxZoom
-                        : 19,
+                        : DEFAULT_MAX_TILE_ZOOM,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                 attribution: attribution,
                 className: neededClassName,
