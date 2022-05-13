@@ -3,7 +3,7 @@ import * as leaflet from 'leaflet';
 
 import { PluginSettings } from 'src/settings';
 import { LocationSuggest } from 'src/geosearch';
-import { UrlConvertor } from 'src/urlConvertor';
+import { UrlConvertor, ParsedLocation } from 'src/urlConvertor';
 import { MapView } from 'src/mapView';
 import * as utils from 'src/utils';
 import * as consts from 'src/consts';
@@ -40,13 +40,17 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 
 	getSuggestions(query: string) {
 		let result: SuggestInfo[] = [];
-		const urlResult = this.parseLocationAsUrl(query);
-		if (urlResult)
-			result.push(urlResult);
+		const parsedResult = this.urlConvertor.parseLocationFromUrl(query);
+		if (parsedResult && !(parsedResult instanceof Promise))
+			result.push({
+				name: `Parsed from ${parsedResult.ruleName}: ${parsedResult.location.lat}, ${parsedResult.location.lng}`,
+				location: parsedResult.location,
+				type: 'url'
+			});
 		if (query == this.lastSearch) {
 			result = result.concat(this.lastSearchResults);
 		}
-		this.getSearchResultsWithDelay(query);
+		this.getSearchResultsWithDelay(query, (parsedResult instanceof Promise ? parsedResult : null));
 		return result;
 	}
 
@@ -86,7 +90,7 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 		utils.verifyOrAddFrontMatter(this.editor, 'location', locationString);
 	}
 
-	async getSearchResultsWithDelay(query: string) {
+	async getSearchResultsWithDelay(query: string, parsedResultPromise: Promise<ParsedLocation>) {
 		// TODO merge this with LocationSuggest
 		if (query === this.lastSearch || query.length < 3)
 			return;
@@ -106,18 +110,16 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 			type: 'searchResult'
 		} as SuggestInfo));
 		this.lastSearchResults = suggestions;
+		if (parsedResultPromise) {
+			const parsedLocation = await parsedResultPromise;
+			suggestions.push({
+				name: `Parsed from ${parsedLocation.ruleName}: ${parsedLocation.location.lat}, ${parsedLocation.location.lng}`,
+				location: parsedLocation.location,
+				type: 'url'
+			});
+		}
 		this.lastSearch = query;
 		(this as any).updateSuggestions();
 		return suggestions;
-	}
-
-	parseLocationAsUrl(query: string): SuggestInfo {
-		const result = this.urlConvertor.parseLocationFromUrl(query);
-		if (result)
-			return {
-				name: `Parsed from ${result.ruleName}: ${result.location.lat}, ${result.location.lng}`,
-				location: result.location,
-				type: 'url'
-			};
 	}
 }

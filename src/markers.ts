@@ -21,7 +21,7 @@ export class FileMarker {
 	/** In case of an inline location, the line within the file where the geolocation was found */
 	fileLine?: number;
 	location: leaflet.LatLng;
-	icon?: leaflet.Icon<leaflet.BaseIconOptions>;
+	icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
 	mapMarker?: leaflet.Marker;
 	/** An ID to recognize the marker */
 	id: MarkerId;
@@ -68,6 +68,7 @@ export type MarkersMap = Map<MarkerId, FileMarker>;
 
 /**
  * Create a FileMarker for every front matter and inline geolocation in the given file.
+ * Properties that are not essential for filtering, e.g. marker icons, are not created here yet.
  * @param mapToAppendTo The list of file markers to append to
  * @param file The file object to parse
  * @param settings The plugin settings
@@ -82,9 +83,9 @@ export async function buildAndAppendFileMarkers(mapToAppendTo: FileMarker[], fil
 			const location = getFrontMatterLocation(file, app);
 			if (location) {
 				verifyLocation(location);
-				let leafletMarker = new FileMarker(file, location);
-				leafletMarker.icon = getIconForMarker(leafletMarker, settings, app);
-				mapToAppendTo.push(leafletMarker);
+				let marker = new FileMarker(file, location);
+				marker.tags = getAllTags(fileCache);
+				mapToAppendTo.push(marker);
 			}
 		}
 		if ('locations' in frontMatter) {
@@ -112,22 +113,19 @@ export async function buildMarkers(files: TFile[], settings: PluginSettings, app
 	return markers;
 }
 
+/**
+ * Add more data to the markers, e.g. icons and other items that were not needed for the stage of filtering
+ * them.
+ * Modifies the markers in-place.
+ */
+export function finalizeMarkers(markers: FileMarker[], settings: PluginSettings) {
+	for (const marker of markers)
+		marker.icon = getIconFromRules(marker.tags, settings.markerIconRules);
+}
+
 function checkTagPatternMatch(tagPattern: string, tags: string[]) {
 	let match = wildcard(tagPattern, tags);
 	return match && match.length > 0;
-}
-
-/**
- * Create a leaflet icon for the marker
- * @param marker The FileMarker to create the icon for
- * @param settings The plugin settings
- * @param app The Obsidian App instance
- */
-function getIconForMarker(marker: FileMarker, settings: PluginSettings, app: App) : leaflet.Icon {
-	const fileCache = app.metadataCache.getFileCache(marker.file);
-	// Combine the file tags with the marker-specific tags
-	const tags = getAllTags(fileCache).concat(marker.tags);
-	return getIconFromRules(tags, settings.markerIconRules);
 }
 
 export function getIconFromRules(tags: string[], rules: MarkerIconRule[]) {
@@ -141,7 +139,7 @@ export function getIconFromRules(tags: string[], rules: MarkerIconRule[]) {
 	return getIconFromOptions(result);
 }
 
-export function getIconFromOptions(iconSpec: leaflet.BaseIconOptions) : leaflet.Icon {
+export function getIconFromOptions(iconSpec: leaflet.ExtraMarkers.IconOptions): leaflet.Icon {
 	// Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 	// @ts-ignore
 	const backupL = L;
@@ -183,13 +181,16 @@ export function matchInlineLocation(content: string): RegExpMatchArray[] {
 }
 
 /**
- * Build markers from inline locations in the file body
+ * Build markers from inline locations in the file body.
+ * Properties non-essential for filtering, e.g. the marker icon, are not built here yet.
  * @param file The file object to load
  * @param settings The plugin settings
  * @param app The Obsidian App instance
  */
-async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, app: App): Promise<FileMarker[]> {
+export async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, app: App): Promise<FileMarker[]> {
 	let markers: FileMarker[] = [];
+	// Get the tags of the file, to these we will add the tags associated with each individual marker (inline tags)
+	const fileTags = getAllTags(app.metadataCache.getFileCache(file));
 	const content = await app.vault.read(file);
 	const matches = matchInlineLocation(content);
 	for (const match of matches) {
@@ -207,9 +208,9 @@ async function getMarkersFromFileContent(file: TFile, settings: PluginSettings, 
 					if (tag[1])
 						marker.tags.push('#' + tag[1]);
 			}
+			marker.tags = marker.tags.concat(fileTags);
 			marker.fileLocation = match.index;
 			marker.fileLine = content.substring(0, marker.fileLocation).split('\n').length - 1;
-			marker.icon = getIconForMarker(marker, settings, app);
 			marker.snippet = await makeTextSnippet(file, content, marker.fileLocation, settings);
 			markers.push(marker);
 		}

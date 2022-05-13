@@ -13,11 +13,12 @@ import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
 import { PluginSettings, MapState, DEFAULT_SETTINGS, mergeStates } from 'src/settings';
-import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers } from 'src/markers';
+import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers, finalizeMarkers } from 'src/markers';
 import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import { ViewControls } from 'src/viewControls';
+import { Query } from 'src/query';
 
 
 export class MapView extends ItemView {
@@ -75,6 +76,13 @@ export class MapView extends ItemView {
 			console.log('Map view: map refresh due to CSS change');
 			this.refreshMap();
 		});
+		this.app.workspace.on('file-open', (file: TFile) => {
+			if (this.getState().followActiveNote && file) {
+				let currentState = this.leaf.getViewState();
+				(currentState.state as MapState).query =`path:"${file.path}"`;
+				this.leaf.setViewState(currentState);
+			}
+		});
 	}
 
 	async setState(state: MapState, result: any) {
@@ -109,7 +117,7 @@ export class MapView extends ItemView {
 		// (this is partially cheating because we use the actual map and not the state object)
 		if (this.lastSavedState.mapCenter && !this.display.map.getBounds().contains(this.lastSavedState.mapCenter))
 			return true;
-		if (newState.tags != this.lastSavedState.tags || newState.chosenMapSource != this.lastSavedState.chosenMapSource)
+		if (newState.query != this.lastSavedState.query || newState.chosenMapSource != this.lastSavedState.chosenMapSource)
 			return true;
 		return false;
 	}
@@ -274,7 +282,7 @@ export class MapView extends ItemView {
 					if (content.children.length >= consts.MAX_CLUSTER_PREVIEW_ICONS)
 						break;
 				}
-				cluster.propagatedFrom.bindPopup(content, {closeButton: true, autoPan: false}).openPopup();
+				cluster.propagatedFrom.bindPopup(content, {closeButton: true, autoPan: false, className: 'marker-popup'}).openPopup();
 				cluster.propagatedFrom.activePopup = content;
 			});
 			this.display.clusterGroup.on('clustermouseout', cluster => {
@@ -345,41 +353,37 @@ export class MapView extends ItemView {
 	async updateMarkersToState(state: MapState, force: boolean = false) {
 		if (this.settings.debug)
 			console.time('updateMarkersToState');
-		// Get a list of all files matching the tags
-		const files = this.getFileListByQuery(state.tags);
-		// Build the markers for all files matching the tag
+		let files = this.app.vault.getFiles();
+		// Build the markers and filter them according to the query
 		let newMarkers = await buildMarkers(files, this.settings, this.app);
+		try {
+			newMarkers = this.filterMarkers(newMarkers, state.query);
+			state.queryError = false;
+		} catch (e) {
+			newMarkers = [];
+			state.queryError = true;
+		}
+		finalizeMarkers(newMarkers, this.settings);
 		// --- BEYOND THIS POINT NOTHING SHOULD BE ASYNC ---
 		// Saying it again: do not use 'await' below this line!
 		this.state = state;
 		this.updateMapMarkers(newMarkers);
-		this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
+		if (this.display.map.getCenter().distanceTo(this.state.mapCenter) > 1 || this.display.map.getZoom() != this.state.mapZoom) {
+			// We want to call setView only if there was an actual change, because even the tiniest (epsilon) change can
+			// cause Leaflet to think it's worth triggering map center change callbacks
+			this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
+		}
+		this.display.controls.setQueryBoxErrorByState();
 		if (this.settings.debug)
 			console.timeEnd('updateMarkersToState');
 	}
 
-	/**
-	 * Get a list of files containing at least one of the tags
-	 * @param tags A list of string tags to match
-	 */
-	getFileListByQuery(tags: string[]): TFile[] {
-		let results: TFile[] = [];
-		const allFiles = this.app.vault.getFiles();
-		for (const file of allFiles) {
-			var match = true;
-			if (tags && tags.length > 0) {
-				// A tags query exist, file defaults to non-matching and we'll add it if it has one of the tags
-				match = false;
-				const fileCache = this.app.metadataCache.getFileCache(file);
-				if (fileCache && fileCache.tags) {
-					const tagsMatch = fileCache.tags.some(tagInFile => tags.indexOf(tagInFile.tag) > -1);
-					if (tagsMatch)
-						match = true;
-				}
-			}
-			if (match)
-				results.push(file);
-		}
+	filterMarkers(allMarkers: FileMarker[], queryString: string) {
+		let results: FileMarker[] = [];
+		const query = new Query(this.app, queryString);
+		for (const marker of allMarkers)
+			if (query.testMarker(marker))
+				results.push(marker);
 		return results;
 	}
 
@@ -409,8 +413,8 @@ export class MapView extends ItemView {
 		for (let [key, value] of this.display.markers) {
 			markersToRemove.push(value.mapMarker);
 		}
-		this.display.clusterGroup.addLayers(markersToAdd);
 		this.display.clusterGroup.removeLayers(markersToRemove);
+		this.display.clusterGroup.addLayers(markersToAdd);
 		this.display.markers = newMarkersMap;
 	}
 
@@ -429,10 +433,12 @@ export class MapView extends ItemView {
 				};
 				this.app.workspace.trigger('link-hover', newMarker.getElement(), newMarker.getElement(), marker.file.path, '', previewDetails);
 			}
-			let content = `<p class="map-view-marker-name">${marker.file.name}</p>`;
-			if (marker.extraName)
-				content += `<p class="map-view-extra-name">${marker.extraName}</p>`;
-			newMarker.bindPopup(content, {closeButton: true, autoPan: false}).openPopup();
+			if (this.settings.showNoteNamePopup) {
+				const fileName = marker.file.name;
+				const fileNameWithoutExtension = fileName.endsWith('.md') ? fileName.substr(0, fileName.lastIndexOf('.md')) : fileName;
+				let content = `<p class="map-view-marker-name">${fileNameWithoutExtension}</p>`;
+				newMarker.bindPopup(content, {closeButton: true, autoPan: false, className: 'marker-popup'}).openPopup();
+			}
 		});
 		newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
 			newMarker.closePopup();
@@ -540,6 +546,7 @@ export class MapView extends ItemView {
 		if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
 			// Add file markers from the added file
 			await buildAndAppendFileMarkers(newMarkers, fileAddedOrChanged, this.settings, this.app)
+		finalizeMarkers(newMarkers, this.settings);
 		this.updateMapMarkers(newMarkers);
 	}
 

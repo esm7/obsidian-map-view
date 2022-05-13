@@ -29,6 +29,7 @@ export type PluginSettings = {
 	newNoteTemplate?: string;
 	// Deprecated
 	snippetLines?: number;
+	showNoteNamePopup?: boolean;
 	showNotePreview?: boolean;
 	showClusterPreview?: boolean,
 	debug?: boolean;
@@ -46,11 +47,17 @@ export type MapState = {
 	name: string;
 	mapZoom: number;
 	mapCenter: LatLng;
-	/** The tags that the user specified (including the # character) */
-	tags: string[];
+	/** The query that the user entered */
+	query: string;
+	/** If true, the query was found to be erroneous */
+	queryError?: boolean;
 	chosenMapSource?: number;
 	forceHistorySave?: boolean;
+	followActiveNote?: boolean;
 }
+
+/** Fields that are deprecated */
+export type LegacyMapState = MapState & {tags: string[]};
 
 export function mergeStates(state1: MapState, state2: MapState): MapState {
 	// Overwrite an existing state with a new one, that may have null or partial values which need to be ignored
@@ -74,7 +81,7 @@ export function areStatesEqual(state1: MapState, state2: MapState) {
 		if (mapCenter1.distanceTo(mapCenter2) > 1000)
 			return false;
 	}
-	return JSON.stringify(state1.tags) == JSON.stringify(state2.tags) &&
+	return state1.query == state2.query &&
 		state2.mapZoom == state2.mapZoom &&
 		state1.chosenMapSource == state2.chosenMapSource;
 }
@@ -95,12 +102,19 @@ export type OpenInSettings = {
 	urlPattern: string;
 }
 
+export type UrlParsingRuleType = 'latLng' | 'lngLat' | 'fetch';
+export type UrlParsingContentType = 'latLng' | 'lngLat' | 'googlePlace';
+
 export type UrlParsingRule = {
 	name: string;
 	regExp: string;
-	order: 'latFirst' | 'lngFirst';
+	ruleType: UrlParsingRuleType;
+	contentParsingRegExp?: string;
+	contentType?: UrlParsingContentType;
 	preset: boolean;
 }
+
+export type LegacyUrlParsingRule = UrlParsingRule & {order: 'latFirst' | 'lngFirst'};
 
 export type MapControls = {
 	filtersDisplayed: boolean;
@@ -119,7 +133,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 		name: 'Default',
 		mapZoom: 1.0,
 		mapCenter: new LatLng(40.44694705960048 ,-180.70312500000003),
-		tags: [],
+		query: '',
 		chosenMapSource: 0
 	},
 	savedStates: [],
@@ -133,13 +147,14 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	autoZoom: true,
 	markerClickBehavior: 'samePane',
 	newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
+	showNoteNamePopup: true,
 	showNotePreview: true,
 	showClusterPreview: false,
 	debug: false,
 	openIn: [{name: 'Google Maps', urlPattern: 'https://maps.google.com/?q={x},{y}'}],
 	urlParsingRules: [
-		{name: 'OpenStreetMap Show Address', regExp: /https:\/\/www.openstreetmap.org\S*query=([0-9\.\-]+%2C[0-9\.\-]+)\S*/.source, order: 'latFirst', preset: true},
-		{name: 'Generic Lat,Lng', regExp: /([0-9\.\-]+), ([0-9\.\-]+)/.source, order: 'latFirst', preset: true}
+		{name: 'OpenStreetMap Show Address', regExp: /https:\/\/www.openstreetmap.org\S*query=([0-9\.\-]+%2C[0-9\.\-]+)\S*/.source, ruleType: 'latLng', preset: true},
+		{name: 'Generic Lat,Lng', regExp: /([0-9\.\-]+), ([0-9\.\-]+)/.source, ruleType: 'latLng', preset: true}
 	],
 	mapControls: {filtersDisplayed: true, viewDisplayed: true, presetsDisplayed: false},
 	maxClusterRadiusPixels: 20,
@@ -178,7 +193,7 @@ export function convertLegacyDefaultState(settings: PluginSettings): boolean {
 			name: 'Default',
 			mapZoom: settings.defaultZoom || DEFAULT_SETTINGS.defaultState.mapZoom,
 			mapCenter: settings.defaultMapCenter || DEFAULT_SETTINGS.defaultState.mapCenter,
-			tags: settings.defaultTags || DEFAULT_SETTINGS.defaultState.tags,
+			query: settings.defaultTags.join(' OR ') || DEFAULT_SETTINGS.defaultState.query,
 			chosenMapSource: settings.chosenMapSource ?? DEFAULT_SETTINGS.defaultState.chosenMapSource
 		};
 		settings.defaultTags = settings.defaultZoom = settings.defaultMapCenter = settings.chosenMapSource = null;
@@ -198,4 +213,36 @@ export function removeLegacyPresets1(settings: PluginSettings): boolean {
 		return true;
 	}
 	return false;
+}
+
+export function convertTagsToQueries(settings: PluginSettings): boolean {
+	let changed = false;
+	let defaultState = settings.defaultState as LegacyMapState;
+	if (defaultState.tags && defaultState.tags.length > 0) {
+		defaultState.query = defaultState.tags.join(' OR ');
+		delete defaultState.tags;
+		changed = true;
+	}
+	for (let preset of settings.savedStates) {
+		let legacyPreset = preset as LegacyMapState;
+		if (legacyPreset.tags && legacyPreset.tags.length > 0) {
+			legacyPreset.query = legacyPreset.tags.join(' OR ');
+			delete legacyPreset.tags;
+			changed = true;
+		}
+	}
+	return changed;
+}
+
+export function convertUrlParsingRules1(settings: PluginSettings): boolean {
+	let changed = false;
+	for (let rule of settings.urlParsingRules) {
+		const legacyRule = rule as LegacyUrlParsingRule;
+		if (legacyRule.order) {
+			rule.ruleType = legacyRule.order === 'latFirst' ? 'latLng' : 'lngLat';
+			delete legacyRule.order;
+			changed = true;
+		}
+	}
+	return changed;
 }

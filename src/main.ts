@@ -5,8 +5,8 @@ import { LocationSuggest } from 'src/geosearch';
 import { UrlConvertor } from 'src/urlConvertor';
 
 import { MapView } from 'src/mapView';
-import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl, convertLegacyDefaultState, removeLegacyPresets1, MapState } from 'src/settings';
-import { getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
+import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl, convertLegacyDefaultState, removeLegacyPresets1, convertTagsToQueries, convertUrlParsingRules1, MapState } from 'src/settings';
+import { getMarkersFromFileContent, getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
 import { SettingsTab } from 'src/settingsTab';
 import { NewNoteDialog } from 'src/newNoteDialog';
 import * as utils from 'src/utils';
@@ -53,6 +53,14 @@ export default class MapViewPlugin extends Plugin {
 		if (removeLegacyPresets1(this.settings)) {
 			await this.saveSettings();
 			new Notice("Map View: legacy URL parsing rules and/or map sources were converted. See the release notes");
+		}
+		if (convertTagsToQueries(this.settings)) {
+			await this.saveSettings();
+			new Notice("Map View: legacy tag queries were converted to the new query format");
+		}
+		if (convertUrlParsingRules1(this.settings)) {
+			await this.saveSettings();
+			new Notice("Map View: URL parsing rules were converted to the new format");
 		}
 
 		// Register commands to the command palette
@@ -111,8 +119,9 @@ export default class MapViewPlugin extends Plugin {
 
 		// Add items to the file context menu (run when the context menu is built)
 		// This is the context menu in the File Explorer and clicking "More options" (three dots) from within a file.
-		this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, _source: string, leaf?: WorkspaceLeaf) => {
+		this.app.workspace.on('file-menu', async (menu: Menu, file: TAbstractFile, _source: string, leaf?: WorkspaceLeaf) => {
 			if (file instanceof TFile) {
+				let hasAnyLocation = false;
 				const location = getFrontMatterLocation(file, this.app);
 				if (location) {
 					// If there is a geolocation in the front matter of the file
@@ -131,6 +140,7 @@ export default class MapViewPlugin extends Plugin {
 					});
 					// Populate menu items from user defined "Open In" strings
 					utils.populateOpenInItems(menu, location, this.settings);
+					hasAnyLocation = true;
 				} else {
 					if (leaf && leaf.view instanceof MarkdownView) {
 						// If there is no valid geolocation in the front matter, add a menu item to populate it.
@@ -143,8 +153,20 @@ export default class MapViewPlugin extends Plugin {
 								dialog.open();
 							});
 						});
-
 					}
+				}
+				const contentMarkers = await getMarkersFromFileContent(file, this.settings, this.app);
+				if (contentMarkers.length > 0) {
+					hasAnyLocation = true;
+				}
+				if (hasAnyLocation) {
+					menu.addItem((item: MenuItem) => {
+						item.setTitle('Focus note in Map View');
+						item.setIcon('globe');
+						item.onClick(async (evt: MouseEvent) => await this.openMapWithState(
+							{query: `path:"${file.path}"`} as MapState,
+							evt.ctrlKey, true));
+					});
 				}
 			}
 		});
@@ -180,9 +202,9 @@ export default class MapViewPlugin extends Plugin {
 					});
 				}
 
-				if (this.urlConvertor.findMatchInLine(editor))
+				if (this.urlConvertor.hasMatchInLine(editor))
 					// If the line contains a recognized geolocation that can be converted from a URL parsing rule
-					menu.addItem((item: MenuItem) => {
+					menu.addItem(async (item: MenuItem) => {
 						item.setTitle('Convert to geolocation');
 						item.onClick(async () => {
 							this.urlConvertor.convertUrlAtCursorToGeolocation(editor);
@@ -190,13 +212,16 @@ export default class MapViewPlugin extends Plugin {
 					})
 
 				const clipboard = await navigator.clipboard.readText();
-				const clipboardLocation = this.urlConvertor.parseLocationFromUrl(clipboard)?.location;
+				let clipboardLocation = this.urlConvertor.parseLocationFromUrl(clipboard);
 				if (clipboardLocation) {
 					// If the clipboard contains a recognized geolocation that can be converted from a URL parsing rule
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Paste as geolocation');
 						item.onClick(async () => {
-							this.urlConvertor.insertLocationToEditor(clipboardLocation, editor);
+							if (clipboardLocation instanceof Promise)
+								clipboardLocation = await clipboardLocation;
+							if (clipboardLocation)
+								this.urlConvertor.insertLocationToEditor(clipboardLocation.location, editor);
 						});
 					})
 				}
@@ -206,15 +231,19 @@ export default class MapViewPlugin extends Plugin {
 	}
 
 	/**
-	 * Open an instance of the map at the given geolocation
+	 * Open an instance of the map at the given geolocation.
+	 * The active query is cleared so we'll be sure that the location is actually displayed.
 	 * @param location The geolocation to open the map at
 	 * @param ctrlKey Was the control key pressed
 	 */
 	private async openMapWithLocation(location: leaflet.LatLng, ctrlKey: boolean) {
-		await this.openMapWithState({mapCenter: location, mapZoom: this.settings.zoomOnGoFromNote} as MapState, ctrlKey);
+		await this.openMapWithState({
+			mapCenter: location, mapZoom: this.settings.zoomOnGoFromNote,
+			query: ''
+		} as MapState, ctrlKey);
 	}
 
-	private async openMapWithState(state: MapState, ctrlKey: boolean) {
+	private async openMapWithState(state: MapState, ctrlKey: boolean, forceAutoFit?: boolean) {
 		// Find the best candidate for a leaf to open the map view on.
 		// If there's an open map view, use that, otherwise use the current leaf.
 		// If Ctrl is pressed, override that behavior and always use the current leaf.
@@ -227,6 +256,10 @@ export default class MapViewPlugin extends Plugin {
 		if (!chosenLeaf)
 			chosenLeaf = this.app.workspace.activeLeaf;
 		await chosenLeaf.setViewState({type: consts.MAP_VIEW_NAME, state: state});
+		if (forceAutoFit) {
+			if (chosenLeaf.view instanceof MapView)
+				chosenLeaf.view.autoFitMapToMarkers();
+		}
 	}
 
 	/**

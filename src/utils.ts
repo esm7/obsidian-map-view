@@ -145,3 +145,13 @@ export async function getEditor(app: App, leafToUse?: WorkspaceLeaf) : Promise<E
 		return view.editor;
 	return null;
 }
+
+// TODO document
+export function matchByPosition(s: string, r: RegExp, position: number): RegExpMatchArray {
+	const matches = s.matchAll(r);
+	for (const match of matches) {
+		if (match.index <= position && position <= match.index + match[0].length)
+			return match;
+	}
+	return null;
+}

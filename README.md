@@ -130,7 +130,7 @@ Note that the map can be searched using the tool on the upper-right side.
 ![](img/copy.png)
 
 
-## Paste as Geolocation
+### Paste as Geolocation
 
 Map View monitors the system clipboard, and when a URL is detected to have an encoded geolocation (e.g. a Google Maps "lat, lng" location), a "Paste as geolocation" entry is added to the editor context menu.
 For example, if you right-click a location in Google Maps and click the first item in the menu (coordinates in lat,lng format), you can then paste it as a geolocation inside a note.
@@ -139,14 +139,25 @@ Alternatively, you can right-click a URL that is already present in a note and c
 
 By default Map View can parse URLs from two services: the OpenStreetMap "show address" link and a generic "lat, lng" encoding used by many URLs.
 
-## Filtering by Tags
+## Queries
 
-At the time of release, this plugin provides just one way to filter notes: an "OR" search by tags.
+Map View supports powerful queries that are roughly similar to Obsidian's query format.
+
+The query string can contain the following *search operators*:
+
+- `tag:#...` to search for notes tagged with a specific tag. Note that this refers to Obsidian tags what are applied on *whole files*, it will not catch Map View inline tags.
+- `path:...` to search by the note path. Case insensitive.
+- `link:...` to search by a link name or path that notes include. Case insensitive.
+
+You can combine these using *logical operators*: `AND`, `OR`, `NOT`, and grouping with parenthesis.
+**This differs from Obsidian's own query language which uses `-` instead of `NOT`.**
 
 Your notes are encouraged to contain Obsidian tags that represent their type (e.g. `#hike`, `#food`, `#journal-entry` or whatever you'll want to filter by).
-In the search box you can type tags separated by commas and you'll get in your view just the notes that have one of these tags.
 
-Alternatively, if you follow an inline geolocation link by `tag:yourTagName`, this tag will be added to that geolocation in addition to the note's tags.
+Some examples:
+
+- `tag:#hike AND tag:#dogs`
+- `tag:#hike AND (tag:#dogs OR tag:#amazing) AND NOT path:"bad places"`
 
 ## Marker Icons
 
@@ -299,11 +310,26 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 As noted in the disclaimer above, my wishlist for this plugin is huge and I'm unlikely to get to it all.
 There are so many things that I want it to do, and so little time...
 
-- More powerful filtering. I'd love it to be based on the [existing Obsidian query format](https://github.com/obsidianmd/obsidian-api/issues/22). What I see in mind is a powerful text search with a results pane that's linked to the map.
 - Better interoperability with Obsidian Leaflet: support for marker image files, locations as an array and `marker` tags.
 - A side bar with note summaries linked to the map view.
 
 ## Changelog
+
+### 2.0.0
+
+- Queries (TODO)
+- Queries are marker-based and not file-based. This will be a breaking change for some users.
+- "Follow active note"
+- Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
+- Fixed issues with front matter tag support (https://github.com/esm7/obsidian-map-view/issues/72)
+- Several UI improvements:
+  - The map control panel is now prettier and smaller when unused.
+  - The note name and cluster popups now follow the Obsidian theme.
+
+### 1.6.0
+
+- Powerful query filters are here! You can now combine operators of tags and paths with logical operators.
+- New "focus note in Map View" context menu for notes, which opens Map View with a path query that focuses that specific note.
 
 ### 1.5.0
 

@@ -1,9 +1,10 @@
-import { App, ButtonComponent, getAllTags, TextComponent, DropdownComponent } from 'obsidian';
+import { App, ButtonComponent, TextComponent, DropdownComponent, ToggleComponent } from 'obsidian';
 
 import { PluginSettings, MapLightDark, MapState, areStatesEqual, mergeStates } from 'src/settings';
 import { MapView } from 'src/mapView';
 import { NewPresetDialog } from 'src/newPresetDialog';
 import MapViewPlugin from 'src/main';
+import { QuerySuggest } from 'src/query';
 
 export class ViewControls {
 	private parentElement: HTMLElement;
@@ -13,15 +14,18 @@ export class ViewControls {
 	private plugin: MapViewPlugin;
 
 	public controlsDiv: HTMLDivElement;
-	private tagsBox: TextComponent;
+	private queryBox: TextComponent;
 	private mapSourceBox: DropdownComponent;
 	private sourceMode: DropdownComponent;
+	private followActiveNoteToggle: ToggleComponent;
 
 	private presetsDiv: HTMLDivElement;
 	private presetsDivContent: HTMLDivElement = null;
 	private presetsBox: DropdownComponent;
 	private lastSelectedPresetIndex: number = null;
 	private lastSelectedPreset: MapState = null;
+	private queryDelayMs = 250;
+	private lastQueryTime: number;
 
 	constructor(parentElement: HTMLElement, settings: PluginSettings, app: App, view: MapView, plugin: MapViewPlugin) {
 		this.parentElement = parentElement;
@@ -45,6 +49,11 @@ export class ViewControls {
 		await this.setNewState({...state, chosenMapSource: newSource}, false);
 	}
 
+	async setStateByFollowActiveNote(follow: boolean) {
+		const state = this.getCurrentState();
+		await this.setNewState({...state, followActiveNote: follow}, false);
+	}
+
 	public tryToGuessPreset() {
 		// Try to guess the preset based on the current state, and choose it in the dropdown
 		// (e.g. for when the plugin loads with a state)
@@ -61,28 +70,43 @@ export class ViewControls {
 
 	public updateControlsToState() {
 		this.setMapSourceBoxByState();
-		this.setTagsBoxByState();
+		this.setQueryBoxByState();
+		this.followActiveNoteToggle.setValue(this.getCurrentState().followActiveNote == true);
 	}
 
 	setMapSourceBoxByState() {
 		this.mapSourceBox.setValue(this.getCurrentState().chosenMapSource.toString());
 	}
 
-	async setStateByNewTags(newTags: string[]) {
-		// Update the state assuming the controls are updated
-		const state = this.getCurrentState();
-		await this.setNewState({...state, tags: newTags}, newTags.length > 0);
-	}
-
-	async setStateByTagString(tagListAsString: string) {
+	async setStateByQueryString(newQuery: string) {
+		// Start a timer and update the actual query only if no newer query came in
+		const timestamp = Date.now();
+		this.lastQueryTime = timestamp;
+		const Sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+		await Sleep(this.queryDelayMs);
+		if (this.lastQueryTime != timestamp) {
+			// Query is canceled by a newer query
+			return;
+		}
 		// Update the state assuming the UI is updated
-		await this.setStateByNewTags(tagListAsString.split(',').filter(t => t.length > 0));
+		const state = this.getCurrentState();
+		this.invalidateActivePreset();
+		await this.setNewState({...state, query: newQuery}, newQuery.length > 0);
 	}
 
-	setTagsBoxByState() {
+	setQueryBoxByState() {
 		// Update the UI based on the state
 		const state = this.getCurrentState();
-		this.tagsBox.setValue(state.tags.join(','));
+		this.queryBox.setValue(state.query);
+		this.setQueryBoxErrorByState();
+	}
+
+	setQueryBoxErrorByState() {
+		const state = this.getCurrentState();
+		if (state.queryError)
+			this.queryBox.inputEl.addClass('graph-control-error');
+		else
+			this.queryBox.inputEl.removeClass('graph-control-error');
 	}
 
 	public reload() {
@@ -97,44 +121,43 @@ export class ViewControls {
 		});
 		let filtersDiv = this.controlsDiv.createDiv({'cls': 'graph-control-div'});
 		filtersDiv.innerHTML = `
-			<input id="filtersCollapsible" class="toggle" type="checkbox">
+			<input id="filtersCollapsible" class="controls-toggle" type="checkbox">
+			<label for="filtersCollapsible" class="lbl-triangle">▸</label>
 			<label for="filtersCollapsible" class="lbl-toggle">Filters</label>
 			`;
-		const filtersButton = filtersDiv.getElementsByClassName('toggle')[0] as HTMLInputElement;
+		const filtersButton = filtersDiv.getElementsByClassName('controls-toggle')[0] as HTMLInputElement;
 		filtersButton.checked = this.settings.mapControls.filtersDisplayed;
 		filtersButton.onclick = async () => {
 			this.settings.mapControls.filtersDisplayed = filtersButton.checked;
 			this.plugin.saveSettings();
 		}
 		let filtersContent = filtersDiv.createDiv({'cls': 'graph-control-content'});
-		this.tagsBox = new TextComponent(filtersContent);
-		this.tagsBox.setPlaceholder('Tags, e.g. "#one,#two"');
-		this.tagsBox.onChange((tagsBox: string) => {
-			this.setStateByTagString(tagsBox);
+		this.queryBox = new TextComponent(filtersContent);
+		this.queryBox.setPlaceholder('Query');
+		this.queryBox.onChange((query: string) => {
+			this.setStateByQueryString(query);
 		});
-		let tagSuggestions = new DropdownComponent(filtersContent);
-		tagSuggestions.setValue('Quick add tag');
-		tagSuggestions.addOption('', 'Quick add tag');
-		for (const tagName of this.getAllTagNames())
-			tagSuggestions.addOption(tagName, tagName);
-		tagSuggestions.onChange(async value => {
-			let currentTags = this.getCurrentState().tags;
-			if (currentTags.indexOf(value) < 0) {
-				const newTags = currentTags.concat(value);
-				await this.setStateByNewTags(newTags);
-				this.setTagsBoxByState();
+		let suggestor: QuerySuggest = null;
+		this.queryBox.inputEl.addEventListener('focus', (ev: FocusEvent) => {
+			if (!suggestor) {
+				suggestor = new QuerySuggest(this.app, this.queryBox);
+				suggestor.open();
 			}
-			tagSuggestions.setValue('Quick add tag');
-			this.tagsBox.inputEl.focus();
-			this.tagsBox.onChanged();
+		});
+		this.queryBox.inputEl.addEventListener('focusout', (ev: FocusEvent) => {
+			if (suggestor) {
+				suggestor.close();
+				suggestor = null;
+			}
 		});
 
 		let viewDiv = this.controlsDiv.createDiv({'cls': 'graph-control-div'});
 		viewDiv.innerHTML = `
-			<input id="viewCollapsible" class="toggle" type="checkbox">
+			<input id="viewCollapsible" class="controls-toggle" type="checkbox">
+			<label for="viewCollapsible" class="lbl-triangle">▸</label>
 			<label for="viewCollapsible" class="lbl-toggle">View</label>
 			`;
-		const viewButton = viewDiv.getElementsByClassName('toggle')[0] as HTMLInputElement;
+		const viewButton = viewDiv.getElementsByClassName('controls-toggle')[0] as HTMLInputElement;
 		viewButton.checked = this.settings.mapControls.viewDisplayed;
 		viewButton.onclick = async () => {
 			this.settings.mapControls.viewDisplayed = viewButton.checked;
@@ -171,13 +194,21 @@ export class ViewControls {
 			.setButtonText('Fit')
 			.setTooltip('Set the map view to fit all currently-displayed markers.')
 			.onClick(() => this.view.autoFitMapToMarkers());
+		const followDiv = viewDivContent.createDiv({'cls': 'graph-control-follow-div'});
+		this.followActiveNoteToggle = new ToggleComponent(followDiv);
+		const followLabel = followDiv.createEl("label");
+		followLabel.className = 'graph-control-follow-label';
+		followLabel.addEventListener('click', () => this.followActiveNoteToggle.onClick());
+		followLabel.innerHTML = 'Follow active note';
+		this.followActiveNoteToggle.onChange(value => { this.setStateByFollowActiveNote(value); });
 
 		this.presetsDiv = this.controlsDiv.createDiv({'cls': 'graph-control-div'});
 		this.presetsDiv.innerHTML = `
-			<input id="presetsCollapsible" class="toggle" type="checkbox">
+			<input id="presetsCollapsible" class="controls-toggle" type="checkbox">
+			<label for="presetsCollapsible" class="lbl-triangle">▸</label>
 			<label for="presetsCollapsible" class="lbl-toggle">Presets</label>
 			`;
-		const presetsButton = this.presetsDiv.getElementsByClassName('toggle')[0] as HTMLInputElement;
+		const presetsButton = this.presetsDiv.getElementsByClassName('controls-toggle')[0] as HTMLInputElement;
 		presetsButton.checked = this.settings.mapControls.presetsDisplayed;
 		presetsButton.onclick = async () => {
 			this.settings.mapControls.presetsDisplayed = presetsButton.checked;
@@ -186,20 +217,6 @@ export class ViewControls {
 		this.refreshPresets();
 
 		this.parentElement.append(this.controlsDiv);
-	}
-
-	getAllTagNames() : string[] {
-		let tags: string[] = [];
-		const allFiles = this.app.vault.getFiles();
-		for (const file of allFiles) {
-			const fileCache = this.app.metadataCache.getFileCache(file);
-			if (fileCache && fileCache.tags) {
-				const fileTagNames = getAllTags(fileCache) || [];
-				tags = tags.concat(fileTagNames.filter(tagName => tags.indexOf(tagName) < 0));
-			}
-		}
-		tags = tags.sort();
-		return tags;
 	}
 
 	async choosePresetAndUpdateState(chosenPresetNumber: number) {

@@ -1,4 +1,4 @@
-import { Modal, App, TextComponent, ButtonComponent, ToggleComponent } from 'obsidian';
+import { Modal, App, TextComponent, ButtonComponent } from 'obsidian';
 
 import { PluginSettings, MapState } from 'src/settings';
 import MapViewPlugin from 'src/main';
