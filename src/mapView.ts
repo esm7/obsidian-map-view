@@ -10,6 +10,7 @@ import {
     WorkspaceLeaf,
     Notice,
     ViewState,
+    getAllTags,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -472,27 +473,28 @@ export class MapView extends ItemView {
 
     /**
      * Get a list of files containing at least one of the tags
-     * @param tags A list of string tags to match
+     * @param matchTags A list of string tags to match
      */
-    getFileListByQuery(tags: string[]): TFile[] {
-        let results: TFile[] = [];
+    getFileListByQuery(matchTags: string[]): TFile[] {
         const allFiles = this.app.vault.getFiles();
-        for (const file of allFiles) {
-            var match = true;
-            if (tags && tags.length > 0) {
+        if (matchTags && matchTags.length > 0) {
+            let results: TFile[] = [];
+            for (const file of allFiles) {
                 // A tags query exist, file defaults to non-matching and we'll add it if it has one of the tags
-                match = false;
                 const fileCache = this.app.metadataCache.getFileCache(file);
-                if (fileCache && fileCache.tags) {
-                    const tagsMatch = fileCache.tags.some(
-                        (tagInFile) => tags.indexOf(tagInFile.tag) > -1
-                    );
-                    if (tagsMatch) match = true;
+                const fileTags = getAllTags(fileCache);
+                if (
+                    fileTags &&
+                    fileTags.some((tagInFile) => matchTags.contains(tagInFile))
+                ) {
+                    // if there are tags in the file and one of them is a tag to match then add the file
+                    results.push(file);
                 }
             }
-            if (match) results.push(file);
+            return results;
+        } else {
+            return allFiles;
         }
-        return results;
     }
 
     /**
