@@ -317,7 +317,11 @@ There are so many things that I want it to do, and so little time...
 
 ### 2.0.0
 
-- Queries (TODO)
+**Unreleased version, work in progress.**
+
+Mostly feature-complete, this README needs to get updated.
+
+- Queries (TODO document)
 - Queries are marker-based and not file-based. This will be a breaking change for some users.
 - "Follow active note"
 - Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
