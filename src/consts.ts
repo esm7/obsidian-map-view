@@ -18,3 +18,6 @@ export const HISTORY_SAVE_ZOOM_DIFF = 2;
 
 export const LAT_LIMITS = [-90, 90];
 export const LNG_LIMITS = [-180, 180];
+
+export const MAX_ZOOM = 25;
+export const DEFAULT_MAX_TILE_ZOOM = 19;
