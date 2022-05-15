@@ -124,9 +124,7 @@ export function stringFrontMatterSet(
 ): string {
     const frontMatterMatch = content.match(FRONT_MATTER_PATTERN);
     if (frontMatterMatch !== null) {
-        console.log(frontMatterMatch);
         let frontMatterYaml = frontMatterMatch.groups.yaml;
-        console.log(frontMatterYaml);
         content = content.slice(frontMatterMatch[0].length);
 
         // this works but modifies formatting
@@ -144,11 +142,11 @@ export function stringFrontMatterSet(
         // }
 
         // this does not have a trailing newline to preserve the formatting. If it had one, a new one would be added each time
-        return `---\n${frontMatterYaml}\n---` + content;
+        return `---\n${frontMatterYaml}---` + content;
     } else {
         const frontMatterYaml = stringifyYaml({ [fieldName]: fieldValue });
         // this has a trailing newline to shift the old first line down below the front matter
-        return `---\n${frontMatterYaml}\n---\n` + content;
+        return `---\n${frontMatterYaml}---\n` + content;
     }
 }
 
