@@ -11,6 +11,7 @@ import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
 import { getIconFromOptions, getIconFromRules } from 'src/markers';
 import { MapView } from 'src/mapView';
 import * as consts from 'src/consts';
+import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
 
 export class SettingsTab extends PluginSettingTab {
     plugin: MapViewPlugin;
@@ -258,6 +259,7 @@ export class SettingsTab extends PluginSettingTab {
                 this.plugin.settings.mapSources.push({
                     name: '',
                     urlLight: '',
+                    maxZoom: DEFAULT_MAX_TILE_ZOOM,
                     currentMode: 'auto',
                 });
                 this.refreshMapSourceSettings(mapSourcesDiv);
@@ -392,6 +394,25 @@ export class SettingsTab extends PluginSettingTab {
                             setting.urlDark = value;
                             this.refreshPluginOnHide = true;
                             await this.plugin.saveSettings();
+                        });
+                })
+                .addText((component) => {
+                    component
+                        .setPlaceholder('Max Tile Zoom')
+                        .setValue(
+                            (typeof setting.maxZoom === 'number'
+                                ? setting.maxZoom
+                                : DEFAULT_MAX_TILE_ZOOM
+                            ).toString()
+                        )
+                        .onChange(async (value: string) => {
+                            let zoom = parseInt(value);
+                            if (typeof zoom == 'number') {
+                                zoom = Math.min(Math.max(0, zoom), MAX_ZOOM);
+                                setting.maxZoom = zoom;
+                                this.refreshPluginOnHide = true;
+                                await this.plugin.saveSettings();
+                            }
                         });
                 });
             if (!setting.preset)
