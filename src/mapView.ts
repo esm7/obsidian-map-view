@@ -1,5 +1,4 @@
 import {
-    App,
     TAbstractFile,
     Loc,
     Editor,
@@ -9,7 +8,6 @@ import {
     TFile,
     WorkspaceLeaf,
     Notice,
-    ViewState,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -41,7 +39,6 @@ import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import { ViewControls } from 'src/viewControls';
-import { DragEndEvent, LeafletEvent } from 'leaflet';
 
 export class MapView extends ItemView {
     private settings: PluginSettings;
@@ -586,11 +583,17 @@ export class MapView extends ItemView {
         });
         newMarker.on('dragend', async (event: leaflet.DragEndEvent) => {
             const latlng = newMarker.getLatLng();
-            const location = `${latlng.lat},${latlng.lng}`;
-            if (marker.fileLocation === null) {
+            if (marker.fileLocation === undefined) {
                 // is a front matter location
+                await utils.vaultFrontMatterSet(
+                    this.app.vault,
+                    marker.file,
+                    'location',
+                    [latlng.lat, latlng.lng]
+                );
             } else {
                 // is an inline location
+                const location = `${latlng.lat},${latlng.lng}`;
                 const old_file = await this.app.vault.cachedRead(marker.file);
                 const new_file =
                     old_file.slice(0, marker.fileLocation) +
