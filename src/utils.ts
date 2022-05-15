@@ -36,7 +36,7 @@ export function formatWithTemplates(s: string, query = '') {
 type NewNoteType = 'singleLocation' | 'multiLocation';
 
 const CURSOR = '$CURSOR$';
-const FRONT_MATTER_PATTERN = /^---\n(?<yaml>.*)^---/ms;
+const FRONT_MATTER_PATTERN = /^---\r?\n(?<yaml>.*?)^---/ms;
 
 function sanitizeFileName(s: string) {
     const illegalChars = /[\?<>\\:\*\|":]/g;
