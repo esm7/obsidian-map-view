@@ -6,6 +6,8 @@ import {
     TFile,
     Menu,
     MenuItem,
+    Vault,
+    stringifyYaml,
 } from 'obsidian';
 
 import * as moment_ from 'moment';
@@ -14,6 +16,8 @@ import * as path from 'path';
 import * as settings from './settings';
 import * as consts from './consts';
 import { MapView } from './mapView';
+
+import YAWN from 'yawn-yaml';
 
 export function formatWithTemplates(s: string, query = '') {
     const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;
@@ -31,6 +35,7 @@ export function formatWithTemplates(s: string, query = '') {
 type NewNoteType = 'singleLocation' | 'multiLocation';
 
 const CURSOR = '$CURSOR$';
+const FRONT_MATTER_PATTERN = /^---\n(?<yaml>.*)^---/ms;
 
 function sanitizeFileName(s: string) {
     const illegalChars = /[\?<>\\:\*\|":]/g;
@@ -105,6 +110,53 @@ export async function handleNewNoteCursorMarker(editor: Editor) {
     if (cursorMarkerIndex > -1) {
         editor.setValue(templateValue.replace(CURSOR, ''));
         await goToEditorLocation(editor, cursorMarkerIndex, false);
+    }
+}
+
+// Set/setdefault a top level YAML value in a file content string
+// If the YAML front matter does not exist it will be created
+export function stringFrontMatterSet(
+    content: string,
+    fieldName: string,
+    fieldValue: any,
+    set_default: boolean = false
+): string {
+    const frontMatterMatch = content.match(FRONT_MATTER_PATTERN);
+    if (frontMatterMatch !== null) {
+        console.log(frontMatterMatch);
+        let frontMatterYaml = frontMatterMatch.groups.yaml;
+        console.log(frontMatterYaml);
+        content = content.slice(frontMatterMatch[0].length);
+        let yawn = new YAWN(frontMatterYaml);
+        if (set_default ? !yawn.json.hasOwnProperty(fieldName) : true) {
+            yawn.json[fieldName] = fieldValue;
+            return `---\n${yawn.yaml}\n---` + content;
+        }
+        return `---\n${frontMatterYaml}\n---` + content;
+    } else {
+        const frontMatterYaml = stringifyYaml({ [fieldName]: fieldValue });
+        const newFrontMatter = `---\n${frontMatterYaml}\n---\n`;
+        return newFrontMatter + content;
+    }
+}
+
+// Set/setdefault a top level value in the front matter of a file.
+export async function vaultFrontMatterSet(
+    vault: Vault,
+    file: TFile,
+    fieldName: string,
+    fieldValue: any,
+    set_default: boolean = false
+) {
+    const old_file = await vault.cachedRead(file);
+    const new_file = stringFrontMatterSet(
+        old_file,
+        fieldName,
+        fieldValue,
+        set_default
+    );
+    if (old_file != new_file) {
+        await vault.modify(file, new_file);
     }
 }
 
