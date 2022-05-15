@@ -8,6 +8,7 @@ import {
     MenuItem,
     Vault,
     stringifyYaml,
+    parseYaml,
 } from 'obsidian';
 
 import * as moment_ from 'moment';
@@ -17,7 +18,7 @@ import * as settings from './settings';
 import * as consts from './consts';
 import { MapView } from './mapView';
 
-import YAWN from 'yawn-yaml';
+// import YAWN from 'yawn-yaml';
 
 export function formatWithTemplates(s: string, query = '') {
     const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;
@@ -127,16 +128,27 @@ export function stringFrontMatterSet(
         let frontMatterYaml = frontMatterMatch.groups.yaml;
         console.log(frontMatterYaml);
         content = content.slice(frontMatterMatch[0].length);
-        let yawn = new YAWN(frontMatterYaml);
-        if (set_default ? !yawn.json.hasOwnProperty(fieldName) : true) {
-            yawn.json[fieldName] = fieldValue;
-            return `---\n${yawn.yaml}\n---` + content;
+
+        // this works but modifies formatting
+        let yaml = parseYaml(frontMatterYaml);
+        if (set_default ? !yaml.hasOwnProperty(fieldName) : true) {
+            yaml[fieldName] = fieldValue;
+            frontMatterYaml = stringifyYaml(yaml);
         }
+
+        // this is a better way to do it if we can get yawn-yaml to work
+        // let yawn = new YAWN(frontMatterYaml);
+        // if (set_default ? !yawn.json.hasOwnProperty(fieldName) : true) {
+        //     yawn.json[fieldName] = fieldValue;
+        //     return `---\n${yawn.yaml}\n---` + content;
+        // }
+
+        // this does not have a trailing newline to preserve the formatting. If it had one, a new one would be added each time
         return `---\n${frontMatterYaml}\n---` + content;
     } else {
         const frontMatterYaml = stringifyYaml({ [fieldName]: fieldValue });
-        const newFrontMatter = `---\n${frontMatterYaml}\n---\n`;
-        return newFrontMatter + content;
+        // this has a trailing newline to shift the old first line down below the front matter
+        return `---\n${frontMatterYaml}\n---\n` + content;
     }
 }
 
