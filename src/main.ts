@@ -8,7 +8,7 @@ import { MapView } from 'src/mapView';
 import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl, convertLegacyDefaultState, removeLegacyPresets1, convertTagsToQueries, convertUrlParsingRules1, MapState } from 'src/settings';
 import { getMarkersFromFileContent, getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
 import { SettingsTab } from 'src/settingsTab';
-import { NewNoteDialog } from 'src/newNoteDialog';
+import { LocationSearchDialog } from 'src/locationSearchDialog';
 import * as utils from 'src/utils';
 
 export default class MapViewPlugin extends Plugin {
@@ -100,7 +100,7 @@ export default class MapViewPlugin extends Plugin {
 			id: 'new-geolocation-note',
 			name: 'New geolocation note',
 			callback: () => {
-				const dialog = new NewNoteDialog(this.app, this.settings);
+				const dialog = new LocationSearchDialog(this.app, this.settings, 'newNote', 'New geolocation note');
 				dialog.open();
 			}
 		});
@@ -110,8 +110,25 @@ export default class MapViewPlugin extends Plugin {
 			id: 'add-frontmatter-geolocation',
 			name: 'Add geolocation (front matter) to current note',
 			editorCallback: (editor, view) => {
-				const dialog = new NewNoteDialog(this.app, this.settings, 'addToNote', editor);
+				const dialog = new LocationSearchDialog(
+					this.app, this.settings, 'addToNote', 'Add geolocation to note', editor);
 				dialog.open();
+			}
+		});
+
+		// TODO: capture the 'search current file' key and map it automatically
+		this.addCommand({
+			id: 'open-map-search',
+			name: 'Search active map view',
+			checkCallback: (checking) => {
+				const currentView = this.app.workspace.activeLeaf.view;
+				if (currentView && currentView.getViewType() == consts.MAP_VIEW_NAME) {
+					if (!checking)
+						(currentView as MapView).openSearch();
+					return true;
+				}
+				else
+					return false;
 			}
 		});
 
@@ -149,7 +166,8 @@ export default class MapViewPlugin extends Plugin {
 							item.setTitle('Add geolocation (front matter)');
 							item.setIcon('globe');
 							item.onClick(async (evt: MouseEvent) => {
-								const dialog = new NewNoteDialog(this.app, this.settings, 'addToNote', editor);
+								const dialog = new LocationSearchDialog(
+									this.app, this.settings, 'addToNote', 'Add geolocation to note', editor);
 								dialog.open();
 							});
 						});

@@ -1,11 +1,10 @@
-import { App, TAbstractFile, Loc, Editor, ItemView, MenuItem, Menu, TFile, WorkspaceLeaf, Notice, ViewState } from 'obsidian';
+import { App, TAbstractFile, Loc, Editor, ItemView, MenuItem, Menu, TFile, WorkspaceLeaf, Notice } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 import * as leafletFullscreen from 'leaflet-fullscreen';
 import '@fortawesome/fontawesome-free/js/all.min';
 import 'leaflet/dist/leaflet.css';
-import { GeoSearchControl } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -14,12 +13,11 @@ import 'leaflet.markercluster';
 import * as consts from 'src/consts';
 import { PluginSettings, MapState, DEFAULT_SETTINGS, mergeStates } from 'src/settings';
 import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers, finalizeMarkers } from 'src/markers';
-import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
-import { ViewControls } from 'src/viewControls';
+import { ViewControls, SearchControl } from 'src/viewControls';
 import { Query } from 'src/query';
-
+import { SuggestInfo } from 'src/locationSearchDialog';
 
 export class MapView extends ItemView {
 	private settings: PluginSettings;
@@ -40,6 +38,10 @@ export class MapView extends ItemView {
 		/** The markers currently on the map */
 		markers: MarkersMap = new Map();
 		controls: ViewControls;
+		/** The search controls (search & clear buttons) */
+		searchControls: SearchControl = null;
+		/** A marker of the last search result */
+		searchResult: leaflet.Marker = null;
 	};
 	private plugin: MapViewPlugin;
 	/** The default state as saved in the plugin settings */
@@ -247,15 +249,6 @@ export class MapView extends ItemView {
 			maxClusterRadius: this.settings.maxClusterRadiusPixels ?? DEFAULT_SETTINGS.maxClusterRadiusPixels});
 		this.display.map.addLayer(this.display.clusterGroup);
 
-		const suggestor = new LocationSuggest(this.app, this.settings);
-		const searchControl = GeoSearchControl({
-			provider: suggestor.searchProvider,
-			position: 'topright',
-			marker: {
-				icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER as leaflet.BaseIconOptions)
-			},
-			style: 'button'});
-		this.display.map.addControl(searchControl);
 		this.display.map.on('zoomend', (event: leaflet.LeafletEvent) => {
 			this.state.mapZoom = this.display.map.getZoom();
 			this.state.mapCenter = this.display.map.getCenter();
@@ -269,6 +262,9 @@ export class MapView extends ItemView {
 			const state = this.leaf.getViewState();
 			this.leaf.setViewState(state);
 		});
+
+		this.display.searchControls = new SearchControl({position: 'topright'}, this, this.app, this.settings);
+		this.display.map.addControl(this.display.searchControls);
 
 		if (this.settings.showClusterPreview) {
 			this.display.clusterGroup.on('clustermouseover', cluster => {
@@ -294,6 +290,7 @@ export class MapView extends ItemView {
 				state.state.forceHistorySave = true;
 				this.leaf.setViewState(state);
 			});
+
 		}
 
 		// Build the map marker right-click context menu
@@ -550,5 +547,29 @@ export class MapView extends ItemView {
 		this.updateMapMarkers(newMarkers);
 	}
 
+	addSearchResultMarker(details: SuggestInfo) {
+		this.display.searchResult = leaflet.marker(details.location, { icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER) });
+		const marker = this.display.searchResult;
+		marker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+			marker.bindPopup(details.name, {closeButton: true, className: 'marker-popup'}).openPopup();
+		});
+		marker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
+			marker.closePopup();
+		});
+		marker.addTo(this.display.map);
+		let currentState = this.leaf.getViewState();
+		(currentState.state as MapState).mapCenter = details.location;
+		(currentState.state as MapState).mapZoom = this.settings.zoomOnGoFromNote;
+		this.leaf.setViewState(currentState);
+	}
+
+	removeSearchResultMarker() {
+		this.display.searchResult.removeFrom(this.display.map);
+		this.display.searchResult = null;
+	}
+
+	openSearch() {
+		this.display.searchControls.openSearch();
+	}
 }
 

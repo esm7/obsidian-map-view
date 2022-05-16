@@ -1,20 +1,20 @@
-import { Editor, MarkdownView, App, WorkspaceLeaf, SuggestModal, TFile } from 'obsidian';
+import { Editor, App, SuggestModal, TFile } from 'obsidian';
 import * as leaflet from 'leaflet';
 
 import { PluginSettings } from 'src/settings';
 import { LocationSuggest } from 'src/geosearch';
 import { UrlConvertor, ParsedLocation } from 'src/urlConvertor';
-import { MapView } from 'src/mapView';
 import * as utils from 'src/utils';
-import * as consts from 'src/consts';
 
-class SuggestInfo {
+export class SuggestInfo {
 	name: string;
 	location?: leaflet.LatLng;
 	type: 'searchResult' | 'url';
 }
 
-export class NewNoteDialog extends SuggestModal<SuggestInfo> {
+type DialogAction = 'newNote' | 'addToNote' | 'custom';
+
+export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
 	private settings: PluginSettings;
 	private suggestor: LocationSuggest;
 	private urlConvertor: UrlConvertor;
@@ -23,10 +23,18 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 	private lastSearch = '';
 	private lastSearchResults: SuggestInfo[] = [];
 
-	private dialogAction: 'newNote' | 'addToNote' = 'newNote';
+	private dialogAction: DialogAction;
 	private editor: Editor = null;
 
-	constructor(app: App, settings: PluginSettings, dialogAction: 'newNote' | 'addToNote' = 'newNote', editor: Editor = null) {
+	// If dialogAction is 'custom', this will launch upon selection
+	public customOnSelect: (selection: SuggestInfo) => void;
+
+	constructor(
+			app: App,
+			settings: PluginSettings,
+			dialogAction: DialogAction,
+			title: string,
+			editor: Editor = null) {
 		super(app);
 		this.settings = settings;
 		this.suggestor = new LocationSuggest(this.app, this.settings);
@@ -34,7 +42,7 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 		this.dialogAction = dialogAction;
 		this.editor = editor;
 
-		this.setPlaceholder('Type a search query or paste a supported URL');
+		this.setPlaceholder(title + ': type a place name or paste a string to parse');
 		this.setInstructions([{command: 'enter', purpose: 'to use'}]);
 	}
 
@@ -63,6 +71,8 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
 			this.newNote(value.location, evt, value.name);
 		else if (this.dialogAction == 'addToNote')
 			this.addToNote(value.location, evt, value.name);
+		else if (this.dialogAction == 'custom' && this.customOnSelect != null)
+			this.customOnSelect(value);
 	}
 
 	async newNote(location: leaflet.LatLng, ev: MouseEvent | KeyboardEvent, query: string) {

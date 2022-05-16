@@ -108,3 +108,4 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
 		}
 	}
 }
+

@@ -5,6 +5,9 @@ import { MapView } from 'src/mapView';
 import { NewPresetDialog } from 'src/newPresetDialog';
 import MapViewPlugin from 'src/main';
 import { QuerySuggest } from 'src/query';
+import { LocationSearchDialog, SuggestInfo } from 'src/locationSearchDialog';
+
+import * as leaflet from 'leaflet';
 
 export class ViewControls {
 	private parentElement: HTMLElement;
@@ -290,5 +293,49 @@ export class ViewControls {
 			this.presetsBox.setValue('-1');
 		}
 	}
-
 };
+
+export class SearchControl extends leaflet.Control {
+	view: MapView;
+	app: App;
+	settings: PluginSettings;
+	searchButton: HTMLAnchorElement;
+	clearButton: HTMLAnchorElement;
+
+	constructor(options: any, view: MapView, app: App, settings: PluginSettings) {
+		super(options);
+		this.view = view;
+		this.app = app;
+		this.settings = settings;
+	}
+
+	onAdd(map: leaflet.Map) {
+		const div = leaflet.DomUtil.create('div', 'leaflet-bar leaflet-control');
+		this.searchButton = div.createEl('a');
+		this.searchButton.innerHTML = '🔍';
+		this.searchButton.onClickEvent((ev: MouseEvent) => {
+			this.openSearch();
+		});
+		this.clearButton = div.createEl('a');
+		this.clearButton.innerHTML = 'X';
+		this.clearButton.style.display = 'none';
+		this.clearButton.onClickEvent((ev: MouseEvent) => {
+			this.view.removeSearchResultMarker();
+			this.clearButton.style.display = 'none';
+		});
+		
+		return div;
+	}
+
+	openSearch() {
+		const searchDialog = new LocationSearchDialog(
+			this.app, this.settings, 'custom', 'Find in map');
+		searchDialog.customOnSelect = (selection: SuggestInfo) => {
+			if (selection && selection.location) {
+				this.view.addSearchResultMarker(selection);
+				this.clearButton.style.display = 'block';
+			}
+		};
+		searchDialog.open();
+	}
+}
