@@ -1,20 +1,24 @@
-import { addIcon, Notice, Editor, FileView, MarkdownView, MenuItem, Menu, TFile, Plugin, WorkspaceLeaf, TAbstractFile } from 'obsidian';
+import { addIcon, Notice, Editor, FileView, MarkdownView, MenuItem, Menu, TFile, Plugin, WorkspaceLeaf, TAbstractFile, ObsidianProtocolData } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
-import { LocationSuggest } from 'src/geosearch';
+import { LocationSuggest } from 'src/locationSuggest';
 import { UrlConvertor } from 'src/urlConvertor';
+import { stateFromParsedUrl } from 'src/mapState';
 
 import { MapView } from 'src/mapView';
-import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl, convertLegacyDefaultState, removeLegacyPresets1, convertTagsToQueries, convertUrlParsingRules1, MapState } from 'src/settings';
+import { PluginSettings, DEFAULT_SETTINGS, convertLegacyMarkerIcons, convertLegacyTilesUrl, convertLegacyDefaultState, removeLegacyPresets1, convertTagsToQueries, convertUrlParsingRules1 } from 'src/settings';
+import { MapState } from 'src/mapState';
 import { getMarkersFromFileContent, getFrontMatterLocation, matchInlineLocation, verifyLocation } from 'src/markers';
 import { SettingsTab } from 'src/settingsTab';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
+import { TagSuggest } from 'src/tagSuggest';
 import * as utils from 'src/utils';
 
 export default class MapViewPlugin extends Plugin {
 	settings: PluginSettings;
 	public highestVersionSeen: number = 0;
 	private suggestor: LocationSuggest;
+	private tagSuggestor: TagSuggest;
 	private urlConvertor: UrlConvertor;
 
 	async onload() {
@@ -32,10 +36,19 @@ export default class MapViewPlugin extends Plugin {
 			return new MapView(leaf, this.settings, this);
 		});
 
+		this.registerObsidianProtocolHandler('mapview', (params: ObsidianProtocolData) => {
+			if (params.action == 'mapview') {
+				const state = stateFromParsedUrl(params);
+				this.openMapWithState(state, false, false);
+			}
+		});
+
 		this.suggestor = new LocationSuggest(this.app, this.settings);
+		this.tagSuggestor = new TagSuggest(this.app, this.settings);
 		this.urlConvertor = new UrlConvertor(this.app, this.settings);
 
 		this.registerEditorSuggest(this.suggestor);
+		this.registerEditorSuggest(this.tagSuggestor);
 
 		// Convert old settings formats that are no longer supported
 		if (convertLegacyMarkerIcons(this.settings)) {

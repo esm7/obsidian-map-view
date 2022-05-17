@@ -150,13 +150,21 @@ Map View supports powerful queries that are roughly similar to Obsidian's query 
 
 The query string can contain the following *search operators*:
 
-- `tag:#...` to search for notes or markers tagged with a specific tag. This works on both whole notes (`#hiking`) and inline tags for specific markers (`tag:hiking`).
-- `path:...` to search by the note path. Case insensitive. This operator will include all the markers in the path that matches the query.
-- `linkedto:...` includes notes that contain a specific link. Case insensitive. This operator will include a note (with all the markers in it) if it has a link name that matches the query. For example, if you have a note named `Cave Hikes` and you have geolocated notes that **link to it** (e.g. include `[[Cave Hikes]]` as a link), include them by the filter `linkedto:"Cave Hikes"` or a portion of that name.
-- `linkedfrom:...` includes notes that are linked from a specific note, and also the origin note itself. Case insensitive. This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query. For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
+- `tag:#...` to search for notes or markers tagged with a specific tag.
+  - This works on both whole notes (`#hiking`) and inline tags for specific markers (`tag:hiking`).
+- `path:...` to search by the note path.
+  - This operator will include all the markers in the path that matches the query.
+- `linkedto:...` includes notes that contain a specific link.
+  - This operator will include a note (with all the markers in it) if it has a link name that matches the query.
+  - For example, if you have a note named `Cave Hikes` and you have geolocated notes that **link to it** (e.g. include `[[Cave Hikes]]` as a link), include them by the filter `linkedto:"Cave Hikes"` or a portion of that name.
+- `linkedfrom:...` includes notes that are linked from a specific note, and also the origin note itself.
+  - This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query.
+  - For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
+
+All operators are case insensitive.
 
 You can combine the above with *logical operators*: `AND`, `OR`, `NOT`, and grouping with parenthesis.
-**This differs from Obsidian's own query language which uses `-` instead of `NOT`.**
+**This differs from Obsidian's own query language which uses `-` instead of `NOT` and treats spaces as 'AND'.**
 
 For examples:
 
@@ -333,15 +341,20 @@ There are so many things that I want it to do, and so little time...
 
 Mostly feature-complete, this README needs to get updated.
 
-- Queries (TODO document)
-- Queries are marker-based and not file-based. This will be a breaking change for some users.
+- Instead of the previous simplistic tag filtering, Map View now has a powerful [Queries](#queries) support with multiple search and logical operators.
+  - Queries are marker-based and not file-based. This will be a breaking change for some users.
 - "Follow active note"
 - Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
 - Fixed issues with front matter tag support (https://github.com/esm7/obsidian-map-view/issues/72) (thanks @gentlegiantJGC!)
 - Added a configuration for the max zoom of a tile layer (thanks @gentlegiantJGC!)
 - The map search tool now uses the same search window as "New geolocation note", which beyond the configured geocoding service, also does URL parsing.
+  - It also includes existing markers, so you can quickly jump to a place on the map.
   - Except the bonus of making the UI more uniform, this is very important for usability, especially on mobile. e.g. you can use it to get your location from another app and use it to create notes or explore around.
   - A "search active map view" command was added (available when a map view is focused) so a keyboard shortcut can be assigned to the map search.
+- Auto-completion for inline tags. If you type `tag:` in a line that includes a valid geolocation, you will get suggestions for tag names.
+- In the context menu of a map view, or in the Presets controls section, you can copy the active view as a link. (TODO document)
+  - Clicking this link from another app should launch Obsidian and open Map View with the exact same view (including the query, zoom, pan and map source).
+  - To use this in Obsidian notes paste the URL inside a link, e.g. `[Link name](obsidian://...)`
 - Several UI improvements:
   - The map control panel is now prettier and smaller when unused.
   - The note name and cluster popups now follow the Obsidian theme.

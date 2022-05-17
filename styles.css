@@ -4,11 +4,6 @@
     font-family: var(--font-text);
 }
 
-.map-view-marker-snippet {
-	white-space: pre-line;
-	overflow-wrap: break-word;
-}
-
 .map-view-location {
 	font-weight: bold;
 	text-decoration: underline;
@@ -124,3 +119,12 @@
 	text-align: right;
 }
 
+.map-search-suggestion {
+	display: flex;
+}
+
+.search-text-div {
+	display: flex;
+	align-items: center;
+	padding-left: 10px;
+}

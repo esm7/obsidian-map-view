@@ -1,8 +1,10 @@
-import { App, TFile, TextComponent, PopoverSuggest, Scope, getAllTags } from 'obsidian';
+import { App, TFile, TextComponent, PopoverSuggest, Scope } from 'obsidian';
 
 import * as consts from 'src/consts';
 import { matchByPosition } from 'src/utils';
+import { getTagUnderCursor } from 'src/regex';
 import { FileMarker } from 'src/markers';
+import * as utils from 'src/utils';
 
 import * as parser from 'boon-js';
 
@@ -30,6 +32,7 @@ export class Query {
 	preprocessQueryString(queryString: string) {
 		// 1. Replace tag:#abc by "tag:#abc" because this parser doesn't like the '#' symbol
 		// 2. Replace path:"abc def/ghi" by "path:abc def/dhi" because the parser doesn't like quotes as part of the words
+		// 3. Same goes for linkedto:"" and linkedfrom:""
 		let newString = queryString
 			.replace(/tag:(#[\w\/\-]+)/g, '\"tag:$1\"')
 			.replace(/path:\"([\w\s\/\-\\\.]+?)\"/g, '\"path:$1\"')
@@ -110,15 +113,22 @@ export class Query {
 }
 
 type Suggestion = {
+	// What to show in the menu, and what to insert if textToInsert doesn't exist
 	text: string;
 	// Will insert this instead of `text` if exists
 	textToInsert?: string;
+	// Is this a group in the menu? (can't be selected)
 	group?: boolean;
+	// The menu element
 	element?: HTMLDivElement;
+	// Text to append after inserting textToInsert
 	append?: string;
+	// On which index to insert textToInsert
 	insertAt?: number;
 	// After 'insertAt' (or the caret), number of characters from the current input text to skip (replace)
 	insertSkip?: number;
+	// By default the cursor will move to the end of the inserted text.
+	// This offsets this location
 	cursorOffset?: number;
 }
 
@@ -183,7 +193,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
 
 	doSuggestIfNeeded() {
 		const suggestions = this.createSuggestions();
-		suggestions.splice(consts.MAX_SUGGESTIONS);
+		suggestions.splice(consts.MAX_QUERY_SUGGESTIONS);
 		if (!this.compareSuggestions(suggestions, this.lastSuggestions)) {
 			this.clear();
 			this.lastSuggestions = suggestions;
@@ -217,7 +227,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
 	createSuggestions() : Suggestion[] {
 		const cursorPos = this.sourceElement.inputEl.selectionStart;
 		const input = this.sourceElement.getValue();
-		const tagMatch = matchByPosition(input, /tag:(#?[\w\/\-]*)?/g, cursorPos);
+		const tagMatch = getTagUnderCursor(input, cursorPos);
 		// Doesn't include a closing parenthesis
 		const pathMatch = matchByPosition(input, /path:((\"([\w\s\/\-\\\.]*)\")|([\w\/\-\\\.]*))/g, cursorPos);
 		const linkedToMatch = matchByPosition(input, /linkedto:((\"([\w\s\/\-\\\.]*)\")|([\w\/\-\\\.]*))/g, cursorPos);
@@ -227,7 +237,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
 			// Return a tag name with the pound (#) sign removed if any
 			const noPound = (tagName: string) => { return tagName.startsWith('#') ? tagName.substring(1) : tagName };
 			// Find all tags that include the query, with the pound sign removed, case insensitive
-			const allTagNames = this.getAllTagNames().filter(
+			const allTagNames = utils.getAllTagNames(this.app).filter(
 				value => value.toLowerCase().includes(noPound(tagQuery).toLowerCase()));
 			let toReturn: Suggestion[] = [{text: 'TAGS', group: true}];
 			for (const tagName of allTagNames) {
@@ -333,20 +343,6 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
 			// Make the UI react to the change
 			this.sourceElement.onChanged();
 		}
-	}
-
-	getAllTagNames() : string[] {
-		let tags: string[] = [];
-		const allFiles = this.app.vault.getFiles();
-		for (const file of allFiles) {
-			const fileCache = this.app.metadataCache.getFileCache(file);
-			const fileTagNames = getAllTags(fileCache) || [];
-			if (fileTagNames.length > 0) {
-				tags = tags.concat(fileTagNames.filter(tagName => tags.indexOf(tagName) < 0));
-			}
-		}
-		tags = tags.sort();
-		return tags;
 	}
 
 	getAllPathNames(search: string) : string[] {

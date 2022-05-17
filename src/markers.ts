@@ -25,8 +25,6 @@ export class FileMarker {
 	mapMarker?: leaflet.Marker;
 	/** An ID to recognize the marker */
 	id: MarkerId;
-	/** Snippet of the file to show in the map marker popup */
-	snippet?: string;
 	/** Optional extra name that can be set for geolocation links (this is the link name rather than the file name) */
 	extraName?: string;
 	/** Tags that this marker includes */
@@ -211,7 +209,6 @@ export async function getMarkersFromFileContent(file: TFile, settings: PluginSet
 			marker.tags = marker.tags.concat(fileTags);
 			marker.fileLocation = match.index;
 			marker.fileLine = content.substring(0, marker.fileLocation).split('\n').length - 1;
-			marker.snippet = await makeTextSnippet(file, content, marker.fileLocation, settings);
 			markers.push(marker);
 		}
 		catch (e) {
@@ -219,46 +216,6 @@ export async function getMarkersFromFileContent(file: TFile, settings: PluginSet
 		}
 	}
 	return markers;
-}
-
-async function makeTextSnippet(file: TFile, fileContent: string, fileLocation: number, settings: PluginSettings) {
-	let snippet = '';
-	if (settings.snippetLines && settings.snippetLines > 0) {
-		// We subtract 1 because the central (location) line will always be displayed
-		let linesAbove = Math.round((settings.snippetLines - 1) / 2);
-		let linesBelow = settings.snippetLines - 1 - linesAbove;
-		// Start from the beginning of the line on which the location was found, then go back
-		let snippetStart = fileContent.lastIndexOf('\n', fileLocation);
-		while (linesAbove > 0 && snippetStart > -1) {
-			const prevLine = fileContent.lastIndexOf('\n', snippetStart - 1);
-			const line = fileContent.substring(snippetStart, prevLine);
-			// If the new line above contains another location, don't include it and stop
-			if (matchInlineLocation(line).length > 0)
-				break;
-			snippetStart = prevLine;
-			linesAbove -= 1;
-		}
-		// Either if we reached the beginning of the file (-1) or if we stopped due to a newline, we want a step forward
-		snippetStart += 1;
-		// Always include the line with the location
-		let snippetEnd = fileContent.indexOf('\n', fileLocation);
-		// Now continue forward
-		while (linesBelow > 0 && snippetEnd > -1) {
-			const nextLine = fileContent.indexOf('\n', snippetEnd + 1);
-			const line = fileContent.substring(snippetEnd, nextLine > -1 ? nextLine : fileContent.length);
-			// If the new line below contains another location, don't include it and stop
-			if (matchInlineLocation(line).length > 0)
-				break;
-			snippetEnd = nextLine;
-			linesBelow -= 1;
-		}
-		if (snippetEnd === -1)
-			snippetEnd = fileContent.length;
-		snippet = fileContent.substring(snippetStart, snippetEnd);
-		snippet = snippet.replace(/\`location:.*\`/g, '<span class="map-view-location">`location:...`</span>');
-		snippet = snippet.replace(/(\[.*\])\(.+\)/g, '<span class="map-view-location">$1(geo:...)</span>');
-	}
-	return snippet;
 }
 
 /**

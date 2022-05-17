@@ -4,6 +4,7 @@ import * as querystring from 'querystring';
 import * as leaflet from 'leaflet';
 import { PluginSettings, UrlParsingRule } from 'src/settings';
 import * as utils from 'src/utils';
+import { googlePlacesSearch } from 'src/geosearch';
 
 export type ParsedLocation = {
 	location: leaflet.LatLng;
@@ -87,19 +88,9 @@ export class UrlConvertor {
 			const placeName = contentMatch[1];
 			if (this.settings.debug)
 				console.log('Google Place search:', placeName);
-			const googleApiKey = this.settings.geocodingApiKey;
-			const params = {
-				query: placeName,
-				key: googleApiKey
-			};
-			const googleUrl = 'https://maps.googleapis.com/maps/api/place/textsearch/json?' + querystring.stringify(params);
-			const googleContent = await request({url: googleUrl});
-			const jsonContent = JSON.parse(googleContent) as any;
-			if (jsonContent && 'results' in jsonContent && jsonContent?.results.length > 0) {
-				const location = jsonContent.results[0].location;
-				if (location && location.lat && location.lng)
-					geolocation = new leaflet.LatLng(location.lat, location.lng);
-			}
+			const places = await googlePlacesSearch(placeName, this.settings);
+			if (places && places.length > 0)
+				geolocation = places[0].location;
 		}
 		if (geolocation)
 			return {
@@ -134,30 +125,6 @@ export class UrlConvertor {
 			}
 		}
 		return null;
-	}
-
-	async getGeolocationFromGooglePlace(placeId: string, settings: PluginSettings) {
-		const apiKey = settings.geocodingApiKey;
-		const params = {
-			placeid: placeId,
-			fields: 'name',
-			key: apiKey
-		};
-		const url = 'https://maps.googleapis.com/maps/api/place/details/json?' + querystring.stringify(params);
-		console.log(url);
-		const content = await request({url: url});
-		console.log(content);
-		const jsonContent = JSON.parse(content) as any;
-		console.log(jsonContent);
-		if (jsonContent?.error_message?.includes('not authorized'))
-			throw Error('Google API key unspecified or not authorized for Places API');
-		console.log(content);
-	}
-
-	async parseGeolocationFromUrlContent(url: string, rule: UrlParsingRule): Promise<leaflet.LatLng> {
-		const content = await request({url: url});
-		console.log(content);
-		return new leaflet.LatLng(0, 0);
 	}
 
 	/**

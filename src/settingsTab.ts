@@ -45,6 +45,7 @@ export class SettingsTab extends PluginSettingTab {
 						this.plugin.settings.searchProvider = value;
 						await this.plugin.saveSettings();
 						apiKeyControl.settingEl.style.display = value === 'google' ? '' : 'none';
+						googlePlacesControl.settingEl.style.display = this.plugin.settings.searchProvider === 'google' ? '' : 'none';
 					})
 			});
 
@@ -61,9 +62,21 @@ export class SettingsTab extends PluginSettingTab {
 					});
 				component.inputEl.style.borderColor = this.plugin.settings.geocodingApiKey ? '' : 'red';
 			});
+		let googlePlacesControl = new Setting(containerEl)
+			.setName('Use Google Places in addition to Google Geocoding API')
+			.setDesc('If using Google Geocoding, also query Google Places for additional results. Your API key must have a specific Google Places permission turned on! See the plugin documentation for more details.')
+			.addToggle(component => {
+				component
+					.setValue(this.plugin.settings.useGooglePlaces)
+					.onChange(async value => {
+						this.plugin.settings.useGooglePlaces = value;
+						await this.plugin.saveSettings();
+					});
+		});
 
 		// Display the API key control only if the search provider requires it
 		apiKeyControl.settingEl.style.display = this.plugin.settings.searchProvider === 'google' ? '' : 'none';
+		googlePlacesControl.settingEl.style.display = this.plugin.settings.searchProvider === 'google' ? '' : 'none';
 
 		new Setting(containerEl)
 			.setName('Default action for map marker click')

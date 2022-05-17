@@ -1,11 +1,13 @@
 import { App, ButtonComponent, TextComponent, DropdownComponent, ToggleComponent } from 'obsidian';
 
-import { PluginSettings, MapLightDark, MapState, areStatesEqual, mergeStates } from 'src/settings';
+import { PluginSettings, MapLightDark } from 'src/settings';
+import { MapState, areStatesEqual, mergeStates } from 'src/mapState';
 import { MapView } from 'src/mapView';
 import { NewPresetDialog } from 'src/newPresetDialog';
 import MapViewPlugin from 'src/main';
 import { QuerySuggest } from 'src/query';
 import { LocationSearchDialog, SuggestInfo } from 'src/locationSearchDialog';
+import { MarkersMap } from 'src/markers';
 
 import * as leaflet from 'leaflet';
 
@@ -286,6 +288,12 @@ export class ViewControls {
 				await this.plugin.saveSettings();
 				this.presetsBox.setValue('0');
 			});
+		new ButtonComponent(this.presetsDivContent)
+			.setButtonText('Copy URL')
+			.setTooltip('Copy the current view as a URL.')
+			.onClick(async () => {
+				this.view.copyStateUrl();
+			});
 	}
 
 	invalidateActivePreset() {
@@ -314,7 +322,7 @@ export class SearchControl extends leaflet.Control {
 		this.searchButton = div.createEl('a');
 		this.searchButton.innerHTML = '🔍';
 		this.searchButton.onClickEvent((ev: MouseEvent) => {
-			this.openSearch();
+			this.openSearch(this.view.getMarkers());
 		});
 		this.clearButton = div.createEl('a');
 		this.clearButton.innerHTML = 'X';
@@ -327,11 +335,24 @@ export class SearchControl extends leaflet.Control {
 		return div;
 	}
 
-	openSearch() {
+	openSearch(existingMarkers: MarkersMap) {
+		let markerSearchResults: SuggestInfo[] = [];
+		for (const fileMarker of existingMarkers.values()) {
+			markerSearchResults.push({
+				name: fileMarker.extraName ? 
+					`${fileMarker.extraName} (${fileMarker.file.basename})` : fileMarker.file.basename,
+				location: fileMarker.location,
+				resultType: 'existingMarker',
+				icon: fileMarker.icon.options});
+		}
 		const searchDialog = new LocationSearchDialog(
-			this.app, this.settings, 'custom', 'Find in map');
+			this.app, this.settings, 'custom', 'Find in map', null,
+			markerSearchResults, true);
 		searchDialog.customOnSelect = (selection: SuggestInfo) => {
-			if (selection && selection.location) {
+			this.view.removeSearchResultMarker();
+			if (selection && selection.resultType == 'existingMarker') {
+				this.view.zoomToSearchResult(selection.location);
+			} else if (selection && selection.location) {
 				this.view.addSearchResultMarker(selection);
 				this.clearButton.style.display = 'block';
 			}

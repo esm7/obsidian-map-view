@@ -1,4 +1,4 @@
-import { WorkspaceLeaf, MarkdownView, Editor, App, TFile, Menu, MenuItem } from 'obsidian';
+import { WorkspaceLeaf, MarkdownView, Editor, App, TFile, Menu, MenuItem, getAllTags } from 'obsidian';
 
 import * as moment_ from 'moment';
 import * as leaflet from 'leaflet';
@@ -14,7 +14,7 @@ export function formatWithTemplates(s: string, query = '') {
 		// @ts-ignore
 		return moment().format(pattern);
 	}).replace(queryPattern, query);
-	
+
 	return replaced;
 }
 
@@ -154,4 +154,19 @@ export function matchByPosition(s: string, r: RegExp, position: number): RegExpM
 			return match;
 	}
 	return null;
+}
+
+// TODO document
+export function getAllTagNames(app: App) : string[] {
+	let tags: string[] = [];
+	const allFiles = app.vault.getFiles();
+	for (const file of allFiles) {
+		const fileCache = app.metadataCache.getFileCache(file);
+		const fileTagNames = getAllTags(fileCache) || [];
+		if (fileTagNames.length > 0) {
+			tags = tags.concat(fileTagNames.filter(tagName => tags.indexOf(tagName) < 0));
+		}
+	}
+	tags = tags.sort();
+	return tags;
 }

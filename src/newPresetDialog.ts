@@ -1,6 +1,7 @@
 import { Modal, App, TextComponent, ButtonComponent } from 'obsidian';
 
-import { PluginSettings, MapState } from 'src/settings';
+import { PluginSettings } from 'src/settings';
+import { MapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 
 export class NewPresetDialog extends Modal {

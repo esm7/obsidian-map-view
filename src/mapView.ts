@@ -11,13 +11,14 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
-import { PluginSettings, MapState, DEFAULT_SETTINGS, mergeStates } from 'src/settings';
+import { MapState, mergeStates, stateToUrl } from 'src/mapState';
+import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
 import { MarkersMap, FileMarker, buildMarkers, getIconFromOptions, buildAndAppendFileMarkers, finalizeMarkers } from 'src/markers';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import { ViewControls, SearchControl } from 'src/viewControls';
 import { Query } from 'src/query';
-import { SuggestInfo } from 'src/locationSearchDialog';
+import { GeoSearchResult } from 'src/geosearch';
 
 export class MapView extends ItemView {
 	private settings: PluginSettings;
@@ -85,6 +86,28 @@ export class MapView extends ItemView {
 				this.leaf.setViewState(currentState);
 			}
 		});
+	}
+
+	onMoreOptionsMenu(menu: Menu) {
+		menu.addItem((item: MenuItem) => {
+			item
+				.setTitle('Copy Map View URL')
+				.onClick(() => {
+					this.copyStateUrl();
+				});
+		});
+		super.onMoreOptionsMenu(menu);
+	}
+
+	copyStateUrl() {
+		const params = stateToUrl(this.state);
+		const url = `obsidian://mapview?action=open&${params}`;
+		navigator.clipboard.writeText(url);
+		new Notice('Copied state URL to clipboard');
+	}
+
+	getMarkers() {
+		return this.display.markers;
 	}
 
 	async setState(state: MapState, result: any) {
@@ -547,7 +570,7 @@ export class MapView extends ItemView {
 		this.updateMapMarkers(newMarkers);
 	}
 
-	addSearchResultMarker(details: SuggestInfo) {
+	addSearchResultMarker(details: GeoSearchResult) {
 		this.display.searchResult = leaflet.marker(details.location, { icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER) });
 		const marker = this.display.searchResult;
 		marker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
@@ -557,19 +580,25 @@ export class MapView extends ItemView {
 			marker.closePopup();
 		});
 		marker.addTo(this.display.map);
+		this.zoomToSearchResult(details.location);
+	}
+
+	zoomToSearchResult(location: leaflet.LatLng) {
 		let currentState = this.leaf.getViewState();
-		(currentState.state as MapState).mapCenter = details.location;
+		(currentState.state as MapState).mapCenter = location;
 		(currentState.state as MapState).mapZoom = this.settings.zoomOnGoFromNote;
 		this.leaf.setViewState(currentState);
 	}
 
 	removeSearchResultMarker() {
-		this.display.searchResult.removeFrom(this.display.map);
-		this.display.searchResult = null;
+		if (this.display.searchResult) {
+			this.display.searchResult.removeFrom(this.display.map);
+			this.display.searchResult = null;
+		}
 	}
 
 	openSearch() {
-		this.display.searchControls.openSearch();
+		this.display.searchControls.openSearch(this.display.markers);
 	}
 }
 

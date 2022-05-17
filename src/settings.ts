@@ -1,6 +1,6 @@
-import * as consts from 'src/consts';
 import { LatLng } from 'leaflet';
 import { SplitDirection } from 'obsidian';
+import { MapState, LegacyMapState } from 'src/mapState';
 
 export type PluginSettings = {
 	defaultState: MapState;
@@ -39,51 +39,8 @@ export type PluginSettings = {
 	maxClusterRadiusPixels: number;
 	searchProvider?: 'osm' | 'google';
 	geocodingApiKey?: string;
+	useGooglePlaces?: boolean;
 	saveHistory?: boolean;
-}
-
-/** Represents a logical state of the map, in separation from the map display */
-export type MapState = {
-	name: string;
-	mapZoom: number;
-	mapCenter: LatLng;
-	/** The query that the user entered */
-	query: string;
-	/** If true, the query was found to be erroneous */
-	queryError?: boolean;
-	chosenMapSource?: number;
-	forceHistorySave?: boolean;
-	followActiveNote?: boolean;
-}
-
-/** Fields that are deprecated */
-export type LegacyMapState = MapState & {tags: string[]};
-
-export function mergeStates(state1: MapState, state2: MapState): MapState {
-	// Overwrite an existing state with a new one, that may have null or partial values which need to be ignored
-	// and taken from the existing state
-	const clearedState = Object.fromEntries(Object.entries(state2).filter(([_, value]) => value != null));
-	return {...state1, ...clearedState};
-}
-
-const xor = (a: any, b: any) => (a && !b) || (!a && b);
-
-export function areStatesEqual(state1: MapState, state2: MapState) {
-	if (!state1 || !state2)
-		return false;
-	if (xor(state1.mapCenter, state2.mapCenter))
-		return false;
-	if (state1.mapCenter) {
-		// To compare locations we need to construct an actual LatLng object because state1 may just
-		// be a simple dict and not an actual LatLng
-		const mapCenter1 = new LatLng(state1.mapCenter.lat, state1.mapCenter.lng);
-		const mapCenter2 = new LatLng(state2.mapCenter.lat, state2.mapCenter.lng);
-		if (mapCenter1.distanceTo(mapCenter2) > 1000)
-			return false;
-	}
-	return state1.query == state2.query &&
-		state2.mapZoom == state2.mapZoom &&
-		state1.chosenMapSource == state2.chosenMapSource;
 }
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -159,8 +116,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	mapControls: {filtersDisplayed: true, viewDisplayed: true, presetsDisplayed: false},
 	maxClusterRadiusPixels: 20,
 	searchProvider: 'osm',
+	useGooglePlaces: false,
 	mapSources: [{name: 'CartoDB', urlLight: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', preset: true}],
-	// mapSources: [{name: 'OpenStreetMap', urlLight: consts.TILES_URL_OPENSTREETMAP}],
 	chosenMapMode: 'auto',
 	saveHistory: true
 };
