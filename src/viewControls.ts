@@ -226,6 +226,22 @@ export class ViewControls {
         };
         this.refreshPresets();
 
+        // this could probably be better but I don't know what I am doing
+        const editMarkers = this.controlsDiv.createDiv({
+            cls: 'graph-control-div',
+        });
+        editMarkers.innerHTML = `
+			<input id="editMarkers" class="toggle" type="checkbox">
+			<label for="editMarkers" class="lbl-toggle">Edit Markers</label>
+			`;
+        const editMarkersButton = editMarkers.getElementsByClassName(
+            'toggle'
+        )[0] as HTMLInputElement;
+        editMarkersButton.checked = false;
+        editMarkersButton.onclick = async () => {
+            this.view.setEditable(editMarkersButton.checked);
+        };
+
         this.parentElement.append(this.controlsDiv);
     }
 

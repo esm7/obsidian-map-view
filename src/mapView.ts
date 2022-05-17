@@ -1,5 +1,4 @@
 import {
-    App,
     TAbstractFile,
     Loc,
     Editor,
@@ -9,7 +8,6 @@ import {
     TFile,
     WorkspaceLeaf,
     Notice,
-    ViewState,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -73,6 +71,8 @@ export class MapView extends ItemView {
     private newPaneLeaf: WorkspaceLeaf;
     /** Is the view currently open */
     private isOpen: boolean = false;
+
+    private editable: boolean = false;
 
     /**
      * Construct a new map instance
@@ -578,6 +578,36 @@ export class MapView extends ItemView {
             newMarker.closePopup();
         });
         newMarker.on('add', (event: leaflet.LeafletEvent) => {
+            if (this.editable) {
+                newMarker.dragging.enable();
+            }
+        });
+        newMarker.on('dragstart', async (event: leaflet.LeafletEvent) => {
+            // if dragging the balloons are quite irritating
+            newMarker.closePopup();
+        });
+        newMarker.on('dragend', async (event: leaflet.DragEndEvent) => {
+            const latlng = newMarker.getLatLng();
+            if (marker.fileLocation === undefined) {
+                // is a front matter location
+                await utils.vaultFrontMatterSet(
+                    this.app.vault,
+                    marker.file,
+                    'location',
+                    [latlng.lat, latlng.lng]
+                );
+            } else {
+                // is an inline location
+                const location = `${latlng.lat},${latlng.lng}`;
+                const old_file = await this.app.vault.cachedRead(marker.file);
+                const new_file =
+                    old_file.slice(0, marker.fileLocation) +
+                    `[](geo:${location})` +
+                    old_file.slice(marker.fileLocation + marker.fileLength);
+                await this.app.vault.modify(marker.file, new_file);
+            }
+        });
+        newMarker.on('add', (event: leaflet.LeafletEvent) => {
             newMarker
                 .getElement()
                 .addEventListener('contextmenu', (ev: MouseEvent) => {
@@ -732,5 +762,19 @@ export class MapView extends ItemView {
                 this.app
             );
         this.updateMapMarkers(newMarkers);
+    }
+
+    /** Set the markers edit state. */
+    setEditable(editable: boolean) {
+        this.editable = editable;
+        for (let [markerId, fileMarker] of this.display.markers) {
+            if (fileMarker.mapMarker.dragging) {
+                if (editable) {
+                    fileMarker.mapMarker.dragging.enable();
+                } else {
+                    fileMarker.mapMarker.dragging.disable();
+                }
+            }
+        }
     }
 }
