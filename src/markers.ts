@@ -209,10 +209,10 @@ export function verifyLocation(location: leaflet.LatLng) {
 export function matchInlineLocation(content: string): RegExpMatchArray[] {
     // Old syntax of ` `location: ... ` `. This syntax doesn't support a name so we leave an empty capture group
     const locationRegex1 =
-        /`location:\s*\[?(?<lat>[+-]?([0-9]*[.])?[0-9]+)\s*,\s*(?<long>[+-]?([0-9]*[.])?[0-9]+)]?`/g;
+        /`location:\s*\[?(?<lat>[+-]?([0-9]*[.])?[0-9]+)\s*,\s*(?<lng>[+-]?([0-9]*[.])?[0-9]+)]?`/g;
     // New syntax of `[name](geo:...)` and an optional tags as `tag:tagName` separated by whitespaces
     const locationRegex2 =
-        /\[(?<name>.*?)]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<long>[+-]?([0-9]*[.])?[0-9]+)\)[ \t]*(?<tags>(tag:[\w\/\-]+[\s.]+)*)/g;
+        /\[(?<name>.*?)]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\)[ \t]*(?<tags>(tag:[\w\/\-]+[\s.]+)*)/g;
     const matches1 = content.matchAll(locationRegex1);
     const matches2 = content.matchAll(locationRegex2);
     return Array.from(matches1).concat(Array.from(matches2));
@@ -236,7 +236,7 @@ async function getMarkersFromFileContent(
         try {
             const location = new leaflet.LatLng(
                 parseFloat(match.groups.lat),
-                parseFloat(match.groups.long)
+                parseFloat(match.groups.lng)
             );
             verifyLocation(location);
             const marker = new FileMarker(file, location);
