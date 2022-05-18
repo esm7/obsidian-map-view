@@ -4,7 +4,6 @@ import * as querystring from 'querystring';
 import * as leaflet from 'leaflet';
 import { PluginSettings, UrlParsingRule } from 'src/settings';
 import * as utils from 'src/utils';
-import { googlePlacesSearch } from 'src/geosearch';
 
 export type ParsedLocation = {
     location: leaflet.LatLng;
@@ -109,8 +108,9 @@ export class UrlConvertor {
             const placeName = contentMatch[1];
             if (this.settings.debug)
                 console.log('Google Place search:', placeName);
-            const places = await googlePlacesSearch(placeName, this.settings);
-            if (places && places.length > 0) geolocation = places[0].location;
+			// TODO work in progress
+            // const places = await googlePlacesSearch(placeName, this.settings);
+            // if (places && places.length > 0) geolocation = places[0].location;
         }
         if (geolocation)
             return {

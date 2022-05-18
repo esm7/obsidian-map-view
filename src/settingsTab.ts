@@ -96,9 +96,9 @@ export class SettingsTab extends PluginSettingTab {
                     : 'red';
             });
         let googlePlacesControl = new Setting(containerEl)
-            .setName('Use Google Places in addition to Google Geocoding API')
+            .setName('Use Google Places for searches')
             .setDesc(
-                'If using Google Geocoding, also query Google Places for additional results. Your API key must have a specific Google Places permission turned on! See the plugin documentation for more details.'
+                'Use Google Places API instead of Google Geocoding to get higher-quality results. Your API key must have a specific Google Places permission turned on! See the plugin documentation for more details.'
             )
             .addToggle((component) => {
                 component
