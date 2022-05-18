@@ -341,8 +341,8 @@ export default class MapViewPlugin extends Plugin {
         let selectedLocation = null;
         if (match)
             selectedLocation = new leaflet.LatLng(
-                parseFloat(match[2]),
-                parseFloat(match[3])
+                parseFloat(match.groups.lat),
+                parseFloat(match.groups.lng)
             );
         else {
             const fmLocation = getFrontMatterLocation(view.file, this.app);
