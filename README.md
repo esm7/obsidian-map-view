@@ -17,9 +17,9 @@ You can set different icons for different note types according to custom rules, 
 
 I wrote this plugin because I wanted my ever-growing Zettelkasten to be able to answer questions like...
 
-- When I get recommendations about cool places to visit, how do I save them in a way that I can recall later?
-- When I'm visiting somewhere, what interesting places do I know in the area?
-- When I'm conducting research for planning a trip, how do I lay out on a map options for places to eat, hike or sleep, combine them with prior knowledge, and save them for future reference?
+-   When I get recommendations about cool places to visit, how do I save them in a way that I can recall later?
+-   When I'm visiting somewhere, what interesting places do I know in the area?
+-   When I'm conducting research for planning a trip, how do I lay out on a map options for places to eat, hike or sleep, combine them with prior knowledge, and save them for future reference?
 
 Map View can integrate with your note-taking flow in order to answer all of these questions and much more.
 
@@ -46,7 +46,7 @@ First is a location tag in a note's [front matter](https://help.obsidian.md/Adva
 
 ```yaml
 ---
-location: [40.6892494,-74.0466891]
+location: [40.6892494, -74.0466891]
 ---
 ```
 
@@ -131,9 +131,8 @@ Note that the map can be searched using the tool on the upper-right side.
 ![](img/search.png)
 
 2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map. If you use "copy geolocation", just remember you need the note to start with a front matter that has an empty `locations:` line.
- 
-![](img/copy.png)
 
+![](img/copy.png)
 
 ### Paste as Geolocation
 
@@ -148,29 +147,29 @@ By default Map View can parse URLs from two services: the OpenStreetMap "show ad
 
 Map View supports powerful queries that are roughly similar to Obsidian's query format.
 
-The query string can contain the following *search operators*:
+The query string can contain the following _search operators_:
 
-- `tag:#...` to search for notes or markers tagged with a specific tag.
-  - This works on both whole notes (`#hiking`) and inline tags for specific markers (`tag:hiking`).
-- `path:...` to search by the note path.
-  - This operator will include all the markers in the path that matches the query.
-- `linkedto:...` includes notes that contain a specific link.
-  - This operator will include a note (with all the markers in it) if it has a link name that matches the query.
-  - For example, if you have a note named `Cave Hikes` and you have geolocated notes that **link to it** (e.g. include `[[Cave Hikes]]` as a link), include them by the filter `linkedto:"Cave Hikes"` or a portion of that name.
-- `linkedfrom:...` includes notes that are linked from a specific note, and also the origin note itself.
-  - This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query.
-  - For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
+-   `tag:#...` to search for notes or markers tagged with a specific tag.
+    -   This works on both whole notes (`#hiking`) and inline tags for specific markers (`tag:hiking`).
+-   `path:...` to search by the note path.
+    -   This operator will include all the markers in the path that matches the query.
+-   `linkedto:...` includes notes that contain a specific link.
+    -   This operator will include a note (with all the markers in it) if it has a link name that matches the query.
+    -   For example, if you have a note named `Cave Hikes` and you have geolocated notes that **link to it** (e.g. include `[[Cave Hikes]]` as a link), include them by the filter `linkedto:"Cave Hikes"` or a portion of that name.
+-   `linkedfrom:...` includes notes that are linked from a specific note, and also the origin note itself.
+    -   This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query.
+    -   For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
 
 All operators are case insensitive.
 
-You can combine the above with *logical operators*: `AND`, `OR`, `NOT`, and grouping with parenthesis.
+You can combine the above with _logical operators_: `AND`, `OR`, `NOT`, and grouping with parenthesis.
 **This differs from Obsidian's own query language which uses `-` instead of `NOT` and treats spaces as 'AND'.**
 
 For examples:
 
-- `linkedfrom:"Trip to Italy" AND tag:#wine` can include places you linked from your trip to Italy, or are within that note itself, and are tagged with `#wine`.
-- `tag:#hike AND tag:#dogs` can include hikes you marked as suitable for dogs.
-- `tag:#hike AND (tag:#dogs OR tag:#amazing) AND NOT path:"bad places"`
+-   `linkedfrom:"Trip to Italy" AND tag:#wine` can include places you linked from your trip to Italy, or are within that note itself, and are tagged with `#wine`.
+-   `tag:#hike AND tag:#dogs` can include hikes you marked as suitable for dogs.
+-   `tag:#hike AND (tag:#dogs OR tag:#amazing) AND NOT path:"bad places"`
 
 There are many creative ways to organize your notes with geolocations that utilize these query abilities.
 You may represent location types with tags (e.g. `#hike` or `#restaurant`), or use tags to represent traits of places (`#hike/summer`, `#hike/easy`).
@@ -188,7 +187,7 @@ Additionally, there are various marker properties (shape, color and more) that a
 
 To change the map marker icons for your notes, go to the Map View settings and scroll to Marker Icon Rules.
 
-A single marker is defined with a *tag pattern* and *icon details*.
+A single marker is defined with a _tag pattern_ and _icon details_.
 The tag pattern is usually a tag name (e.g. `#dogs`), but it can also be with a wildcard (e.g. `#trips/*`).
 Icon details are a few properties: icon name (taken from the Font Awesome catalog), color and shape.
 
@@ -230,7 +229,7 @@ Map View adds an Obsidian command named 'Add inline geolocation link', that you 
 This command inserts an empty inline location template: `[](geo:)`.
 
 When editing an inline location in this format, whether if you added it manually or using the command, if you start entering a link name, Map View will start offering locations based on a geocoding service.
-Selecting one of the suggestions will fill-in the coordinates of the chosen locations, *not* change your link name (assuming you prefer your own name rather than the formal one offered by the geocoding service), and jump the cursor to beyond the link so you can continue typing.
+Selecting one of the suggestions will fill-in the coordinates of the chosen locations, _not_ change your link name (assuming you prefer your own name rather than the formal one offered by the geocoding service), and jump the cursor to beyond the link so you can continue typing.
 
 ![](img/geosearch-suggest.gif)
 
@@ -272,7 +271,7 @@ If you enter an already-existing name, that preset will be overwritten.
 The saved preset includes the map state (zoom & pan), the filters used, and if you check the box in the "save as" dialog -- also the chosen map source.
 If you do not include the map source as part of the preset, switching to the newly-saved preset will use the currently-selected map source.
 
-Presets *do not* store the map's theme (light/dark).
+Presets _do not_ store the map's theme (light/dark).
 
 The Default preset is special; you can save it using the 'Save as Default' button, and come back to it by clicking the Reset button, by choosing the Default preset from the box, or by opening a fresh Map View that has no previously saved state.
 
@@ -284,25 +283,27 @@ These sources can be Google Maps, OpenStreetMap, specialized mapping tools or pr
 ![](img/open-in.png)
 
 The Open In list is shown:
-- When right-clicking on the map.
-- When right-clicking a marker on the map.
-- When right-clicking a line in a note that has a location.
-- In the context menu of a note that has a front matter location.
+
+-   When right-clicking on the map.
+-   When right-clicking a marker on the map.
+-   When right-clicking a line in a note that has a location.
+-   In the context menu of a note that has a front matter location.
 
 This list can be edited through the plugin's settings menu, with a name that will be displayed in the context menus and a URL pattern. The URL pattern has two parameters -- `{x}` and `{y}` -- that will be replaced by the latitude and longitude of the clicked location.
 
 ![](img/custom-open-in.png)
 
 Popular choices may be:
-- Google Maps: `https://maps.google.com/?q={x},{y}`
-- OpenStreetMap: `https://www.openstreetmap.org/#map=16/{x}/{y}` (replace `16` with your preferred zoom level)
-- Waze (online dropped pin): `https://ul.waze.com/ul?ll={x}%2C{y}&navigate=yes&zoom=17` (replace `17` with your preferred zoom level)
+
+-   Google Maps: `https://maps.google.com/?q={x},{y}`
+-   OpenStreetMap: `https://www.openstreetmap.org/#map=16/{x}/{y}` (replace `16` with your preferred zoom level)
+-   Waze (online dropped pin): `https://ul.waze.com/ul?ll={x}%2C{y}&navigate=yes&zoom=17` (replace `17` with your preferred zoom level)
 
 And you can figure out many other mapping services just by inspecting the URL.
 
 ## URL Parsing Rules
 
-As described above, Map View uses *URL parsing rules* in several places to provide the ability to parse URLs (or other strings) from external sources and convert them to standard geolocations.
+As described above, Map View uses _URL parsing rules_ in several places to provide the ability to parse URLs (or other strings) from external sources and convert them to standard geolocations.
 
 1. When right-clicking a line with a recognized link, a "Convert to Geolocation" entry will be shown in the editor context menu.
 2. When a recognized link is detected in the system clipboard, a "Paste as Geolocation" entry will be added in the editor context menu.
@@ -330,8 +331,8 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 As noted in the disclaimer above, my wishlist for this plugin is huge and I'm unlikely to get to it all.
 There are so many things that I want it to do, and so little time...
 
-- Better interoperability with Obsidian Leaflet: support for marker image files, locations as an array and `marker` tags.
-- A side bar with note summaries linked to the map view.
+-   Better interoperability with Obsidian Leaflet: support for marker image files, locations as an array and `marker` tags.
+-   A side bar with note summaries linked to the map view.
 
 ## Changelog
 
@@ -341,82 +342,81 @@ There are so many things that I want it to do, and so little time...
 
 Mostly feature-complete, this README needs to get updated.
 
-- Instead of the previous simplistic tag filtering, Map View now has a powerful [Queries](#queries) support with multiple search and logical operators.
-  - Queries are marker-based and not file-based. This will be a breaking change for some users.
-- "Follow active note"
-- Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
-- Fixed issues with front matter tag support (https://github.com/esm7/obsidian-map-view/issues/72) (thanks @gentlegiantJGC!)
-- Added a configuration for the max zoom of a tile layer (thanks @gentlegiantJGC!)
-- The map search tool now uses the same search window as "New geolocation note", which beyond the configured geocoding service, also does URL parsing.
-  - It also includes existing markers, so you can quickly jump to a place on the map.
-  - Except the bonus of making the UI more uniform, this is very important for usability, especially on mobile. e.g. you can use it to get your location from another app and use it to create notes or explore around.
-  - A "search active map view" command was added (available when a map view is focused) so a keyboard shortcut can be assigned to the map search.
-- Auto-completion for inline tags. If you type `tag:` in a line that includes a valid geolocation, you will get suggestions for tag names.
-- In the context menu of a map view, or in the Presets controls section, you can copy the active view as a link. (TODO document)
-  - Clicking this link from another app should launch Obsidian and open Map View with the exact same view (including the query, zoom, pan and map source).
-  - To use this in Obsidian notes paste the URL inside a link, e.g. `[Link name](obsidian://...)`
-- Several UI improvements:
-  - The map control panel is now prettier and smaller when unused.
-  - The note name and cluster popups now follow the Obsidian theme.
+-   Instead of the previous simplistic tag filtering, Map View now has a powerful [Queries](#queries) support with multiple search and logical operators.
+    -   Queries are marker-based and not file-based. This will be a breaking change for some users.
+-   "Follow active note"
+-   Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
+-   Fixed issues with front matter tag support (https://github.com/esm7/obsidian-map-view/issues/72) (thanks @gentlegiantJGC!)
+-   Added a configuration for the max zoom of a tile layer (thanks @gentlegiantJGC!)
+-   The map search tool now uses the same search window as "New geolocation note", which beyond the configured geocoding service, also does URL parsing.
+    -   It also includes existing markers, so you can quickly jump to a place on the map.
+    -   Except the bonus of making the UI more uniform, this is very important for usability, especially on mobile. e.g. you can use it to get your location from another app and use it to create notes or explore around.
+    -   A "search active map view" command was added (available when a map view is focused) so a keyboard shortcut can be assigned to the map search.
+-   Auto-completion for inline tags. If you type `tag:` in a line that includes a valid geolocation, you will get suggestions for tag names.
+-   In the context menu of a map view, or in the Presets controls section, you can copy the active view as a link. (TODO document)
+    -   Clicking this link from another app should launch Obsidian and open Map View with the exact same view (including the query, zoom, pan and map source).
+    -   To use this in Obsidian notes paste the URL inside a link, e.g. `[Link name](obsidian://...)`
+-   Several UI improvements:
+    -   The map control panel is now prettier and smaller when unused.
+    -   The note name and cluster popups now follow the Obsidian theme.
 
 ### 1.6.0
 
-- Powerful query filters are here! You can now combine operators of tags and paths with logical operators.
-- New "focus note in Map View" context menu for notes, which opens Map View with a path query that focuses that specific note.
+-   Powerful query filters are here! You can now combine operators of tags and paths with logical operators.
+-   New "focus note in Map View" context menu for notes, which opens Map View with a path query that focuses that specific note.
 
 ### 1.5.0
 
-- Map View now saves its state to the Obsidian back/forward mechanism (unless configured not to).
-- Fixed an issue with markers temporarily duplicating (until the map is refreshed) when their note is renamed.
+-   Map View now saves its state to the Obsidian back/forward mechanism (unless configured not to).
+-   Fixed an issue with markers temporarily duplicating (until the map is refreshed) when their note is renamed.
 
 ### 1.4.0
 
-- Replaced OpenStreetMap with CartoDB as the new default map source (https://github.com/esm7/obsidian-map-view/issues/59).
-- Map View now displays a more useful error when tiles fail to load.
-- Removed the "Google Maps" default URL parsing rule because apparently it was incorrect (https://github.com/esm7/obsidian-map-view/issues/57). It is now replaced by a more generic "lat,lng" rule that can also be used with Google Maps, *not* by parsing the URL but by right-clicking the map in Google Maps and choosing the first menu item that copies the coordinates.
-- Hovering on a map marker now opens the Obsidian note preview, scrolled to the correct line (https://github.com/esm7/obsidian-map-view/issues/60). This is configurable in the settings and comes *in addition* to the existing note pop-up (without a snippet), because the preview does not include the note name.
-	- **Important note:** this replaces the "snippet" functionality of previous versions.
-- Marker clusters now show a preview of their own; they show a popup with the first 4 icons in the cluster.
+-   Replaced OpenStreetMap with CartoDB as the new default map source (https://github.com/esm7/obsidian-map-view/issues/59).
+-   Map View now displays a more useful error when tiles fail to load.
+-   Removed the "Google Maps" default URL parsing rule because apparently it was incorrect (https://github.com/esm7/obsidian-map-view/issues/57). It is now replaced by a more generic "lat,lng" rule that can also be used with Google Maps, _not_ by parsing the URL but by right-clicking the map in Google Maps and choosing the first menu item that copies the coordinates.
+-   Hovering on a map marker now opens the Obsidian note preview, scrolled to the correct line (https://github.com/esm7/obsidian-map-view/issues/60). This is configurable in the settings and comes _in addition_ to the existing note pop-up (without a snippet), because the preview does not include the note name.
+    -   **Important note:** this replaces the "snippet" functionality of previous versions.
+-   Marker clusters now show a preview of their own; they show a popup with the first 4 icons in the cluster.
 
 ### 1.3.0
 
-- Introduction of **Presets** as a way to save the state of the view including the map state, filters and optionally the chosen map source.
-  - As part of this, the 'default view' functionality was converted to a built-in 'Default' preset and the UI was revamped accordingly.
-- As part of the above, the internal structure of the plugin had to be reorganized and many features needed to be rewired. **I put major effort to test the entire functionality of the plugin, but pretty much anything could break and I may have missed some bugs.** Please open issues if something had stopped working.
-- When using `{{query}}` in file name templates, the file name is sanitized so the creation won't fail on illegal strings.
+-   Introduction of **Presets** as a way to save the state of the view including the map state, filters and optionally the chosen map source.
+    -   As part of this, the 'default view' functionality was converted to a built-in 'Default' preset and the UI was revamped accordingly.
+-   As part of the above, the internal structure of the plugin had to be reorganized and many features needed to be rewired. **I put major effort to test the entire functionality of the plugin, but pretty much anything could break and I may have missed some bugs.** Please open issues if something had stopped working.
+-   When using `{{query}}` in file name templates, the file name is sanitized so the creation won't fail on illegal strings.
 
 ### 1.2.1
 
-- The "new geolocation note" dialog can now also be used to add a location to an existing note, both via a new Obsidian command and a file menu action (https://github.com/esm7/obsidian-map-view/issues/46).
-- Added a `{{query}}` file name template option to auto-add the search query for new location notes (https://github.com/esm7/obsidian-map-view/issues/45).
+-   The "new geolocation note" dialog can now also be used to add a location to an existing note, both via a new Obsidian command and a file menu action (https://github.com/esm7/obsidian-map-view/issues/46).
+-   Added a `{{query}}` file name template option to auto-add the search query for new location notes (https://github.com/esm7/obsidian-map-view/issues/45).
 
 ### 1.2.0
 
-- Added a "new geolocation note" Obsidian command with an interactive search and URL parser.
-- Fixed a bug of highlighting more than the intended line after clicking a map marker and opening a note.
-- Fixed a bug of inline tags not recognized if immediately followed by a dot (which is a common pattern).
-- Fixed an exception that could prevent settings to be applied after closing the settings dialog.
+-   Added a "new geolocation note" Obsidian command with an interactive search and URL parser.
+-   Fixed a bug of highlighting more than the intended line after clicking a map marker and opening a note.
+-   Fixed a bug of inline tags not recognized if immediately followed by a dot (which is a common pattern).
+-   Fixed an exception that could prevent settings to be applied after closing the settings dialog.
 
 ### 1.1.0
 
-- The plugin now supports a configurable list of map sources, switchable from the View pane on the map, including optional separate URLs for light & dark themes.
-- Support dark mode using a CSS hue revert, as [recommended for Leaflet](https://gist.github.com/BrendonKoz/b1df234fe3ee388b402cd8e98f7eedbd) and as done by obsidian-leaflet.
-- [Support multiple inline locations per line](https://github.com/esm7/obsidian-map-view/issues/35).
-- [Support multiple tags per inline location](https://github.com/esm7/obsidian-map-view/issues/32).
-- Fixed an [issue](https://github.com/esm7/obsidian-map-view/issues/30) of inline tags not properly including the dash (`-`) character.
-- Popups now have a close button (to make them more mobile-friendly).
+-   The plugin now supports a configurable list of map sources, switchable from the View pane on the map, including optional separate URLs for light & dark themes.
+-   Support dark mode using a CSS hue revert, as [recommended for Leaflet](https://gist.github.com/BrendonKoz/b1df234fe3ee388b402cd8e98f7eedbd) and as done by obsidian-leaflet.
+-   [Support multiple inline locations per line](https://github.com/esm7/obsidian-map-view/issues/35).
+-   [Support multiple tags per inline location](https://github.com/esm7/obsidian-map-view/issues/32).
+-   Fixed an [issue](https://github.com/esm7/obsidian-map-view/issues/30) of inline tags not properly including the dash (`-`) character.
+-   Popups now have a close button (to make them more mobile-friendly).
 
 ### 1.0.0
 
-- UI revisions and cleanups to make it easier for new users. **Some changes break existing notions.**
-  - Map View now treats "inline locations" as the default. It is first in the menus, and front matter actions are listed as "front matter".
-  - "Copy as coordinates" was removed, believing it's not really useful anymore. Please drop me a note if you find it important.
-  - Several other tweaks to make the plugin easier to use.
-- At last, a settings UI for editing marker icons! Check it out under the plugin settings.
-  - In order to do this, the rule format in the plugin's data file had to be changed. The plugin will auto-convert your existing rules to the new format when first launched. After this conversion, *do not* manually enter rules under the old key!
-  - You may still edit rules manually, through the plugin's "edit marker icons as JSON" box or directly in the data file, but **only use the new key** `markerIconRules`.
-- Added an inline geolocation search, which can get results from either OSM or Google (with an API key), and a command to insert a geolocation.
-- With relation to the above, the search tool in the map can now use the selected geocoding service too, meaning you can use Google Maps to search for locations if you have an API key.
-- New "paste as geolocation" and "convert to geolocation" right-click editor menu items, that can automatically convert URLs in the clipboard or URLs in the note to a geolocation link.
-  - The rules that convert URLs to geolocations are configurable in the settings.
-
+-   UI revisions and cleanups to make it easier for new users. **Some changes break existing notions.**
+    -   Map View now treats "inline locations" as the default. It is first in the menus, and front matter actions are listed as "front matter".
+    -   "Copy as coordinates" was removed, believing it's not really useful anymore. Please drop me a note if you find it important.
+    -   Several other tweaks to make the plugin easier to use.
+-   At last, a settings UI for editing marker icons! Check it out under the plugin settings.
+    -   In order to do this, the rule format in the plugin's data file had to be changed. The plugin will auto-convert your existing rules to the new format when first launched. After this conversion, _do not_ manually enter rules under the old key!
+    -   You may still edit rules manually, through the plugin's "edit marker icons as JSON" box or directly in the data file, but **only use the new key** `markerIconRules`.
+-   Added an inline geolocation search, which can get results from either OSM or Google (with an API key), and a command to insert a geolocation.
+-   With relation to the above, the search tool in the map can now use the selected geocoding service too, meaning you can use Google Maps to search for locations if you have an API key.
+-   New "paste as geolocation" and "convert to geolocation" right-click editor menu items, that can automatically convert URLs in the clipboard or URLs in the note to a geolocation link.
+    -   The rules that convert URLs to geolocations are configurable in the settings.
