@@ -187,7 +187,6 @@ export default class MapViewPlugin extends Plugin {
             },
         });
 
-        // TODO: capture the 'search current file' key and map it automatically
         this.addCommand({
             id: 'open-map-search',
             name: 'Search active map view',

@@ -169,6 +169,9 @@ export function populateOpenInItems(
     }
 }
 
+/**
+ * Returns an open leaf of a map view type, if such exists.
+*/
 export function findOpenMapView(app: App) {
     const maps = app.workspace.getLeavesOfType(consts.MAP_VIEW_NAME);
     if (maps && maps.length > 0) return maps[0].view as MapView;
@@ -186,7 +189,10 @@ export async function getEditor(
     return null;
 }
 
-// TODO document
+/**
+ * Matches a string with a regex according to a position (typically of a cursor).
+ * Will return a result only if a match exists and the given position is part of it.
+*/
 export function matchByPosition(
     s: string,
     r: RegExp,
@@ -203,7 +209,9 @@ export function matchByPosition(
     return null;
 }
 
-// TODO document
+/**
+ * Returns a list of all the Obsidian tags
+*/
 export function getAllTagNames(app: App): string[] {
     let tags: string[] = [];
     const allFiles = app.vault.getFiles();

@@ -10,7 +10,9 @@ import { PluginSettings } from 'src/settings';
 import { UrlConvertor } from 'src/urlConvertor';
 import * as consts from 'src/consts';
 
-// TODO document
+/**
+ * A generic result of a geosearch
+*/
 export class GeoSearchResult {
     // The name to display
     name: string;
