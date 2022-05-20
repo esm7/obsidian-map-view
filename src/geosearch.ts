@@ -1,13 +1,6 @@
 import {
     request,
-    App,
-    Editor,
-    Notice,
-    EditorSuggest,
-    EditorPosition,
-    TFile,
-    EditorSuggestTriggerInfo,
-    EditorSuggestContext,
+    App
 } from 'obsidian';
 import * as geosearch from 'leaflet-geosearch';
 import * as leaflet from 'leaflet';

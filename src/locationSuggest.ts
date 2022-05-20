@@ -1,5 +1,4 @@
 import {
-    request,
     App,
     Editor,
     Notice,
@@ -51,7 +50,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
         context: EditorSuggestContext
     ): Promise<SuggestInfo[]> {
         if (context.query.length < 2) return [];
-        return await this.getSeachResultWithDelay(context);
+        return await this.getSearchResultsWithDelay(context);
     }
 
     renderSuggestion(value: SuggestInfo, el: HTMLElement) {
@@ -99,7 +98,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
         return null;
     }
 
-    async getSeachResultWithDelay(
+    async getSearchResultsWithDelay(
         context: EditorSuggestContext
     ): Promise<SuggestInfo[] | null> {
         const timestamp = Date.now();

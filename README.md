@@ -128,7 +128,7 @@ The map offers several tools to create notes.
 The map can be searched using the tool on the upper-right side, so you can quickly jump to the place you want to mark.
 [URL parsing rules](#url-parsing-rules) also work here, so you can [copy a geolocation from Google Maps](#tips) (or any other service) and jump to it.
 
-![](img/search.png)
+![](img/search.gif)
 
 2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map and paste them in a note. If you use "copy geolocation", just remember you need the note to start with a front matter that has an empty `locations:` line.
 
@@ -153,12 +153,13 @@ Google Maps on desktop web offers a very easy shortcut for copying universal `la
 2. The first menu item should be the universal coordinates. By clicking it, the coordinates are copied to the clipboard.
 3. In any Obsidian note, right click and choose "paste as geolocation", or paste the coordinates into any Map View search box.
 
-TODO screenshot
-
+![](google-copy.png)
 
 ## Queries
 
 Map View supports powerful queries that are roughly similar to Obsidian's query format.
+
+![](query.gif)
 
 The query string can contain the following _search operators_:
 
@@ -367,6 +368,7 @@ This is a massive version with a huge number of updates, pushing Map View to the
 -   Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
 -   Fixed issues with front matter tag support (https://github.com/esm7/obsidian-map-view/issues/72) (thanks @gentlegiantJGC!)
 -   Added a configuration for the max zoom of a tile layer (thanks @gentlegiantJGC!).
+    - This also includes a new "zoom beyond max" setting, which will not limit you to the highest zoom level of a tile source.
 -   The map search tool now uses the same search window as "New geolocation note", which beyond the configured geocoding service, also does URL parsing.
     -   It also includes existing markers, so you can quickly jump to an existing name on the map.
     -   Except the bonus of making the UI more uniform, this is very important for usability, especially on mobile. e.g. you can use it to get your location from another app and use it to create notes or explore around.

@@ -270,6 +270,20 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
+		new Setting(containerEl)
+			.setName('Allow zooming beyond the defined maximum')
+		.setDesc(
+			'Allow zooming further than the maximum defined for the map source, interpolating the image of the highest available zoom.'
+		)
+		.addToggle(component => {
+			component
+				.setValue(this.plugin.settings.letZoomBeyondMax ?? DEFAULT_SETTINGS.letZoomBeyondMax)
+				.onChange(async value => {
+					this.plugin.settings.letZoomBeyondMax = value;
+					this.refreshPluginOnHide = true;
+					await this.plugin.saveSettings();
+				});
+		});
         new Setting(containerEl)
             .setName('Save back/forward history')
             .setDesc(
@@ -426,13 +440,13 @@ export class SettingsTab extends PluginSettingTab {
                 })
                 .addText((component) => {
                     component
-                        .setPlaceholder('URL (dark) (optional)')
+                        .setPlaceholder('URL (dark) (opt.)')
                         .setValue(setting.urlDark)
                         .onChange(async (value: string) => {
                             setting.urlDark = value;
                             this.refreshPluginOnHide = true;
                             await this.plugin.saveSettings();
-                        });
+                        }).inputEl.style.width = '10em';
                 })
                 .addText((component) => {
                     component
@@ -450,7 +464,7 @@ export class SettingsTab extends PluginSettingTab {
                                 this.refreshPluginOnHide = true;
                                 await this.plugin.saveSettings();
                             }
-                        });
+                        }).inputEl.style.width = '3em';
                 });
             if (!setting.preset)
                 controls.addButton((component) =>
