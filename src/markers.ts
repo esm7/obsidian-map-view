@@ -238,7 +238,7 @@ export async function getMarkersFromFileContent(
                 marker.extraName = match.groups.name;
             if (match.groups.tags) {
                 // Parse the list of tags
-				const tagRegex = /tag:(?<tag>[\w\/\-]+)/g;
+                const tagRegex = /tag:(?<tag>[\w\/\-]+)/g;
                 const tags = match.groups.tags.matchAll(tagRegex);
                 for (const tag of tags)
                     if (tag.groups.tag) marker.tags.push('#' + tag.groups.tag);

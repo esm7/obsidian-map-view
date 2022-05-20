@@ -366,7 +366,7 @@ This is a massive version with a huge number of updates, pushing Map View to the
 -   Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
 -   Fixed issues with front matter tag support (https://github.com/esm7/obsidian-map-view/issues/72) (thanks @gentlegiantJGC!)
 -   Added a configuration for the max zoom of a tile layer (thanks @gentlegiantJGC!).
-    - This also includes a new "zoom beyond max" setting, which will not limit you to the highest zoom level of a tile source.
+    -   This also includes a new "zoom beyond max" setting, which will not limit you to the highest zoom level of a tile source.
 -   The map search tool now uses the same search window as "New geolocation note", which beyond the configured geocoding service, also does URL parsing.
     -   It also includes existing markers, so you can quickly jump to an existing name on the map.
     -   Except the bonus of making the UI more uniform, this is very important for usability, especially on mobile. e.g. you can use it to get your location from another app and use it to create notes or explore around.
@@ -376,7 +376,7 @@ This is a massive version with a huge number of updates, pushing Map View to the
     -   Clicking this link from another app should launch Obsidian and open Map View with the exact same view (including the query, zoom, pan and map source).
     -   To use this in Obsidian notes paste the URL inside a link, e.g. `[Link name](obsidian://...)`
 -   All the geolocation searches now support the Google Places API, and will prefer results from Places API over the simpler Google Geolocation API.
-    - This requires your Google API key to include credentials for Google Places, see the documentation above.
+    -   This requires your Google API key to include credentials for Google Places, see the documentation above.
 -   Several UI improvements:
     -   The map control panel is now prettier and smaller when unused.
     -   The note name and cluster popups now follow the Obsidian theme.

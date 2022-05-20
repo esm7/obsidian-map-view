@@ -1,7 +1,4 @@
-import {
-    request,
-    App
-} from 'obsidian';
+import { request, App } from 'obsidian';
 import * as geosearch from 'leaflet-geosearch';
 import * as leaflet from 'leaflet';
 import * as querystring from 'querystring';
@@ -12,7 +9,7 @@ import * as consts from 'src/consts';
 
 /**
  * A generic result of a geosearch
-*/
+ */
 export class GeoSearchResult {
     // The name to display
     name: string;

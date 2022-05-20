@@ -248,9 +248,9 @@ export class MapView extends ItemView {
         }
     }
 
-	public getMapSource(): TileSource {
-		return this.settings.mapSources[this.state.chosenMapSource];
-	}
+    public getMapSource(): TileSource {
+        return this.settings.mapSources[this.state.chosenMapSource];
+    }
 
     updateTileLayerByState(newState: MapState) {
         if (
@@ -263,8 +263,7 @@ export class MapView extends ItemView {
         this.state.chosenMapSource = newState.chosenMapSource;
         if (!this.display.tileLayer) {
             const isDark = this.isDarkMode(this.settings);
-            const chosenMapSource =
-                this.getMapSource();
+            const chosenMapSource = this.getMapSource();
             const attribution =
                 chosenMapSource.urlLight ===
                 DEFAULT_SETTINGS.mapSources[0].urlLight
@@ -278,9 +277,12 @@ export class MapView extends ItemView {
                 else revertMap = true;
             }
             const neededClassName = revertMap ? 'dark-mode' : '';
-			const maxNativeZoom = chosenMapSource.maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM;
+            const maxNativeZoom =
+                chosenMapSource.maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM;
             this.display.tileLayer = new leaflet.TileLayer(mapSourceUrl, {
-				maxZoom: this.settings.letZoomBeyondMax ? consts.MAX_ZOOM : maxNativeZoom,
+                maxZoom: this.settings.letZoomBeyondMax
+                    ? consts.MAX_ZOOM
+                    : maxNativeZoom,
                 maxNativeZoom: maxNativeZoom,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                 attribution: attribution,
@@ -649,9 +651,10 @@ export class MapView extends ItemView {
             const locations: leaflet.LatLng[] = Array.from(
                 this.display.markers.values()
             ).map((fileMarker) => fileMarker.location);
-            this.display.map.fitBounds(leaflet.latLngBounds(locations),
-				{ maxZoom: 
-					this.getMapSource().maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM });
+            this.display.map.fitBounds(leaflet.latLngBounds(locations), {
+                maxZoom:
+                    this.getMapSource().maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM,
+            });
         }
     }
 

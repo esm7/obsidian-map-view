@@ -23,7 +23,7 @@ export type PluginSettings = {
     // Deprecated
     defaultTags?: string[];
     autoZoom: boolean;
-	letZoomBeyondMax?: boolean;
+    letZoomBeyondMax?: boolean;
     markerClickBehavior?: 'samePane' | 'secondPane' | 'alwaysNew';
     newPaneSplitDirection?: SplitDirection;
     newNoteNameFormat?: string;
@@ -176,7 +176,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     ],
     chosenMapMode: 'auto',
     saveHistory: true,
-	letZoomBeyondMax: false
+    letZoomBeyondMax: false,
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {

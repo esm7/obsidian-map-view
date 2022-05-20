@@ -108,7 +108,7 @@ export class UrlConvertor {
             const placeName = contentMatch[1];
             if (this.settings.debug)
                 console.log('Google Place search:', placeName);
-			// TODO work in progress
+            // TODO work in progress
             // const places = await googlePlacesSearch(placeName, this.settings);
             // if (places && places.length > 0) geolocation = places[0].location;
         }
