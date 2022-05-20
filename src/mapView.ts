@@ -216,6 +216,11 @@ export class MapView extends ItemView {
             }
         );
         this.contentEl.append(this.display.mapDiv);
+        // Make touch move nicer on mobile
+        this.contentEl.addEventListener('touchmove', (ev) => {
+            ev.stopPropagation();
+			this.display.mapDiv.dispatchEvent(ev);
+        });
         await this.createMap();
         return super.onOpen();
     }
