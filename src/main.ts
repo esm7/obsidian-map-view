@@ -10,11 +10,13 @@ import {
     Plugin,
     WorkspaceLeaf,
     TAbstractFile,
+    ObsidianProtocolData,
 } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
-import { LocationSuggest } from 'src/geosearch';
+import { LocationSuggest } from 'src/locationSuggest';
 import { UrlConvertor } from 'src/urlConvertor';
+import { stateFromParsedUrl } from 'src/mapState';
 
 import { MapView } from 'src/mapView';
 import {
@@ -24,21 +26,26 @@ import {
     convertLegacyTilesUrl,
     convertLegacyDefaultState,
     removeLegacyPresets1,
-    MapState,
+    convertTagsToQueries,
+    convertUrlParsingRules1,
 } from 'src/settings';
+import { MapState } from 'src/mapState';
 import {
+    getMarkersFromFileContent,
     getFrontMatterLocation,
     matchInlineLocation,
     verifyLocation,
 } from 'src/markers';
 import { SettingsTab } from 'src/settingsTab';
-import { NewNoteDialog } from 'src/newNoteDialog';
+import { LocationSearchDialog } from 'src/locationSearchDialog';
+import { TagSuggest } from 'src/tagSuggest';
 import * as utils from 'src/utils';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
     public highestVersionSeen: number = 0;
     private suggestor: LocationSuggest;
+    private tagSuggestor: TagSuggest;
     private urlConvertor: UrlConvertor;
 
     async onload() {
@@ -58,10 +65,22 @@ export default class MapViewPlugin extends Plugin {
             return new MapView(leaf, this.settings, this);
         });
 
+        this.registerObsidianProtocolHandler(
+            'mapview',
+            (params: ObsidianProtocolData) => {
+                if (params.action == 'mapview') {
+                    const state = stateFromParsedUrl(params);
+                    this.openMapWithState(state, false, false);
+                }
+            }
+        );
+
         this.suggestor = new LocationSuggest(this.app, this.settings);
+        this.tagSuggestor = new TagSuggest(this.app, this.settings);
         this.urlConvertor = new UrlConvertor(this.app, this.settings);
 
         this.registerEditorSuggest(this.suggestor);
+        this.registerEditorSuggest(this.tagSuggestor);
 
         // Convert old settings formats that are no longer supported
         if (convertLegacyMarkerIcons(this.settings)) {
@@ -86,6 +105,18 @@ export default class MapViewPlugin extends Plugin {
             await this.saveSettings();
             new Notice(
                 'Map View: legacy URL parsing rules and/or map sources were converted. See the release notes'
+            );
+        }
+        if (convertTagsToQueries(this.settings)) {
+            await this.saveSettings();
+            new Notice(
+                'Map View: legacy tag queries were converted to the new query format'
+            );
+        }
+        if (convertUrlParsingRules1(this.settings)) {
+            await this.saveSettings();
+            new Notice(
+                'Map View: URL parsing rules were converted to the new format'
             );
         }
 
@@ -130,7 +161,12 @@ export default class MapViewPlugin extends Plugin {
             id: 'new-geolocation-note',
             name: 'New geolocation note',
             callback: () => {
-                const dialog = new NewNoteDialog(this.app, this.settings);
+                const dialog = new LocationSearchDialog(
+                    this.app,
+                    this.settings,
+                    'newNote',
+                    'New geolocation note'
+                );
                 dialog.open();
             },
         });
@@ -140,13 +176,30 @@ export default class MapViewPlugin extends Plugin {
             id: 'add-frontmatter-geolocation',
             name: 'Add geolocation (front matter) to current note',
             editorCallback: (editor, view) => {
-                const dialog = new NewNoteDialog(
+                const dialog = new LocationSearchDialog(
                     this.app,
                     this.settings,
                     'addToNote',
+                    'Add geolocation to note',
                     editor
                 );
                 dialog.open();
+            },
+        });
+
+        // TODO: capture the 'search current file' key and map it automatically
+        this.addCommand({
+            id: 'open-map-search',
+            name: 'Search active map view',
+            checkCallback: (checking) => {
+                const currentView = this.app.workspace.activeLeaf.view;
+                if (
+                    currentView &&
+                    currentView.getViewType() == consts.MAP_VIEW_NAME
+                ) {
+                    if (!checking) (currentView as MapView).openSearch();
+                    return true;
+                } else return false;
             },
         });
 
@@ -156,13 +209,14 @@ export default class MapViewPlugin extends Plugin {
         // This is the context menu in the File Explorer and clicking "More options" (three dots) from within a file.
         this.app.workspace.on(
             'file-menu',
-            (
+            async (
                 menu: Menu,
                 file: TAbstractFile,
                 _source: string,
                 leaf?: WorkspaceLeaf
             ) => {
                 if (file instanceof TFile) {
+                    let hasAnyLocation = false;
                     const location = getFrontMatterLocation(file, this.app);
                     if (location) {
                         // If there is a geolocation in the front matter of the file
@@ -191,6 +245,7 @@ export default class MapViewPlugin extends Plugin {
                             location,
                             this.settings
                         );
+                        hasAnyLocation = true;
                     } else {
                         if (leaf && leaf.view instanceof MarkdownView) {
                             // If there is no valid geolocation in the front matter, add a menu item to populate it.
@@ -199,16 +254,41 @@ export default class MapViewPlugin extends Plugin {
                                 item.setTitle('Add geolocation (front matter)');
                                 item.setIcon('globe');
                                 item.onClick(async (evt: MouseEvent) => {
-                                    const dialog = new NewNoteDialog(
+                                    const dialog = new LocationSearchDialog(
                                         this.app,
                                         this.settings,
                                         'addToNote',
+                                        'Add geolocation to note',
                                         editor
                                     );
                                     dialog.open();
                                 });
                             });
                         }
+                    }
+                    const contentMarkers = await getMarkersFromFileContent(
+                        file,
+                        this.settings,
+                        this.app
+                    );
+                    if (contentMarkers.length > 0) {
+                        hasAnyLocation = true;
+                    }
+                    if (hasAnyLocation) {
+                        menu.addItem((item: MenuItem) => {
+                            item.setTitle('Focus note in Map View');
+                            item.setIcon('globe');
+                            item.onClick(
+                                async (evt: MouseEvent) =>
+                                    await this.openMapWithState(
+                                        {
+                                            query: `path:"${file.path}"`,
+                                        } as MapState,
+                                        evt.ctrlKey,
+                                        true
+                                    )
+                            );
+                        });
                     }
                 }
             }
@@ -260,9 +340,9 @@ export default class MapViewPlugin extends Plugin {
                         });
                     }
 
-                    if (this.urlConvertor.findMatchInLine(editor))
+                    if (this.urlConvertor.hasMatchInLine(editor))
                         // If the line contains a recognized geolocation that can be converted from a URL parsing rule
-                        menu.addItem((item: MenuItem) => {
+                        menu.addItem(async (item: MenuItem) => {
                             item.setTitle('Convert to geolocation');
                             item.onClick(async () => {
                                 this.urlConvertor.convertUrlAtCursorToGeolocation(
@@ -272,19 +352,20 @@ export default class MapViewPlugin extends Plugin {
                         });
 
                     const clipboard = await navigator.clipboard.readText();
-                    const clipboardLocation =
-                        this.urlConvertor.parseLocationFromUrl(
-                            clipboard
-                        )?.location;
+                    let clipboardLocation =
+                        this.urlConvertor.parseLocationFromUrl(clipboard);
                     if (clipboardLocation) {
                         // If the clipboard contains a recognized geolocation that can be converted from a URL parsing rule
                         menu.addItem((item: MenuItem) => {
                             item.setTitle('Paste as geolocation');
                             item.onClick(async () => {
-                                this.urlConvertor.insertLocationToEditor(
-                                    clipboardLocation,
-                                    editor
-                                );
+                                if (clipboardLocation instanceof Promise)
+                                    clipboardLocation = await clipboardLocation;
+                                if (clipboardLocation)
+                                    this.urlConvertor.insertLocationToEditor(
+                                        clipboardLocation.location,
+                                        editor
+                                    );
                             });
                         });
                     }
@@ -294,7 +375,8 @@ export default class MapViewPlugin extends Plugin {
     }
 
     /**
-     * Open an instance of the map at the given geolocation
+     * Open an instance of the map at the given geolocation.
+     * The active query is cleared so we'll be sure that the location is actually displayed.
      * @param location The geolocation to open the map at
      * @param ctrlKey Was the control key pressed
      */
@@ -306,12 +388,17 @@ export default class MapViewPlugin extends Plugin {
             {
                 mapCenter: location,
                 mapZoom: this.settings.zoomOnGoFromNote,
+                query: '',
             } as MapState,
             ctrlKey
         );
     }
 
-    private async openMapWithState(state: MapState, ctrlKey: boolean) {
+    private async openMapWithState(
+        state: MapState,
+        ctrlKey: boolean,
+        forceAutoFit?: boolean
+    ) {
         // Find the best candidate for a leaf to open the map view on.
         // If there's an open map view, use that, otherwise use the current leaf.
         // If Ctrl is pressed, override that behavior and always use the current leaf.
@@ -324,6 +411,10 @@ export default class MapViewPlugin extends Plugin {
             type: consts.MAP_VIEW_NAME,
             state: state,
         });
+        if (forceAutoFit) {
+            if (chosenLeaf.view instanceof MapView)
+                chosenLeaf.view.autoFitMapToMarkers();
+        }
     }
 
     /**

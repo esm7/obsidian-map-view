@@ -4,10 +4,16 @@ import {
     PluginSettingTab,
     TextAreaComponent,
     Setting,
+    DropdownComponent,
 } from 'obsidian';
 
 import MapViewPlugin from 'src/main';
-import { PluginSettings, DEFAULT_SETTINGS } from 'src/settings';
+import {
+    PluginSettings,
+    UrlParsingRuleType,
+    UrlParsingContentType,
+    DEFAULT_SETTINGS,
+} from 'src/settings';
 import { getIconFromOptions, getIconFromRules } from 'src/markers';
 import { MapView } from 'src/mapView';
 import * as consts from 'src/consts';
@@ -62,6 +68,10 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                         apiKeyControl.settingEl.style.display =
                             value === 'google' ? '' : 'none';
+                        googlePlacesControl.settingEl.style.display =
+                            this.plugin.settings.searchProvider === 'google'
+                                ? ''
+                                : 'none';
                     });
             });
 
@@ -85,9 +95,24 @@ export class SettingsTab extends PluginSettingTab {
                     ? ''
                     : 'red';
             });
+        let googlePlacesControl = new Setting(containerEl)
+            .setName('Use Google Places for searches')
+            .setDesc(
+                'Use Google Places API instead of Google Geocoding to get higher-quality results. Your API key must have a specific Google Places permission turned on! See the plugin documentation for more details.'
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.useGooglePlaces)
+                    .onChange(async (value) => {
+                        this.plugin.settings.useGooglePlaces = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
 
         // Display the API key control only if the search provider requires it
         apiKeyControl.settingEl.style.display =
+            this.plugin.settings.searchProvider === 'google' ? '' : 'none';
+        googlePlacesControl.settingEl.style.display =
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
 
         new Setting(containerEl)
@@ -193,9 +218,22 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
+            .setName('Show note name on marker hover')
+            .setDesc(
+                'Show a popup with the note name when hovering on a map marker.'
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.showNoteNamePopup)
+                    .onChange(async (value) => {
+                        this.plugin.settings.showNoteNamePopup = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
             .setName('Show note preview on map marker hover')
             .setDesc(
-                'In addition to the note and internal link name, show the native Obsidian note preview.'
+                'In addition to the note name, show the native Obsidian note preview.'
             )
             .addToggle((component) => {
                 component
@@ -232,6 +270,20 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
+		new Setting(containerEl)
+			.setName('Allow zooming beyond the defined maximum')
+		.setDesc(
+			'Allow zooming further than the maximum defined for the map source, interpolating the image of the highest available zoom.'
+		)
+		.addToggle(component => {
+			component
+				.setValue(this.plugin.settings.letZoomBeyondMax ?? DEFAULT_SETTINGS.letZoomBeyondMax)
+				.onChange(async value => {
+					this.plugin.settings.letZoomBeyondMax = value;
+					this.refreshPluginOnHide = true;
+					await this.plugin.saveSettings();
+				});
+		});
         new Setting(containerEl)
             .setName('Save back/forward history')
             .setDesc(
@@ -299,8 +351,8 @@ export class SettingsTab extends PluginSettingTab {
                 this.plugin.settings.urlParsingRules.push({
                     name: '',
                     regExp: '',
-                    order: 'latFirst',
                     preset: false,
+                    ruleType: 'latLng',
                 });
                 this.refreshUrlParsingRules(parsingRulesDiv);
             })
@@ -388,21 +440,20 @@ export class SettingsTab extends PluginSettingTab {
                 })
                 .addText((component) => {
                     component
-                        .setPlaceholder('URL (dark) (optional)')
+                        .setPlaceholder('URL (dark) (opt.)')
                         .setValue(setting.urlDark)
                         .onChange(async (value: string) => {
                             setting.urlDark = value;
                             this.refreshPluginOnHide = true;
                             await this.plugin.saveSettings();
-                        });
+                        }).inputEl.style.width = '10em';
                 })
                 .addText((component) => {
                     component
                         .setPlaceholder('Max Tile Zoom')
                         .setValue(
-                            (typeof setting.maxZoom === 'number'
-                                ? setting.maxZoom
-                                : DEFAULT_MAX_TILE_ZOOM
+                            (
+                                setting.maxZoom ?? DEFAULT_MAX_TILE_ZOOM
                             ).toString()
                         )
                         .onChange(async (value: string) => {
@@ -413,7 +464,7 @@ export class SettingsTab extends PluginSettingTab {
                                 this.refreshPluginOnHide = true;
                                 await this.plugin.saveSettings();
                             }
-                        });
+                        }).inputEl.style.width = '3em';
                 });
             if (!setting.preset)
                 controls.addButton((component) =>
@@ -478,36 +529,47 @@ export class SettingsTab extends PluginSettingTab {
                 this.plugin.saveSettings();
             }
         for (const setting of parsingRules) {
-            const controls = new Setting(containerEl)
-                .addText((component) => {
-                    component
-                        .setPlaceholder('Name')
-                        .setValue(setting.name)
-                        .onChange(async (value: string) => {
-                            setting.name = value;
-                            await this.plugin.saveSettings();
-                        });
-                })
-                .addText((component) => {
-                    component
-                        .setPlaceholder('Regex with 2 capture groups')
-                        .setValue(setting.regExp)
-                        .onChange(async (value: string) => {
-                            setting.regExp = value;
-                            await this.plugin.saveSettings();
-                        });
-                })
-                .addDropdown((component) =>
-                    component
-                        .addOption('latFirst', 'lat, lng')
-                        .addOption('lngFirst', 'lng, lat')
-                        .setValue(setting.order)
-                        .onChange(async (value: 'latFirst' | 'lngFirst') => {
-                            setting.order = value;
-                            await this.plugin.saveSettings();
-                        })
+            const parsingRuleDiv = containerEl.createDiv('parsing-rule');
+            const line1 = parsingRuleDiv.createDiv('parsing-rule-line-1');
+            let line2: HTMLDivElement = null;
+            let adjustToRuleType = (ruleType: UrlParsingRuleType) => {
+                text.setPlaceholder(
+                    ruleType === 'fetch'
+                        ? 'Regex with 1 capture group'
+                        : 'Regex with 2 capture groups'
                 );
-            controls.settingEl.style.padding = '5px';
+                if (line2)
+                    line2.style.display =
+                        ruleType === 'fetch' ? 'block' : 'none';
+            };
+            const controls = new Setting(line1).addText((component) => {
+                component
+                    .setPlaceholder('Name')
+                    .setValue(setting.name)
+                    .onChange(async (value: string) => {
+                        setting.name = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+            const text = new TextComponent(controls.controlEl);
+            text.setValue(setting.regExp).onChange(async (value: string) => {
+                setting.regExp = value;
+                await this.plugin.saveSettings();
+            });
+            controls.addDropdown((component) =>
+                component
+                    .addOption('latLng', '(lat)(lng)')
+                    .addOption('lngLat', '(lng)(lat)')
+                    .addOption('fetch', 'fetch')
+                    .setValue(setting.ruleType ?? 'latLng')
+                    .onChange(async (value: UrlParsingRuleType) => {
+                        setting.ruleType = value;
+                        adjustToRuleType(value);
+                        await this.plugin.saveSettings();
+                    })
+                    .selectEl.addClass('url-rule-dropdown')
+            );
+            controls.settingEl.style.padding = '0px';
             controls.settingEl.style.borderTop = 'none';
             if (!setting.preset)
                 controls.addButton((component) =>
@@ -517,6 +579,27 @@ export class SettingsTab extends PluginSettingTab {
                         this.refreshUrlParsingRules(containerEl);
                     })
                 );
+            line2 = parsingRuleDiv.createDiv('parsing-rule-line-2');
+            adjustToRuleType(setting.ruleType);
+            const contentLabel = line2.createEl('label');
+            contentLabel.setText('Content parsing expression:');
+            contentLabel.style.paddingRight = '10px';
+            new TextComponent(line2)
+                .setPlaceholder('Regex with 1-2 capture groups')
+                .setValue(setting.contentParsingRegExp)
+                .onChange(async (value) => {
+                    setting.contentParsingRegExp = value;
+                    await this.plugin.saveSettings();
+                });
+            new DropdownComponent(line2)
+                .addOption('latLng', '(lat)(lng)')
+                .addOption('lngLat', '(lng)(lat)')
+                .addOption('googlePlace', '(google-place)')
+                .setValue(setting.contentType ?? 'latLng')
+                .onChange(async (value) => {
+                    setting.contentType = value as UrlParsingContentType;
+                    await this.plugin.saveSettings();
+                });
         }
     }
 

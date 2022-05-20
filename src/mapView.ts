@@ -9,7 +9,6 @@ import {
     TFile,
     WorkspaceLeaf,
     Notice,
-    ViewState,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -17,31 +16,27 @@ import * as leaflet from 'leaflet';
 import * as leafletFullscreen from 'leaflet-fullscreen';
 import '@fortawesome/fontawesome-free/js/all.min';
 import 'leaflet/dist/leaflet.css';
-import { GeoSearchControl } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
-import {
-    PluginSettings,
-    MapState,
-    DEFAULT_SETTINGS,
-    mergeStates,
-} from 'src/settings';
+import { MapState, mergeStates, stateToUrl } from 'src/mapState';
+import { PluginSettings, TileSource, DEFAULT_SETTINGS } from 'src/settings';
 import {
     MarkersMap,
     FileMarker,
     buildMarkers,
     getIconFromOptions,
     buildAndAppendFileMarkers,
+    finalizeMarkers,
 } from 'src/markers';
-import { LocationSuggest } from 'src/geosearch';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
-import { ViewControls } from 'src/viewControls';
-import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
+import { ViewControls, SearchControl } from 'src/viewControls';
+import { Query } from 'src/query';
+import { GeoSearchResult } from 'src/geosearch';
 
 export class MapView extends ItemView {
     private settings: PluginSettings;
@@ -62,6 +57,10 @@ export class MapView extends ItemView {
         /** The markers currently on the map */
         markers: MarkersMap = new Map();
         controls: ViewControls;
+        /** The search controls (search & clear buttons) */
+        searchControls: SearchControl = null;
+        /** A marker of the last search result */
+        searchResult: leaflet.Marker = null;
     })();
     private plugin: MapViewPlugin;
     /** The default state as saved in the plugin settings */
@@ -106,6 +105,33 @@ export class MapView extends ItemView {
             console.log('Map view: map refresh due to CSS change');
             this.refreshMap();
         });
+        this.app.workspace.on('file-open', (file: TFile) => {
+            if (this.getState().followActiveNote && file) {
+                let currentState = this.leaf.getViewState();
+                (currentState.state as MapState).query = `path:"${file.path}"`;
+                this.leaf.setViewState(currentState);
+            }
+        });
+    }
+
+    onMoreOptionsMenu(menu: Menu) {
+        menu.addItem((item: MenuItem) => {
+            item.setTitle('Copy Map View URL').onClick(() => {
+                this.copyStateUrl();
+            });
+        });
+        super.onMoreOptionsMenu(menu);
+    }
+
+    copyStateUrl() {
+        const params = stateToUrl(this.state);
+        const url = `obsidian://mapview?action=open&${params}`;
+        navigator.clipboard.writeText(url);
+        new Notice('Copied state URL to clipboard');
+    }
+
+    getMarkers() {
+        return this.display.markers;
     }
 
     async setState(state: MapState, result: any) {
@@ -146,7 +172,7 @@ export class MapView extends ItemView {
         )
             return true;
         if (
-            newState.tags != this.lastSavedState.tags ||
+            newState.query != this.lastSavedState.query ||
             newState.chosenMapSource != this.lastSavedState.chosenMapSource
         )
             return true;
@@ -222,6 +248,10 @@ export class MapView extends ItemView {
         }
     }
 
+	public getMapSource(): TileSource {
+		return this.settings.mapSources[this.state.chosenMapSource];
+	}
+
     updateTileLayerByState(newState: MapState) {
         if (
             this.display.tileLayer &&
@@ -234,7 +264,7 @@ export class MapView extends ItemView {
         if (!this.display.tileLayer) {
             const isDark = this.isDarkMode(this.settings);
             const chosenMapSource =
-                this.settings.mapSources[this.state.chosenMapSource];
+                this.getMapSource();
             const attribution =
                 chosenMapSource.urlLight ===
                 DEFAULT_SETTINGS.mapSources[0].urlLight
@@ -248,12 +278,10 @@ export class MapView extends ItemView {
                 else revertMap = true;
             }
             const neededClassName = revertMap ? 'dark-mode' : '';
+			const maxNativeZoom = chosenMapSource.maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM;
             this.display.tileLayer = new leaflet.TileLayer(mapSourceUrl, {
-                maxZoom: MAX_ZOOM,
-                maxNativeZoom:
-                    typeof chosenMapSource.maxZoom === 'number'
-                        ? chosenMapSource.maxZoom
-                        : DEFAULT_MAX_TILE_ZOOM,
+				maxZoom: this.settings.letZoomBeyondMax ? consts.MAX_ZOOM : maxNativeZoom,
+                maxNativeZoom: maxNativeZoom,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                 attribution: attribution,
                 className: neededClassName,
@@ -317,18 +345,6 @@ export class MapView extends ItemView {
         });
         this.display.map.addLayer(this.display.clusterGroup);
 
-        const suggestor = new LocationSuggest(this.app, this.settings);
-        const searchControl = GeoSearchControl({
-            provider: suggestor.searchProvider,
-            position: 'topright',
-            marker: {
-                icon: getIconFromOptions(
-                    consts.SEARCH_RESULT_MARKER as leaflet.BaseIconOptions
-                ),
-            },
-            style: 'button',
-        });
-        this.display.map.addControl(searchControl);
         this.display.map.on('zoomend', (event: leaflet.LeafletEvent) => {
             this.state.mapZoom = this.display.map.getZoom();
             this.state.mapCenter = this.display.map.getCenter();
@@ -342,6 +358,14 @@ export class MapView extends ItemView {
             const state = this.leaf.getViewState();
             this.leaf.setViewState(state);
         });
+
+        this.display.searchControls = new SearchControl(
+            { position: 'topright' },
+            this,
+            this.app,
+            this.settings
+        );
+        this.display.map.addControl(this.display.searchControls);
 
         if (this.settings.showClusterPreview) {
             this.display.clusterGroup.on('clustermouseover', (cluster) => {
@@ -359,7 +383,11 @@ export class MapView extends ItemView {
                         break;
                 }
                 cluster.propagatedFrom
-                    .bindPopup(content, { closeButton: true, autoPan: false })
+                    .bindPopup(content, {
+                        closeButton: true,
+                        autoPan: false,
+                        className: 'marker-popup',
+                    })
                     .openPopup();
                 cluster.propagatedFrom.activePopup = content;
             });
@@ -463,40 +491,38 @@ export class MapView extends ItemView {
      */
     async updateMarkersToState(state: MapState, force: boolean = false) {
         if (this.settings.debug) console.time('updateMarkersToState');
-        // Get a list of all files matching the tags
-        const files = this.getFileListByQuery(state.tags);
-        // Build the markers for all files matching the tag
+        let files = this.app.vault.getFiles();
+        // Build the markers and filter them according to the query
         let newMarkers = await buildMarkers(files, this.settings, this.app);
+        try {
+            newMarkers = this.filterMarkers(newMarkers, state.query);
+            state.queryError = false;
+        } catch (e) {
+            newMarkers = [];
+            state.queryError = true;
+        }
+        finalizeMarkers(newMarkers, this.settings);
         // --- BEYOND THIS POINT NOTHING SHOULD BE ASYNC ---
         // Saying it again: do not use 'await' below this line!
         this.state = state;
         this.updateMapMarkers(newMarkers);
-        this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
+        if (
+            this.display.map.getCenter().distanceTo(this.state.mapCenter) > 1 ||
+            this.display.map.getZoom() != this.state.mapZoom
+        ) {
+            // We want to call setView only if there was an actual change, because even the tiniest (epsilon) change can
+            // cause Leaflet to think it's worth triggering map center change callbacks
+            this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
+        }
+        this.display.controls.setQueryBoxErrorByState();
         if (this.settings.debug) console.timeEnd('updateMarkersToState');
     }
 
-    /**
-     * Get a list of files containing at least one of the tags
-     * @param tags A list of string tags to match
-     */
-    getFileListByQuery(tags: string[]): TFile[] {
-        let results: TFile[] = [];
-        const allFiles = this.app.vault.getFiles();
-        for (const file of allFiles) {
-            var match = true;
-            if (tags && tags.length > 0) {
-                // A tags query exist, file defaults to non-matching and we'll add it if it has one of the tags
-                match = false;
-                const fileCache = this.app.metadataCache.getFileCache(file);
-                if (fileCache && fileCache.tags) {
-                    const tagsMatch = fileCache.tags.some(
-                        (tagInFile) => tags.indexOf(tagInFile.tag) > -1
-                    );
-                    if (tagsMatch) match = true;
-                }
-            }
-            if (match) results.push(file);
-        }
+    filterMarkers(allMarkers: FileMarker[], queryString: string) {
+        let results: FileMarker[] = [];
+        const query = new Query(this.app, queryString);
+        for (const marker of allMarkers)
+            if (query.testMarker(marker)) results.push(marker);
         return results;
     }
 
@@ -530,8 +556,8 @@ export class MapView extends ItemView {
         for (let [key, value] of this.display.markers) {
             markersToRemove.push(value.mapMarker);
         }
-        this.display.clusterGroup.addLayers(markersToAdd);
         this.display.clusterGroup.removeLayers(markersToRemove);
+        this.display.clusterGroup.addLayers(markersToAdd);
         this.display.markers = newMarkersMap;
     }
 
@@ -567,12 +593,20 @@ export class MapView extends ItemView {
                     previewDetails
                 );
             }
-            let content = `<p class="map-view-marker-name">${marker.file.name}</p>`;
-            if (marker.extraName)
-                content += `<p class="map-view-extra-name">${marker.extraName}</p>`;
-            newMarker
-                .bindPopup(content, { closeButton: true, autoPan: false })
-                .openPopup();
+            if (this.settings.showNoteNamePopup) {
+                const fileName = marker.file.name;
+                const fileNameWithoutExtension = fileName.endsWith('.md')
+                    ? fileName.substr(0, fileName.lastIndexOf('.md'))
+                    : fileName;
+                let content = `<p class="map-view-marker-name">${fileNameWithoutExtension}</p>`;
+                newMarker
+                    .bindPopup(content, {
+                        closeButton: true,
+                        autoPan: false,
+                        className: 'marker-popup',
+                    })
+                    .openPopup();
+            }
         });
         newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
             newMarker.closePopup();
@@ -615,7 +649,9 @@ export class MapView extends ItemView {
             const locations: leaflet.LatLng[] = Array.from(
                 this.display.markers.values()
             ).map((fileMarker) => fileMarker.location);
-            this.display.map.fitBounds(leaflet.latLngBounds(locations));
+            this.display.map.fitBounds(leaflet.latLngBounds(locations),
+				{ maxZoom: 
+					this.getMapSource().maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM });
         }
     }
 
@@ -731,6 +767,46 @@ export class MapView extends ItemView {
                 this.settings,
                 this.app
             );
+        finalizeMarkers(newMarkers, this.settings);
         this.updateMapMarkers(newMarkers);
+    }
+
+    addSearchResultMarker(details: GeoSearchResult) {
+        this.display.searchResult = leaflet.marker(details.location, {
+            icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER),
+        });
+        const marker = this.display.searchResult;
+        marker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+            marker
+                .bindPopup(details.name, {
+                    closeButton: true,
+                    className: 'marker-popup',
+                })
+                .openPopup();
+        });
+        marker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
+            marker.closePopup();
+        });
+        marker.addTo(this.display.map);
+        this.zoomToSearchResult(details.location);
+    }
+
+    zoomToSearchResult(location: leaflet.LatLng) {
+        let currentState = this.leaf.getViewState();
+        (currentState.state as MapState).mapCenter = location;
+        (currentState.state as MapState).mapZoom =
+            this.settings.zoomOnGoFromNote;
+        this.leaf.setViewState(currentState);
+    }
+
+    removeSearchResultMarker() {
+        if (this.display.searchResult) {
+            this.display.searchResult.removeFrom(this.display.map);
+            this.display.searchResult = null;
+        }
+    }
+
+    openSearch() {
+        this.display.searchControls.openSearch(this.display.markers);
     }
 }

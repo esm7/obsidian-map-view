@@ -6,6 +6,7 @@ import {
     TFile,
     Menu,
     MenuItem,
+    getAllTags,
 } from 'obsidian';
 
 import * as moment_ from 'moment';
@@ -183,4 +184,38 @@ export async function getEditor(
             : app.workspace.getActiveViewOfType(MarkdownView);
     if (view) return view.editor;
     return null;
+}
+
+// TODO document
+export function matchByPosition(
+    s: string,
+    r: RegExp,
+    position: number
+): RegExpMatchArray {
+    const matches = s.matchAll(r);
+    for (const match of matches) {
+        if (
+            match.index <= position &&
+            position <= match.index + match[0].length
+        )
+            return match;
+    }
+    return null;
+}
+
+// TODO document
+export function getAllTagNames(app: App): string[] {
+    let tags: string[] = [];
+    const allFiles = app.vault.getFiles();
+    for (const file of allFiles) {
+        const fileCache = app.metadataCache.getFileCache(file);
+        const fileTagNames = getAllTags(fileCache) || [];
+        if (fileTagNames.length > 0) {
+            tags = tags.concat(
+                fileTagNames.filter((tagName) => tags.indexOf(tagName) < 0)
+            );
+        }
+    }
+    tags = tags.sort();
+    return tags;
 }

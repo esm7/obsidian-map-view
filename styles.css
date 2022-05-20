@@ -1,14 +1,7 @@
 .map-view-marker-name {
-    font-weight: bold;
-}
-
-.map-view-extra-name {
-    font-weight: bold;
-}
-
-.map-view-marker-snippet {
-    white-space: pre-line;
-    overflow-wrap: break-word;
+    color: var(--text-normal);
+    font-size: var(--font-text-size);
+    font-family: var(--font-text);
 }
 
 .map-view-location {
@@ -20,20 +13,44 @@
     position: fixed;
     z-index: 2;
     margin-top: 36px;
+    padding: 8px 16px 5px 12px;
 }
 
 .graph-control-div {
-    display: inline-block;
+    display: block;
+    padding-bottom: 5px;
 }
 
 .graph-control-content {
-    max-height: 0px;
+    display: none;
     overflow: hidden;
-    transition: max-height 0.25s ease-in-out;
 }
 
-.toggle:checked + .lbl-toggle + .graph-control-content {
-    max-height: 100vh;
+.graph-control-error {
+    border-color: red !important;
+}
+
+.controls-toggle {
+    display: none;
+}
+
+.controls-toggle:checked
+    + .lbl-triangle
+    + .lbl-toggle
+    + .graph-control-content {
+    display: block;
+}
+
+.lbl-triangle {
+    display: inline-block;
+    position: relative;
+    top: -1px;
+    transition: 0.25s;
+}
+
+.controls-toggle:checked + .lbl-triangle {
+    transform: rotate(90deg);
+    top: 0px;
 }
 
 .settings-dense-button {
@@ -62,4 +79,55 @@
 
 .clusterPreviewContainer {
     display: inline-flex;
+    border-radius: 6px;
+    line-height: 1.5;
+    background-color: var(--background-primary);
+}
+
+.clusterPreviewContainer .leaflet-marker-icon {
+    background-color: var(--background-primary);
+}
+
+.graph-control-follow-label {
+    vertical-align: top;
+    padding-left: 5px;
+}
+
+.marker-popup {
+    border-radius: 6px;
+    color: var(--text-normal);
+    font-size: var(--font-text-size);
+    font-family: var(--font-text);
+    line-height: 1.5;
+    background-color: var(--background-primary);
+    box-shadow: 0 2px 8px var(--background-modifier-box-shadow);
+}
+
+/* Disable the default Leaflet shadow because we use the Obsidian theme above */
+.marker-popup .leaflet-popup-content-wrapper {
+    box-shadow: none;
+    background: none;
+    color: none;
+}
+
+.url-rule-dropdown {
+    max-width: 7em;
+}
+
+.parsing-rule {
+    padding: 5px;
+}
+
+.parsing-rule-line-2 {
+    text-align: right;
+}
+
+.map-search-suggestion {
+    display: flex;
+}
+
+.search-text-div {
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
 }

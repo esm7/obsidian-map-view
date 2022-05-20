@@ -1,59 +1,76 @@
-import {
-    Editor,
-    MarkdownView,
-    App,
-    WorkspaceLeaf,
-    SuggestModal,
-    TFile,
-} from 'obsidian';
+import { Editor, App, SuggestModal, TFile } from 'obsidian';
 import * as leaflet from 'leaflet';
 
 import { PluginSettings } from 'src/settings';
-import { LocationSuggest } from 'src/geosearch';
-import { UrlConvertor } from 'src/urlConvertor';
-import { MapView } from 'src/mapView';
+import { GeoSearcher, GeoSearchResult } from 'src/geosearch';
+import { getIconFromOptions } from 'src/markers';
 import * as utils from 'src/utils';
 import * as consts from 'src/consts';
 
-class SuggestInfo {
-    name: string;
-    location?: leaflet.LatLng;
-    type: 'searchResult' | 'url';
+export class SuggestInfo extends GeoSearchResult {
+    icon?: leaflet.ExtraMarkers.IconOptions;
 }
 
-export class NewNoteDialog extends SuggestModal<SuggestInfo> {
+type DialogAction = 'newNote' | 'addToNote' | 'custom';
+
+export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
     private settings: PluginSettings;
-    private suggestor: LocationSuggest;
-    private urlConvertor: UrlConvertor;
+    private searcher: GeoSearcher;
     private lastSearchTime = 0;
     private delayInMs = 250;
     private lastSearch = '';
     private lastSearchResults: SuggestInfo[] = [];
+    private includeResults: SuggestInfo[] = [];
+    private hasIcons: boolean = false;
 
-    private dialogAction: 'newNote' | 'addToNote' = 'newNote';
+    private dialogAction: DialogAction;
     private editor: Editor = null;
+
+    // If dialogAction is 'custom', this will launch upon selection
+    public customOnSelect: (selection: SuggestInfo) => void;
 
     constructor(
         app: App,
         settings: PluginSettings,
-        dialogAction: 'newNote' | 'addToNote' = 'newNote',
-        editor: Editor = null
+        dialogAction: DialogAction,
+        title: string,
+        editor: Editor = null,
+        includeResults: SuggestInfo[] = null,
+        hasIcons: boolean = false
     ) {
         super(app);
         this.settings = settings;
-        this.suggestor = new LocationSuggest(this.app, this.settings);
-        this.urlConvertor = new UrlConvertor(this.app, this.settings);
+        this.searcher = new GeoSearcher(app, settings);
         this.dialogAction = dialogAction;
         this.editor = editor;
+        this.includeResults = includeResults;
+        this.hasIcons = hasIcons;
 
-        this.setPlaceholder('Type a search query or paste a supported URL');
+        this.setPlaceholder(
+            title + ': type a place name or paste a string to parse'
+        );
         this.setInstructions([{ command: 'enter', purpose: 'to use' }]);
     }
 
     getSuggestions(query: string) {
         let result: SuggestInfo[] = [];
-        const urlResult = this.parseLocationAsUrl(query);
-        if (urlResult) result.push(urlResult);
+        // Get results from the "to include" list, e.g. existing markers
+        let resultsToInclude: SuggestInfo[] = [];
+        if (this.includeResults)
+            for (const toInclude of this.includeResults) {
+                if (
+                    query.length == 0 ||
+                    toInclude.name.toLowerCase().includes(query.toLowerCase())
+                )
+                    resultsToInclude.push(toInclude);
+                if (resultsToInclude.length >= consts.MAX_MARKER_SUGGESTIONS)
+                    break;
+            }
+        result = result.concat(resultsToInclude);
+
+        // From this point onward, results are added asynchronously.
+        // We make sure to add them *after* the synchronuous results, otherwise
+        // it will be very annoying for a user who may have already selected something.
         if (query == this.lastSearch) {
             result = result.concat(this.lastSearchResults);
         }
@@ -62,7 +79,20 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
     }
 
     renderSuggestion(value: SuggestInfo, el: HTMLElement) {
-        el.setText(value.name);
+        el.addClass('map-search-suggestion');
+        if (this.hasIcons) {
+            let iconDiv = el.createDiv('search-icon-div');
+            const compiledIcon = getIconFromOptions(
+                value.icon ?? consts.SEARCH_RESULT_MARKER
+            );
+            let iconElement: HTMLElement = compiledIcon.createIcon();
+            let style = iconElement.style;
+            style.marginLeft = style.marginTop = '0';
+            style.position = 'relative';
+            iconDiv.append(iconElement);
+            let textDiv = el.createDiv('search-text-div');
+            textDiv.appendText(value.name);
+        } else el.appendText(value.name);
     }
 
     onChooseSuggestion(value: SuggestInfo, evt: MouseEvent | KeyboardEvent) {
@@ -70,6 +100,8 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
             this.newNote(value.location, evt, value.name);
         else if (this.dialogAction == 'addToNote')
             this.addToNote(value.location, evt, value.name);
+        else if (this.dialogAction == 'custom' && this.customOnSelect != null)
+            this.customOnSelect(value);
     }
 
     async newNote(
@@ -113,7 +145,6 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
     }
 
     async getSearchResultsWithDelay(query: string) {
-        // TODO merge this with LocationSuggest
         if (query === this.lastSearch || query.length < 3) return;
         const timestamp = Date.now();
         this.lastSearchTime = timestamp;
@@ -122,33 +153,11 @@ export class NewNoteDialog extends SuggestModal<SuggestInfo> {
         await Sleep(this.delayInMs);
         if (this.lastSearchTime != timestamp) {
             // Search is canceled by a newer search
-            return null;
+            return;
         }
         // After the sleep our search is still the last -- so the user stopped and we can go on
-        const results = await this.suggestor.searchProvider.search({
-            query: query,
-        });
-        const suggestions = results.map(
-            (result) =>
-                ({
-                    name: result.label,
-                    location: new leaflet.LatLng(result.y, result.x),
-                    type: 'searchResult',
-                } as SuggestInfo)
-        );
-        this.lastSearchResults = suggestions;
         this.lastSearch = query;
+        this.lastSearchResults = await this.searcher.search(query);
         (this as any).updateSuggestions();
-        return suggestions;
-    }
-
-    parseLocationAsUrl(query: string): SuggestInfo {
-        const result = this.urlConvertor.parseLocationFromUrl(query);
-        if (result)
-            return {
-                name: `Parsed from ${result.ruleName}: ${result.location.lat}, ${result.location.lng}`,
-                location: result.location,
-                type: 'url',
-            };
     }
 }

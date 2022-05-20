@@ -1,7 +1,7 @@
-import * as consts from 'src/consts';
 import { LatLng } from 'leaflet';
 import { SplitDirection } from 'obsidian';
-import { DEFAULT_MAX_TILE_ZOOM } from 'src/consts';
+import { MapState, LegacyMapState } from 'src/mapState';
+import * as consts from 'src/consts';
 
 export type PluginSettings = {
     defaultState: MapState;
@@ -23,6 +23,7 @@ export type PluginSettings = {
     // Deprecated
     defaultTags?: string[];
     autoZoom: boolean;
+	letZoomBeyondMax?: boolean;
     markerClickBehavior?: 'samePane' | 'secondPane' | 'alwaysNew';
     newPaneSplitDirection?: SplitDirection;
     newNoteNameFormat?: string;
@@ -30,6 +31,7 @@ export type PluginSettings = {
     newNoteTemplate?: string;
     // Deprecated
     snippetLines?: number;
+    showNoteNamePopup?: boolean;
     showNotePreview?: boolean;
     showClusterPreview?: boolean;
     debug?: boolean;
@@ -39,53 +41,9 @@ export type PluginSettings = {
     maxClusterRadiusPixels: number;
     searchProvider?: 'osm' | 'google';
     geocodingApiKey?: string;
+    useGooglePlaces?: boolean;
     saveHistory?: boolean;
 };
-
-/** Represents a logical state of the map, in separation from the map display */
-export type MapState = {
-    name: string;
-    mapZoom: number;
-    mapCenter: LatLng;
-    /** The tags that the user specified (including the # character) */
-    tags: string[];
-    chosenMapSource?: number;
-    forceHistorySave?: boolean;
-};
-
-export function mergeStates(state1: MapState, state2: MapState): MapState {
-    // Overwrite an existing state with a new one, that may have null or partial values which need to be ignored
-    // and taken from the existing state
-    const clearedState = Object.fromEntries(
-        Object.entries(state2).filter(([_, value]) => value != null)
-    );
-    return { ...state1, ...clearedState };
-}
-
-const xor = (a: any, b: any) => (a && !b) || (!a && b);
-
-export function areStatesEqual(state1: MapState, state2: MapState) {
-    if (!state1 || !state2) return false;
-    if (xor(state1.mapCenter, state2.mapCenter)) return false;
-    if (state1.mapCenter) {
-        // To compare locations we need to construct an actual LatLng object because state1 may just
-        // be a simple dict and not an actual LatLng
-        const mapCenter1 = new LatLng(
-            state1.mapCenter.lat,
-            state1.mapCenter.lng
-        );
-        const mapCenter2 = new LatLng(
-            state2.mapCenter.lat,
-            state2.mapCenter.lng
-        );
-        if (mapCenter1.distanceTo(mapCenter2) > 1000) return false;
-    }
-    return (
-        JSON.stringify(state1.tags) == JSON.stringify(state2.tags) &&
-        state2.mapZoom == state2.mapZoom &&
-        state1.chosenMapSource == state2.chosenMapSource
-    );
-}
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
 
@@ -104,11 +62,20 @@ export type OpenInSettings = {
     urlPattern: string;
 };
 
+export type UrlParsingRuleType = 'latLng' | 'lngLat' | 'fetch';
+export type UrlParsingContentType = 'latLng' | 'lngLat' | 'googlePlace';
+
 export type UrlParsingRule = {
     name: string;
     regExp: string;
-    order: 'latFirst' | 'lngFirst';
+    ruleType: UrlParsingRuleType;
+    contentParsingRegExp?: string;
+    contentType?: UrlParsingContentType;
     preset: boolean;
+};
+
+export type LegacyUrlParsingRule = UrlParsingRule & {
+    order: 'latFirst' | 'lngFirst';
 };
 
 export type MapControls = {
@@ -128,7 +95,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         name: 'Default',
         mapZoom: 1.0,
         mapCenter: new LatLng(40.44694705960048, -180.70312500000003),
-        tags: [],
+        query: '',
         chosenMapSource: 0,
     },
     savedStates: [],
@@ -166,6 +133,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     autoZoom: true,
     markerClickBehavior: 'samePane',
     newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
+    showNoteNamePopup: true,
     showNotePreview: true,
     showClusterPreview: false,
     debug: false,
@@ -180,13 +148,13 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             name: 'OpenStreetMap Show Address',
             regExp: /https:\/\/www.openstreetmap.org\S*query=([0-9\.\-]+%2C[0-9\.\-]+)\S*/
                 .source,
-            order: 'latFirst',
+            ruleType: 'latLng',
             preset: true,
         },
         {
             name: 'Generic Lat,Lng',
             regExp: /([0-9\.\-]+), ([0-9\.\-]+)/.source,
-            order: 'latFirst',
+            ruleType: 'latLng',
             preset: true,
         },
     ],
@@ -197,18 +165,18 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     },
     maxClusterRadiusPixels: 20,
     searchProvider: 'osm',
+    useGooglePlaces: false,
     mapSources: [
         {
             name: 'CartoDB',
             urlLight:
                 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-            maxZoom: DEFAULT_MAX_TILE_ZOOM,
             preset: true,
         },
     ],
-    // mapSources: [{name: 'OpenStreetMap', urlLight: consts.TILES_URL_OPENSTREETMAP}],
     chosenMapMode: 'auto',
     saveHistory: true,
+	letZoomBeyondMax: false
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
@@ -234,7 +202,7 @@ export function convertLegacyTilesUrl(settings: PluginSettings): boolean {
             {
                 name: 'Default',
                 urlLight: settings.tilesUrl,
-                maxZoom: DEFAULT_MAX_TILE_ZOOM,
+                maxZoom: consts.DEFAULT_MAX_TILE_ZOOM,
             },
         ];
         settings.tilesUrl = null;
@@ -257,7 +225,9 @@ export function convertLegacyDefaultState(settings: PluginSettings): boolean {
             mapCenter:
                 settings.defaultMapCenter ||
                 DEFAULT_SETTINGS.defaultState.mapCenter,
-            tags: settings.defaultTags || DEFAULT_SETTINGS.defaultState.tags,
+            query:
+                settings.defaultTags.join(' OR ') ||
+                DEFAULT_SETTINGS.defaultState.query,
             chosenMapSource:
                 settings.chosenMapSource ??
                 DEFAULT_SETTINGS.defaultState.chosenMapSource,
@@ -289,4 +259,37 @@ export function removeLegacyPresets1(settings: PluginSettings): boolean {
         return true;
     }
     return false;
+}
+
+export function convertTagsToQueries(settings: PluginSettings): boolean {
+    let changed = false;
+    let defaultState = settings.defaultState as LegacyMapState;
+    if (defaultState.tags && defaultState.tags.length > 0) {
+        defaultState.query = defaultState.tags.join(' OR ');
+        delete defaultState.tags;
+        changed = true;
+    }
+    for (let preset of settings.savedStates) {
+        let legacyPreset = preset as LegacyMapState;
+        if (legacyPreset.tags && legacyPreset.tags.length > 0) {
+            legacyPreset.query = legacyPreset.tags.join(' OR ');
+            delete legacyPreset.tags;
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+export function convertUrlParsingRules1(settings: PluginSettings): boolean {
+    let changed = false;
+    for (let rule of settings.urlParsingRules) {
+        const legacyRule = rule as LegacyUrlParsingRule;
+        if (legacyRule.order) {
+            rule.ruleType =
+                legacyRule.order === 'latFirst' ? 'latLng' : 'lngLat';
+            delete legacyRule.order;
+            changed = true;
+        }
+    }
+    return changed;
 }

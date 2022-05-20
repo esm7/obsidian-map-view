@@ -25,8 +25,6 @@ export class FileMarker {
     mapMarker?: leaflet.Marker;
     /** An ID to recognize the marker */
     id: MarkerId;
-    /** Snippet of the file to show in the map marker popup */
-    snippet?: string;
     /** Optional extra name that can be set for geolocation links (this is the link name rather than the file name) */
     extraName?: string;
     /** Tags that this marker includes */
@@ -75,6 +73,7 @@ export type MarkersMap = Map<MarkerId, FileMarker>;
 
 /**
  * Create a FileMarker for every front matter and inline geolocation in the given file.
+ * Properties that are not essential for filtering, e.g. marker icons, are not created here yet.
  * @param mapToAppendTo The list of file markers to append to
  * @param file The file object to parse
  * @param settings The plugin settings
@@ -95,13 +94,9 @@ export async function buildAndAppendFileMarkers(
             const location = getFrontMatterLocation(file, app);
             if (location) {
                 verifyLocation(location);
-                let leafletMarker = new FileMarker(file, location);
-                leafletMarker.icon = getIconForMarker(
-                    leafletMarker,
-                    settings,
-                    app
-                );
-                mapToAppendTo.push(leafletMarker);
+                let marker = new FileMarker(file, location);
+                marker.tags = getAllTags(fileCache);
+                mapToAppendTo.push(marker);
             }
         }
         if ('locations' in frontMatter) {
@@ -135,26 +130,22 @@ export async function buildMarkers(
     return markers;
 }
 
+/**
+ * Add more data to the markers, e.g. icons and other items that were not needed for the stage of filtering
+ * them.
+ * Modifies the markers in-place.
+ */
+export function finalizeMarkers(
+    markers: FileMarker[],
+    settings: PluginSettings
+) {
+    for (const marker of markers)
+        marker.icon = getIconFromRules(marker.tags, settings.markerIconRules);
+}
+
 function checkTagPatternMatch(tagPattern: string, tags: string[]) {
     let match = wildcard(tagPattern, tags);
     return match && match.length > 0;
-}
-
-/**
- * Create a leaflet icon for the marker
- * @param marker The FileMarker to create the icon for
- * @param settings The plugin settings
- * @param app The Obsidian App instance
- */
-function getIconForMarker(
-    marker: FileMarker,
-    settings: PluginSettings,
-    app: App
-): leaflet.Icon {
-    const fileCache = app.metadataCache.getFileCache(marker.file);
-    // Combine the file tags with the marker-specific tags
-    const tags = getAllTags(fileCache).concat(marker.tags);
-    return getIconFromRules(tags, settings.markerIconRules);
 }
 
 export function getIconFromRules(tags: string[], rules: MarkerIconRule[]) {
@@ -219,17 +210,20 @@ export function matchInlineLocation(content: string): RegExpMatchArray[] {
 }
 
 /**
- * Build markers from inline locations in the file body
+ * Build markers from inline locations in the file body.
+ * Properties non-essential for filtering, e.g. the marker icon, are not built here yet.
  * @param file The file object to load
  * @param settings The plugin settings
  * @param app The Obsidian App instance
  */
-async function getMarkersFromFileContent(
+export async function getMarkersFromFileContent(
     file: TFile,
     settings: PluginSettings,
     app: App
 ): Promise<FileMarker[]> {
     let markers: FileMarker[] = [];
+    // Get the tags of the file, to these we will add the tags associated with each individual marker (inline tags)
+    const fileTags = getAllTags(app.metadataCache.getFileCache(file));
     const content = await app.vault.read(file);
     const matches = matchInlineLocation(content);
     for (const match of matches) {
@@ -244,22 +238,16 @@ async function getMarkersFromFileContent(
                 marker.extraName = match.groups.name;
             if (match.groups.tags) {
                 // Parse the list of tags
-                const tagRegex = /tag:(?<tag>[\w\/\-]+)/g;
+				const tagRegex = /tag:(?<tag>[\w\/\-]+)/g;
                 const tags = match.groups.tags.matchAll(tagRegex);
                 for (const tag of tags)
                     if (tag.groups.tag) marker.tags.push('#' + tag.groups.tag);
             }
+            marker.tags = marker.tags.concat(fileTags);
             marker.fileLocation = match.index;
             marker.fileLine =
                 content.substring(0, marker.fileLocation).split('\n').length -
                 1;
-            marker.icon = getIconForMarker(marker, settings, app);
-            marker.snippet = await makeTextSnippet(
-                file,
-                content,
-                marker.fileLocation,
-                settings
-            );
             markers.push(marker);
         } catch (e) {
             console.log(
@@ -269,57 +257,6 @@ async function getMarkersFromFileContent(
         }
     }
     return markers;
-}
-
-async function makeTextSnippet(
-    file: TFile,
-    fileContent: string,
-    fileLocation: number,
-    settings: PluginSettings
-) {
-    let snippet = '';
-    if (settings.snippetLines && settings.snippetLines > 0) {
-        // We subtract 1 because the central (location) line will always be displayed
-        let linesAbove = Math.round((settings.snippetLines - 1) / 2);
-        let linesBelow = settings.snippetLines - 1 - linesAbove;
-        // Start from the beginning of the line on which the location was found, then go back
-        let snippetStart = fileContent.lastIndexOf('\n', fileLocation);
-        while (linesAbove > 0 && snippetStart > -1) {
-            const prevLine = fileContent.lastIndexOf('\n', snippetStart - 1);
-            const line = fileContent.substring(snippetStart, prevLine);
-            // If the new line above contains another location, don't include it and stop
-            if (matchInlineLocation(line).length > 0) break;
-            snippetStart = prevLine;
-            linesAbove -= 1;
-        }
-        // Either if we reached the beginning of the file (-1) or if we stopped due to a newline, we want a step forward
-        snippetStart += 1;
-        // Always include the line with the location
-        let snippetEnd = fileContent.indexOf('\n', fileLocation);
-        // Now continue forward
-        while (linesBelow > 0 && snippetEnd > -1) {
-            const nextLine = fileContent.indexOf('\n', snippetEnd + 1);
-            const line = fileContent.substring(
-                snippetEnd,
-                nextLine > -1 ? nextLine : fileContent.length
-            );
-            // If the new line below contains another location, don't include it and stop
-            if (matchInlineLocation(line).length > 0) break;
-            snippetEnd = nextLine;
-            linesBelow -= 1;
-        }
-        if (snippetEnd === -1) snippetEnd = fileContent.length;
-        snippet = fileContent.substring(snippetStart, snippetEnd);
-        snippet = snippet.replace(
-            /\`location:.*\`/g,
-            '<span class="map-view-location">`location:...`</span>'
-        );
-        snippet = snippet.replace(
-            /(\[.*\])\(.+\)/g,
-            '<span class="map-view-location">$1(geo:...)</span>'
-        );
-    }
-    return snippet;
 }
 
 /**

@@ -4,30 +4,32 @@
 
 ## Intro
 
-This plugin introduces an **interactive map view** for the [Obsidian.md](https://obsidian.md/) editor.
-It searches your notes for encoded geolocations (see below) and places them as markers on a map.
+This plugin introduces an **interactive map view** for [Obsidian.md](https://obsidian.md/).
+It searches your notes for encoded geolocations (see below), places them as markers on a map and offers multiple tools to interact with them.
 
-You can set different icons for different note types, filter the displayed notes and much more.
+It effectively turns your Obsidian vault into a **personal GIS system** that adds a geographical layer to your notes, journals, trip planning and pretty much anything you use Obsidian for.
 
-It also provides a wide range of tools to add geolocations to your notes, including address searches and parsing of geolocations from external sources such as Google Maps.
+You can set different icons for different note types according to custom rules, save geolocations from a variety of sources (Google Maps and many others), save custom views, switch between map layers, run powerful queries and so much more.
 
 ![](img/sample.png)
 
 ![](img/intro.gif)
 
-The plugin's guiding philosophy and goal is to provide a **personal GIS system** as a complementary view for your notes.
-I wrote it because I wanted my ever-growing Zettelkasten to be able to answer questions like...
+I wrote this plugin because I wanted my ever-growing Zettelkasten to be able to answer questions like...
 
--   If I'm visiting somewhere, what interesting places do I know in the area?
--   If I'm planning a trip, what is the geographical relation between the points?
+-   When I get recommendations about cool places to visit, how do I save them in a way that I can recall later?
+-   When I'm visiting somewhere, what interesting places do I know in the area?
+-   When I'm conducting research for planning a trip, how do I lay out on a map options for places to eat, hike or sleep, combine them with prior knowledge, and save them for future reference?
 
-And many more.
+Map View can integrate with your note-taking flow in order to answer all of these questions and much more.
 
 Just like the Obsidian graph view lets you visualize associative relations between some of your notes, the map view lets you visualize geographic ones.
 
-## Limitations
+## With Obsidian Mobile
 
--   Experience in mobile is not as good as it should be. Most notably there's no GPS location support due to permission limitations of the Obsidian app. Please help us ask the Obsidian developers to get these permissions added!
+The main limitation of the plugin right now is that the Obsidian Mobile app has no location permission, so on mobile you cannot see your current location.
+
+Please help us ask the Obsidian developers to get these permissions added, as it will make this plugin so much better!
 
 ## Support the Development
 
@@ -35,7 +37,13 @@ If you want to support the development of this plugin, please consider to [buy m
 
 ## Parsing Location Data
 
-The plugin scans all your notes and parses two types of location data.
+Map View provides [several methods to log locations in notes](#adding-a-location-to-a-note) and can manage the technicalities for you.
+You can skip to that section if you want to just get started, or continue reading the more technical explanation below.
+
+**To clarify, you can use Map View without entering geolocations manually at all.**
+You will, however, need to understand the difference between the front matter and the inline formats, and decide when to use which.
+
+So, the plugin works by scanning your notes and parsing two types of location data.
 
 First is a location tag in a note's [front matter](https://help.obsidian.md/Advanced+topics/YAML+front+matter):
 
@@ -68,9 +76,9 @@ Point 2: [New Haven](geo:41.2982672,-72.9991356)
 Notes with multiple markers will contain multiple markers on the map with the same note name, and clicking on the marker will jump to the correct location within the note.
 
 For many cases inline locations are superior because `geo:` is a [native URL scheme](https://en.wikipedia.org/wiki/Geo_URI_scheme), so if you click it in Obsidian (including mobile), your default maps app (or an app selector for a location) will be triggered.
-The front matter method, however, is currently better if you want interoperability with plugins that use it, or if you want to store lots of filterable meta-data on a location.
+The front matter method, however, is currently better if you want interoperability with plugins that use it, if you want to store lots of filterable meta-data on a location, or if you heavily express yourself with links.
 
-Inline locations also support **inline tags** in the format of `tag:dogs`. For example:
+Inline locations also support **inline tags** in the format of `tag:dogs` (without the `#` sign). For example:
 
 ```
 Point 1: [Hudson River](geo:42.277578,-76.1598107) tag:dogs
@@ -79,11 +87,7 @@ Point 1: [Hudson River](geo:42.277578,-76.1598107) tag:dogs
 This will add the tag `#dogs` specifically to that point, regardless of the note's own tags.
 This is useful for notes that contain tags of different types (e.g. a trip log with various types of locations).
 Note that the `tag:` format should be used **without** the `#` sign, because this sets the tag for the whole note.
-Map View will add `#` for the purpose of setting marker icons, as explained below.
-Also note that inline tags do not affect the files that are searched based on the entered search query, so in the example above, if you enter '#dogs' in the search box, your note would **not** appear.
-
-Note: older versions of this plugin used the notation `location: ...` for inline locations.
-This notation is still supported but the standard `geo:` one is the default and encouraged one.
+Map View will internally add `#` for the purpose of queries and marker icons, as explained below.
 
 Multiple inline tags can be separated with a whitespace: `[](geo:42.2,-76.15) tag:dogs tag:trip`.
 
@@ -91,7 +95,7 @@ Multiple inline locations can be added in the same line, and the tags that follo
 
 ## Adding a Location to a Note
 
-Map View offers many ways to add locations to notes.
+Map View offers many ways to add geolocations to notes.
 
 ### Anywhere in Obsidian
 
@@ -111,45 +115,87 @@ To make this more streamlined, Map View adds to Obsidian a command named 'Add in
 
 2. Add a front matter geolocation by using the Obsidian command 'Add geolocation (front matter) to current note'. This opens the same dialog as "new geolocation note" which allows you to search for a location name or paste a [URL parsing rules](#url-parsing-rules).
 
-3. If you have a location in some other mapping service that you wish to log, e.g. from Google Maps, you can copy the URL or "lat,lng" geolocation from that service, right-click in your note and select "Paste as Geolocation". The supported services are configurable, see [below](#url-parsing-rules) for more details.
+3. If you have a geolocation in some other mapping service that you wish to log, e.g. from Google Maps, you can copy the URL or "lat,lng" geolocation from that service, right-click in your note and select "Paste as Geolocation". The supported services are configurable, see [below](#url-parsing-rules) for more details.
 
 ### From the Map
 
 The map offers several tools to create notes.
 
-1. Use "new note here" when right-clicking the map. This will create a new note (based on the template you can change in the settings) with the location you clicked. You can create either an empty note with a front matter (single geolocation) or an empty note with an inline geolocation.
+1. Use "new note here" when right-clicking the map. This will create a new note (based on the template you can change in the settings) with the location that you clicked. You can create either an empty note with a front matter (single geolocation) or an empty note with an inline geolocation.
 
 ![](img/new-note.png)
 
-Note that the map can be searched using the tool on the upper-right side.
+The map can be searched using the tool on the upper-right side, so you can quickly jump to the place you want to mark.
+[URL parsing rules](#url-parsing-rules) also work here, so you can [copy a geolocation from Google Maps](#tips) (or any other service) and jump to it.
 
-![](img/search.png)
+![](img/search.gif)
 
-2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map. If you use "copy geolocation", just remember you need the note to start with a front matter that has an empty `locations:` line.
+2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map and paste them in a note. If you use "copy geolocation", just remember you need the note to start with a front matter that has an empty `locations:` line.
 
 ![](img/copy.png)
 
-## Paste as Geolocation
+### Paste as Geolocation
 
-Map View monitors the system clipboard, and when a URL is detected to have an encoded geolocation (e.g. a Google Maps "lat, lng" location), a "Paste as geolocation" entry is added to the editor context menu.
-For example, if you right-click a location in Google Maps and click the first item in the menu (coordinates in lat,lng format), you can then paste it as a geolocation inside a note.
+Map View monitors the system clipboard, and when it is is detected to contain an encoded geolocation (e.g. a Google Maps "lat, lng" location), a "Paste as geolocation" entry is added to the editor context menu.
+For example, if you right-click a location in Google Maps and click the first item in the menu (coordinates in lat,lng format, see [below](#tips)), you can then paste it as a geolocation inside a note.
 
-Alternatively, you can right-click a URL that is already present in a note and choose "Convert to geolocation".
+Alternatively, you can right-click a URL or a supported formatted string that is already present in a note and choose "Convert to geolocation".
 
 By default Map View can parse URLs from two services: the OpenStreetMap "show address" link and a generic "lat, lng" encoding used by many URLs.
 
-## Filtering by Tags
+### Tips
 
-At the time of release, this plugin provides just one way to filter notes: an "OR" search by tags.
+#### Copying from Google Maps
 
-Your notes are encouraged to contain Obsidian tags that represent their type (e.g. `#hike`, `#food`, `#journal-entry` or whatever you'll want to filter by).
-In the search box you can type tags separated by commas and you'll get in your view just the notes that have one of these tags.
+Google Maps on desktop web offers a very easy shortcut for copying universal `lat, lng` coordinates.
 
-Alternatively, if you follow an inline geolocation link by `tag:yourTagName`, this tag will be added to that geolocation in addition to the note's tags.
+1. Right-click anywhere in the Google map.
+2. The first menu item should be the universal coordinates. By clicking it, the coordinates are copied to the clipboard.
+3. In any Obsidian note, right click and choose "paste as geolocation", or paste the coordinates into any Map View search box.
+
+![](img/google-copy.png)
+
+## Queries
+
+Map View supports powerful queries that are roughly similar to Obsidian's query format.
+
+![](img/query.gif)
+
+The query string can contain the following _search operators_:
+
+-   `tag:#...` to search for notes or markers tagged with a specific tag.
+    -   This works on both whole notes (`#hiking`) and inline tags for specific markers (`tag:hiking`).
+-   `path:...` to search by the note path.
+    -   This operator will include all the markers in the path that matches the query.
+-   `linkedto:...` includes notes that contain a specific link.
+    -   This operator will include a note (with all the markers in it) if it has a link name that matches the query.
+    -   For example, if you have a note named `Cave Hikes` and you have geolocated notes that **link to it** (e.g. include `[[Cave Hikes]]` as a link), include them by the filter `linkedto:"Cave Hikes"` or a portion of that name.
+-   `linkedfrom:...` includes notes that are linked from a specific note, and also the origin note itself.
+    -   This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query.
+    -   For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
+
+All operators are case insensitive.
+
+You can combine the above with _logical operators_: `AND`, `OR`, `NOT`, and grouping with parenthesis.
+**This differs from Obsidian's own query language which uses `-` instead of `NOT` and treats spaces as 'AND'.**
+
+For examples:
+
+-   `linkedfrom:"Trip to Italy" AND tag:#wine` can include places you linked from your trip to Italy, or are within that note itself, and are tagged with `#wine`.
+-   `tag:#hike AND tag:#dogs` can include hikes you marked as suitable for dogs.
+-   `tag:#hike AND (tag:#dogs OR tag:#amazing) AND NOT path:"bad places"`
+
+There are many creative ways to organize your notes with geolocations that utilize these query abilities.
+You may represent location types with tags (e.g. `#hike` or `#restaurant`), or use tags to represent traits of places (`#hike/summer`, `#hike/easy`).
+You can use paths for indexes using Zettelkasten back links (e.g. link to "Hikes that I Want" from notes you want to denote as such), then use `linkedto:` to find places that link to it.
+And/or you can have notes to plan a trip and link to places from it, then use `linkedfrom:` to focus on your plan.
+
+In all cases you can [save presets](#Presets) that include the filter or sub-filters of it.
 
 ## Marker Icons
 
-Map View allows you to customize notes' map marker icons based on a powerful rules system. These rules can be edited using the plugin's settings pane or edited as JSON for some even more fine-grained control.
+Map View allows you to customize notes' map marker icons based on a powerful rules system.
+These rules can be edited using the plugin's settings pane or edited as JSON for some even more fine-grained control.
 
 Icons are based on [Font Awesome](https://fontawesome.com/), so to add a marker icon you'll need to find its name in the Font Awesome catalog.
 Additionally, there are various marker properties (shape, color and more) that are based on [Leaflet.ExtraMarkers](https://github.com/coryasilva/Leaflet.ExtraMarkers#properties).
@@ -198,7 +244,7 @@ Map View adds an Obsidian command named 'Add inline geolocation link', that you 
 This command inserts an empty inline location template: `[](geo:)`.
 
 When editing an inline location in this format, whether if you added it manually or using the command, if you start entering a link name, Map View will start offering locations based on a geocoding service.
-Selecting one of the suggestions will fill-in the coordinates of the chosen locations, _not_ change your link name (assuming you prefer your own name rather than the formal one offered by the geocoding service), and jump the cursor to beyond the link so you can continue typing.
+Selecting one of the suggestions will fill-in the coordinates of the chosen locations and _not_ change your link name (assuming you prefer your own name rather than the formal one offered by the geocoding service).
 
 ![](img/geosearch-suggest.gif)
 
@@ -211,6 +257,9 @@ If you prefer to use the Google Maps search, you can configure this in the plugi
 
 The Google Geocoding API is practically free or very cheap for normal note-taking usage, but you'd need to setup a project and obtain an API key from Google.
 See [here](https://developers.google.com/maps/documentation/javascript/get-api-key) for more details.
+
+If you want, you can add to your API key the slightly more expensive [Places API](https://developers.google.com/maps/documentation/places/web-service/cloud-setup), then turn on "Use Google Places for searches" in the Map View settings.
+For most reasonable note-taking usage, you will not likely go beyond the Places API free tier.
 
 **Note:** usage of any geocoding provider is at your own risk, and it's your own responsibility to verify you are not violating the service's terms of usage.
 
@@ -276,7 +325,7 @@ As described above, Map View uses _URL parsing rules_ in several places to provi
 
 1. When right-clicking a line with a recognized link, a "Convert to Geolocation" entry will be shown in the editor context menu.
 2. When a recognized link is detected in the system clipboard, a "Paste as Geolocation" entry will be added in the editor context menu.
-3. In the "New geolocation note" dialog, pasting a supported URL will parse the geolocation.
+3. In the "New geolocation note" dialog and map search, pasting a supported URL will parse the geolocation.
 
 URL parsing rules can be configured in the plugin's configuration pane and requires familiarity with regular expressions.
 
@@ -285,6 +334,16 @@ The syntax expects two captures group and you can configure if they are parsed a
 And if you think your added regular expressions are solid enough, please add them to the plugin using a PR so others can benefit!
 
 ![](img/url-parsing.png)
+
+## View URLs
+
+You can save the current map state as a URL, which will open from other apps or from within Obsidian.
+
+Click "Copy Map View URL" from the view's "more options" context menu, or "Copy URL" from the map Presets control.
+You can paste the resulting `obsidian://` URL in any local app on your computer or phone, and it will launch Obsidian with Map View in the same view you saved.
+
+Alternatively, you can paste this link inside a note and make it clickable by making it a Markdown link: `[Link name](url...)`.
+This is really useful for going to a specific view (with its query, map source, zoom, pan etc) that is related to a note, e.g. a trip plan.
 
 ## Relation to Other Obsidian Plugins
 
@@ -295,16 +354,37 @@ In contrast, Obsidian Map View is focused on showing and interacting with your n
 
 Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-map) which seems to focus on powerful tools for map drawing.
 
-## Wishlist
-
-As noted in the disclaimer above, my wishlist for this plugin is huge and I'm unlikely to get to it all.
-There are so many things that I want it to do, and so little time...
-
--   More powerful filtering. I'd love it to be based on the [existing Obsidian query format](https://github.com/obsidianmd/obsidian-api/issues/22). What I see in mind is a powerful text search with a results pane that's linked to the map.
--   Better interoperability with Obsidian Leaflet: support for marker image files, locations as an array and `marker` tags.
--   A side bar with note summaries linked to the map view.
-
 ## Changelog
+
+### 2.0.0
+
+This is a massive version with a huge number of updates, pushing Map View to the next level of functionality!
+
+-   Instead of the previous simplistic tag filtering, Map View now has a powerful [Queries](#queries) mechanism with multiple search and logical operators.
+    -   Queries are marker-based and not file-based. This will be a breaking change for some users.
+-   Under the View control, turn on "follow active note" for Map View to focus on any note that is opened or changed (https://github.com/esm7/obsidian-map-view/issues/71).
+-   Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
+-   Fixed issues with front matter tag support (https://github.com/esm7/obsidian-map-view/issues/72) (thanks @gentlegiantJGC!)
+-   Added a configuration for the max zoom of a tile layer (thanks @gentlegiantJGC!).
+    - This also includes a new "zoom beyond max" setting, which will not limit you to the highest zoom level of a tile source.
+-   The map search tool now uses the same search window as "New geolocation note", which beyond the configured geocoding service, also does URL parsing.
+    -   It also includes existing markers, so you can quickly jump to an existing name on the map.
+    -   Except the bonus of making the UI more uniform, this is very important for usability, especially on mobile. e.g. you can use it to get your location from another app and use it to create notes or explore around.
+    -   A "search active map view" command was added (available when a map view is focused) so a keyboard shortcut can be assigned to the map search.
+-   Auto-completion for inline tags. If you type `tag:` in a line that includes a valid geolocation, you will get suggestions for tag names.
+-   In the context menu of a map view, or in the Presets controls section, you can copy the active view as a link.
+    -   Clicking this link from another app should launch Obsidian and open Map View with the exact same view (including the query, zoom, pan and map source).
+    -   To use this in Obsidian notes paste the URL inside a link, e.g. `[Link name](obsidian://...)`
+-   All the geolocation searches now support the Google Places API, and will prefer results from Places API over the simpler Google Geolocation API.
+    - This requires your Google API key to include credentials for Google Places, see the documentation above.
+-   Several UI improvements:
+    -   The map control panel is now prettier and smaller when unused.
+    -   The note name and cluster popups now follow the Obsidian theme.
+
+### 1.6.0
+
+-   Powerful query filters are here! You can now combine operators of tags and paths with logical operators.
+-   New "focus note in Map View" context menu for notes, which opens Map View with a path query that focuses that specific note.
 
 ### 1.5.0
 

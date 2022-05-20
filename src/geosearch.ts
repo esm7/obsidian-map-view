@@ -1,35 +1,33 @@
 import {
-    App,
-    Editor,
-    Notice,
-    EditorSuggest,
-    EditorPosition,
-    TFile,
-    EditorSuggestTriggerInfo,
-    EditorSuggestContext,
+    request,
+    App
 } from 'obsidian';
 import * as geosearch from 'leaflet-geosearch';
 import * as leaflet from 'leaflet';
+import * as querystring from 'querystring';
 
-import * as utils from 'src/utils';
 import { PluginSettings } from 'src/settings';
+import { UrlConvertor } from 'src/urlConvertor';
+import * as consts from 'src/consts';
 
-export class SuggestInfo {
+// TODO document
+export class GeoSearchResult {
+    // The name to display
     name: string;
     location: leaflet.LatLng;
-    context: EditorSuggestContext;
+    resultType: 'searchResult' | 'url' | 'existingMarker';
 }
 
-export class LocationSuggest extends EditorSuggest<SuggestInfo> {
-    private cursorInsideGeolinkFinder = /\[(.*?)\]\(geo:.*?\)/g;
-    public searchProvider:
+export class GeoSearcher {
+    private searchProvider:
         | geosearch.OpenStreetMapProvider
         | geosearch.GoogleProvider = null;
-    private lastSearchTime = 0;
-    private delayInMs = 250;
+    private settings: PluginSettings;
+    private urlConvertor: UrlConvertor;
 
     constructor(app: App, settings: PluginSettings) {
-        super(app);
+        this.settings = settings;
+        this.urlConvertor = new UrlConvertor(app, settings);
         if (settings.searchProvider == 'osm')
             this.searchProvider = new geosearch.OpenStreetMapProvider();
         else if (settings.searchProvider == 'google') {
@@ -39,112 +37,96 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
         }
     }
 
-    onTrigger(
-        cursor: EditorPosition,
-        editor: Editor,
-        file: TFile
-    ): EditorSuggestTriggerInfo | null {
-        const currentLink = this.getGeolinkOfCursor(cursor, editor);
-        if (currentLink)
-            return {
-                start: { line: cursor.line, ch: currentLink.index },
-                end: { line: cursor.line, ch: currentLink.linkEnd },
-                query: currentLink.name,
-            };
-        return null;
-    }
+    async search(query: string): Promise<GeoSearchResult[]> {
+        let results: GeoSearchResult[] = [];
 
-    async getSuggestions(
-        context: EditorSuggestContext
-    ): Promise<SuggestInfo[]> {
-        if (context.query.length < 2) return [];
-        return await this.getSeachResultWithDelay(context);
-    }
-
-    renderSuggestion(value: SuggestInfo, el: HTMLElement) {
-        el.setText(value.name);
-    }
-
-    selectSuggestion(value: SuggestInfo, evt: MouseEvent | KeyboardEvent) {
-        // Replace the link under the cursor with the retrieved location.
-        // We call getGeolinkOfCursor again instead of using the original context because it's possible that
-        // the user continued to type text after the suggestion was made
-        const currentCursor = value.context.editor.getCursor();
-        const linkOfCursor = this.getGeolinkOfCursor(
-            currentCursor,
-            value.context.editor
-        );
-        const finalResult = `[${value.context.query}](geo:${value.location.lat},${value.location.lng})`;
-        value.context.editor.replaceRange(
-            finalResult,
-            { line: currentCursor.line, ch: linkOfCursor.index },
-            { line: currentCursor.line, ch: linkOfCursor.linkEnd }
-        );
-        if (utils.verifyOrAddFrontMatter(value.context.editor, 'locations', ''))
-            new Notice(
-                "The note's front matter was updated to denote locations are present"
-            );
-    }
-
-    getGeolinkOfCursor(cursor: EditorPosition, editor: Editor) {
-        const results = editor
-            .getLine(cursor.line)
-            .matchAll(this.cursorInsideGeolinkFinder);
-        if (!results) return null;
-        for (let result of results) {
-            const linkName = result[1];
-            if (
-                cursor.ch >= result.index &&
-                cursor.ch < result.index + linkName.length + 2
-            )
-                return {
-                    index: result.index,
-                    name: linkName,
-                    linkEnd: result.index + result[0].length,
-                };
+        // Parsed URL result
+        const parsedResultOrPromise =
+            this.urlConvertor.parseLocationFromUrl(query);
+        if (parsedResultOrPromise) {
+            const parsedResult =
+                parsedResultOrPromise instanceof Promise
+                    ? await parsedResultOrPromise
+                    : parsedResultOrPromise;
+            results.push({
+                name: `Parsed from ${parsedResult.ruleName}: ${parsedResult.location.lat}, ${parsedResult.location.lng}`,
+                location: parsedResult.location,
+                resultType: 'url',
+            });
         }
-        return null;
-    }
 
-    async getSeachResultWithDelay(
-        context: EditorSuggestContext
-    ): Promise<SuggestInfo[] | null> {
-        const timestamp = Date.now();
-        this.lastSearchTime = timestamp;
-        const Sleep = (ms: number) =>
-            new Promise((resolve) => setTimeout(resolve, ms));
-        await Sleep(this.delayInMs);
-        if (this.lastSearchTime != timestamp) {
-            // Search is canceled by a newer search
-            return null;
-        }
-        // After the sleep our search is still the last -- so the user stopped and we can go on
-        const results = await this.searchProvider.search({
-            query: context.query,
-        });
-        const suggestions = results.map((result) => ({
-            name: result.label,
-            location: new leaflet.LatLng(result.y, result.x),
-            context: context,
-        }));
-        return suggestions;
-    }
-
-    async selectionToLink(editor: Editor) {
-        const selection = editor.getSelection();
-        const results = await this.searchProvider.search({ query: selection });
-        if (results && results.length > 0) {
-            const firstResult = results[0];
-            editor.replaceSelection(
-                `[${selection}](geo:${firstResult.y},${firstResult.x})`
+        // Google Place results
+        if (this.settings.useGooglePlaces && this.settings.geocodingApiKey) {
+            const placesResults = await googlePlacesSearch(
+                query,
+                this.settings
             );
-            new Notice(firstResult.label, 10 * 1000);
-            if (utils.verifyOrAddFrontMatter(editor, 'locations', ''))
-                new Notice(
-                    "The note's front matter was updated to denote locations are present"
+            for (const result of placesResults)
+                results.push({
+                    name: result.name,
+                    location: result.location,
+                    resultType: 'searchResult',
+                });
+        } else if (!this.settings.useGooglePlaces) {
+            let searchResults = await this.searchProvider.search({
+                query: query,
+            });
+            searchResults = searchResults.slice(
+                0,
+                consts.MAX_EXTERNAL_SEARCH_SUGGESTIONS
+            );
+            results.concat(
+                searchResults.map(
+                    (result) =>
+                        ({
+                            name: result.label,
+                            location: new leaflet.LatLng(result.y, result.x),
+                            resultType: 'searchResult',
+                        } as GeoSearchResult)
+                )
+            );
+        }
+
+        return results;
+    }
+}
+
+export async function googlePlacesSearch(
+    query: string,
+    settings: PluginSettings
+): Promise<GeoSearchResult[]> {
+    if (settings.searchProvider != 'google' || !settings.useGooglePlaces)
+        return [];
+    const googleApiKey = settings.geocodingApiKey;
+    const params = {
+        query: query,
+        key: googleApiKey,
+    };
+    const googleUrl =
+        'https://maps.googleapis.com/maps/api/place/textsearch/json?' +
+        querystring.stringify(params);
+    const googleContent = await request({ url: googleUrl });
+    const jsonContent = JSON.parse(googleContent) as any;
+    let results: GeoSearchResult[] = [];
+    if (
+        jsonContent &&
+        'results' in jsonContent &&
+        jsonContent?.results.length > 0
+    ) {
+        for (const result of jsonContent.results) {
+            const location = result.geometry?.location;
+            if (location && location.lat && location.lng) {
+                const geolocation = new leaflet.LatLng(
+                    location.lat,
+                    location.lng
                 );
-        } else {
-            new Notice(`No location found for the term '${selection}'`);
+                results.push({
+                    name: `${result?.name} (${result?.formatted_address})`,
+                    location: geolocation,
+                    resultType: 'searchResult',
+                } as GeoSearchResult);
+            }
         }
     }
+    return results;
 }
