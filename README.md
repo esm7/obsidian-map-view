@@ -153,13 +153,13 @@ Google Maps on desktop web offers a very easy shortcut for copying universal `la
 2. The first menu item should be the universal coordinates. By clicking it, the coordinates are copied to the clipboard.
 3. In any Obsidian note, right click and choose "paste as geolocation", or paste the coordinates into any Map View search box.
 
-![](google-copy.png)
+![](img/google-copy.png)
 
 ## Queries
 
 Map View supports powerful queries that are roughly similar to Obsidian's query format.
 
-![](query.gif)
+![](img/query.gif)
 
 The query string can contain the following _search operators_:
 
@@ -357,8 +357,6 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 ## Changelog
 
 ### 2.0.0
-
-**Unreleased version, work in progress.**
 
 This is a massive version with a huge number of updates, pushing Map View to the next level of functionality!
 
