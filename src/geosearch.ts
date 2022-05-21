@@ -55,7 +55,7 @@ export class GeoSearcher {
         }
 
         // Google Place results
-        if (this.settings.useGooglePlaces && this.settings.geocodingApiKey) {
+        if (this.settings.searchProvider == 'google' && this.settings.useGooglePlaces && this.settings.geocodingApiKey) {
             const placesResults = await googlePlacesSearch(
                 query,
                 this.settings
@@ -66,7 +66,7 @@ export class GeoSearcher {
                     location: result.location,
                     resultType: 'searchResult',
                 });
-        } else if (!this.settings.useGooglePlaces) {
+        } else {
             let searchResults = await this.searchProvider.search({
                 query: query,
             });
@@ -74,7 +74,7 @@ export class GeoSearcher {
                 0,
                 consts.MAX_EXTERNAL_SEARCH_SUGGESTIONS
             );
-            results.concat(
+            results = results.concat(
                 searchResults.map(
                     (result) =>
                         ({

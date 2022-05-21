@@ -39,7 +39,7 @@ export class SettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Map follows search results')
-            .setDesc('Auto zoom & pan the map to fit search results.')
+            .setDesc('Auto zoom & pan the map to fit search results, including Follow Active Note.')
             .addToggle((component) => {
                 component
                     .setValue(this.plugin.settings.autoZoom)
@@ -53,7 +53,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Geocoding search provider')
             .setDesc(
-                'The service used for searching for geolocations. To use Google, see details in the plugin documentation. Changes are applied after restart.'
+                'The service used for searching for geolocations. To use Google, see details in the plugin documentation.'
             )
             .addDropdown((component) => {
                 component
@@ -66,6 +66,7 @@ export class SettingsTab extends PluginSettingTab {
                     .onChange(async (value: 'osm' | 'google') => {
                         this.plugin.settings.searchProvider = value;
                         await this.plugin.saveSettings();
+						this.refreshPluginOnHide = true;
                         apiKeyControl.settingEl.style.display =
                             value === 'google' ? '' : 'none';
                         googlePlacesControl.settingEl.style.display =
@@ -102,7 +103,7 @@ export class SettingsTab extends PluginSettingTab {
             )
             .addToggle((component) => {
                 component
-                    .setValue(this.plugin.settings.useGooglePlaces)
+                    .setValue(this.plugin.settings.useGooglePlaces ?? DEFAULT_SETTINGS.useGooglePlaces)
                     .onChange(async (value) => {
                         this.plugin.settings.useGooglePlaces = value;
                         await this.plugin.saveSettings();
@@ -246,13 +247,14 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Show preview for marker clusters')
             .setDesc(
-                'Show a hover popup summarizing the icons inside a marker cluster. Changes are applied after restart.'
+                'Show a hover popup summarizing the icons inside a marker cluster.'
             )
             .addToggle((component) => {
                 component
                     .setValue(this.plugin.settings.showClusterPreview)
                     .onChange(async (value) => {
                         this.plugin.settings.showClusterPreview = value;
+						this.refreshPluginOnHide = true;
                         await this.plugin.saveSettings();
                     });
             });
@@ -264,7 +266,7 @@ export class SettingsTab extends PluginSettingTab {
             .addSlider((component) => {
                 component
                     .setLimits(1, 18, 1)
-                    .setValue(this.plugin.settings.zoomOnGoFromNote)
+                    .setValue(this.plugin.settings.zoomOnGoFromNote ?? DEFAULT_SETTINGS.zoomOnGoFromNote)
                     .onChange(async (value) => {
                         this.plugin.settings.zoomOnGoFromNote = value;
                         await this.plugin.saveSettings();

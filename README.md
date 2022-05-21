@@ -356,6 +356,11 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 ## Changelog
 
+### 2.0.3
+
+-   Fixed searched stopped working in some cases which are not the new Google Places (https://github.com/esm7/obsidian-map-view/issues/93).
+-   Fixes to "follow active note" (https://github.com/esm7/obsidian-map-view/issues/92).
+
 ### 2.0.0
 
 This is a massive version with a huge number of updates, pushing Map View to the next level of functionality!

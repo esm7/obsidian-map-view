@@ -105,11 +105,13 @@ export class MapView extends ItemView {
             console.log('Map view: map refresh due to CSS change');
             this.refreshMap();
         });
-        this.app.workspace.on('file-open', (file: TFile) => {
+        this.app.workspace.on('file-open', async (file: TFile) => {
             if (this.getState().followActiveNote && file) {
                 let currentState = this.leaf.getViewState();
                 (currentState.state as MapState).query = `path:"${file.path}"`;
-                this.leaf.setViewState(currentState);
+                await this.leaf.setViewState(currentState);
+				if (this.settings.autoZoom)
+					this.autoFitMapToMarkers();
             }
         });
     }
@@ -134,6 +136,11 @@ export class MapView extends ItemView {
         return this.display.markers;
     }
 
+	/**
+	 * This is the native Obsidian setState method.
+	 * You should *not* call it directly, but rather through this.leaf.setViewState(state), which will
+	 * take care of preserving the Obsidian history if required.
+	*/
     async setState(state: MapState, result: any) {
         if (this.shouldSaveToHistory(state)) {
             result.history = true;
@@ -234,6 +241,10 @@ export class MapView extends ItemView {
         this.display.map.invalidateSize();
     }
 
+	/**
+	 * This internal method of setting the state will not register the change to the Obsidian
+	 * history stack. If you want that, use `this.leaf.setViewState(state)` instead.
+	*/
     public async setViewState(
         state: MapState,
         updateControls: boolean,
