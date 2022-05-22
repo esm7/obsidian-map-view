@@ -408,12 +408,6 @@ export class MapView extends ItemView {
             this.display.clusterGroup.on('clustermouseout', (cluster) => {
                 cluster.propagatedFrom.closePopup();
             });
-            this.display.clusterGroup.on('clusterclick', (cluster) => {
-                const state = this.leaf.getViewState();
-                // After a cluster click always save the history, the user expects 'back' to really go back
-                state.state.forceHistorySave = true;
-                this.leaf.setViewState(state);
-            });
         }
 
         // Build the map marker right-click context menu

@@ -356,6 +356,12 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 ## Changelog
 
+### 2.0.4
+
+- Fixed an issue with cluster expansion not working.
+- Improved "copy URL" handling between different devices.
+- Added a clear button to the new query box.
+
 ### 2.0.3
 
 -   Fixed searched stopped working in some cases which are not the new Google Places (https://github.com/esm7/obsidian-map-view/issues/93).

@@ -66,12 +66,12 @@ export function stateToUrl(state: MapState) {
 export function stateFromParsedUrl(obj: any) {
     return {
         name: obj.name,
-        mapZoom: parseInt(obj.mapZoom),
-        mapCenter: new leaflet.LatLng(
+        mapZoom: obj.mapZoon ? parseInt(obj.mapZoom) : null,
+        mapCenter: obj.centerLat && obj.centerLng ? new leaflet.LatLng(
             parseFloat(obj.centerLat),
             parseFloat(obj.centerLng)
-        ),
+        ) : null,
         query: obj.query,
-        chosenMapSource: parseInt(obj.chosenMapSource),
+        chosenMapSource: obj.chosenMapSource ? parseInt(obj.chosenMapSource) : null,
     } as MapState;
 }

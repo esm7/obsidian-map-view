@@ -9,7 +9,6 @@ import {
 
 import MapViewPlugin from 'src/main';
 import {
-    PluginSettings,
     UrlParsingRuleType,
     UrlParsingContentType,
     DEFAULT_SETTINGS,
