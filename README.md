@@ -394,11 +394,6 @@ This is a massive version with a huge number of updates, pushing Map View to the
     -   The map control panel is now prettier and smaller when unused.
     -   The note name and cluster popups now follow the Obsidian theme.
 
-### 1.6.0
-
--   Powerful query filters are here! You can now combine operators of tags and paths with logical operators.
--   New "focus note in Map View" context menu for notes, which opens Map View with a path query that focuses that specific note.
-
 ### 1.5.0
 
 -   Map View now saves its state to the Obsidian back/forward mechanism (unless configured not to).
