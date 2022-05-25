@@ -361,6 +361,8 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 - Fixed an issue with cluster expansion not working.
 - Improved "copy URL" handling between different devices.
 - Added a clear button to the new query box.
+- Fixed touch move & zoom that stopped working due to an unintended upgrade to Leaflet 1.8.0.
+- Fixed inconsistent moves and jumps during fast series of events.
 
 ### 2.0.3
 

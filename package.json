@@ -1,6 +1,6 @@
 {
     "name": "obsidian-map-view",
-    "version": "2.0.3",
+    "version": "2.0.4",
     "description": "An interactive map view for Obsidian.md",
     "main": "main.js",
     "scripts": {
@@ -29,7 +29,7 @@
         "rollup-plugin-copy": "^3.4.0",
         "rollup-plugin-postcss": "^4.0.0",
         "tslib": "^2.2.0",
-        "typescript": "^4.2.4"
+        "typescript": "^4.7.2"
     },
     "dependencies": {
         "@fortawesome/fontawesome-free": "^5.15.3",

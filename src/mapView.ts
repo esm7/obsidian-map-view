@@ -62,6 +62,7 @@ export class MapView extends ItemView {
         /** A marker of the last search result */
         searchResult: leaflet.Marker = null;
     })();
+	private ongoingChanges = 0;
     private plugin: MapViewPlugin;
     /** The default state as saved in the plugin settings */
     private defaultState: MapState;
@@ -142,6 +143,12 @@ export class MapView extends ItemView {
 	 * take care of preserving the Obsidian history if required.
 	*/
     async setState(state: MapState, result: any) {
+		// If there are ongoing changes to the map happening at once, don't bother updating the state -- it will only
+		// cause unexpected jumps and flickers
+		if (this.ongoingChanges > 0)
+			return;
+		// It can go below 0 in some cases
+		this.ongoingChanges = 0;
         if (this.shouldSaveToHistory(state)) {
             result.history = true;
             this.lastSavedState = Object.assign({}, state);
@@ -226,7 +233,6 @@ export class MapView extends ItemView {
         // Make touch move nicer on mobile
         this.contentEl.addEventListener('touchmove', (ev) => {
             ev.stopPropagation();
-			this.display.mapDiv.dispatchEvent(ev);
         });
         await this.createMap();
         return super.onOpen();
@@ -356,22 +362,34 @@ export class MapView extends ItemView {
             maxClusterRadius:
                 this.settings.maxClusterRadiusPixels ??
                 DEFAULT_SETTINGS.maxClusterRadiusPixels,
+			animate: false
         });
         this.display.map.addLayer(this.display.clusterGroup);
 
-        this.display.map.on('zoomend', (event: leaflet.LeafletEvent) => {
+        this.display.map.on('zoomend', async (event: leaflet.LeafletEvent) => {
+			this.ongoingChanges -= 1;
             this.state.mapZoom = this.display.map.getZoom();
             this.state.mapCenter = this.display.map.getCenter();
             this.display?.controls?.invalidateActivePreset();
             const state = this.leaf.getViewState();
-            this.leaf.setViewState(state);
+            await this.leaf.setViewState(state);
         });
-        this.display.map.on('moveend', (event: leaflet.LeafletEvent) => {
+        this.display.map.on('moveend', async (event: leaflet.LeafletEvent) => {
+			this.ongoingChanges -= 1;
             this.state.mapCenter = this.display.map.getCenter();
             this.display?.controls?.invalidateActivePreset();
             const state = this.leaf.getViewState();
-            this.leaf.setViewState(state);
+            await this.leaf.setViewState(state);
         });
+		this.display.map.on('movestart', (event: leaflet.LeafletEvent) => {
+			this.ongoingChanges += 1;
+		});
+		this.display.map.on('zoomstart', (event: leaflet.LeafletEvent) => {
+			this.ongoingChanges += 1;
+		});
+		this.display.map.on('doubleClickZoom', (event: leaflet.LeafletEvent) => {
+			this.ongoingChanges += 1;
+		});
 
         this.display.searchControls = new SearchControl(
             { position: 'topright' },
@@ -510,8 +528,6 @@ export class MapView extends ItemView {
             state.queryError = true;
         }
         finalizeMarkers(newMarkers, this.settings);
-        // --- BEYOND THIS POINT NOTHING SHOULD BE ASYNC ---
-        // Saying it again: do not use 'await' below this line!
         this.state = state;
         this.updateMapMarkers(newMarkers);
         if (
@@ -520,7 +536,7 @@ export class MapView extends ItemView {
         ) {
             // We want to call setView only if there was an actual change, because even the tiniest (epsilon) change can
             // cause Leaflet to think it's worth triggering map center change callbacks
-            this.display.map.setView(this.state.mapCenter, this.state.mapZoom);
+            this.display.map.setView(this.state.mapCenter, this.state.mapZoom, {animate: false, duration: 0});
         }
         this.display.controls.setQueryBoxErrorByState();
         if (this.settings.debug) console.timeEnd('updateMarkersToState');
