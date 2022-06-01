@@ -108,11 +108,18 @@ export class MapView extends ItemView {
         });
         this.app.workspace.on('file-open', async (file: TFile) => {
             if (this.getState().followActiveNote && file) {
-                let currentState = this.leaf.getViewState();
-                (currentState.state as MapState).query = `path:"${file.path}"`;
-                await this.leaf.setViewState(currentState);
-				if (this.settings.autoZoom)
-					this.autoFitMapToMarkers();
+                let viewState = this.leaf?.getViewState();
+				if (viewState) {
+					let mapState = viewState.state as MapState;
+					const newQuery = `path:"${file.path}"`;
+					// Change the map state only if the file has actually changed. If the user just went back
+					// and forth and the map is still focused on the same file, don't ruin the user's possible
+					// zoom and pan
+					if (mapState.query != newQuery) {
+						mapState.query = newQuery;
+						await this.setViewState(mapState, true, true);
+					}
+				}
             }
         });
     }
@@ -371,15 +378,17 @@ export class MapView extends ItemView {
             this.state.mapZoom = this.display.map.getZoom();
             this.state.mapCenter = this.display.map.getCenter();
             this.display?.controls?.invalidateActivePreset();
-            const state = this.leaf.getViewState();
-            await this.leaf.setViewState(state);
+            const state = this.leaf?.getViewState();
+			if (state)
+				await this.leaf.setViewState(state);
         });
         this.display.map.on('moveend', async (event: leaflet.LeafletEvent) => {
 			this.ongoingChanges -= 1;
             this.state.mapCenter = this.display.map.getCenter();
             this.display?.controls?.invalidateActivePreset();
-            const state = this.leaf.getViewState();
-            await this.leaf.setViewState(state);
+            const state = this.leaf?.getViewState();
+			if (state)
+				await this.leaf.setViewState(state);
         });
 		this.display.map.on('movestart', (event: leaflet.LeafletEvent) => {
 			this.ongoingChanges += 1;
@@ -675,7 +684,7 @@ export class MapView extends ItemView {
             ).map((fileMarker) => fileMarker.location);
             this.display.map.fitBounds(leaflet.latLngBounds(locations), {
                 maxZoom:
-                    this.getMapSource().maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM,
+					Math.min(this.settings.zoomOnGoFromNote, this.getMapSource().maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM)
             });
         }
     }
@@ -817,11 +826,13 @@ export class MapView extends ItemView {
     }
 
     zoomToSearchResult(location: leaflet.LatLng) {
-        let currentState = this.leaf.getViewState();
-        (currentState.state as MapState).mapCenter = location;
-        (currentState.state as MapState).mapZoom =
-            this.settings.zoomOnGoFromNote;
-        this.leaf.setViewState(currentState);
+        let currentState = this.leaf?.getViewState();
+		if (currentState) {
+			(currentState.state as MapState).mapCenter = location;
+			(currentState.state as MapState).mapZoom =
+				this.settings.zoomOnGoFromNote;
+			this.leaf.setViewState(currentState);
+		}
     }
 
     removeSearchResultMarker() {

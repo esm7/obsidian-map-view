@@ -356,6 +356,14 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 ## Changelog
 
+### 2.0.5
+
+- Fixed "add geolocation (frontmatter)" to notes that contain `---` as a content separator (https://github.com/esm7/obsidian-map-view/issues/98). Thanks @MattWilcox!
+- Fixed paths with backslashes not working in "new note path" (https://github.com/esm7/obsidian-map-view/issues/97).
+- More fixes to "follow active note" when "map follows search results" is set (https://github.com/esm7/obsidian-map-view/issues/92).
+- Fix to new note map action not working on Android (https://github.com/esm7/obsidian-map-view/issues/96).
+- The default zoom for "show on map" action, as set in the settings, is now also used as a max zoom in "map follows search results".
+
 ### 2.0.4
 
 - Fixed an issue with cluster expansion not working.

@@ -260,7 +260,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Default zoom for "show on map" action')
             .setDesc(
-                'When jumping to the map from a note, what should be the display zoom?'
+                'When jumping to the map from a note, what should be the display zoom? This is also used as a max zoom for "Map follows search results" above.'
             )
             .addSlider((component) => {
                 component
