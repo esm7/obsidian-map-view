@@ -123,7 +123,7 @@ export function verifyOrAddFrontMatter(
     fieldValue: string
 ): boolean {
     const content = editor.getValue();
-    const frontMatterRegex = /^---(.*)^---/ms;
+    const frontMatterRegex = /^---(.*?)^---/ms;
     const frontMatter = content.match(frontMatterRegex);
     const existingFieldRegex = new RegExp(`^---.*${fieldName}:.*^---`, 'ms');
     const existingField = content.match(existingFieldRegex);
