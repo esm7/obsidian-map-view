@@ -70,10 +70,13 @@ export default class MapViewPlugin extends Plugin {
             (params: ObsidianProtocolData) => {
                 if (params.action == 'mapview') {
                     const state = stateFromParsedUrl(params);
-					// If a saved URL is opened in another device on which there aren't the same sources, use
-					// the default source instead
-					if (state.chosenMapSource >= this.settings.mapSources.length)
-						state.chosenMapSource = DEFAULT_SETTINGS.defaultState.chosenMapSource;
+                    // If a saved URL is opened in another device on which there aren't the same sources, use
+                    // the default source instead
+                    if (
+                        state.chosenMapSource >= this.settings.mapSources.length
+                    )
+                        state.chosenMapSource =
+                            DEFAULT_SETTINGS.defaultState.chosenMapSource;
                     this.openMapWithState(state, false, false);
                 }
             }

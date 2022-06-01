@@ -63,18 +63,22 @@ export async function newNote(
     let templateContent = '';
     if (templatePath && templatePath.length > 0)
         templateContent = await app.vault.adapter.read(templatePath);
-	if (!directory) directory = '';
-	if (!fileName) fileName = '';
-	// Apparently in Obsidian Mobile there is no path.join function, not sure why.
-	// So in case the path module doesn't contain `join`, we do it manually, assuming Unix directory structure.
-	const filePath = path?.join ? path.join(directory, fileName) : (directory ? directory + '/' + fileName : fileName);
+    if (!directory) directory = '';
+    if (!fileName) fileName = '';
+    // Apparently in Obsidian Mobile there is no path.join function, not sure why.
+    // So in case the path module doesn't contain `join`, we do it manually, assuming Unix directory structure.
+    const filePath = path?.join
+        ? path.join(directory, fileName)
+        : directory
+        ? directory + '/' + fileName
+        : fileName;
     let fullName = sanitizeFileName(filePath);
     if (await app.vault.adapter.exists(fullName + '.md'))
         fullName += Math.random() * 1000;
     try {
         return app.vault.create(fullName + '.md', content + templateContent);
     } catch (e) {
-		console.log('Map View: cannot create file', fullName);
+        console.log('Map View: cannot create file', fullName);
         throw Error(`Cannot create file named ${fullName}: ${e}`);
     }
 }

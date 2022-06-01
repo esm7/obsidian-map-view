@@ -165,9 +165,9 @@ export class ViewControls {
         let filtersContent = filtersDiv.createDiv({
             cls: 'graph-control-content',
         });
-		// Wrapping the query box in a div so we can place a button in the right-middle of it
-		const queryDiv = filtersContent.createDiv('search-input-container');
-		queryDiv.style.margin = '0';
+        // Wrapping the query box in a div so we can place a button in the right-middle of it
+        const queryDiv = filtersContent.createDiv('search-input-container');
+        queryDiv.style.margin = '0';
         this.queryBox = new TextComponent(queryDiv);
         this.queryBox.setPlaceholder('Query');
         this.queryBox.onChange((query: string) => {
@@ -186,11 +186,11 @@ export class ViewControls {
                 suggestor = null;
             }
         });
-		let clearButton = queryDiv.createDiv('search-input-clear-button');
-		clearButton.onClickEvent((ev) => {
-			this.queryBox.setValue('');
-			this.setStateByQueryString('');
-		});
+        let clearButton = queryDiv.createDiv('search-input-clear-button');
+        clearButton.onClickEvent((ev) => {
+            this.queryBox.setValue('');
+            this.setStateByQueryString('');
+        });
 
         let viewDiv = this.controlsDiv.createDiv({ cls: 'graph-control-div' });
         viewDiv.innerHTML = `

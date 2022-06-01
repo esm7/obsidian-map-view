@@ -55,7 +55,11 @@ export class GeoSearcher {
         }
 
         // Google Place results
-        if (this.settings.searchProvider == 'google' && this.settings.useGooglePlaces && this.settings.geocodingApiKey) {
+        if (
+            this.settings.searchProvider == 'google' &&
+            this.settings.useGooglePlaces &&
+            this.settings.geocodingApiKey
+        ) {
             const placesResults = await googlePlacesSearch(
                 query,
                 this.settings
