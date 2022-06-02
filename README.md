@@ -358,11 +358,13 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 ### 2.0.5
 
+-   Improved the logic of saving "back/forward" history in a few cases, and optimized the state update logic to make transitions faster.
+-   More fixes to "follow active note" when "map follows search results" is set (https://github.com/esm7/obsidian-map-view/issues/92).
 -   Fixed "add geolocation (frontmatter)" to notes that contain `---` as a content separator (https://github.com/esm7/obsidian-map-view/issues/98). Thanks @MattWilcox!
 -   Fixed paths with backslashes not working in "new note path" (https://github.com/esm7/obsidian-map-view/issues/97).
--   More fixes to "follow active note" when "map follows search results" is set (https://github.com/esm7/obsidian-map-view/issues/92).
 -   Fix to new note map action not working on Android (https://github.com/esm7/obsidian-map-view/issues/96).
 -   The default zoom for "show on map" action, as set in the settings, is now also used as a max zoom in "map follows search results".
+-   In-note tag suggestions no longer include the pound sign (which should not be there for inline tags).
 
 ### 2.0.4
 

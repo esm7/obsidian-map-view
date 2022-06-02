@@ -18,6 +18,10 @@ export type MapState = {
 /** Fields that are deprecated */
 export type LegacyMapState = MapState & { tags: string[] };
 
+export function copyState(state: MapState): MapState {
+	return Object.assign({}, state);
+}
+
 export function mergeStates(state1: MapState, state2: MapState): MapState {
     // Overwrite an existing state with a new one, that may have null or partial values which need to be ignored
     // and taken from the existing state

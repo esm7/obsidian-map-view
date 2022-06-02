@@ -38,6 +38,7 @@ export class ViewControls {
     private lastSelectedPreset: MapState = null;
     private queryDelayMs = 250;
     private lastQueryTime: number;
+	private updateOngoing = false;
 
     constructor(
         parentElement: HTMLElement,
@@ -58,7 +59,8 @@ export class ViewControls {
     }
 
     async setNewState(newState: MapState, considerAutoFit: boolean) {
-        await this.view.setViewState(newState, false, considerAutoFit);
+		if (!this.updateOngoing)
+			await this.view.setViewState(newState, false, considerAutoFit);
     }
 
     async setStateByNewMapSource(newSource: number) {
@@ -90,14 +92,18 @@ export class ViewControls {
     }
 
     public updateControlsToState() {
+		// This updates the controls according to the given state, and prevents a feedback loop by
+		// raising the updateOngoing flag
+		this.updateOngoing = true;
         this.setMapSourceBoxByState();
         this.setQueryBoxByState();
         this.followActiveNoteToggle.setValue(
             this.getCurrentState().followActiveNote == true
         );
+		this.updateOngoing = false;
     }
 
-    setMapSourceBoxByState() {
+    private setMapSourceBoxByState() {
         this.mapSourceBox.setValue(
             this.getCurrentState().chosenMapSource.toString()
         );
@@ -123,7 +129,7 @@ export class ViewControls {
         );
     }
 
-    setQueryBoxByState() {
+    private setQueryBoxByState() {
         // Update the UI based on the state
         const state = this.getCurrentState();
         this.queryBox.setValue(state.query);

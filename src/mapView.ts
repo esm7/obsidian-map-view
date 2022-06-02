@@ -22,7 +22,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
-import { MapState, mergeStates, stateToUrl } from 'src/mapState';
+import { MapState, mergeStates, stateToUrl, copyState } from 'src/mapState';
 import { PluginSettings, TileSource, DEFAULT_SETTINGS } from 'src/settings';
 import {
     MarkersMap,
@@ -157,7 +157,7 @@ export class MapView extends ItemView {
         this.ongoingChanges = 0;
         if (this.shouldSaveToHistory(state)) {
             result.history = true;
-            this.lastSavedState = Object.assign({}, state);
+            this.lastSavedState = copyState(state);
         }
         await this.setViewState(state, true, false);
         if (this.display.controls) this.display.controls.tryToGuessPreset();
@@ -254,13 +254,13 @@ export class MapView extends ItemView {
     }
 
     /**
-     * This internal method of setting the state will not register the change to the Obsidian
+     * This internal method of setting the state will NOT register the change to the Obsidian
      * history stack. If you want that, use `this.leaf.setViewState(state)` instead.
      */
     public async setViewState(
         state: MapState,
-        updateControls: boolean,
-        considerAutoFit: boolean
+        updateControls: boolean = false,
+        considerAutoFit: boolean = false
     ) {
         if (state) {
             const newState = mergeStates(this.state, state);
@@ -348,6 +348,26 @@ export class MapView extends ItemView {
         this.display.controls.updateControlsToState();
     }
 
+	/*
+	 * Receive a partial object of fields to change and calls the Obsidian setViewState
+	 * method to set a history state.
+	*/
+	async changeViewAndSaveHistory(partialState: Partial<MapState>) {
+		// This check is seemingly a duplicate of the one inside setViewState, but it's
+		// actually very needed. Without it, it's possible that we'd call Obsidian's
+		// setViewState (the one below) with the same object twice, in the first call
+		// (which may have ongoingChanges > 0) we'll ignore the change and in the 2nd call
+		// Obsidian will ignore the change (thinking the state didn't change).
+		// We want to ensure setViewState is called only if we mean to change the state
+		if (this.ongoingChanges > 0)
+			return;
+		const viewState = this.leaf?.getViewState();
+		if (viewState?.state) {
+			const newState = Object.assign({}, viewState?.state, partialState);
+			await this.leaf.setViewState({...viewState, state: newState});
+		}
+	}
+
     async createMap() {
         // LeafletJS compatability: disable tree-shaking for the full-screen module
         var dummy = leafletFullscreen;
@@ -374,18 +394,19 @@ export class MapView extends ItemView {
 
         this.display.map.on('zoomend', async (event: leaflet.LeafletEvent) => {
             this.ongoingChanges -= 1;
-            this.state.mapZoom = this.display.map.getZoom();
-            this.state.mapCenter = this.display.map.getCenter();
+			await this.changeViewAndSaveHistory({
+				mapZoom: this.display.map.getZoom(),
+				mapCenter: this.display.map.getCenter()
+			});
             this.display?.controls?.invalidateActivePreset();
-            const state = this.leaf?.getViewState();
-            if (state) await this.leaf.setViewState(state);
         });
         this.display.map.on('moveend', async (event: leaflet.LeafletEvent) => {
             this.ongoingChanges -= 1;
-            this.state.mapCenter = this.display.map.getCenter();
+			await this.changeViewAndSaveHistory({
+				mapZoom: this.display.map.getZoom(),
+				mapCenter: this.display.map.getCenter()
+			});
             this.display?.controls?.invalidateActivePreset();
-            const state = this.leaf?.getViewState();
-            if (state) await this.leaf.setViewState(state);
         });
         this.display.map.on('movestart', (event: leaflet.LeafletEvent) => {
             this.ongoingChanges += 1;
