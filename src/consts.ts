@@ -1,6 +1,7 @@
 import * as leaflet from 'leaflet';
 
 export const MAP_VIEW_NAME = 'map';
+export const MINI_MAP_VIEW_NAME = 'minimap';
 
 // SVG editor used: https://svgedit.netlify.app/editor/index.html
 export const RIBBON_ICON =

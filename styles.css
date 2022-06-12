@@ -4,16 +4,30 @@
     font-family: var(--font-text);
 }
 
+.map-view-main {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
 .map-view-location {
     font-weight: bold;
     text-decoration: underline;
 }
 
-.graph-controls {
-    position: fixed;
+.map-view-graph-controls {
+    left: 8px;
+    top: 8px;
+    padding: 8px 20px 8px 8px;
+    background-color: var(--background-primary-alt);
+    max-width: 240px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    max-height: calc(100% - 16px);
+    overflow: auto;
+    position: absolute;
     z-index: 2;
-    margin-top: 36px;
-    padding: 8px 16px 5px 12px;
+    padding: 8px 25px 5px 12px;
 }
 
 .graph-control-div {

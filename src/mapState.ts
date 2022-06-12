@@ -1,3 +1,4 @@
+import { WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
 import * as querystring from 'querystring';
 
@@ -13,6 +14,7 @@ export type MapState = {
     chosenMapSource?: number;
     forceHistorySave?: boolean;
     followActiveNote?: boolean;
+	parentLeaf?: WorkspaceLeaf;
 };
 
 /** Fields that are deprecated */

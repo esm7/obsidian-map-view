@@ -11,6 +11,7 @@ import {
     WorkspaceLeaf,
     TAbstractFile,
     ObsidianProtocolData,
+	MarkdownPostProcessorContext
 } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
@@ -18,7 +19,10 @@ import { LocationSuggest } from 'src/locationSuggest';
 import { UrlConvertor } from 'src/urlConvertor';
 import { stateFromParsedUrl } from 'src/mapState';
 
-import { MapView } from 'src/mapView';
+import { MainMapView } from 'src/mainMapView';
+import { MiniMapView } from 'src/miniMapView';
+import { EmbeddedMap } from 'src/embeddedMap';
+
 import {
     PluginSettings,
     DEFAULT_SETTINGS,
@@ -62,8 +66,11 @@ export default class MapViewPlugin extends Plugin {
         });
 
         this.registerView(consts.MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
-            return new MapView(leaf, this.settings, this);
+            return new MainMapView(leaf, this.settings, this);
         });
+		this.registerView(consts.MINI_MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
+			return new MiniMapView(leaf, this.settings, this);
+		});
 
         this.registerObsidianProtocolHandler(
             'mapview',
@@ -203,7 +210,7 @@ export default class MapViewPlugin extends Plugin {
                     currentView &&
                     currentView.getViewType() == consts.MAP_VIEW_NAME
                 ) {
-                    if (!checking) (currentView as MapView).openSearch();
+                    if (!checking) (currentView as MainMapView).mapContainer.openSearch();
                     return true;
                 } else return false;
             },
@@ -288,7 +295,7 @@ export default class MapViewPlugin extends Plugin {
                                 async (evt: MouseEvent) =>
                                     await this.openMapWithState(
                                         {
-                                            query: `path:"${file.path}"`,
+                                            query: utils.replaceFollowActiveNoteQuery(file, this.settings),
                                         } as MapState,
                                         evt.ctrlKey,
                                         true
@@ -299,6 +306,9 @@ export default class MapViewPlugin extends Plugin {
                 }
             }
         );
+
+		if (this.app.workspace.layoutReady) this.initMiniMap()
+		else this.app.workspace.onLayoutReady(() => this.initMiniMap());
 
         // Add items to the editor context menu (run when the context menu is built)
         // This is the context menu when right clicking within an editor view.
@@ -378,6 +388,8 @@ export default class MapViewPlugin extends Plugin {
                 }
             }
         );
+
+		this.registerMarkdownCodeBlockProcessor('mapview', (source, el, ctx) => this.markdownCodeBlockProcessor(source, el, ctx));
     }
 
     /**
@@ -400,7 +412,7 @@ export default class MapViewPlugin extends Plugin {
         );
     }
 
-    private async openMapWithState(
+    public async openMapWithState(
         state: MapState,
         ctrlKey: boolean,
         forceAutoFit?: boolean
@@ -418,8 +430,8 @@ export default class MapViewPlugin extends Plugin {
             state: state,
         });
         if (forceAutoFit) {
-            if (chosenLeaf.view instanceof MapView)
-                chosenLeaf.view.autoFitMapToMarkers();
+            if (chosenLeaf.view instanceof MainMapView)
+                chosenLeaf.view.mapContainer.autoFitMapToMarkers();
         }
     }
 
@@ -468,4 +480,14 @@ export default class MapViewPlugin extends Plugin {
     async saveSettings() {
         await this.saveData(this.settings);
     }
+
+	initMiniMap() {
+		if (this.app.workspace.getLeavesOfType(consts.MINI_MAP_VIEW_NAME).length)
+			return;
+		this.app.workspace.getRightLeaf(false).setViewState({type: consts.MINI_MAP_VIEW_NAME});
+	}
+
+	markdownCodeBlockProcessor(source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+		el.appendText('TODO HELLO!');
+	}
 }

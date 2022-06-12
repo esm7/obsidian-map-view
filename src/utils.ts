@@ -179,6 +179,13 @@ export function populateOpenInItems(
     }
 }
 
+export function replaceFollowActiveNoteQuery(
+	file: TFile,
+	settings: settings.PluginSettings
+) {
+	return settings.queryForFollowActiveNote.replace('$PATH$', file.path);
+}
+
 /**
  * Returns an open leaf of a map view type, if such exists.
  */

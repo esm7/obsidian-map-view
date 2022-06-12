@@ -356,6 +356,11 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 ## Changelog
 
+- Fixed misbehavior of the controls in the case of multiple Map View instances.
+- Fixed Map View interfering with the Graph View controls in some themes.
+- Made the graph controls more compact when minimized and properly positioned in more cases.
+- Query format for "follow active note". (TODO document)
+
 ### 2.0.5
 
 -   Improved the logic of saving "back/forward" history in a few cases, and optimized the state update logic to make transitions faster.

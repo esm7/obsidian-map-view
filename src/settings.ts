@@ -43,6 +43,7 @@ export type PluginSettings = {
     geocodingApiKey?: string;
     useGooglePlaces?: boolean;
     saveHistory?: boolean;
+	queryForFollowActiveNote?: string;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -177,6 +178,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     chosenMapMode: 'auto',
     saveHistory: true,
     letZoomBeyondMax: false,
+	queryForFollowActiveNote: 'path:"$PATH$"'
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {

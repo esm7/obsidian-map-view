@@ -6,10 +6,13 @@ import {
     ToggleComponent,
 } from 'obsidian';
 
+// A global ID to differentiate instances of the controls for the purpose of label creation
+let lastGlobalId = 0;
+
 import { PluginSettings, MapLightDark } from 'src/settings';
 
 import { MapState, areStatesEqual, mergeStates } from 'src/mapState';
-import { MapView } from 'src/mapView';
+import { MapContainer, ViewSettings } from 'src/mapContainer';
 import { NewPresetDialog } from 'src/newPresetDialog';
 import MapViewPlugin from 'src/main';
 import { QuerySuggest } from 'src/query';
@@ -21,8 +24,9 @@ import * as leaflet from 'leaflet';
 export class ViewControls {
     private parentElement: HTMLElement;
     private settings: PluginSettings;
+	private viewSettings: ViewSettings;
     private app: App;
-    private view: MapView;
+    private view: MapContainer;
     private plugin: MapViewPlugin;
 
     public controlsDiv: HTMLDivElement;
@@ -43,12 +47,14 @@ export class ViewControls {
     constructor(
         parentElement: HTMLElement,
         settings: PluginSettings,
+		viewSettings: ViewSettings,
         app: App,
-        view: MapView,
+        view: MapContainer,
         plugin: MapViewPlugin
     ) {
         this.parentElement = parentElement;
         this.settings = settings;
+		this.viewSettings = viewSettings;
         this.app = app;
         this.view = view;
         this.plugin = plugin;
@@ -60,7 +66,7 @@ export class ViewControls {
 
     async setNewState(newState: MapState, considerAutoFit: boolean) {
 		if (!this.updateOngoing)
-			await this.view.setViewState(newState, false, considerAutoFit);
+			await this.view.internalSetViewState(newState, false, considerAutoFit);
     }
 
     async setStateByNewMapSource(newSource: number) {
@@ -97,16 +103,18 @@ export class ViewControls {
 		this.updateOngoing = true;
         this.setMapSourceBoxByState();
         this.setQueryBoxByState();
-        this.followActiveNoteToggle.setValue(
-            this.getCurrentState().followActiveNote == true
-        );
+		if (this.followActiveNoteToggle)
+			this.followActiveNoteToggle.setValue(
+				this.getCurrentState().followActiveNote == true
+			);
 		this.updateOngoing = false;
     }
 
     private setMapSourceBoxByState() {
-        this.mapSourceBox.setValue(
-            this.getCurrentState().chosenMapSource.toString()
-        );
+		if (this.mapSourceBox)
+			this.mapSourceBox.setValue(
+				this.getCurrentState().chosenMapSource.toString()
+			);
     }
 
     async setStateByQueryString(newQuery: string) {
@@ -130,6 +138,8 @@ export class ViewControls {
     }
 
     private setQueryBoxByState() {
+		if (!this.queryBox)
+			return;
         // Update the UI based on the state
         const state = this.getCurrentState();
         this.queryBox.setValue(state.query);
@@ -137,6 +147,8 @@ export class ViewControls {
     }
 
     setQueryBoxErrorByState() {
+		if (!this.queryBox)
+			return;
         const state = this.getCurrentState();
         if (state.queryError)
             this.queryBox.inputEl.addClass('graph-control-error');
@@ -149,136 +161,155 @@ export class ViewControls {
     }
 
     createControls() {
+		lastGlobalId += 1;
         this.controlsDiv = createDiv({
-            cls: 'graph-controls',
+            cls: 'map-view-graph-controls',
         });
-        let filtersDiv = this.controlsDiv.createDiv({
-            cls: 'graph-control-div',
-        });
-        filtersDiv.innerHTML = `
-			<input id="filtersCollapsible" class="controls-toggle" type="checkbox">
-			<label for="filtersCollapsible" class="lbl-triangle">▸</label>
-			<label for="filtersCollapsible" class="lbl-toggle">Filters</label>
-			`;
-        const filtersButton = filtersDiv.getElementsByClassName(
-            'controls-toggle'
-        )[0] as HTMLInputElement;
-        filtersButton.checked = this.settings.mapControls.filtersDisplayed;
-        filtersButton.onclick = async () => {
-            this.settings.mapControls.filtersDisplayed = filtersButton.checked;
-            this.plugin.saveSettings();
-        };
-        let filtersContent = filtersDiv.createDiv({
-            cls: 'graph-control-content',
-        });
-        // Wrapping the query box in a div so we can place a button in the right-middle of it
-        const queryDiv = filtersContent.createDiv('search-input-container');
-        queryDiv.style.margin = '0';
-        this.queryBox = new TextComponent(queryDiv);
-        this.queryBox.setPlaceholder('Query');
-        this.queryBox.onChange((query: string) => {
-            this.setStateByQueryString(query);
-        });
-        let suggestor: QuerySuggest = null;
-        this.queryBox.inputEl.addEventListener('focus', (ev: FocusEvent) => {
-            if (!suggestor) {
-                suggestor = new QuerySuggest(this.app, this.queryBox);
-                suggestor.open();
-            }
-        });
-        this.queryBox.inputEl.addEventListener('focusout', (ev: FocusEvent) => {
-            if (suggestor) {
-                suggestor.close();
-                suggestor = null;
-            }
-        });
-        let clearButton = queryDiv.createDiv('search-input-clear-button');
-        clearButton.onClickEvent((ev) => {
-            this.queryBox.setValue('');
-            this.setStateByQueryString('');
-        });
+		if (this.viewSettings.showOpenButton) {
+			let openMapView = new ButtonComponent(this.controlsDiv);
+			openMapView
+				.setButtonText('Open')
+				.setTooltip('Open a full Map View with the current state.')
+				.onClick(async () => {
+					const state = this.view.getState();
+					state.followActiveNote = false;
+					this.plugin.openMapWithState(state, false, false);
+				});
+		}
+		if (this.viewSettings.showFilters) {
+			let filtersDiv = this.controlsDiv.createDiv({
+				cls: 'graph-control-div',
+			});
+			filtersDiv.innerHTML = `
+				<input id="filtersCollapsible${lastGlobalId}" class="controls-toggle" type="checkbox">
+				<label for="filtersCollapsible${lastGlobalId}" class="lbl-triangle">▸</label>
+				<label for="filtersCollapsible${lastGlobalId}" class="lbl-toggle">Filters</label>
+				`;
+			const filtersButton = filtersDiv.getElementsByClassName(
+				'controls-toggle'
+			)[0] as HTMLInputElement;
+			filtersButton.checked = this.settings.mapControls.filtersDisplayed;
+			filtersButton.onclick = async () => {
+				this.settings.mapControls.filtersDisplayed = filtersButton.checked;
+				this.plugin.saveSettings();
+			};
+			let filtersContent = filtersDiv.createDiv({
+				cls: 'graph-control-content',
+			});
+			// Wrapping the query box in a div so we can place a button in the right-middle of it
+			const queryDiv = filtersContent.createDiv('search-input-container');
+			queryDiv.style.margin = '0';
+			this.queryBox = new TextComponent(queryDiv);
+			this.queryBox.setPlaceholder('Query');
+			this.queryBox.onChange((query: string) => {
+				this.setStateByQueryString(query);
+			});
+			let suggestor: QuerySuggest = null;
+			this.queryBox.inputEl.addEventListener('focus', (ev: FocusEvent) => {
+				if (!suggestor) {
+					suggestor = new QuerySuggest(this.app, this.queryBox);
+					suggestor.open();
+				}
+			});
+			this.queryBox.inputEl.addEventListener('focusout', (ev: FocusEvent) => {
+				if (suggestor) {
+					suggestor.close();
+					suggestor = null;
+				}
+			});
+			let clearButton = queryDiv.createDiv('search-input-clear-button');
+			clearButton.onClickEvent((ev) => {
+				this.queryBox.setValue('');
+				this.setStateByQueryString('');
+			});
+		}
 
-        let viewDiv = this.controlsDiv.createDiv({ cls: 'graph-control-div' });
-        viewDiv.innerHTML = `
-			<input id="viewCollapsible" class="controls-toggle" type="checkbox">
-			<label for="viewCollapsible" class="lbl-triangle">▸</label>
-			<label for="viewCollapsible" class="lbl-toggle">View</label>
-			`;
-        const viewButton = viewDiv.getElementsByClassName(
-            'controls-toggle'
-        )[0] as HTMLInputElement;
-        viewButton.checked = this.settings.mapControls.viewDisplayed;
-        viewButton.onclick = async () => {
-            this.settings.mapControls.viewDisplayed = viewButton.checked;
-            this.plugin.saveSettings();
-        };
-        let viewDivContent = viewDiv.createDiv({
-            cls: 'graph-control-content',
-        });
-        this.mapSourceBox = new DropdownComponent(viewDivContent);
-        for (const [index, source] of this.settings.mapSources.entries()) {
-            this.mapSourceBox.addOption(index.toString(), source.name);
-        }
-        this.mapSourceBox.onChange(async (value: string) => {
-            this.setStateByNewMapSource(parseInt(value));
-        });
-        this.setMapSourceBoxByState();
-        this.sourceMode = new DropdownComponent(viewDivContent);
-        this.sourceMode
-            .addOptions({ auto: 'Auto', light: 'Light', dark: 'Dark' })
-            .setValue(this.settings.chosenMapMode ?? 'auto')
-            .onChange(async (value) => {
-                this.settings.chosenMapMode = value as MapLightDark;
-                await this.plugin.saveSettings();
-                this.view.refreshMap();
-            });
-        let goDefault = new ButtonComponent(viewDivContent);
-        goDefault
-            .setButtonText('Reset')
-            .setTooltip('Reset the view to the defined default.')
-            .onClick(async () => {
-                this.presetsBox.setValue('0');
-                await this.choosePresetAndUpdateState(0);
-                this.updateControlsToState();
-            });
-        let fitButton = new ButtonComponent(viewDivContent);
-        fitButton
-            .setButtonText('Fit')
-            .setTooltip(
-                'Set the map view to fit all currently-displayed markers.'
-            )
-            .onClick(() => this.view.autoFitMapToMarkers());
-        const followDiv = viewDivContent.createDiv({
-            cls: 'graph-control-follow-div',
-        });
-        this.followActiveNoteToggle = new ToggleComponent(followDiv);
-        const followLabel = followDiv.createEl('label');
-        followLabel.className = 'graph-control-follow-label';
-        followLabel.addEventListener('click', () =>
-            this.followActiveNoteToggle.onClick()
-        );
-        followLabel.innerHTML = 'Follow active note';
-        this.followActiveNoteToggle.onChange((value) => {
-            this.setStateByFollowActiveNote(value);
-        });
+		if (this.viewSettings.showView) {
+			let viewDiv = this.controlsDiv.createDiv({ cls: 'graph-control-div' });
+			viewDiv.innerHTML = `
+				<input id="viewCollapsible${lastGlobalId}" class="controls-toggle" type="checkbox">
+				<label for="viewCollapsible${lastGlobalId}" class="lbl-triangle">▸</label>
+				<label for="viewCollapsible${lastGlobalId}" class="lbl-toggle">View</label>
+				`;
+			const viewButton = viewDiv.getElementsByClassName(
+				'controls-toggle'
+			)[0] as HTMLInputElement;
+			viewButton.checked = this.settings.mapControls.viewDisplayed;
+			viewButton.onclick = async () => {
+				this.settings.mapControls.viewDisplayed = viewButton.checked;
+				this.plugin.saveSettings();
+			};
+			let viewDivContent = viewDiv.createDiv({
+				cls: 'graph-control-content',
+			});
+			this.mapSourceBox = new DropdownComponent(viewDivContent);
+			for (const [index, source] of this.settings.mapSources.entries()) {
+				this.mapSourceBox.addOption(index.toString(), source.name);
+			}
+			this.mapSourceBox.onChange(async (value: string) => {
+				this.setStateByNewMapSource(parseInt(value));
+			});
+			this.setMapSourceBoxByState();
+			this.sourceMode = new DropdownComponent(viewDivContent);
+			this.sourceMode
+				.addOptions({ auto: 'Auto', light: 'Light', dark: 'Dark' })
+				.setValue(this.settings.chosenMapMode ?? 'auto')
+				.onChange(async (value) => {
+					this.settings.chosenMapMode = value as MapLightDark;
+					await this.plugin.saveSettings();
+					this.view.refreshMap();
+				});
+				if (this.viewSettings.viewTabType === 'regular') {
+					let goDefault = new ButtonComponent(viewDivContent);
+					goDefault
+						.setButtonText('Reset')
+						.setTooltip('Reset the view to the defined default.')
+						.onClick(async () => {
+							await this.choosePresetAndUpdateState(0);
+							this.updateControlsToState();
+						});
+					let fitButton = new ButtonComponent(viewDivContent);
+					fitButton
+						.setButtonText('Fit')
+						.setTooltip(
+							'Set the map view to fit all currently-displayed markers.'
+						)
+						.onClick(() => this.view.autoFitMapToMarkers());
+					const followDiv = viewDivContent.createDiv({
+						cls: 'graph-control-follow-div',
+					});
+					this.followActiveNoteToggle = new ToggleComponent(followDiv);
+					const followLabel = followDiv.createEl('label');
+					followLabel.className = 'graph-control-follow-label';
+					followLabel.addEventListener('click', () =>
+						this.followActiveNoteToggle.onClick()
+					);
+					followLabel.innerHTML = 'Follow active note';
+					this.followActiveNoteToggle.onChange((value) => {
+						this.setStateByFollowActiveNote(value);
+					});
+				}
+		}
 
-        this.presetsDiv = this.controlsDiv.createDiv({
-            cls: 'graph-control-div',
-        });
-        this.presetsDiv.innerHTML = `
-			<input id="presetsCollapsible" class="controls-toggle" type="checkbox">
-			<label for="presetsCollapsible" class="lbl-triangle">▸</label>
-			<label for="presetsCollapsible" class="lbl-toggle">Presets</label>
-			`;
-        const presetsButton = this.presetsDiv.getElementsByClassName(
-            'controls-toggle'
-        )[0] as HTMLInputElement;
-        presetsButton.checked = this.settings.mapControls.presetsDisplayed;
-        presetsButton.onclick = async () => {
-            this.settings.mapControls.presetsDisplayed = presetsButton.checked;
-            this.plugin.saveSettings();
-        };
-        this.refreshPresets();
+		if (this.viewSettings.showPresets) {
+			this.presetsDiv = this.controlsDiv.createDiv({
+				cls: 'graph-control-div',
+			});
+			this.presetsDiv.innerHTML = `
+				<input id="presetsCollapsible${lastGlobalId}" class="controls-toggle" type="checkbox">
+				<label for="presetsCollapsible${lastGlobalId}" class="lbl-triangle">▸</label>
+				<label for="presetsCollapsible${lastGlobalId}" class="lbl-toggle">Presets</label>
+				`;
+			const presetsButton = this.presetsDiv.getElementsByClassName(
+				'controls-toggle'
+			)[0] as HTMLInputElement;
+			presetsButton.checked = this.settings.mapControls.presetsDisplayed;
+			presetsButton.onclick = async () => {
+				this.settings.mapControls.presetsDisplayed = presetsButton.checked;
+				this.plugin.saveSettings();
+			};
+			this.refreshPresets();
+		}
 
         this.parentElement.append(this.controlsDiv);
     }
@@ -374,6 +405,8 @@ export class ViewControls {
     }
 
     invalidateActivePreset() {
+		if (!this.presetsBox)
+			return;
         if (!areStatesEqual(this.getCurrentState(), this.lastSelectedPreset)) {
             this.presetsBox.setValue('-1');
         }
@@ -381,7 +414,7 @@ export class ViewControls {
 }
 
 export class SearchControl extends leaflet.Control {
-    view: MapView;
+    view: MapContainer;
     app: App;
     settings: PluginSettings;
     searchButton: HTMLAnchorElement;
@@ -389,7 +422,7 @@ export class SearchControl extends leaflet.Control {
 
     constructor(
         options: any,
-        view: MapView,
+        view: MapContainer,
         app: App,
         settings: PluginSettings
     ) {

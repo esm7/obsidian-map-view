@@ -126,7 +126,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         // Otherwise, open the file from the active leaf
         const mapView = utils.findOpenMapView(this.app);
         if (mapView) {
-            mapView.goToFile(file, ev.ctrlKey, utils.handleNewNoteCursorMarker);
+            mapView.mapContainer.goToFile(file, ev.ctrlKey, utils.handleNewNoteCursorMarker);
         } else {
             const leaf = this.app.workspace.activeLeaf;
             await leaf.openFile(file);

@@ -36,7 +36,7 @@ export class Query {
         // 3. Same goes for linkedto:"" and linkedfrom:""
         let newString = queryString
             .replace(/tag:(#[\w\/\-]+)/g, '"tag:$1"')
-            .replace(/path:\"([\w\s\/\-\\\.]+?)\"/g, '"path:$1"')
+            .replace(/path:\"([\'\w\s\/\-\\\.]+?)\"/g, '"path:$1"')
             .replace(/linkedto:\"([\w\s\/\-\\\.]+?)\"/g, '"linkedto:$1"')
             .replace(/linkedfrom:\"([\w\s\/\-\\\.]+?)\"/g, '"linkedfrom:$1"');
         return newString;
@@ -254,7 +254,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
         // Doesn't include a closing parenthesis
         const pathMatch = matchByPosition(
             input,
-            /path:((\"([\w\s\/\-\\\.]*)\")|([\w\/\-\\\.]*))/g,
+            /path:((\"([\w\s\'\/\-\\\.]*)\")|([\w\'\/\-\\\.]*))/g,
             cursorPos
         );
         const linkedToMatch = matchByPosition(

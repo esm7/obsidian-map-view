@@ -309,6 +309,22 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
+        new Setting(containerEl)
+            .setName('Query format for "follow active note"')
+            .setDesc(
+                'What query to use for following active notes (in the main or mini view), $PATH$ being the file path.'
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.queryForFollowActiveNote ||
+                            DEFAULT_SETTINGS.queryForFollowActiveNote
+                    )
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.queryForFollowActiveNote = value;
+                        this.plugin.saveSettings();
+                    });
+            });
 
         new Setting(containerEl)
             .setHeading()
@@ -420,7 +436,7 @@ export class SettingsTab extends PluginSettingTab {
             for (const leaf of mapViews) {
                 if (leaf.view) {
                     const mapView = leaf.view as MapView;
-                    mapView.refreshMap();
+                    mapView.mapContainer.refreshMap();
                 }
             }
         }
