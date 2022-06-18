@@ -9,6 +9,7 @@ let localL = L;
 
 import { PluginSettings, MarkerIconRule } from 'src/settings';
 import * as consts from 'src/consts';
+import * as regex from 'src/regex';
 
 type MarkerId = string;
 
@@ -199,11 +200,9 @@ export function verifyLocation(location: leaflet.LatLng) {
  */
 export function matchInlineLocation(content: string): RegExpMatchArray[] {
     // Old syntax of ` `location: ... ` `. This syntax doesn't support a name so we leave an empty capture group
-    const locationRegex1 =
-        /`location:\s*\[?(?<lat>[+-]?([0-9]*[.])?[0-9]+)\s*,\s*(?<lng>[+-]?([0-9]*[.])?[0-9]+)]?`/g;
+    const locationRegex1 = regex.INLINE_LOCATION_OLD_SYNTAX;
     // New syntax of `[name](geo:...)` and an optional tags as `tag:tagName` separated by whitespaces
-    const locationRegex2 =
-        /\[(?<name>.*?)]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\)[ \t]*(?<tags>(tag:[\w\/\-]+[\s.]+)*)/g;
+    const locationRegex2 = regex.INLINE_LOCATION_WITH_TAGS;
     const matches1 = content.matchAll(locationRegex1);
     const matches2 = content.matchAll(locationRegex2);
     return Array.from(matches1).concat(Array.from(matches2));
@@ -238,7 +237,7 @@ export async function getMarkersFromFileContent(
                 marker.extraName = match.groups.name;
             if (match.groups.tags) {
                 // Parse the list of tags
-                const tagRegex = /tag:(?<tag>[\w\/\-]+)/g;
+                const tagRegex = regex.INLINE_TAG_IN_NOTE;
                 const tags = match.groups.tags.matchAll(tagRegex);
                 for (const tag of tags)
                     if (tag.groups.tag) marker.tags.push('#' + tag.groups.tag);

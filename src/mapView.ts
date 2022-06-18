@@ -179,7 +179,6 @@ export abstract class MapView extends ItemView {
 					// on every switch
 					if (mapState.query != newQuery || this.mapContainer.viewSettings.autoZoom) {
 						mapState.query = newQuery;
-						mapState.parentLeaf = this.app.workspace.activeLeaf;
 						this.mapContainer.internalSetViewState(mapState, true, true);
 					}
 				}

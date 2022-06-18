@@ -1,6 +1,7 @@
 import { LatLng } from 'leaflet';
-import { SplitDirection } from 'obsidian';
+import { SplitDirection, Notice, Plugin } from 'obsidian';
 import { MapState, LegacyMapState } from 'src/mapState';
+import MapViewPlugin from 'src/main';
 import * as consts from 'src/consts';
 
 export type PluginSettings = {
@@ -294,4 +295,48 @@ export function convertUrlParsingRules1(settings: PluginSettings): boolean {
         }
     }
     return changed;
+}
+
+export async function convertLegacySettings(settings: PluginSettings, plugin: MapViewPlugin) {
+	let changed = false;
+	// Convert old settings formats that are no longer supported
+	if (convertLegacyMarkerIcons(settings)) {
+		changed = true;
+		new Notice(
+			'Map View: legacy marker icons were converted to the new format'
+		);
+	}
+	if (convertLegacyTilesUrl(settings)) {
+		changed = true;
+		new Notice(
+			'Map View: legacy tiles URL was converted to the new format'
+		);
+	}
+	if (convertLegacyDefaultState(settings)) {
+		changed = true;
+		new Notice(
+			'Map View: legacy default state was converted to the new format'
+		);
+	}
+	if (removeLegacyPresets1(settings)) {
+		changed = true;
+		new Notice(
+			'Map View: legacy URL parsing rules and/or map sources were converted. See the release notes'
+		);
+	}
+	if (convertTagsToQueries(settings)) {
+		changed = true;
+		new Notice(
+			'Map View: legacy tag queries were converted to the new query format'
+		);
+	}
+	if (convertUrlParsingRules1(settings)) {
+		changed = true;
+		new Notice(
+			'Map View: URL parsing rules were converted to the new format'
+		);
+	}
+
+	if (changed)
+		plugin.saveSettings();
 }

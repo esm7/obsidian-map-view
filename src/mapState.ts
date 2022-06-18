@@ -14,7 +14,6 @@ export type MapState = {
     chosenMapSource?: number;
     forceHistorySave?: boolean;
     followActiveNote?: boolean;
-	parentLeaf?: WorkspaceLeaf;
 };
 
 /** Fields that are deprecated */

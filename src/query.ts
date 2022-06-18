@@ -2,7 +2,7 @@ import { App, TFile, TextComponent, PopoverSuggest, Scope } from 'obsidian';
 
 import * as consts from 'src/consts';
 import { matchByPosition } from 'src/utils';
-import { getTagUnderCursor } from 'src/regex';
+import * as regex from 'src/regex';
 import { FileMarker } from 'src/markers';
 import * as utils from 'src/utils';
 
@@ -35,10 +35,10 @@ export class Query {
         // 2. Replace path:"abc def/ghi" by "path:abc def/dhi" because the parser doesn't like quotes as part of the words
         // 3. Same goes for linkedto:"" and linkedfrom:""
         let newString = queryString
-            .replace(/tag:(#[\w\/\-]+)/g, '"tag:$1"')
-            .replace(/path:\"([\'\w\s\/\-\\\.]+?)\"/g, '"path:$1"')
-            .replace(/linkedto:\"([\w\s\/\-\\\.]+?)\"/g, '"linkedto:$1"')
-            .replace(/linkedfrom:\"([\w\s\/\-\\\.]+?)\"/g, '"linkedfrom:$1"');
+            .replace(regex.TAG_NAME_WITH_HEADER, '"tag:$1"')
+            .replace(regex.PATH_QUERY_WITH_HEADER, '"path:$1"')
+            .replace(regex.LINKEDTO_QUERY_WITH_HEADER, '"linkedto:$1"')
+            .replace(regex.LINKEDFROM_QUERY_WITH_HEADER, '"linkedfrom:$1"');
         return newString;
     }
 
@@ -250,21 +250,21 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
     createSuggestions(): Suggestion[] {
         const cursorPos = this.sourceElement.inputEl.selectionStart;
         const input = this.sourceElement.getValue();
-        const tagMatch = getTagUnderCursor(input, cursorPos);
+        const tagMatch = regex.getTagUnderCursor(input, cursorPos);
         // Doesn't include a closing parenthesis
         const pathMatch = matchByPosition(
             input,
-            /path:((\"([\w\s\'\/\-\\\.]*)\")|([\w\'\/\-\\\.]*))/g,
+			regex.QUOTED_OR_NOT_QUOTED_PATH,
             cursorPos
         );
         const linkedToMatch = matchByPosition(
             input,
-            /linkedto:((\"([\w\s\/\-\\\.]*)\")|([\w\/\-\\\.]*))/g,
+            regex.QUOTED_OR_NOT_QUOTED_LINKEDTO,
             cursorPos
         );
         const linkedFromMatch = matchByPosition(
             input,
-            /linkedfrom:((\"([\w\s\/\-\\\.]*)\")|([\w\/\-\\\.]*))/g,
+            regex.QUOTED_OR_NOT_QUOTED_LINKEDFROM,
             cursorPos
         );
         if (tagMatch) {

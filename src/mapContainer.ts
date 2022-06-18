@@ -401,22 +401,6 @@ export class MapContainer {
                 let mapPopup = new Menu(this.app);
                 mapPopup.setNoIcon();
 				const location = `${event.latlng.lat},${event.latlng.lng}`;
-				if (this.state.followActiveNote && this.state.parentLeaf && this.state.parentLeaf.view instanceof MarkdownView) {
-					const leaf = this.state.parentLeaf;
-					const file = (this.state.parentLeaf.view as MarkdownView).file;
-					mapPopup.addItem((item: MenuItem) => {
-						item.setTitle('Add geolocation to note (inline)')
-						item.onClick(async ev => {
-
-						});
-					});
-					mapPopup.addItem((item: MenuItem) => {
-						item.setTitle('Set geolocation for note (front matter)');
-						item.onClick(async ev => {
-
-						});
-					});
-				}
                 mapPopup.addItem((item: MenuItem) => {
                     item.setTitle('New note here (inline)');
                     item.onClick(async (ev) => {
