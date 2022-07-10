@@ -25,3 +25,5 @@ export const MAX_EXTERNAL_SEARCH_SUGGESTIONS = 5;
 export const MAX_MARKER_SUGGESTIONS = 5;
 export const MAX_ZOOM = 25;
 export const DEFAULT_MAX_TILE_ZOOM = 19;
+
+export const HIGHLIGHT_CLASS_NAME = 'map-view-highlight';

@@ -145,3 +145,7 @@
     align-items: center;
     padding-left: 10px;
 }
+
+.map-view-highlight {
+	filter: drop-shadow(0 0 10px blue);
+}

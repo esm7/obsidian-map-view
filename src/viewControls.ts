@@ -462,27 +462,39 @@ export class SearchControl extends leaflet.Control {
                     : fileMarker.file.basename,
                 location: fileMarker.location,
                 resultType: 'existingMarker',
+				existingMarker: fileMarker,
                 icon: fileMarker.icon.options,
             });
         }
+		const markersByDistanceToCenter = markerSearchResults.sort((item1: SuggestInfo, item2: SuggestInfo) => {
+			const center = this.view.state.mapCenter;
+			const d1 = item1.location.distanceTo(center);
+			const d2 = item2.location.distanceTo(center);
+			if (d1 < d2) return -1;
+			else return 1;
+		})
+
         const searchDialog = new LocationSearchDialog(
             this.app,
             this.settings,
             'custom',
             'Find in map',
             null,
-            markerSearchResults,
-            true
+            markersByDistanceToCenter,
+            true,
+			[{command: 'shift+enter', purpose: 'go without zoom & pan'}]
         );
-        searchDialog.customOnSelect = (selection: SuggestInfo) => {
+        searchDialog.customOnSelect = (selection: SuggestInfo, evt: MouseEvent | KeyboardEvent) => {
             this.view.removeSearchResultMarker();
             if (selection && selection.resultType == 'existingMarker') {
-                this.view.zoomToSearchResult(selection.location);
+				const keepZoom = evt.shiftKey;
+                this.view.goToSearchResult(selection.location, selection.existingMarker, keepZoom);
             } else if (selection && selection.location) {
                 this.view.addSearchResultMarker(selection);
                 this.clearButton.style.display = 'block';
             }
         };
+		searchDialog.centerOfSearch = this.view.state.mapCenter;
         searchDialog.open();
     }
 }

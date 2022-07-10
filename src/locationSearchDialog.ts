@@ -1,4 +1,4 @@
-import { Editor, App, SuggestModal, TFile } from 'obsidian';
+import { Editor, App, SuggestModal, TFile, Instruction } from 'obsidian';
 import * as leaflet from 'leaflet';
 
 import { PluginSettings } from 'src/settings';
@@ -27,7 +27,9 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
     private editor: Editor = null;
 
     // If dialogAction is 'custom', this will launch upon selection
-    public customOnSelect: (selection: SuggestInfo) => void;
+    public customOnSelect: (selection: SuggestInfo, evt: MouseEvent | KeyboardEvent) => void;
+	// TODO document
+	public centerOfSearch: leaflet.LatLng | null = null;
 
     constructor(
         app: App,
@@ -36,7 +38,8 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         title: string,
         editor: Editor = null,
         includeResults: SuggestInfo[] = null,
-        hasIcons: boolean = false
+        hasIcons: boolean = false,
+		moreInstructions: Instruction[] = null
     ) {
         super(app);
         this.settings = settings;
@@ -49,7 +52,24 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         this.setPlaceholder(
             title + ': type a place name or paste a string to parse'
         );
-        this.setInstructions([{ command: 'enter', purpose: 'to use' }]);
+		let instructions = [
+			{ command: 'enter', purpose: 'to use' }
+		];
+		if (moreInstructions)
+			instructions = instructions.concat(moreInstructions);
+        this.setInstructions(instructions);
+		this.inputEl.addEventListener('keypress', (ev: KeyboardEvent) => {
+			// TODO document
+			if (ev.key == 'Enter' && ev.shiftKey && this.customOnSelect != null) {
+				const chooser = (this as any).chooser;
+				const selectedItem = chooser?.selectedItem;
+				const values = chooser?.values;
+				if (chooser && values) {
+					this.onChooseSuggestion(values[selectedItem], ev);
+					this.close();
+				}
+			}
+		});
     }
 
     getSuggestions(query: string) {
@@ -101,7 +121,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         else if (this.dialogAction == 'addToNote')
             this.addToNote(value.location, evt, value.name);
         else if (this.dialogAction == 'custom' && this.customOnSelect != null)
-            this.customOnSelect(value);
+            this.customOnSelect(value, evt);
     }
 
     async newNote(
@@ -157,7 +177,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         }
         // After the sleep our search is still the last -- so the user stopped and we can go on
         this.lastSearch = query;
-        this.lastSearchResults = await this.searcher.search(query);
+        this.lastSearchResults = await this.searcher.search(query, this.centerOfSearch);
         (this as any).updateSuggestions();
     }
 }

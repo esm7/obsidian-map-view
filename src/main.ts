@@ -19,8 +19,8 @@ import { UrlConvertor } from 'src/urlConvertor';
 import { stateFromParsedUrl } from 'src/mapState';
 
 import { MainMapView } from 'src/mainMapView';
-import { MiniMapView } from 'src/miniMapView';
-import { EmbeddedMap } from 'src/embeddedMap';
+// import { MiniMapView } from 'src/miniMapView';
+// import { EmbeddedMap } from 'src/embeddedMap';
 
 import {
     PluginSettings,
@@ -62,9 +62,10 @@ export default class MapViewPlugin extends Plugin {
         this.registerView(consts.MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
             return new MainMapView(leaf, this.settings, this);
         });
-		this.registerView(consts.MINI_MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
-			return new MiniMapView(leaf, this.settings, this);
-		});
+		// Currently not in use; the feature is frozen until I have the time to work on its various quirks
+		// this.registerView(consts.MINI_MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
+		// 	return new MiniMapView(leaf, this.settings, this);
+		// });
 
         this.registerObsidianProtocolHandler(
             'mapview',
@@ -180,8 +181,9 @@ export default class MapViewPlugin extends Plugin {
         // This is the context menu in the File Explorer and clicking "More options" (three dots) from within a file.
         this.app.workspace.on('file-menu', async (menu, file, source, leaf) => this.onFileMenu(menu, file, source, leaf));
 
-		if (this.app.workspace.layoutReady) this.initMiniMap()
-		else this.app.workspace.onLayoutReady(() => this.initMiniMap());
+		// Currently frozen until I have time to work on this feature's quirks
+		// if (this.app.workspace.layoutReady) this.initMiniMap()
+		// else this.app.workspace.onLayoutReady(() => this.initMiniMap());
 
         // Add items to the editor context menu (run when the context menu is built)
         // This is the context menu when right clicking within an editor view.

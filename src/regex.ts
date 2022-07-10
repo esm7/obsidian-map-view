@@ -15,7 +15,7 @@ export const QUOTED_OR_NOT_QUOTED_LINKEDTO = /linkedto:(("([\p{L}\p{N}_\s'/\-\\\
 export const QUOTED_OR_NOT_QUOTED_LINKEDFROM = /linkedfrom:(("([\p{L}\p{N}_\s'/\-\\\.]*)")|([\p{L}\p{N}_'/\-\\\.]*))/ug;
 export const COORDINATE = '[+-]?([0-9]*[.])?[0-9]+';
 export const INLINE_LOCATION_OLD_SYNTAX = /`location:\s*\[?(?<lat>[+-]?([0-9]*[.])?[0-9]+)\s*,\s*(?<lng>[+-]?([0-9]*[.])?[0-9]+)\]?/g;
-export const INLINE_LOCATION_WITH_TAGS = /\[(?<name>.*?)\]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\)[ \t]*(?<tags>(tag:[\p{L}\p{N}_\/\-]+[\s.]+)*)/ug;
+export const INLINE_LOCATION_WITH_TAGS = /\[(?<name>.*?)\]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\)[ \t]*(?<tags>(tag:[\p{L}\p{N}_\/\-]+[\s,.]+)*)/ug;
 
 /**
  * Returns a match object if the given cursor position has the beginning

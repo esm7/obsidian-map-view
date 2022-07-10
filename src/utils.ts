@@ -14,7 +14,7 @@ import * as leaflet from 'leaflet';
 import * as path from 'path';
 import * as settings from './settings';
 import * as consts from './consts';
-import { MapView } from './mapView';
+import { BaseMapView } from './baseMapView';
 
 export function formatWithTemplates(s: string, query = '') {
     const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;
@@ -191,7 +191,7 @@ export function replaceFollowActiveNoteQuery(
  */
 export function findOpenMapView(app: App) {
     const maps = app.workspace.getLeavesOfType(consts.MAP_VIEW_NAME);
-    if (maps && maps.length > 0) return maps[0].view as MapView;
+    if (maps && maps.length > 0) return maps[0].view as BaseMapView;
 }
 
 export async function getEditor(

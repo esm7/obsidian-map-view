@@ -14,7 +14,7 @@ import {
     DEFAULT_SETTINGS,
 } from 'src/settings';
 import { getIconFromOptions, getIconFromRules } from 'src/markers';
-import { MapView } from 'src/mapView';
+import { BaseMapView } from 'src/baseMapView';
 import * as consts from 'src/consts';
 import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
 
@@ -435,7 +435,7 @@ export class SettingsTab extends PluginSettingTab {
             );
             for (const leaf of mapViews) {
                 if (leaf.view) {
-                    const mapView = leaf.view as MapView;
+                    const mapView = leaf.view as BaseMapView;
                     mapView.mapContainer.refreshMap();
                 }
             }

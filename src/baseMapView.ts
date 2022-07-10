@@ -29,7 +29,7 @@ import * as utils from 'src/utils';
 
 import { MapContainer, ViewSettings } from 'src/mapContainer';
 
-export abstract class MapView extends ItemView {
+export abstract class BaseMapView extends ItemView {
 	public mapContainer: MapContainer;
     /** The state that was last saved to Obsidian's history stack */
     private lastSavedState: MapState;
@@ -50,7 +50,6 @@ export abstract class MapView extends ItemView {
         this.navigation = true;
 		this.mapContainer = new MapContainer(this.contentEl, settings, viewSettings, plugin, plugin.app);
 
-		// TODO document
 		this.mapContainer.highLevelSetViewState = async (partialState: Partial<MapState>) => {
 			// This check is seemingly a duplicate of the one inside setViewState, but it's
 			// actually very needed. Without it, it's possible that we'd call Obsidian's

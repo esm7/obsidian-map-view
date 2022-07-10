@@ -14,10 +14,10 @@ import {
 import { PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';
 
-import { MapView } from 'src/mapView';
+import { BaseMapView } from 'src/baseMapView';
 import { ViewSettings } from 'src/mapContainer';
 
-export class MainMapView extends MapView {
+export class MainMapView extends BaseMapView {
 	constructor(
 		leaf: WorkspaceLeaf,
 		settings: PluginSettings,

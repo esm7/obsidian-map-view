@@ -1,24 +1,16 @@
 import {
-    App,
-    TAbstractFile,
-    Loc,
-    Editor,
-    ItemView,
-    MenuItem,
-    Menu,
     TFile,
     WorkspaceLeaf,
-    Notice,
 } from 'obsidian';
 
 import { PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';
 
-import { MapView } from 'src/mapView';
+import { BaseMapView } from 'src/baseMapView';
 import { ViewSettings } from 'src/mapContainer';
 import { MapState } from 'src/mapState';
 
-export class MiniMapView extends MapView {
+export class MiniMapView extends BaseMapView {
 	constructor(
 		leaf: WorkspaceLeaf,
 		settings: PluginSettings,
@@ -61,6 +53,8 @@ export class MiniMapView extends MapView {
 	}
 
 	async onFileOpen(file: TFile) {
+		if (!this.contentEl.isShown)
+			return;
 		super.onFileOpen(file);
 		if (file)
 			this.mapContainer.display.mapDiv.style.visibility = 'visible';

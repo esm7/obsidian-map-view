@@ -8,7 +8,6 @@ import {
     TFile,
     WorkspaceLeaf,
     Notice,
-	MarkdownView
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -80,6 +79,8 @@ export class MapContainer {
         searchControls: SearchControl = null;
         /** A marker of the last search result */
         searchResult: leaflet.Marker = null;
+		/** The currently highlighted marker (if any) */
+		highlight: leaflet.Marker = null;
     })();
     public ongoingChanges = 0;
     private plugin: MapViewPlugin;
@@ -333,6 +334,7 @@ export class MapContainer {
 				mapCenter: this.display.map.getCenter()
 			});
             this.display?.controls?.invalidateActivePreset();
+			this.setHighlight(this.display.highlight);
         });
         this.display.map.on('moveend', async (event: leaflet.LeafletEvent) => {
             this.ongoingChanges -= 1;
@@ -341,6 +343,7 @@ export class MapContainer {
 				mapCenter: this.display.map.getCenter()
 			});
             this.display?.controls?.invalidateActivePreset();
+			this.setHighlight(this.display.highlight);
         });
         this.display.map.on('movestart', (event: leaflet.LeafletEvent) => {
             this.ongoingChanges += 1;
@@ -354,6 +357,12 @@ export class MapContainer {
                 this.ongoingChanges += 1;
             }
         );
+		this.display.map.on(
+			'viewreset',
+			() => {
+				this.setHighlight(this.display.highlight);
+			}
+		);
 
 		if (this.viewSettings.showSearch) {
 			this.display.searchControls = new SearchControl(
@@ -392,7 +401,20 @@ export class MapContainer {
             this.display.clusterGroup.on('clustermouseout', (cluster) => {
                 cluster.propagatedFrom.closePopup();
             });
+			this.display.clusterGroup.on(
+				'clusterclick',
+				() => {
+					this.setHighlight(this.display.highlight);
+				}
+			)
         }
+
+		this.display.map.on(
+			'click',
+			(event: leaflet.LeafletMouseEvent) => {
+				this.setHighlight(null);
+			}
+		);
 
         // Build the map marker right-click context menu
         this.display.map.on(
@@ -607,6 +629,7 @@ export class MapContainer {
             newMarker
                 .getElement()
                 .addEventListener('contextmenu', (ev: MouseEvent) => {
+					this.setHighlight(newMarker);
                     let mapPopup = new Menu(this.app);
                     mapPopup.setNoIcon();
                     mapPopup.addItem((item: MenuItem) => {
@@ -785,11 +808,23 @@ export class MapContainer {
             marker.closePopup();
         });
         marker.addTo(this.display.map);
-        this.zoomToSearchResult(details.location);
+        this.goToSearchResult(details.location, marker);
     }
 
-    zoomToSearchResult(location: leaflet.LatLng) {
-		this.highLevelSetViewState({mapCenter: location, mapZoom: this.settings.zoomOnGoFromNote});
+    goToSearchResult(location: leaflet.LatLng, marker: FileMarker | leaflet.Marker, keepZoom: boolean = false) {
+		this.setHighlight(marker);
+		let newState: Partial<MapState> = {};
+		if (!keepZoom) {
+			newState = {
+				mapCenter: location,
+				mapZoom: this.settings.zoomOnGoFromNote
+			}
+		} else {
+			// TODO document
+			if (!this.display.map.getBounds().contains(location))
+				newState.mapCenter = location;
+		}
+		this.highLevelSetViewState(newState);
     }
 
     removeSearchResultMarker() {
@@ -802,5 +837,23 @@ export class MapContainer {
     openSearch() {
 		if (this.display.searchControls) this.display.searchControls.openSearch(this.display.markers);
     }
+
+	setHighlight(newHighlight: leaflet.Marker | FileMarker) {
+		const newMapMarker = newHighlight ? (newHighlight instanceof leaflet.Marker ? newHighlight : newHighlight.mapMarker)
+		: null;
+		if (this.display.highlight && this.display.highlight != newMapMarker) {
+			const existingElement = this.display.highlight.getElement();
+			if (existingElement)
+				existingElement.removeClass(consts.HIGHLIGHT_CLASS_NAME);
+		}
+		if (newMapMarker) {
+			const newElement = newMapMarker.getElement();
+			if (newElement) {
+				newElement.addClass(consts.HIGHLIGHT_CLASS_NAME);
+			}
+			// Update even if there is no HTML element yet
+		}
+		this.display.highlight = newMapMarker;
+	}
 }
 

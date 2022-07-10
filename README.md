@@ -360,6 +360,11 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 - Fixed Map View interfering with the Graph View controls in some themes.
 - Made the graph controls more compact when minimized and properly positioned in more cases.
 - Query format for "follow active note". (TODO document)
+- Fixed inline tags not recognized when followed by a comma.
+- Search highlight
+- Search results are now shown sorted by the center of the map
+- Shift+Enter on an existing marker in the search result will go without zooming
+- Search results now prefer the shown map area
 
 ### 2.0.5
 

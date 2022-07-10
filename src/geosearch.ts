@@ -5,6 +5,7 @@ import * as querystring from 'querystring';
 
 import { PluginSettings } from 'src/settings';
 import { UrlConvertor } from 'src/urlConvertor';
+import { FileMarker } from 'src/markers';
 import * as consts from 'src/consts';
 
 /**
@@ -15,6 +16,7 @@ export class GeoSearchResult {
     name: string;
     location: leaflet.LatLng;
     resultType: 'searchResult' | 'url' | 'existingMarker';
+	existingMarker?: FileMarker;
 }
 
 export class GeoSearcher {
@@ -36,7 +38,7 @@ export class GeoSearcher {
         }
     }
 
-    async search(query: string): Promise<GeoSearchResult[]> {
+    async search(query: string, centerOfSearch: leaflet.LatLng | null = null): Promise<GeoSearchResult[]> {
         let results: GeoSearchResult[] = [];
 
         // Parsed URL result
@@ -62,7 +64,8 @@ export class GeoSearcher {
         ) {
             const placesResults = await googlePlacesSearch(
                 query,
-                this.settings
+                this.settings,
+				centerOfSearch
             );
             for (const result of placesResults)
                 results.push({
@@ -96,7 +99,8 @@ export class GeoSearcher {
 
 export async function googlePlacesSearch(
     query: string,
-    settings: PluginSettings
+    settings: PluginSettings,
+	centerOfSearch: leaflet.LatLng | null
 ): Promise<GeoSearchResult[]> {
     if (settings.searchProvider != 'google' || !settings.useGooglePlaces)
         return [];
@@ -105,6 +109,8 @@ export async function googlePlacesSearch(
         query: query,
         key: googleApiKey,
     };
+	if (centerOfSearch)
+		(params as any)['location'] = `${centerOfSearch.lat},${centerOfSearch.lng}`;
     const googleUrl =
         'https://maps.googleapis.com/maps/api/place/textsearch/json?' +
         querystring.stringify(params);
