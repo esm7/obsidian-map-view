@@ -28,8 +28,9 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
 
     // If dialogAction is 'custom', this will launch upon selection
     public customOnSelect: (selection: SuggestInfo, evt: MouseEvent | KeyboardEvent) => void;
-	// TODO document
-	public centerOfSearch: leaflet.LatLng | null = null;
+	// If specified, this rectangle is used as a parameter for the various geocoding providers, so they can
+	// prioritize results that are closer to the current view
+	public searchArea: leaflet.LatLngBounds | null = null;
 
     constructor(
         app: App,
@@ -59,7 +60,9 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
 			instructions = instructions.concat(moreInstructions);
         this.setInstructions(instructions);
 		this.inputEl.addEventListener('keypress', (ev: KeyboardEvent) => {
-			// TODO document
+			// In the case of a custom select function, trigger it also for Shift+Enter.
+			// Obsidian doesn't have an API for that, so we find the selected item in a rather patchy way,
+			// and manually close the dialog
 			if (ev.key == 'Enter' && ev.shiftKey && this.customOnSelect != null) {
 				const chooser = (this as any).chooser;
 				const selectedItem = chooser?.selectedItem;
@@ -177,7 +180,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         }
         // After the sleep our search is still the last -- so the user stopped and we can go on
         this.lastSearch = query;
-        this.lastSearchResults = await this.searcher.search(query, this.centerOfSearch);
+        this.lastSearchResults = await this.searcher.search(query, this.searchArea);
         (this as any).updateSuggestions();
     }
 }

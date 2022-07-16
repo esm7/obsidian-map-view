@@ -39,7 +39,7 @@ export class FileMarker {
     constructor(file: TFile, location: leaflet.LatLng) {
         this.file = file;
         this.location = location;
-        this.id = this.generateId();
+        this.generateId();
     }
 
     isSame(other: FileMarker) {
@@ -47,6 +47,7 @@ export class FileMarker {
             this.file.name === other.file.name &&
             this.location.toString() === other.location.toString() &&
             this.fileLocation === other.fileLocation &&
+			this.fileLine === other.fileLine &&
             this.extraName === other.extraName &&
             this.icon?.options?.iconUrl === other.icon?.options?.iconUrl &&
             // @ts-ignore
@@ -61,12 +62,12 @@ export class FileMarker {
         );
     }
 
-    generateId(): MarkerId {
-        return (
-            this.file.name +
+    generateId() {
+		this.id = this.file.name +
             this.location.lat.toString() +
-            this.location.lng.toString()
-        );
+            this.location.lng.toString() +
+			this.fileLocation || 'nofileloc' +
+			this.fileLine || 'nofileline';
     }
 }
 
@@ -247,6 +248,8 @@ export async function getMarkersFromFileContent(
             marker.fileLine =
                 content.substring(0, marker.fileLocation).split('\n').length -
                 1;
+			// Regenerate the ID because the marker details changed since it was generated
+			marker.generateId();
             markers.push(marker);
         } catch (e) {
             console.log(

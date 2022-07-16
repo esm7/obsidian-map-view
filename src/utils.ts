@@ -172,6 +172,7 @@ export function populateOpenInItems(
             .replace('{y}', location.lng.toString());
         menu.addItem((item: MenuItem) => {
             item.setTitle(`Open in ${setting.name}`);
+			item.setSection('mapview');
             item.onClick((_ev) => {
                 open(fullUrl);
             });

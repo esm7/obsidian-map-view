@@ -38,7 +38,7 @@ export class GeoSearcher {
         }
     }
 
-    async search(query: string, centerOfSearch: leaflet.LatLng | null = null): Promise<GeoSearchResult[]> {
+    async search(query: string, searchArea: leaflet.LatLngBounds | null = null): Promise<GeoSearchResult[]> {
         let results: GeoSearchResult[] = [];
 
         // Parsed URL result
@@ -65,7 +65,7 @@ export class GeoSearcher {
             const placesResults = await googlePlacesSearch(
                 query,
                 this.settings,
-				centerOfSearch
+				searchArea?.getCenter()
             );
             for (const result of placesResults)
                 results.push({
@@ -74,8 +74,10 @@ export class GeoSearcher {
                     resultType: 'searchResult',
                 });
         } else {
+			const areaSW = searchArea.getSouthWest();
+			const areaNE = searchArea.getNorthEast();
             let searchResults = await this.searchProvider.search({
-                query: query,
+                query: query
             });
             searchResults = searchResults.slice(
                 0,

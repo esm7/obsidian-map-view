@@ -10,7 +10,6 @@ import {
     WorkspaceLeaf,
     TAbstractFile,
     ObsidianProtocolData,
-	MarkdownPostProcessorContext
 } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
@@ -19,6 +18,7 @@ import { UrlConvertor } from 'src/urlConvertor';
 import { stateFromParsedUrl } from 'src/mapState';
 
 import { MainMapView } from 'src/mainMapView';
+import { FileMarker } from 'src/markers';
 // import { MiniMapView } from 'src/miniMapView';
 // import { EmbeddedMap } from 'src/embeddedMap';
 
@@ -62,6 +62,7 @@ export default class MapViewPlugin extends Plugin {
         this.registerView(consts.MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
             return new MainMapView(leaf, this.settings, this);
         });
+
 		// Currently not in use; the feature is frozen until I have the time to work on its various quirks
 		// this.registerView(consts.MINI_MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
 		// 	return new MiniMapView(leaf, this.settings, this);
@@ -188,8 +189,6 @@ export default class MapViewPlugin extends Plugin {
         // Add items to the editor context menu (run when the context menu is built)
         // This is the context menu when right clicking within an editor view.
         this.app.workspace.on('editor-menu', async (menu, editor, view) => this.onEditorMenu(menu, editor, view));
-
-		this.registerMarkdownCodeBlockProcessor('mapview', (source, el, ctx) => this.markdownCodeBlockProcessor(source, el, ctx));
     }
 
     /**
@@ -197,10 +196,14 @@ export default class MapViewPlugin extends Plugin {
      * The active query is cleared so we'll be sure that the location is actually displayed.
      * @param location The geolocation to open the map at
      * @param ctrlKey Was the control key pressed
+	 * @param file the file this location belongs to
+	 * @param fileLine the line in the file (if it's an inline link)
      */
     private async openMapWithLocation(
         location: leaflet.LatLng,
-        ctrlKey: boolean
+        ctrlKey: boolean,
+		file: TAbstractFile,
+		fileLine: number = null
     ) {
         await this.openMapWithState(
             {
@@ -208,14 +211,19 @@ export default class MapViewPlugin extends Plugin {
                 mapZoom: this.settings.zoomOnGoFromNote,
                 query: '',
             } as MapState,
-            ctrlKey
+            ctrlKey,
+			false,
+			file,
+			fileLine
         );
     }
 
     public async openMapWithState(
         state: MapState,
         ctrlKey: boolean,
-        forceAutoFit?: boolean
+        forceAutoFit?: boolean,
+		highlightFile: TAbstractFile = null,
+		highlightFileLine: number = null,
     ) {
         // Find the best candidate for a leaf to open the map view on.
         // If there's an open map view, use that, otherwise use the current leaf.
@@ -229,10 +237,15 @@ export default class MapViewPlugin extends Plugin {
             type: consts.MAP_VIEW_NAME,
             state: state,
         });
-        if (forceAutoFit) {
-            if (chosenLeaf.view instanceof MainMapView)
-                chosenLeaf.view.mapContainer.autoFitMapToMarkers();
-        }
+		if (chosenLeaf.view instanceof MainMapView) {
+			const map = chosenLeaf.view.mapContainer;
+			if (forceAutoFit)
+                map.autoFitMapToMarkers();
+			if (highlightFile) {
+				const markerToHighlight = map.findMarkerByFileLine(highlightFile, highlightFileLine);
+				chosenLeaf.view.mapContainer.setHighlight(markerToHighlight);
+			}
+		}
     }
 
     /**
@@ -287,10 +300,6 @@ export default class MapViewPlugin extends Plugin {
 		this.app.workspace.getRightLeaf(false).setViewState({type: consts.MINI_MAP_VIEW_NAME});
 	}
 
-	markdownCodeBlockProcessor(source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
-		el.appendText('TODO HELLO!');
-	}
-
 	async onFileMenu(menu: Menu, file: TAbstractFile, _source: string, leaf?: WorkspaceLeaf) {
 		if (file instanceof TFile) {
 			let hasAnyLocation = false;
@@ -300,18 +309,21 @@ export default class MapViewPlugin extends Plugin {
 				// Add an option to open it in the map
 				menu.addItem((item: MenuItem) => {
 					item.setTitle('Show on map');
+					item.setSection('mapview');
 					item.setIcon('globe');
 					item.onClick(
 						async (evt: MouseEvent) =>
 						await this.openMapWithLocation(
 							location,
-							evt.ctrlKey
+							evt.ctrlKey,
+							file
 						)
 					);
 				});
 				// Add an option to open it in the default app
 				menu.addItem((item: MenuItem) => {
 					item.setTitle('Open with default app');
+					item.setSection('mapview');
 					item.onClick((_ev) => {
 						open(`geo:${location.lat},${location.lng}`);
 					});
@@ -329,6 +341,7 @@ export default class MapViewPlugin extends Plugin {
 					const editor = leaf.view.editor;
 					menu.addItem((item: MenuItem) => {
 						item.setTitle('Add geolocation (front matter)');
+						item.setSection('mapview');
 						item.setIcon('globe');
 						item.onClick(async (evt: MouseEvent) => {
 							const dialog = new LocationSearchDialog(
@@ -355,6 +368,7 @@ export default class MapViewPlugin extends Plugin {
 				menu.addItem((item: MenuItem) => {
 					item.setTitle('Focus note in Map View');
 					item.setIcon('globe');
+					item.setSection('mapview');
 					item.onClick(
 						async (evt: MouseEvent) =>
 						await this.openMapWithState(
@@ -379,17 +393,21 @@ export default class MapViewPlugin extends Plugin {
 				menu.addItem((item: MenuItem) => {
 					item.setTitle('Show on map');
 					item.setIcon('globe');
+					item.setSection('mapview');
 					item.onClick(
 						async (evt: MouseEvent) =>
 						await this.openMapWithLocation(
 							location,
-							evt.ctrlKey
+							evt.ctrlKey,
+							view.file,
+							editor.getCursor().line
 						)
 					);
 				});
 				// Add an option to open it in the default app
 				menu.addItem((item: MenuItem) => {
 					item.setTitle('Open with default app');
+					item.setSection('mapview');
 					item.onClick((_ev) => {
 						open(`geo:${location.lat},${location.lng}`);
 					});
@@ -405,6 +423,7 @@ export default class MapViewPlugin extends Plugin {
 				// If there is text selected, add a menu item to convert it to coordinates using geosearch
 				menu.addItem((item: MenuItem) => {
 					item.setTitle('Convert to geolocation (geosearch)');
+					item.setSection('mapview');
 					item.onClick(
 						async () =>
 						await this.suggestor.selectionToLink(editor)
@@ -416,6 +435,7 @@ export default class MapViewPlugin extends Plugin {
 				// If the line contains a recognized geolocation that can be converted from a URL parsing rule
 				menu.addItem(async (item: MenuItem) => {
 					item.setTitle('Convert to geolocation');
+					item.setSection('mapview');
 					item.onClick(async () => {
 						this.urlConvertor.convertUrlAtCursorToGeolocation(
 							editor
@@ -430,6 +450,7 @@ export default class MapViewPlugin extends Plugin {
 				// If the clipboard contains a recognized geolocation that can be converted from a URL parsing rule
 				menu.addItem((item: MenuItem) => {
 					item.setTitle('Paste as geolocation');
+					item.setSection('mapview');
 					item.onClick(async () => {
 						if (clipboardLocation instanceof Promise)
 							clipboardLocation = await clipboardLocation;

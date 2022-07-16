@@ -66,7 +66,7 @@ export class ViewControls {
 
     async setNewState(newState: MapState, considerAutoFit: boolean) {
 		if (!this.updateOngoing)
-			await this.view.internalSetViewState(newState, false, considerAutoFit);
+			this.view.internalSetViewState(newState, false, considerAutoFit);
     }
 
     async setStateByNewMapSource(newSource: number) {
@@ -281,13 +281,24 @@ export class ViewControls {
 					this.followActiveNoteToggle = new ToggleComponent(followDiv);
 					const followLabel = followDiv.createEl('label');
 					followLabel.className = 'graph-control-follow-label';
-					followLabel.addEventListener('click', () =>
+					const resetQueryOnFollowOff = (followValue: boolean) => {
+						if (!followValue) {
+							// To prevent user confusion, clearing "follow active note" resets the query
+							this.queryBox.setValue('');
+							this.setStateByQueryString('');
+						}
+					};
+					followLabel.addEventListener('click', () => {
 						this.followActiveNoteToggle.onClick()
-					);
+						resetQueryOnFollowOff(this.followActiveNoteToggle.getValue());
+					});
 					followLabel.innerHTML = 'Follow active note';
 					this.followActiveNoteToggle.onChange((value) => {
 						this.setStateByFollowActiveNote(value);
 					});
+					this.followActiveNoteToggle.toggleEl.onClickEvent(() => {
+						resetQueryOnFollowOff(this.followActiveNoteToggle.getValue());
+					})
 				}
 		}
 
@@ -486,15 +497,15 @@ export class SearchControl extends leaflet.Control {
         );
         searchDialog.customOnSelect = (selection: SuggestInfo, evt: MouseEvent | KeyboardEvent) => {
             this.view.removeSearchResultMarker();
+			const keepZoom = evt.shiftKey;
             if (selection && selection.resultType == 'existingMarker') {
-				const keepZoom = evt.shiftKey;
                 this.view.goToSearchResult(selection.location, selection.existingMarker, keepZoom);
             } else if (selection && selection.location) {
-                this.view.addSearchResultMarker(selection);
+                this.view.addSearchResultMarker(selection, keepZoom);
                 this.clearButton.style.display = 'block';
             }
         };
-		searchDialog.centerOfSearch = this.view.state.mapCenter;
+		searchDialog.searchArea = this.view.display.map.getBounds();
         searchDialog.open();
     }
 }

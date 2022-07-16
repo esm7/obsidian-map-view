@@ -146,6 +146,14 @@
     padding-left: 10px;
 }
 
+.leaflet-marker-icon {
+	transition: filter .1s;
+}
+
 .map-view-highlight {
 	filter: drop-shadow(0 0 10px blue);
+}
+
+div.map-view-highlight.marker-cluster {
+	box-shadow: 0 0 5px blue;
 }

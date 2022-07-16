@@ -9,6 +9,7 @@ import {
     TFile,
     WorkspaceLeaf,
     Notice,
+	MarkdownView
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -50,35 +51,33 @@ export abstract class BaseMapView extends ItemView {
         this.navigation = true;
 		this.mapContainer = new MapContainer(this.contentEl, settings, viewSettings, plugin, plugin.app);
 
-		this.mapContainer.highLevelSetViewState = async (partialState: Partial<MapState>) => {
-			// This check is seemingly a duplicate of the one inside setViewState, but it's
-			// actually very needed. Without it, it's possible that we'd call Obsidian's
-			// setViewState (the one below) with the same object twice, in the first call
-			// (which may have ongoingChanges > 0) we'll ignore the change and in the 2nd call
-			// Obsidian will ignore the change (thinking the state didn't change).
-			// We want to ensure setViewState is called only if we mean to change the state
-			if (this.mapContainer.ongoingChanges > 0)
-				return;
+		this.mapContainer.highLevelSetViewState = (partialState: Partial<MapState>) => {
 			if (!this.leaf || this.leaf.view == null)
 				return;
 			const viewState = this.leaf?.getViewState();
 			if (viewState?.state) {
 				const newState = Object.assign({}, viewState?.state, partialState);
-				await this.leaf.setViewState({...viewState, state: newState});
+				this.leaf.setViewState({...viewState, state: newState});
 			}
 		}
 
         this.app.workspace.on('file-open', async (file: TFile) => await this.onFileOpen(file) );
+		this.app.workspace.on('active-leaf-change', async (leaf: WorkspaceLeaf) => {
+			if (leaf.view instanceof MarkdownView) {
+				const file = leaf.view.file;
+				this.onFileOpen(file);
+			}
+		});
     }
 
 
-    onMoreOptionsMenu(menu: Menu) {
+    onPaneMenu(menu: Menu, source: 'more-options' | 'tab-header' | string) {
         menu.addItem((item: MenuItem) => {
             item.setTitle('Copy Map View URL').onClick(() => {
                 this.mapContainer.copyStateUrl();
             });
         });
-        super.onMoreOptionsMenu(menu);
+        super.onPaneMenu(menu, source);
     }
 
     /**
@@ -87,16 +86,11 @@ export abstract class BaseMapView extends ItemView {
      * take care of preserving the Obsidian history if required.
      */
     async setState(state: MapState, result: any) {
-        // If there are ongoing changes to the map happening at once, don't bother updating the state -- it will only
-        // cause unexpected jumps and flickers
-        if (this.mapContainer.ongoingChanges > 0) return;
-        // It can go below 0 in some cases
-        this.mapContainer.ongoingChanges = 0;
         if (this.shouldSaveToHistory(state)) {
             result.history = true;
             this.lastSavedState = copyState(state);
         }
-        await this.mapContainer.internalSetViewState(state, true);
+        await this.mapContainer.internalSetViewState(state, true, false, this.mapContainer.freezeMap);
         if (this.mapContainer.display.controls) this.mapContainer.display.controls.tryToGuessPreset();
     }
 

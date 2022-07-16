@@ -356,15 +356,31 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 ## Changelog
 
-- Fixed misbehavior of the controls in the case of multiple Map View instances.
-- Fixed Map View interfering with the Graph View controls in some themes.
+### 2.1.0
+
+**BREAKING:** this release requires Obsidian 0.15.3 or newer.
+
+**New:**
+
+- Search highlight
 - Made the graph controls more compact when minimized and properly positioned in more cases.
 - Query format for "follow active note". (TODO document)
-- Fixed inline tags not recognized when followed by a comma.
-- Search highlight
 - Search results are now shown sorted by the center of the map
 - Shift+Enter on an existing marker in the search result will go without zooming
 - Search results now prefer the shown map area
+- Clearing "follow active note" resets the query, to prevent user confusion
+- Adapted the menus to utilize the Obsidian 0.15.x groups.
+
+**Fixes:**
+
+- Fixed misbehavior of the controls in the case of multiple Map View instances.
+- Fixed Map View interfering with the Graph View controls in some themes.
+- Fixed inline tags not recognized when followed by a comma.
+- Various fixes to the internal state update mechanism, hopefully allowing smoother zoom/pan operations with no unexpected jumps.
+  - As part of this, zoom/pan animations are back on state transitions.
+- Better handling of clicking a marker on Obsidian Mobile (it now doesn't open the note).
+- Fixes for "follow active note" on Obsidian 0.15.x.
+- Fixed a duplication bug if a file contains multiple markers in the same geolocation (https://github.com/esm7/obsidian-map-view/issues/85).
 
 ### 2.0.5
 
