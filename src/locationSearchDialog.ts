@@ -27,10 +27,13 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
     private editor: Editor = null;
 
     // If dialogAction is 'custom', this will launch upon selection
-    public customOnSelect: (selection: SuggestInfo, evt: MouseEvent | KeyboardEvent) => void;
-	// If specified, this rectangle is used as a parameter for the various geocoding providers, so they can
-	// prioritize results that are closer to the current view
-	public searchArea: leaflet.LatLngBounds | null = null;
+    public customOnSelect: (
+        selection: SuggestInfo,
+        evt: MouseEvent | KeyboardEvent
+    ) => void;
+    // If specified, this rectangle is used as a parameter for the various geocoding providers, so they can
+    // prioritize results that are closer to the current view
+    public searchArea: leaflet.LatLngBounds | null = null;
 
     constructor(
         app: App,
@@ -40,7 +43,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         editor: Editor = null,
         includeResults: SuggestInfo[] = null,
         hasIcons: boolean = false,
-		moreInstructions: Instruction[] = null
+        moreInstructions: Instruction[] = null
     ) {
         super(app);
         this.settings = settings;
@@ -53,26 +56,28 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         this.setPlaceholder(
             title + ': type a place name or paste a string to parse'
         );
-		let instructions = [
-			{ command: 'enter', purpose: 'to use' }
-		];
-		if (moreInstructions)
-			instructions = instructions.concat(moreInstructions);
+        let instructions = [{ command: 'enter', purpose: 'to use' }];
+        if (moreInstructions)
+            instructions = instructions.concat(moreInstructions);
         this.setInstructions(instructions);
-		this.inputEl.addEventListener('keypress', (ev: KeyboardEvent) => {
-			// In the case of a custom select function, trigger it also for Shift+Enter.
-			// Obsidian doesn't have an API for that, so we find the selected item in a rather patchy way,
-			// and manually close the dialog
-			if (ev.key == 'Enter' && ev.shiftKey && this.customOnSelect != null) {
-				const chooser = (this as any).chooser;
-				const selectedItem = chooser?.selectedItem;
-				const values = chooser?.values;
-				if (chooser && values) {
-					this.onChooseSuggestion(values[selectedItem], ev);
-					this.close();
-				}
-			}
-		});
+        this.inputEl.addEventListener('keypress', (ev: KeyboardEvent) => {
+            // In the case of a custom select function, trigger it also for Shift+Enter.
+            // Obsidian doesn't have an API for that, so we find the selected item in a rather patchy way,
+            // and manually close the dialog
+            if (
+                ev.key == 'Enter' &&
+                ev.shiftKey &&
+                this.customOnSelect != null
+            ) {
+                const chooser = (this as any).chooser;
+                const selectedItem = chooser?.selectedItem;
+                const values = chooser?.values;
+                if (chooser && values) {
+                    this.onChooseSuggestion(values[selectedItem], ev);
+                    this.close();
+                }
+            }
+        });
     }
 
     getSuggestions(query: string) {
@@ -149,7 +154,11 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         // Otherwise, open the file from the active leaf
         const mapView = utils.findOpenMapView(this.app);
         if (mapView) {
-            mapView.mapContainer.goToFile(file, ev.ctrlKey, utils.handleNewNoteCursorMarker);
+            mapView.mapContainer.goToFile(
+                file,
+                ev.ctrlKey,
+                utils.handleNewNoteCursorMarker
+            );
         } else {
             const leaf = this.app.workspace.activeLeaf;
             await leaf.openFile(file);
@@ -180,7 +189,10 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         }
         // After the sleep our search is still the last -- so the user stopped and we can go on
         this.lastSearch = query;
-        this.lastSearchResults = await this.searcher.search(query, this.searchArea);
+        this.lastSearchResults = await this.searcher.search(
+            query,
+            this.searchArea
+        );
         (this as any).updateSuggestions();
     }
 }

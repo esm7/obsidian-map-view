@@ -345,6 +345,18 @@ You can paste the resulting `obsidian://` URL in any local app on your computer 
 Alternatively, you can paste this link inside a note and make it clickable by making it a Markdown link: `[Link name](url...)`.
 This is really useful for going to a specific view (with its query, map source, zoom, pan etc) that is related to a note, e.g. a trip plan.
 
+## Follow Active Note
+
+Map View has a mode on which the map refocuses according to the currently active file, so if you have Map View open in its own pane, it can follow whatever file you are currently focused on.
+
+This is closely related to the setting of "map follows search results", and probably works most intuitively when it is on.
+
+The specific behavior of how to "follow" the active note can be configured via the 'query format for "follow active note"' setting in the configuration.
+By default, Map View uses the [query](#queries) `path:"$PATH$"`, which means that when you switch to a note, the view automatically updates the query to show only the markers within the path of this note. You can edit this setting to achieve more fine-grained behaviors, for example:
+
+-   Use `linkedfrom:"$PATH$"` for a more elaborate inclusion of markers from both the file you're on and files it links to.
+-   Use `linkedfrom:"$PATH$" OR linkedto:"$PATH$"` to include markers that the active note links to and also markers that _link to this file_.
+
 ## Relation to Other Obsidian Plugins
 
 When thinking about Obsidian and maps, the first plugin that comes to mind is [Obsidian Leaflet](https://github.com/valentine195/obsidian-leaflet-plugin).
@@ -362,25 +374,27 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 **New:**
 
-- Search highlight
-- Made the graph controls more compact when minimized and properly positioned in more cases.
-- Query format for "follow active note". (TODO document)
-- Search results are now shown sorted by the center of the map
-- Shift+Enter on an existing marker in the search result will go without zooming
-- Search results now prefer the shown map area
-- Clearing "follow active note" resets the query, to prevent user confusion
-- Adapted the menus to utilize the Obsidian 0.15.x groups.
+-   The results of a search, or a focused geolocation, is now highlighted by a blue glow on the map.
+    -   The glow can be customized via CSS.
+-   Made the graph controls more compact when minimized and properly positioned in more cases.
+-   "Follow active note" now works using a customizable query, see [here](#follow-active-note) for details.
+-   Clearing "follow active note" now resets the query.
+-   Search results are now shown sorted by distance from the center of the map.
+-   Shift+Enter on an existing marker in the search result will go to that marker without zooming. This goes hand-in-hand with the highlighting introduced above, so you can easily highlight various markers without the map view changing.
+-   When using Google Places as the search provider, geosearch results now give priority to the displayed area.
+-   Adapted the various menus to utilize the Obsidian 0.15.x sections.
+-   Upgrade the Font Awesome library to 6.1, making more icons available.
+-   On mobile, some map interactions are custom-tailored for tapping (tapping a marker shows its name, long-tapping opens the menu).
 
 **Fixes:**
 
-- Fixed misbehavior of the controls in the case of multiple Map View instances.
-- Fixed Map View interfering with the Graph View controls in some themes.
-- Fixed inline tags not recognized when followed by a comma.
-- Various fixes to the internal state update mechanism, hopefully allowing smoother zoom/pan operations with no unexpected jumps.
-  - As part of this, zoom/pan animations are back on state transitions.
-- Better handling of clicking a marker on Obsidian Mobile (it now doesn't open the note).
-- Fixes for "follow active note" on Obsidian 0.15.x.
-- Fixed a duplication bug if a file contains multiple markers in the same geolocation (https://github.com/esm7/obsidian-map-view/issues/85).
+-   Fixed misbehavior of the controls in the case of multiple Map View instances.
+-   Fixed Map View interfering with the Graph View controls in some themes.
+-   Fixed inline tags not recognized when followed by a comma.
+-   Various fixes to the internal state update mechanism, hopefully allowing smoother zoom/pan operations with no unexpected jumps.
+    -   As part of this, zoom/pan animations are back on state transitions.
+-   Fixes for "follow active note" on Obsidian 0.15.x.
+-   Fixed a duplication bug if a file contains multiple markers in the same geolocation (https://github.com/esm7/obsidian-map-view/issues/85).
 
 ### 2.0.5
 

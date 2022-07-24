@@ -5,9 +5,9 @@
 }
 
 .map-view-main {
-	position: relative;
-	width: 100%;
-	height: 100%;
+    position: relative;
+    width: 100%;
+    height: 100%;
 }
 
 .map-view-location {
@@ -147,13 +147,13 @@
 }
 
 .leaflet-marker-icon {
-	transition: filter .1s;
+    transition: filter 0.1s;
 }
 
 .map-view-highlight {
-	filter: drop-shadow(0 0 10px blue);
+    filter: drop-shadow(0 0 10px blue);
 }
 
 div.map-view-highlight.marker-cluster {
-	box-shadow: 0 0 5px blue;
+    box-shadow: 0 0 5px blue;
 }

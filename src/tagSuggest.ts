@@ -51,14 +51,14 @@ export class TagSuggest extends EditorSuggest<SuggestInfo> {
     }
 
     getSuggestions(context: EditorSuggestContext): SuggestInfo[] {
-		const noPound = (tagName: string) => {
-			return tagName.startsWith('#') ? tagName.substring(1) : tagName;
-		};
+        const noPound = (tagName: string) => {
+            return tagName.startsWith('#') ? tagName.substring(1) : tagName;
+        };
         const tagQuery = context.query ?? '';
         // Find all tags that include the query
         const matchingTags = utils
             .getAllTagNames(this.app)
-			.map(value => noPound(value))
+            .map((value) => noPound(value))
             .filter((value) =>
                 value.toLowerCase().includes(tagQuery.toLowerCase())
             );

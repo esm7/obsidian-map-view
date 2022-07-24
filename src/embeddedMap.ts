@@ -18,26 +18,31 @@ import { MapContainer, ViewSettings } from 'src/mapContainer';
 import { MapState } from 'src/mapState';
 
 export class EmbeddedMap {
-	public mapContainer: MapContainer;
+    public mapContainer: MapContainer;
 
-	constructor(
-		parentEl: HTMLElement,
-		settings: PluginSettings,
-		plugin: MapViewPlugin
-	) {
-		const viewSettings: ViewSettings = {
-			showMapControls: true,
-			showFilters: false,
-			showView: true,
-			viewTabType: 'mini',
-			showPresets: false,
-			showSearch: true,
-			showOpenButton: true,
-			autoZoom: true,
-			emptyFitRevertsToDefault: true
-		};
+    constructor(
+        parentEl: HTMLElement,
+        settings: PluginSettings,
+        plugin: MapViewPlugin
+    ) {
+        const viewSettings: ViewSettings = {
+            showMapControls: true,
+            showFilters: false,
+            showView: true,
+            viewTabType: 'mini',
+            showPresets: false,
+            showSearch: true,
+            showOpenButton: true,
+            autoZoom: true,
+            emptyFitRevertsToDefault: true,
+        };
 
-		this.mapContainer = new MapContainer(parentEl, settings, viewSettings, plugin, plugin.app);
-	}
-
+        this.mapContainer = new MapContainer(
+            parentEl,
+            settings,
+            viewSettings,
+            plugin,
+            plugin.app
+        );
+    }
 }

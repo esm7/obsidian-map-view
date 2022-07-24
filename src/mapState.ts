@@ -20,7 +20,7 @@ export type MapState = {
 export type LegacyMapState = MapState & { tags: string[] };
 
 export function copyState(state: MapState): MapState {
-	return Object.assign({}, state);
+    return Object.assign({}, state);
 }
 
 export function mergeStates(state1: MapState, state2: MapState): MapState {

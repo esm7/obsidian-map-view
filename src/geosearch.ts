@@ -16,7 +16,7 @@ export class GeoSearchResult {
     name: string;
     location: leaflet.LatLng;
     resultType: 'searchResult' | 'url' | 'existingMarker';
-	existingMarker?: FileMarker;
+    existingMarker?: FileMarker;
 }
 
 export class GeoSearcher {
@@ -38,7 +38,10 @@ export class GeoSearcher {
         }
     }
 
-    async search(query: string, searchArea: leaflet.LatLngBounds | null = null): Promise<GeoSearchResult[]> {
+    async search(
+        query: string,
+        searchArea: leaflet.LatLngBounds | null = null
+    ): Promise<GeoSearchResult[]> {
         let results: GeoSearchResult[] = [];
 
         // Parsed URL result
@@ -65,7 +68,7 @@ export class GeoSearcher {
             const placesResults = await googlePlacesSearch(
                 query,
                 this.settings,
-				searchArea?.getCenter()
+                searchArea?.getCenter()
             );
             for (const result of placesResults)
                 results.push({
@@ -74,10 +77,10 @@ export class GeoSearcher {
                     resultType: 'searchResult',
                 });
         } else {
-			const areaSW = searchArea.getSouthWest();
-			const areaNE = searchArea.getNorthEast();
+            const areaSW = searchArea.getSouthWest();
+            const areaNE = searchArea.getNorthEast();
             let searchResults = await this.searchProvider.search({
-                query: query
+                query: query,
             });
             searchResults = searchResults.slice(
                 0,
@@ -102,7 +105,7 @@ export class GeoSearcher {
 export async function googlePlacesSearch(
     query: string,
     settings: PluginSettings,
-	centerOfSearch: leaflet.LatLng | null
+    centerOfSearch: leaflet.LatLng | null
 ): Promise<GeoSearchResult[]> {
     if (settings.searchProvider != 'google' || !settings.useGooglePlaces)
         return [];
@@ -111,8 +114,10 @@ export async function googlePlacesSearch(
         query: query,
         key: googleApiKey,
     };
-	if (centerOfSearch)
-		(params as any)['location'] = `${centerOfSearch.lat},${centerOfSearch.lng}`;
+    if (centerOfSearch)
+        (params as any)[
+            'location'
+        ] = `${centerOfSearch.lat},${centerOfSearch.lng}`;
     const googleUrl =
         'https://maps.googleapis.com/maps/api/place/textsearch/json?' +
         querystring.stringify(params);

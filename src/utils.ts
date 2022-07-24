@@ -172,7 +172,7 @@ export function populateOpenInItems(
             .replace('{y}', location.lng.toString());
         menu.addItem((item: MenuItem) => {
             item.setTitle(`Open in ${setting.name}`);
-			item.setSection('mapview');
+            item.setSection('mapview');
             item.onClick((_ev) => {
                 open(fullUrl);
             });
@@ -181,10 +181,10 @@ export function populateOpenInItems(
 }
 
 export function replaceFollowActiveNoteQuery(
-	file: TFile,
-	settings: settings.PluginSettings
+    file: TFile,
+    settings: settings.PluginSettings
 ) {
-	return settings.queryForFollowActiveNote.replace('$PATH$', file.path);
+    return settings.queryForFollowActiveNote.replace('$PATH$', file.path);
 }
 
 /**

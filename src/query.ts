@@ -254,7 +254,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
         // Doesn't include a closing parenthesis
         const pathMatch = matchByPosition(
             input,
-			regex.QUOTED_OR_NOT_QUOTED_PATH,
+            regex.QUOTED_OR_NOT_QUOTED_PATH,
             cursorPos
         );
         const linkedToMatch = matchByPosition(

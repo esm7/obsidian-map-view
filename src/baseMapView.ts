@@ -9,7 +9,7 @@ import {
     TFile,
     WorkspaceLeaf,
     Notice,
-	MarkdownView
+    MarkdownView,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -31,7 +31,7 @@ import * as utils from 'src/utils';
 import { MapContainer, ViewSettings } from 'src/mapContainer';
 
 export abstract class BaseMapView extends ItemView {
-	public mapContainer: MapContainer;
+    public mapContainer: MapContainer;
     /** The state that was last saved to Obsidian's history stack */
     private lastSavedState: MapState;
 
@@ -44,32 +44,48 @@ export abstract class BaseMapView extends ItemView {
     constructor(
         leaf: WorkspaceLeaf,
         settings: PluginSettings,
-		viewSettings: ViewSettings,
+        viewSettings: ViewSettings,
         plugin: MapViewPlugin
     ) {
         super(leaf);
         this.navigation = true;
-		this.mapContainer = new MapContainer(this.contentEl, settings, viewSettings, plugin, plugin.app);
+        this.mapContainer = new MapContainer(
+            this.contentEl,
+            settings,
+            viewSettings,
+            plugin,
+            plugin.app
+        );
 
-		this.mapContainer.highLevelSetViewState = (partialState: Partial<MapState>) => {
-			if (!this.leaf || this.leaf.view == null)
-				return;
-			const viewState = this.leaf?.getViewState();
-			if (viewState?.state) {
-				const newState = Object.assign({}, viewState?.state, partialState);
-				this.leaf.setViewState({...viewState, state: newState});
-			}
-		}
+        this.mapContainer.highLevelSetViewState = (
+            partialState: Partial<MapState>
+        ) => {
+            if (!this.leaf || this.leaf.view == null) return;
+            const viewState = this.leaf?.getViewState();
+            if (viewState?.state) {
+                const newState = Object.assign(
+                    {},
+                    viewState?.state,
+                    partialState
+                );
+                this.leaf.setViewState({ ...viewState, state: newState });
+            }
+        };
 
-        this.app.workspace.on('file-open', async (file: TFile) => await this.onFileOpen(file) );
-		this.app.workspace.on('active-leaf-change', async (leaf: WorkspaceLeaf) => {
-			if (leaf.view instanceof MarkdownView) {
-				const file = leaf.view.file;
-				this.onFileOpen(file);
-			}
-		});
+        this.app.workspace.on(
+            'file-open',
+            async (file: TFile) => await this.onFileOpen(file)
+        );
+        this.app.workspace.on(
+            'active-leaf-change',
+            async (leaf: WorkspaceLeaf) => {
+                if (leaf.view instanceof MarkdownView) {
+                    const file = leaf.view.file;
+                    this.onFileOpen(file);
+                }
+            }
+        );
     }
-
 
     onPaneMenu(menu: Menu, source: 'more-options' | 'tab-header' | string) {
         menu.addItem((item: MenuItem) => {
@@ -90,13 +106,19 @@ export abstract class BaseMapView extends ItemView {
             result.history = true;
             this.lastSavedState = copyState(state);
         }
-        await this.mapContainer.internalSetViewState(state, true, false, this.mapContainer.freezeMap);
-        if (this.mapContainer.display.controls) this.mapContainer.display.controls.tryToGuessPreset();
+        await this.mapContainer.internalSetViewState(
+            state,
+            true,
+            false,
+            this.mapContainer.freezeMap
+        );
+        if (this.mapContainer.display.controls)
+            this.mapContainer.display.controls.tryToGuessPreset();
     }
 
-	/**
-	 * Native Obsidian getState method.
-	 */
+    /**
+     * Native Obsidian getState method.
+     */
     getState() {
         return this.mapContainer.state;
     }
@@ -143,39 +165,48 @@ export abstract class BaseMapView extends ItemView {
     }
 
     async onOpen() {
-		await this.mapContainer.onOpen();
-		return super.onOpen();
+        await this.mapContainer.onOpen();
+        return super.onOpen();
     }
 
     onClose() {
         this.mapContainer.onClose();
-		return super.onClose();
+        return super.onClose();
     }
 
     onResize() {
         this.mapContainer.display.map.invalidateSize();
     }
 
-	async onFileOpen(file: TFile) {
-		if (this.getState().followActiveNote) {
-			if (file) {
-				if (!this.leaf || this.leaf.view == null)
-					return;
-				let viewState = this.leaf?.getViewState();
-				if (viewState) {
-					let mapState = viewState.state as MapState;
-					const newQuery = utils.replaceFollowActiveNoteQuery(file, this.mapContainer.settings);
-					// Change the map state only if the file has actually changed. If the user just went back
-					// and forth and the map is still focused on the same file, don't ruin the user's possible
-					// zoom and pan.
-					// However, if the view is an auto-zoom view (unlike an auto-zoom global setting), we re-zoom
-					// on every switch
-					if (mapState.query != newQuery || this.mapContainer.viewSettings.autoZoom) {
-						mapState.query = newQuery;
-						this.mapContainer.internalSetViewState(mapState, true, true);
-					}
-				}
-			}
-		}
-	}
+    async onFileOpen(file: TFile) {
+        if (this.getState().followActiveNote) {
+            if (file) {
+                if (!this.leaf || this.leaf.view == null) return;
+                let viewState = this.leaf?.getViewState();
+                if (viewState) {
+                    let mapState = viewState.state as MapState;
+                    const newQuery = utils.replaceFollowActiveNoteQuery(
+                        file,
+                        this.mapContainer.settings
+                    );
+                    // Change the map state only if the file has actually changed. If the user just went back
+                    // and forth and the map is still focused on the same file, don't ruin the user's possible
+                    // zoom and pan.
+                    // However, if the view is an auto-zoom view (unlike an auto-zoom global setting), we re-zoom
+                    // on every switch
+                    if (
+                        mapState.query != newQuery ||
+                        this.mapContainer.viewSettings.autoZoom
+                    ) {
+                        mapState.query = newQuery;
+                        this.mapContainer.internalSetViewState(
+                            mapState,
+                            true,
+                            true
+                        );
+                    }
+                }
+            }
+        }
+    }
 }
