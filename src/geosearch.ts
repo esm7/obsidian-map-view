@@ -77,8 +77,8 @@ export class GeoSearcher {
                     resultType: 'searchResult',
                 });
         } else {
-            const areaSW = searchArea.getSouthWest();
-            const areaNE = searchArea.getNorthEast();
+            const areaSW = searchArea?.getSouthWest() || null;
+            const areaNE = searchArea?.getNorthEast() || null;
             let searchResults = await this.searchProvider.search({
                 query: query,
             });

@@ -368,6 +368,10 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 ## Changelog
 
+### 2.1.1
+
+Fix for OpenStreetMap geolocation search stopped working for some users.
+
 ### 2.1.0
 
 **BREAKING:** this release requires Obsidian 0.15.3 or newer.
