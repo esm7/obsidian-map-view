@@ -4,8 +4,6 @@ import {
     Editor,
     App,
     TFile,
-    Menu,
-    MenuItem,
     getAllTags,
 } from 'obsidian';
 
@@ -152,32 +150,6 @@ export function verifyOrAddFrontMatter(
         return true;
     }
     return false;
-}
-
-/**
- * Populate a context menu from the user configurable URLs
- * @param menu The menu to attach
- * @param location The geolocation to use in the menu item
- * @param settings Plugin settings
- */
-export function populateOpenInItems(
-    menu: Menu,
-    location: leaflet.LatLng,
-    settings: settings.PluginSettings
-) {
-    for (let setting of settings.openIn) {
-        if (!setting.name || !setting.urlPattern) continue;
-        const fullUrl = setting.urlPattern
-            .replace('{x}', location.lat.toString())
-            .replace('{y}', location.lng.toString());
-        menu.addItem((item: MenuItem) => {
-            item.setTitle(`Open in ${setting.name}`);
-            item.setSection('mapview');
-            item.onClick((_ev) => {
-                open(fullUrl);
-            });
-        });
-    }
 }
 
 export function replaceFollowActiveNoteQuery(

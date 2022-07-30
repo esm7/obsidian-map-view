@@ -3,7 +3,6 @@ import {
     Editor,
     FileView,
     MarkdownView,
-    MenuItem,
     Menu,
     TFile,
     Plugin,
@@ -16,6 +15,7 @@ import * as leaflet from 'leaflet';
 import { LocationSuggest } from 'src/locationSuggest';
 import { UrlConvertor } from 'src/urlConvertor';
 import { stateFromParsedUrl } from 'src/mapState';
+import * as menus from 'src/menus';
 
 import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
@@ -207,33 +207,6 @@ export default class MapViewPlugin extends Plugin {
         );
     }
 
-    /**
-     * Open an instance of the map at the given geolocation.
-     * The active query is cleared so we'll be sure that the location is actually displayed.
-     * @param location The geolocation to open the map at
-     * @param ctrlKey Was the control key pressed
-     * @param file the file this location belongs to
-     * @param fileLine the line in the file (if it's an inline link)
-     * @param keepZoom don't zoom the map
-     */
-    private async openMapWithLocation(
-        location: leaflet.LatLng,
-        ctrlKey: boolean,
-        file: TAbstractFile,
-        fileLine: number = null,
-        keepZoom: boolean = false
-    ) {
-        let newState = {
-            mapCenter: location,
-            query: '',
-        } as MapState;
-        if (!keepZoom)
-            newState = Object.assign(newState, {
-                mapZoom: this.settings.zoomOnGoFromNote,
-            });
-        await this.openMapWithState(newState, ctrlKey, false, file, fileLine);
-    }
-
 	public async openMap(
 		ctrlKey: boolean,
 		state: MapState
@@ -275,6 +248,34 @@ export default class MapViewPlugin extends Plugin {
 			}
 		}
 	}
+
+	/**
+	 * Open an instance of the map at the given geolocation.
+	 * The active query is cleared so we'll be sure that the location is actually displayed.
+	 * @param location The geolocation to open the map at
+	 * @param ctrlKey Was the control key pressed
+	 * @param file the file this location belongs to
+	 * @param fileLine the line in the file (if it's an inline link)
+	 * @param keepZoom don't zoom the map
+	 */
+	async openMapWithLocation(
+		location: leaflet.LatLng,
+		ctrlKey: boolean,
+		file: TAbstractFile,
+		fileLine: number = null,
+		keepZoom: boolean = false
+	) {
+		let newState = {
+			mapCenter: location,
+			query: '',
+		} as MapState;
+		if (!keepZoom)
+			newState = Object.assign(newState, {
+				mapZoom: this.settings.zoomOnGoFromNote,
+			});
+		await this.openMapWithState(newState, ctrlKey, false, file, fileLine);
+	}
+
 
     /**
      * Get the geolocation on the current editor line
@@ -344,51 +345,15 @@ export default class MapViewPlugin extends Plugin {
             if (location) {
                 // If there is a geolocation in the front matter of the file
                 // Add an option to open it in the map
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Show on map');
-                    item.setSection('mapview');
-                    item.setIcon('globe');
-                    item.onClick(
-                        async (evt: MouseEvent) =>
-                            await this.openMapWithLocation(
-                                location,
-                                evt.ctrlKey,
-                                file,
-                                null,
-                                evt.shiftKey
-                            )
-                    );
-                });
+				menus.addShowOnMap(menu, location, file, null, this);
                 // Add an option to open it in the default app
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Open with default app');
-                    item.setSection('mapview');
-                    item.onClick((_ev) => {
-                        open(`geo:${location.lat},${location.lng}`);
-                    });
-                });
-                // Populate menu items from user defined "Open In" strings
-                utils.populateOpenInItems(menu, location, this.settings);
+				menus.addOpenWith(menu, location, this.settings);
                 hasAnyLocation = true;
             } else {
                 if (leaf && leaf.view instanceof MarkdownView) {
                     // If there is no valid geolocation in the front matter, add a menu item to populate it.
                     const editor = leaf.view.editor;
-                    menu.addItem((item: MenuItem) => {
-                        item.setTitle('Add geolocation (front matter)');
-                        item.setSection('mapview');
-                        item.setIcon('globe');
-                        item.onClick(async (evt: MouseEvent) => {
-                            const dialog = new LocationSearchDialog(
-                                this.app,
-                                this.settings,
-                                'addToNote',
-                                'Add geolocation to note',
-                                editor
-                            );
-                            dialog.open();
-                        });
-                    });
+					menus.addGeolocationToNote(menu, this.app, editor, this.settings);
                 }
             }
             const contentMarkers = await getMarkersFromFileContent(
@@ -397,27 +362,7 @@ export default class MapViewPlugin extends Plugin {
                 this.app
             );
             if (contentMarkers.length > 0) {
-                hasAnyLocation = true;
-            }
-            if (hasAnyLocation) {
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Focus note in Map View');
-                    item.setIcon('globe');
-                    item.setSection('mapview');
-                    item.onClick(
-                        async (evt: MouseEvent) =>
-                            await this.openMapWithState(
-                                {
-                                    query: utils.replaceFollowActiveNoteQuery(
-                                        file,
-                                        this.settings
-                                    ),
-                                } as MapState,
-                                evt.ctrlKey,
-                                true
-                            )
-                    );
-                });
+				menus.addFocusNoteInMapView(menu, file, this.settings, this);
             }
         }
     }
@@ -426,76 +371,11 @@ export default class MapViewPlugin extends Plugin {
         if (view instanceof FileView) {
             const location = this.getLocationOnEditorLine(editor, view);
             if (location) {
-                // If there is a geolocation on the line
-                // Add an option to open it in the map
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Show on map');
-                    item.setIcon('globe');
-                    item.setSection('mapview');
-                    item.onClick(
-                        async (evt: MouseEvent) =>
-                            await this.openMapWithLocation(
-                                location,
-                                evt.ctrlKey,
-                                view.file,
-                                editor.getCursor().line,
-                                evt.shiftKey
-                            )
-                    );
-                });
-                // Add an option to open it in the default app
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Open with default app');
-                    item.setSection('mapview');
-                    item.onClick((_ev) => {
-                        open(`geo:${location.lat},${location.lng}`);
-                    });
-                });
-                // Populate menu items from user defined "Open In" strings
-                utils.populateOpenInItems(menu, location, this.settings);
+				const editorLine = editor.getCursor().line;
+				menus.addShowOnMap(menu, location, view.file, editorLine, this);
+				menus.addOpenWith(menu, location, this.settings);
             }
-            if (editor.getSelection()) {
-                // If there is text selected, add a menu item to convert it to coordinates using geosearch
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Convert to geolocation (geosearch)');
-                    item.setSection('mapview');
-                    item.onClick(
-                        async () => await this.suggestor.selectionToLink(editor)
-                    );
-                });
-            }
-
-            if (this.urlConvertor.hasMatchInLine(editor))
-                // If the line contains a recognized geolocation that can be converted from a URL parsing rule
-                menu.addItem(async (item: MenuItem) => {
-                    item.setTitle('Convert to geolocation');
-                    item.setSection('mapview');
-                    item.onClick(async () => {
-                        this.urlConvertor.convertUrlAtCursorToGeolocation(
-                            editor
-                        );
-                    });
-                });
-
-            const clipboard = await navigator.clipboard.readText();
-            let clipboardLocation =
-                this.urlConvertor.parseLocationFromUrl(clipboard);
-            if (clipboardLocation) {
-                // If the clipboard contains a recognized geolocation that can be converted from a URL parsing rule
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Paste as geolocation');
-                    item.setSection('mapview');
-                    item.onClick(async () => {
-                        if (clipboardLocation instanceof Promise)
-                            clipboardLocation = await clipboardLocation;
-                        if (clipboardLocation)
-                            this.urlConvertor.insertLocationToEditor(
-                                clipboardLocation.location,
-                                editor
-                            );
-                    });
-                });
-            }
+			menus.addUrlConversionItems(menu, editor, this.suggestor, this.urlConvertor);
         }
     }
 }

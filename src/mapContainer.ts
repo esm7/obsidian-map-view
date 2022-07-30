@@ -8,7 +8,6 @@ import {
     TFile,
     WorkspaceLeaf,
     Notice,
-    MarkdownView,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -38,6 +37,7 @@ import { ViewControls, SearchControl } from 'src/viewControls';
 import { Query } from 'src/query';
 import { GeoSearchResult } from 'src/geosearch';
 import { RealTimeLocation, RealTimeLocationSource, isSame } from 'src/realTimeLocation';
+import * as menus from 'src/menus';
 
 export type ViewSettings = {
     showMapControls: boolean;
@@ -440,74 +440,9 @@ export class MapContainer {
             async (event: leaflet.LeafletMouseEvent) => {
                 let mapPopup = new Menu();
                 mapPopup.setNoIcon();
-                const location = `${event.latlng.lat},${event.latlng.lng}`;
-                mapPopup.addItem((item: MenuItem) => {
-                    item.setTitle('New note here (inline)');
-                    item.onClick(async (ev) => {
-                        const newFileName = utils.formatWithTemplates(
-                            this.settings.newNoteNameFormat
-                        );
-                        const file: TFile = await utils.newNote(
-                            this.app,
-                            'multiLocation',
-                            this.settings.newNotePath,
-                            newFileName,
-                            location,
-                            this.settings.newNoteTemplate
-                        );
-                        this.goToFile(
-                            file,
-                            ev.ctrlKey,
-                            utils.handleNewNoteCursorMarker
-                        );
-                    });
-                });
-                mapPopup.addItem((item: MenuItem) => {
-                    item.setTitle('New note here (front matter)');
-                    item.onClick(async (ev) => {
-                        const newFileName = utils.formatWithTemplates(
-                            this.settings.newNoteNameFormat
-                        );
-                        const file: TFile = await utils.newNote(
-                            this.app,
-                            'singleLocation',
-                            this.settings.newNotePath,
-                            newFileName,
-                            location,
-                            this.settings.newNoteTemplate
-                        );
-                        this.goToFile(
-                            file,
-                            ev.ctrlKey,
-                            utils.handleNewNoteCursorMarker
-                        );
-                    });
-                });
-                mapPopup.addItem((item: MenuItem) => {
-                    item.setTitle(`Copy geolocation`);
-                    item.onClick((_ev) => {
-                        navigator.clipboard.writeText(`[](geo:${location})`);
-                    });
-                });
-                mapPopup.addItem((item: MenuItem) => {
-                    item.setTitle(`Copy geolocation as front matter`);
-                    item.onClick((_ev) => {
-                        navigator.clipboard.writeText(
-                            `---\nlocation: [${location}]\n---\n\n`
-                        );
-                    });
-                });
-                mapPopup.addItem((item: MenuItem) => {
-                    item.setTitle('Open in default app');
-                    item.onClick((_ev) => {
-                        open(`geo:${event.latlng.lat},${event.latlng.lng}`);
-                    });
-                });
-                utils.populateOpenInItems(
-                    mapPopup,
-                    event.latlng,
-                    this.settings
-                );
+				menus.addNewNoteItems(mapPopup, event.latlng, this, this.settings, this.app);
+				menus.addCopyGeolocationItems(mapPopup, event.latlng);
+				menus.addOpenWith(mapPopup, event.latlng, this.settings);
                 mapPopup.showAtPosition(event.originalEvent);
             }
         );
@@ -653,15 +588,7 @@ export class MapContainer {
                 this.goToMarker(fileMarker, ev.ctrlKey, true);
             });
         });
-        mapPopup.addItem((item: MenuItem) => {
-            item.setTitle('Open geolocation in default app');
-            item.onClick((ev) => {
-                open(
-                    `geo:${fileMarker.location.lat},${fileMarker.location.lng}`
-                );
-            });
-        });
-        utils.populateOpenInItems(mapPopup, fileMarker.location, this.settings);
+		menus.populateOpenInItems(mapPopup, fileMarker.location, this.settings);
         if (ev) mapPopup.showAtPosition(ev);
     }
 
