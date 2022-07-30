@@ -18,7 +18,6 @@ import { UrlConvertor } from 'src/urlConvertor';
 import { stateFromParsedUrl } from 'src/mapState';
 
 import { MainMapView } from 'src/mainMapView';
-import { FileMarker } from 'src/markers';
 // import { MiniMapView } from 'src/miniMapView';
 // import { EmbeddedMap } from 'src/embeddedMap';
 
@@ -70,17 +69,29 @@ export default class MapViewPlugin extends Plugin {
 
         this.registerObsidianProtocolHandler(
             'mapview',
-            (params: ObsidianProtocolData) => {
-                if (params.action == 'mapview') {
-                    const state = stateFromParsedUrl(params);
-                    // If a saved URL is opened in another device on which there aren't the same sources, use
-                    // the default source instead
-                    if (
-                        state.chosenMapSource >= this.settings.mapSources.length
-                    )
-                        state.chosenMapSource =
-                            DEFAULT_SETTINGS.defaultState.chosenMapSource;
-                    this.openMapWithState(state, false, false);
+            async (params: ObsidianProtocolData) => {
+                if (params.action === 'mapview') {
+					if (params.do === 'update-real-time-location') {
+						const location = params.centerLat && params.centerLng
+							? new leaflet.LatLng(
+								  parseFloat(params.centerLat),
+								  parseFloat(params.centerLng)
+							  ) : null;
+						const accuracy = params.accuracy;
+						const map = await this.openMap(false, null);
+						if (map)
+							map.mapContainer.setRealTimeLocation(location, parseFloat(accuracy), 'geohelper');
+					} else {
+						const state = stateFromParsedUrl(params);
+						// If a saved URL is opened in another device on which there aren't the same sources, use
+						// the default source instead
+						if (
+							state.chosenMapSource >= this.settings.mapSources.length
+						)
+							state.chosenMapSource =
+								DEFAULT_SETTINGS.defaultState.chosenMapSource;
+						this.openMapWithState(state, false, false);
+					}
                 }
             }
         );
@@ -223,13 +234,10 @@ export default class MapViewPlugin extends Plugin {
         await this.openMapWithState(newState, ctrlKey, false, file, fileLine);
     }
 
-    public async openMapWithState(
-        state: MapState,
-        ctrlKey: boolean,
-        forceAutoFit?: boolean,
-        highlightFile: TAbstractFile = null,
-        highlightFileLine: number = null
-    ) {
+	public async openMap(
+		ctrlKey: boolean,
+		state: MapState
+	): Promise<MainMapView> {
         // Find the best candidate for a leaf to open the map view on.
         // If there's an open map view, use that, otherwise use the current leaf.
         // If Ctrl is pressed, override that behavior and always use the current leaf.
@@ -242,18 +250,31 @@ export default class MapViewPlugin extends Plugin {
             type: consts.MAP_VIEW_NAME,
             state: state,
         });
-        if (chosenLeaf.view instanceof MainMapView) {
-            const map = chosenLeaf.view.mapContainer;
-            if (forceAutoFit) map.autoFitMapToMarkers();
-            if (highlightFile) {
-                const markerToHighlight = map.findMarkerByFileLine(
-                    highlightFile,
-                    highlightFileLine
-                );
-                chosenLeaf.view.mapContainer.setHighlight(markerToHighlight);
-            }
-        }
-    }
+        if (chosenLeaf.view instanceof MainMapView)
+			return chosenLeaf.view;
+		return null;
+	}
+
+    public async openMapWithState(
+        state: MapState,
+        ctrlKey: boolean,
+        forceAutoFit?: boolean,
+        highlightFile: TAbstractFile = null,
+        highlightFileLine: number = null
+    ) {
+		const mapView = await this.openMap(ctrlKey, state);
+		if (mapView && mapView.mapContainer) {
+			const map = mapView.mapContainer;
+			if (forceAutoFit) map.autoFitMapToMarkers();
+			if (highlightFile) {
+				const markerToHighlight = map.findMarkerByFileLine(
+					highlightFile,
+					highlightFileLine
+				);
+				map.setHighlight(markerToHighlight);
+			}
+		}
+	}
 
     /**
      * Get the geolocation on the current editor line

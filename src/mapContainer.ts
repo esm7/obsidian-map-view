@@ -37,6 +37,7 @@ import * as utils from 'src/utils';
 import { ViewControls, SearchControl } from 'src/viewControls';
 import { Query } from 'src/query';
 import { GeoSearchResult } from 'src/geosearch';
+import { RealTimeLocation, RealTimeLocationSource, isSame } from 'src/realTimeLocation';
 
 export type ViewSettings = {
     showMapControls: boolean;
@@ -84,12 +85,16 @@ export class MapContainer {
         highlight: leaflet.Marker = null;
         /** The actual entity that is highlighted, which is either equal to the above, or the cluster group that it belongs to */
         actualHighlight: leaflet.Marker = null;
+		// TODO document
+		realTimeLocationMarker: leaflet.Marker = null;
+		realTimeLocationRadius: leaflet.Circle = null;
     })();
     public ongoingChanges = 0;
     public freezeMap: boolean = false;
     private plugin: MapViewPlugin;
     /** The default state as saved in the plugin settings */
     private defaultState: MapState;
+	public lastRealTimeLocation: RealTimeLocation = null;
     /**
      * The Workspace Leaf that a note was last opened in.
      * This is saved so the same leaf can be reused when opening subsequent notes, making the flow consistent & predictable for the user.
@@ -141,7 +146,7 @@ export class MapContainer {
 
     copyStateUrl() {
         const params = stateToUrl(this.state);
-        const url = `obsidian://mapview?action=open&${params}`;
+        const url = `obsidian://mapview?do=open&${params}`;
         navigator.clipboard.writeText(url);
         new Notice('Copied state URL to clipboard');
     }
@@ -233,6 +238,8 @@ export class MapContainer {
      * we want to reliably get the status of freezeMap
      */
     public highLevelSetViewState(partialState: Partial<MapState>) {
+		if (Object.keys(partialState).length === 0)
+			return;
         const state = this.getState();
         if (state) {
             const newState = Object.assign({}, state, partialState);
@@ -366,6 +373,7 @@ export class MapContainer {
             });
             this.display?.controls?.invalidateActivePreset();
             this.setHighlight(this.display.highlight);
+			this.updateRealTimeLocationMarkers();
         });
         this.display.map.on('moveend', async (event: leaflet.LeafletEvent) => {
             this.ongoingChanges -= 1;
@@ -375,6 +383,7 @@ export class MapContainer {
             });
             this.display?.controls?.invalidateActivePreset();
             this.setHighlight(this.display.highlight);
+			this.updateRealTimeLocationMarkers();
         });
         this.display.map.on('movestart', (event: leaflet.LeafletEvent) => {
             this.ongoingChanges += 1;
@@ -390,6 +399,7 @@ export class MapContainer {
         );
         this.display.map.on('viewreset', () => {
             this.setHighlight(this.display.highlight);
+			this.updateRealTimeLocationMarkers();
         });
 
         if (this.viewSettings.showSearch) {
@@ -416,6 +426,7 @@ export class MapContainer {
             });
             this.display.clusterGroup.on('clusterclick', () => {
                 this.setHighlight(this.display.highlight);
+				this.updateRealTimeLocationMarkers();
             });
         }
 
@@ -975,4 +986,40 @@ export class MapContainer {
         }
         return null;
     }
+
+	updateRealTimeLocationMarkers() {
+		if (this.display.realTimeLocationMarker)
+			this.display.realTimeLocationMarker.removeFrom(this.display.map);
+		if (this.display.realTimeLocationRadius)
+			this.display.realTimeLocationRadius.removeFrom(this.display.map);
+		if (this.lastRealTimeLocation === null)
+			return;
+		const center = this.lastRealTimeLocation.center;
+		const accuracy = this.lastRealTimeLocation.accuracy;
+		this.display.realTimeLocationMarker = leaflet.marker(center, {
+			icon: getIconFromOptions(consts.CURRENT_LOCATION_MARKER),
+		}).addTo(this.display.map);
+		this.display.realTimeLocationRadius = leaflet.circle(center, {radius: accuracy}).addTo(this.display.map);
+	}
+
+	setRealTimeLocation(center: leaflet.LatLng, accuracy: number, source: RealTimeLocationSource) {
+		const location = center === null ? null : {
+			center: center,
+			accuracy: accuracy,
+			source: source,
+			timestamp: Date.now()
+		};
+		console.log('new location:', location);
+		if (!isSame(location, this.lastRealTimeLocation)) {
+			this.lastRealTimeLocation = location;
+			this.updateRealTimeLocationMarkers();
+            let newState: Partial<MapState> = {};
+            if (!this.display.map.getBounds().contains(location.center))
+				newState.mapCenter = location.center;
+			// TODO take the radius into account
+			if (this.state.mapZoom < consts.MIN_REAL_TIME_LOCATION_ZOOM)
+				newState.mapZoom = consts.MIN_REAL_TIME_LOCATION_ZOOM;
+			this.highLevelSetViewState(newState);
+		}
+	}
 }
