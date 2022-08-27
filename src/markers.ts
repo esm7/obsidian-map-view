@@ -1,4 +1,4 @@
-import { App, TFile, getAllTags } from 'obsidian';
+import { App, TFile, getAllTags, FileView } from 'obsidian';
 import wildcard from 'wildcard';
 import * as leaflet from 'leaflet';
 import 'leaflet-extra-markers';
@@ -13,23 +13,55 @@ import * as regex from 'src/regex';
 
 type MarkerId = string;
 
-/** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
-export class FileMarker {
+export abstract class BaseGeoLayer {
     /** The file object on which this location was found */
     file: TFile;
-    /** In the case of an inline location, the position within the file where the location was found */
-    fileLocation?: number;
-    /** In case of an inline location, the line within the file where the geolocation was found */
-    fileLine?: number;
-    location: leaflet.LatLng;
-    icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
-    mapMarker?: leaflet.Marker;
     /** An ID to recognize the marker */
     id: MarkerId;
+    /** In the case of an inline location, the position within the file where the location was found */
+    fileLocation?: number;
+    /** The leaflet layer on the map */
+    geoLayer?: leaflet.Layer;
+    /** In case of an inline location, the line within the file where the geolocation was found */
+    fileLine?: number;
     /** Optional extra name that can be set for geolocation links (this is the link name rather than the file name) */
     extraName?: string;
     /** Tags that this marker includes */
     tags: string[] = [];
+
+    /**
+     * Construct a new BaseGeoLayer object
+     * @param file The file the geo data comes from
+     */
+    protected constructor(file: TFile) {
+        this.file = file;
+    }
+
+    // /**
+    //  * Init the leaflet geographic layer from the data
+    //  * @param map
+    //  */
+    // abstract initGeoLayer(map: MapView): void;
+
+    /** Generate a unique identifier for this layer */
+    abstract generateId(): MarkerId;
+
+    /**
+     * Is this geographic layer identical to the other object.
+     * Used to compare to existing data to minimise creation.
+     * @param other The other object to compare to
+     */
+    abstract isSame(other: BaseGeoLayer): boolean;
+
+    /** Get the bounds of the data */
+    abstract getBounds(): leaflet.LatLng[];
+}
+
+/** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
+export class FileMarker extends BaseGeoLayer {
+    geoLayer?: leaflet.Marker;
+    location: leaflet.LatLng;
+    icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
 
     /**
      * Construct a new FileMarker object
@@ -37,13 +69,14 @@ export class FileMarker {
      * @param location The geolocation
      */
     constructor(file: TFile, location: leaflet.LatLng) {
-        this.file = file;
+        super(file);
         this.location = location;
-        this.generateId();
+        this.id = this.generateId();
     }
 
-    isSame(other: FileMarker) {
+    isSame(other: BaseGeoLayer): boolean {
         return (
+            other instanceof FileMarker &&
             this.file.name === other.file.name &&
             this.location.toString() === other.location.toString() &&
             this.fileLocation === other.fileLocation &&
@@ -62,30 +95,35 @@ export class FileMarker {
         );
     }
 
-    generateId() {
-        this.id =
+    generateId(): MarkerId {
+        return (
             this.file.name +
                 this.location.lat.toString() +
                 this.location.lng.toString() +
                 this.fileLocation ||
             'nofileloc' + this.fileLine ||
-            'nofileline';
+            'nofileline'
+        );
+    }
+
+    getBounds(): leaflet.LatLng[] {
+        return [this.location];
     }
 }
 
-export type MarkersMap = Map<MarkerId, FileMarker>;
+export type MarkersMap = Map<MarkerId, BaseGeoLayer>;
 
 /**
  * Create a FileMarker for every front matter and inline geolocation in the given file.
  * Properties that are not essential for filtering, e.g. marker icons, are not created here yet.
- * @param mapToAppendTo The list of file markers to append to
+ * @param mapToAppendTo The list of markers to append to
  * @param file The file object to parse
  * @param settings The plugin settings
  * @param app The Obsidian App instance
  * @param skipMetadata If true will not find markers in the front matter
  */
 export async function buildAndAppendFileMarkers(
-    mapToAppendTo: FileMarker[],
+    mapToAppendTo: BaseGeoLayer[],
     file: TFile,
     settings: PluginSettings,
     app: App,
@@ -124,9 +162,9 @@ export async function buildMarkers(
     files: TFile[],
     settings: PluginSettings,
     app: App
-): Promise<FileMarker[]> {
+): Promise<BaseGeoLayer[]> {
     if (settings.debug) console.time('buildMarkers');
-    let markers: FileMarker[] = [];
+    let markers: BaseGeoLayer[] = [];
     for (const file of files) {
         await buildAndAppendFileMarkers(markers, file, settings, app);
     }
@@ -140,11 +178,19 @@ export async function buildMarkers(
  * Modifies the markers in-place.
  */
 export function finalizeMarkers(
-    markers: FileMarker[],
+    markers: BaseGeoLayer[],
     settings: PluginSettings
 ) {
     for (const marker of markers)
-        marker.icon = getIconFromRules(marker.tags, settings.markerIconRules);
+        if (marker instanceof FileMarker) {
+            marker.icon = getIconFromRules(
+                marker.tags,
+                settings.markerIconRules
+            );
+        } else {
+            // TODO: other support
+            throw 'Unsupported object type ' + marker.constructor.name;
+        }
 }
 
 function checkTagPatternMatch(tagPattern: string, tags: string[]) {

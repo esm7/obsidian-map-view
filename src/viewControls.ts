@@ -17,7 +17,7 @@ import { NewPresetDialog } from 'src/newPresetDialog';
 import MapViewPlugin from 'src/main';
 import { QuerySuggest } from 'src/query';
 import { LocationSearchDialog, SuggestInfo } from 'src/locationSearchDialog';
-import { MarkersMap } from 'src/markers';
+import { FileMarker, MarkersMap } from 'src/markers';
 
 import * as leaflet from 'leaflet';
 
@@ -477,16 +477,20 @@ export class SearchControl extends leaflet.Control {
 
     openSearch(existingMarkers: MarkersMap) {
         let markerSearchResults: SuggestInfo[] = [];
-        for (const fileMarker of existingMarkers.values()) {
-            markerSearchResults.push({
-                name: fileMarker.extraName
-                    ? `${fileMarker.extraName} (${fileMarker.file.basename})`
-                    : fileMarker.file.basename,
-                location: fileMarker.location,
-                resultType: 'existingMarker',
-                existingMarker: fileMarker,
-                icon: fileMarker.icon.options,
-            });
+        for (const marker of existingMarkers.values()) {
+            if (marker instanceof FileMarker) {
+                markerSearchResults.push({
+                    name: marker.extraName
+                        ? `${marker.extraName} (${marker.file.basename})`
+                        : marker.file.basename,
+                    location: marker.location,
+                    resultType: 'existingMarker',
+                    existingMarker: marker,
+                    icon: marker.icon.options,
+                });
+            } else {
+                throw 'Unsupported object type ' + marker.constructor.name;
+            }
         }
         const markersByDistanceToCenter = markerSearchResults.sort(
             (item1: SuggestInfo, item2: SuggestInfo) => {
