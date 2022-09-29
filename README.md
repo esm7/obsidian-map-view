@@ -377,19 +377,19 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 **New:**
 
-- Selecting a range of lines in the editor that have multiple geolocations will show a new "focus X geolocations in Map View" context menu item.
-- A new `name` query filter (to filter for a geolocation name) and a `lines` filter (to filter for a line range within a file).
-- Small UI improvements, e.g. icons in pop-ups.
-- "Focus Note in Map View" is now shown also for notes that have no geolocations, since the "follow active note" query format may look into links.
-- Some behind-the-scenes work for exciting big features that are cooking...
+-   Selecting a range of lines in the editor that have multiple geolocations will show a new "focus X geolocations in Map View" context menu item.
+-   A new `name` query filter (to filter for a geolocation name) and a `lines` filter (to filter for a line range within a file).
+-   Small UI improvements, e.g. icons in pop-ups.
+-   "Focus Note in Map View" is now shown also for notes that have no geolocations, since the "follow active note" query format may look into links.
+-   Some behind-the-scenes work for exciting big features that are cooking...
 
 **Fixes:**
 
-- **Various fixes and tweaks required for Obsidian 0.16.x.**
-  - As part of this, "paste as geolocation" is now always shown in the editor context menu, regardless of whether a string that can be parsed was found in the clipboard. This is due to a change of how menus in Obsidian work, which doesn't allow to inspect the clipboard while populating the menu.
-- Fixed Google Places search not working on Mobile due to `querystring` not being present for some reason.
-- Fixed pop-ups not always clickable on mobile.
-- Fixed a problem in parsing link names on lines that contain other links.
+-   **Various fixes and tweaks required for Obsidian 0.16.x.**
+    -   As part of this, "paste as geolocation" is now always shown in the editor context menu, regardless of whether a string that can be parsed was found in the clipboard. This is due to a change of how menus in Obsidian work, which doesn't allow to inspect the clipboard while populating the menu.
+-   Fixed Google Places search not working on Mobile due to `querystring` not being present for some reason.
+-   Fixed pop-ups not always clickable on mobile.
+-   Fixed a problem in parsing link names on lines that contain other links.
 
 ### 2.1.1
 

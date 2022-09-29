@@ -20,7 +20,7 @@ export class MiniMapView extends BaseMapView {
             viewTabType: 'mini',
             showPresets: false,
             showSearch: true,
-			showRealTimeButton: true,
+            showRealTimeButton: true,
             showOpenButton: true,
             autoZoom: true,
             emptyFitRevertsToDefault: true,

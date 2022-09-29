@@ -32,7 +32,7 @@ export class EmbeddedMap {
             viewTabType: 'mini',
             showPresets: false,
             showSearch: false,
-			showRealTimeButton: false,
+            showRealTimeButton: false,
             showOpenButton: true,
             autoZoom: true,
             emptyFitRevertsToDefault: true,
