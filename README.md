@@ -165,6 +165,9 @@ The query string can contain the following _search operators_:
 
 -   `tag:#...` to search for notes or markers tagged with a specific tag.
     -   This works on both whole notes (`#hiking`) and inline tags for specific markers (`tag:hiking`).
+-   `name:...` to search for markers that their name contains the given string.
+    -   For front-matter geolocations this matches the file name.
+    -   For inline geolocations this matches the link name and **ignores** the file name (if you want to always match the file name, use `OR` with `path:`).
 -   `path:...` to search by the note path.
     -   This operator will include all the markers in the path that matches the query.
 -   `linkedto:...` includes notes that contain a specific link.
@@ -173,6 +176,8 @@ The query string can contain the following _search operators_:
 -   `linkedfrom:...` includes notes that are linked from a specific note, and also the origin note itself.
     -   This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query.
     -   For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
+-   `lines:x-y` includes only inline markers that are defined in the given line range in their note.
+    -   For example, `lines:20-30` includes only inline geolocations that are defined in lines 20 to 30 in the file that contains them.
 
 All operators are case insensitive.
 
@@ -367,6 +372,23 @@ In contrast, Obsidian Map View is focused on showing and interacting with your n
 Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-map) which seems to focus on powerful tools for map drawing.
 
 ## Changelog
+
+### 2.2.0
+
+**New:**
+
+- Selecting a range of lines in the editor that have multiple geolocations will show a new "focus X geolocations in Map View" context menu item.
+- A new `name` query filter (to filter for a geolocation name) and a `lines` filter (to filter for a line range within a file).
+- Small UI improvements, e.g. icons in pop-ups.
+- "Focus Note in Map View" is now shown also for notes that have no geolocations, since the "follow active note" query format may look into links.
+
+**Fixes:**
+
+- **Various fixes and tweaks required for Obsidian 0.16.x.**
+  - As part of this, "paste as geolocation" is now always shown in the editor context menu, regardless of whether a string that can be parsed was found in the clipboard. This is due to a change of how menus in Obsidian work, which doesn't allow to inspect the clipboard while populating the menu.
+- Fixed Google Places search not working on Mobile due to `querystring` not being present for some reason.
+- Fixed pop-ups not always clickable on mobile.
+- Fixed a problem in parsing link names on lines that contain other links.
 
 ### 2.1.1
 

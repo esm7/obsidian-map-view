@@ -22,6 +22,7 @@ import { LocationSuggest } from 'src/locationSuggest';
 import { MapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import { MapContainer } from 'src/mapContainer';
+import { ImportDialog } from 'src/importDialog';
 
 export function addShowOnMap(menu: Menu, geolocation: leaflet.LatLng, file: TAbstractFile, editorLine: number, plugin: MapViewPlugin) {
 	if (geolocation) {
@@ -47,6 +48,7 @@ export function addOpenWith(menu: Menu, geolocation: leaflet.LatLng, settings: s
 	if (geolocation) {
 		menu.addItem((item: MenuItem) => {
 			item.setTitle('Open with default app');
+			item.setIcon('map-pin');
 			item.setSection('mapview');
 			item.onClick((_ev) => {
 				open(`geo:${geolocation.lat},${geolocation.lng}`);
@@ -75,6 +77,7 @@ export function populateOpenInItems(
             .replace('{y}', location.lng.toString());
         menu.addItem((item: MenuItem) => {
             item.setTitle(`Open in ${setting.name}`);
+			item.setIcon('map-pin');
             item.setSection('mapview');
             item.onClick((_ev) => {
                 open(fullUrl);
@@ -103,7 +106,8 @@ export function addGeolocationToNote(menu: Menu, app: App, editor: Editor, setti
 
 export function addFocusNoteInMapView(menu: Menu, file: TFile, settings: settings.PluginSettings, plugin: MapViewPlugin) {
 	menu.addItem((item: MenuItem) => {
-		item.setTitle('Focus note in Map View');
+		const fileName = utils.trimmedFileName(file);
+		item.setTitle(`Focus '${fileName}' in Map View`);
 		item.setIcon('globe');
 		item.setSection('mapview');
 		item.onClick(
@@ -122,11 +126,12 @@ export function addFocusNoteInMapView(menu: Menu, file: TFile, settings: setting
 	});
 }
 
-export async function addUrlConversionItems(menu: Menu, editor: Editor, suggestor: LocationSuggest, urlConvertor: UrlConvertor) {
+export function addUrlConversionItems(menu: Menu, editor: Editor, suggestor: LocationSuggest, urlConvertor: UrlConvertor) {
 	if (editor.getSelection()) {
 		// If there is text selected, add a menu item to convert it to coordinates using geosearch
 		menu.addItem((item: MenuItem) => {
 			item.setTitle('Convert to geolocation (geosearch)');
+			item.setIcon('search');
 			item.setSection('mapview');
 			item.onClick(
 				async () => await suggestor.selectionToLink(editor)
@@ -138,6 +143,7 @@ export async function addUrlConversionItems(menu: Menu, editor: Editor, suggesto
 		// If the line contains a recognized geolocation that can be converted from a URL parsing rule
 		menu.addItem(async (item: MenuItem) => {
 			item.setTitle('Convert to geolocation');
+			item.setIcon('search');
 			item.setSection('mapview');
 			item.onClick(async () => {
 				urlConvertor.convertUrlAtCursorToGeolocation(
@@ -146,31 +152,31 @@ export async function addUrlConversionItems(menu: Menu, editor: Editor, suggesto
 			});
 		});
 
-	const clipboard = await navigator.clipboard.readText();
-	let clipboardLocation =
-		urlConvertor.parseLocationFromUrl(clipboard);
-	if (clipboardLocation) {
-		// If the clipboard contains a recognized geolocation that can be converted from a URL parsing rule
-		menu.addItem((item: MenuItem) => {
-			item.setTitle('Paste as geolocation');
-			item.setSection('mapview');
-			item.onClick(async () => {
-				if (clipboardLocation instanceof Promise)
-					clipboardLocation = await clipboardLocation;
-				if (clipboardLocation)
-					urlConvertor.insertLocationToEditor(
-						clipboardLocation.location,
-						editor
-					);
-			});
+	menu.addItem((item: MenuItem) => {
+		item.setTitle('Paste as geolocation');
+		item.setSection('mapview');
+		item.setIcon('clipboard-x');
+		item.onClick(async () => {
+			const clipboard = await navigator.clipboard.readText();
+			let clipboardLocation =
+				urlConvertor.parseLocationFromUrl(clipboard);
+			if (clipboardLocation instanceof Promise)
+				clipboardLocation = await clipboardLocation;
+			if (clipboardLocation)
+				urlConvertor.insertLocationToEditor(
+					clipboardLocation.location,
+					editor
+				);
 		});
-	}
+	});
 }
 
-export async function addNewNoteItems(menu: Menu, geolocation: leaflet.LatLng, mapContainer: MapContainer, settings: settings.PluginSettings, app: App) {
+export function addNewNoteItems(menu: Menu, geolocation: leaflet.LatLng, mapContainer: MapContainer, settings: settings.PluginSettings, app: App) {
 	const locationString = `${geolocation.lat},${geolocation.lng}`;
 	menu.addItem((item: MenuItem) => {
 		item.setTitle('New note here (inline)');
+		item.setIcon('edit');
+		item.setSection('new');
 		item.onClick(async (ev) => {
 			const newFileName = utils.formatWithTemplates(
 				settings.newNoteNameFormat
@@ -192,6 +198,8 @@ export async function addNewNoteItems(menu: Menu, geolocation: leaflet.LatLng, m
 	});
 	menu.addItem((item: MenuItem) => {
 		item.setTitle('New note here (front matter)');
+		item.setIcon('edit');
+		item.setSection('new');
 		item.onClick(async (ev) => {
 			const newFileName = utils.formatWithTemplates(
 				settings.newNoteNameFormat
@@ -217,16 +225,53 @@ export function addCopyGeolocationItems(menu: Menu, geolocation: leaflet.LatLng)
 	const locationString = `${geolocation.lat},${geolocation.lng}`;
 	menu.addItem((item: MenuItem) => {
 		item.setTitle(`Copy geolocation`);
+		item.setIcon('copy');
+		item.setSection('copy');
 		item.onClick((_ev) => {
 			navigator.clipboard.writeText(`[](geo:${locationString})`);
 		});
 	});
 	menu.addItem((item: MenuItem) => {
 		item.setTitle(`Copy geolocation as front matter`);
+		item.setIcon('copy');
+		item.setSection('copy');
 		item.onClick((_ev) => {
 			navigator.clipboard.writeText(
 				`---\nlocation: [${locationString}]\n---\n\n`
 			);
 		});
+	});
+}
+
+export function addFocusLinesInMapView(menu: Menu, file: TFile, fromLine: number, toLine: number, numLocations: number, plugin: MapViewPlugin, settings: settings.PluginSettings) {
+	menu.addItem((item: MenuItem) => {
+		item.setTitle(`Focus ${numLocations} ${numLocations > 1 ? 'geolocations' : 'geolocation'} in Map View`);
+		item.setIcon('globe');
+		item.setSection('mapview');
+		item.onClick(
+			async (evt: MouseEvent) =>
+				await plugin.openMapWithState(
+					{
+						query: `path:"${file.path}" AND lines:${fromLine}-${toLine}`
+					} as MapState,
+					evt.ctrlKey,
+					true
+				)
+		);
+	});
+}
+
+export function addImport(menu: Menu, editor: Editor, app: App, plugin: MapViewPlugin, settings: settings.PluginSettings) {
+	menu.addItem((item: MenuItem) => {
+		// TODO: this is an unfinished corner of the code, currently bypassed by default
+		item.setTitle('Import geolocations from file...');
+		item.setIcon('globe');
+		item.setSection('mapview');
+		item.onClick(
+			async (evt: MouseEvent) => {
+				const importDialog = new ImportDialog(editor, app, plugin, settings);
+				importDialog.open();
+			}
+		);
 	});
 }

@@ -33,7 +33,7 @@ import {
 } from 'src/markers';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
-import { ViewControls, SearchControl } from 'src/viewControls';
+import { ViewControls, SearchControl, RealTimeControl } from 'src/viewControls';
 import { Query } from 'src/query';
 import { GeoSearchResult } from 'src/geosearch';
 import { RealTimeLocation, RealTimeLocationSource, isSame } from 'src/realTimeLocation';
@@ -47,6 +47,7 @@ export type ViewSettings = {
     showPresets: boolean;
     showSearch: boolean;
     showOpenButton: boolean;
+	showRealTimeButton: boolean;
 
     // Override the global settings auto zoom.
     // Unlike the global auto zoom, the view auto zoom also happens on every setState, so when a new view opens,
@@ -79,6 +80,8 @@ export class MapContainer {
         controls: ViewControls;
         /** The search controls (search & clear buttons) */
         searchControls: SearchControl = null;
+		/** The real-time geolocation controls */
+		realTimeControls: RealTimeControl = null;
         /** A marker of the last search result */
         searchResult: leaflet.Marker = null;
         /** The currently highlighted marker (if any) */
@@ -342,7 +345,7 @@ export class MapContainer {
     }
 
     async createMap() {
-        // LeafletJS compatability: disable tree-shaking for the full-screen module
+        // Obsidian Leaflet compatability: disable tree-shaking for the full-screen module
         var dummy = leafletFullscreen;
         this.display.map = new leaflet.Map(this.display.mapDiv, {
             center: this.defaultState.mapCenter,
@@ -412,13 +415,23 @@ export class MapContainer {
             this.display.map.addControl(this.display.searchControls);
         }
 
+		if (this.viewSettings.showRealTimeButton && this.settings.supportRealTimeGeolocation) {
+			this.display.realTimeControls = new RealTimeControl(
+				{position: 'topright'},
+				this,
+				this.app,
+				this.settings
+			);
+			this.display.map.addControl(this.display.realTimeControls);
+		}
+
         if (this.settings.showClusterPreview) {
             this.display.clusterGroup.on('clustermouseover', (event) => {
-                if (!(this.app as any)?.isMobile)
+                if (!utils.isMobile(this.app))
                     this.openClusterPreviewPopup(event);
             });
             this.display.clusterGroup.on('clustercontextmenu', (event) => {
-                if ((this.app as any)?.isMobile)
+                if (utils.isMobile(this.app))
                     this.openClusterPreviewPopup(event);
             });
             this.display.clusterGroup.on('clustermouseout', (event) => {
@@ -439,7 +452,6 @@ export class MapContainer {
             'contextmenu',
             async (event: leaflet.LeafletMouseEvent) => {
                 let mapPopup = new Menu();
-                mapPopup.setNoIcon();
 				menus.addNewNoteItems(mapPopup, event.latlng, this, this.settings, this.app);
 				menus.addCopyGeolocationItems(mapPopup, event.latlng);
 				menus.addOpenWith(mapPopup, event.latlng, this.settings);
@@ -552,16 +564,16 @@ export class MapContainer {
             icon: marker.icon || new leaflet.Icon.Default(),
         });
         newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
-            if ((this.app as any)?.isMobile)
+            if (utils.isMobile(this.app))
                 this.showMarkerPopups(marker, newMarker);
             else this.goToMarker(marker, event.originalEvent.ctrlKey, true);
         });
         newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
-            if (!(this.app as any)?.isMobile)
+            if (!utils.isMobile(this.app))
                 this.showMarkerPopups(marker, newMarker);
         });
         newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
-            if (!(this.app as any)?.isMobile) newMarker.closePopup();
+            if (!utils.isMobile(this.app)) newMarker.closePopup();
         });
         newMarker.on('add', (event: leaflet.LeafletEvent) => {
             newMarker
@@ -581,9 +593,10 @@ export class MapContainer {
     ) {
         this.setHighlight(mapMarker);
         let mapPopup = new Menu();
-        mapPopup.setNoIcon();
         mapPopup.addItem((item: MenuItem) => {
             item.setTitle('Open note');
+			item.setIcon('file');
+			item.setSection('open-note');
             item.onClick(async (ev) => {
                 this.goToMarker(fileMarker, ev.ctrlKey, true);
             });
@@ -627,7 +640,7 @@ export class MapContainer {
                 : fileName;
             let content = `<p class="map-view-marker-name">${fileNameWithoutExtension}</p>`;
             if (
-                (this.app as any)?.isMobile &&
+                utils.isMobile(this.app) &&
                 fileMarker.extraName &&
                 fileMarker.extraName.length > 0
             )
@@ -638,16 +651,17 @@ export class MapContainer {
                     autoPan: false,
                     className: 'marker-popup',
                 })
+				.on('popupopen', (event: leaflet.PopupEvent) => {
+					event.popup
+						.getElement()
+						?.onClickEvent(() => {
+							this.goToMarker(fileMarker, false, true);
+						});
+				})
                 .openPopup()
                 .on('popupclose', (event: leaflet.LeafletEvent) => {
                     // For some reason popups don't recycle on mobile if this is not added
                     mapMarker.unbindPopup();
-                });
-            mapMarker
-                .getPopup()
-                .getElement()
-                ?.onClickEvent(() => {
-                    this.goToMarker(fileMarker, false, true);
                 });
         }
     }

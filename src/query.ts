@@ -33,12 +33,13 @@ export class Query {
     preprocessQueryString(queryString: string) {
         // 1. Replace tag:#abc by "tag:#abc" because this parser doesn't like the '#' symbol
         // 2. Replace path:"abc def/ghi" by "path:abc def/dhi" because the parser doesn't like quotes as part of the words
-        // 3. Same goes for linkedto:"" and linkedfrom:""
+        // 3. Same goes for linkedto:"", linkedfrom:"" and name:""
         let newString = queryString
             .replace(regex.TAG_NAME_WITH_HEADER, '"tag:$1"')
             .replace(regex.PATH_QUERY_WITH_HEADER, '"path:$1"')
             .replace(regex.LINKEDTO_QUERY_WITH_HEADER, '"linkedto:$1"')
-            .replace(regex.LINKEDFROM_QUERY_WITH_HEADER, '"linkedfrom:$1"');
+            .replace(regex.LINKEDFROM_QUERY_WITH_HEADER, '"linkedfrom:$1"')
+			.replace(regex.NAME_QUERY_WITH_HEADER, '"name:$1"')
         return newString;
     }
 
@@ -86,7 +87,16 @@ export class Query {
                 return true;
             }
             return false;
-        } else if (value.startsWith('path:')) {
+		} else if (value.startsWith('name:')) {
+			const query = value.replace('name:', '').toLowerCase();
+			if (query.length === 0)
+				return false;
+			// For inline geolocations, completely ignore the file name and use only the link name
+			if (marker.extraName)
+				return marker.extraName.toLowerCase().includes(query);
+			// For front matter geolocations, use the file name
+			return marker.file.name.toLowerCase().includes(query);
+		} else if (value.startsWith('path:')) {
             const queryPath = value.replace('path:', '').toLowerCase();
             if (queryPath.length === 0) return false;
             return marker.file.path.toLowerCase().includes(queryPath);
@@ -126,7 +136,15 @@ export class Query {
                 // Also include the 'linked from' file itself
                 if (fileMatch.basename === marker.file.basename) return true;
             }
-        } else throw new Error('Unsupported query format' + value);
+		} else if (value.startsWith('lines:')) {
+			const linesQueryMatch = value.match(/(lines:)([0-9]+)-([0-9]+)/);
+			if (linesQueryMatch && linesQueryMatch.length === 4) {
+				const fromLine = parseInt(linesQueryMatch[2]);
+				const toLine = parseInt(linesQueryMatch[3]);
+				return marker.fileLine && marker.fileLine >= fromLine && marker.fileLine <= toLine;
+			}
+		}
+		else throw new Error('Unsupported query format' + value);
     }
 }
 
@@ -301,6 +319,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
             return [
                 { text: 'SEARCH OPERATORS', group: true },
                 { text: 'tag:', append: '#' },
+				{ text: 'name:', textToInsert: 'name:""', cursorOffset: -1 },
                 { text: 'path:', textToInsert: 'path:""', cursorOffset: -1 },
                 {
                     text: 'linkedto:',

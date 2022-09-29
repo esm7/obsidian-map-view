@@ -4,6 +4,7 @@ import {
     Editor,
     App,
     TFile,
+	TAbstractFile,
     getAllTags,
 } from 'obsidian';
 
@@ -216,4 +217,17 @@ export function getAllTagNames(app: App): string[] {
     }
     tags = tags.sort();
     return tags;
+}
+
+export function isMobile(app: App): boolean {
+	return (app as any)?.isMobile;
+}
+
+export function trimmedFileName(file: TFile) {
+	const MAX_LENGTH = 12;
+	const name = file.basename;
+	if (name.length > MAX_LENGTH)
+		return name.slice(0, MAX_LENGTH / 2) + '...' + name.slice(name.length - MAX_LENGTH / 2);
+	else
+		return name;
 }

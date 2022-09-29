@@ -1,6 +1,6 @@
 import { WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
-import * as querystring from 'querystring';
+import * as querystring from 'query-string';
 
 /** Represents a logical state of the map, in separation from the map display */
 export type MapState = {

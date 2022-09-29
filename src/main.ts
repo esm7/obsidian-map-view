@@ -9,6 +9,7 @@ import {
     WorkspaceLeaf,
     TAbstractFile,
     ObsidianProtocolData,
+	MarkdownPostProcessorContext
 } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
@@ -79,8 +80,9 @@ export default class MapViewPlugin extends Plugin {
 							  ) : null;
 						const accuracy = params.accuracy;
 						const map = await this.openMap(false, null);
-						if (map)
+						if (map) {
 							map.mapContainer.setRealTimeLocation(location, parseFloat(accuracy), 'geohelper');
+						}
 					} else {
 						const state = stateFromParsedUrl(params);
 						// If a saved URL is opened in another device on which there aren't the same sources, use
@@ -192,7 +194,7 @@ export default class MapViewPlugin extends Plugin {
 
         // Add items to the file context menu (run when the context menu is built)
         // This is the context menu in the File Explorer and clicking "More options" (three dots) from within a file.
-        this.app.workspace.on('file-menu', async (menu, file, source, leaf) =>
+        this.app.workspace.on('file-menu', (menu, file, source, leaf) =>
             this.onFileMenu(menu, file, source, leaf)
         );
 
@@ -202,9 +204,9 @@ export default class MapViewPlugin extends Plugin {
 
         // Add items to the editor context menu (run when the context menu is built)
         // This is the context menu when right clicking within an editor view.
-        this.app.workspace.on('editor-menu', async (menu, editor, view) =>
+		this.app.workspace.on('editor-menu', (menu, editor, view) => {
             this.onEditorMenu(menu, editor, view)
-        );
+		});
     }
 
 	public async openMap(
@@ -285,9 +287,11 @@ export default class MapViewPlugin extends Plugin {
      */
     private getLocationOnEditorLine(
         editor: Editor,
-        view: FileView
+		lineNumber: number,
+        view: FileView,
+		alsoFrontMatter: boolean
     ): leaflet.LatLng {
-        const line = editor.getLine(editor.getCursor().line);
+        const line = editor.getLine(lineNumber);
         const match = matchInlineLocation(line)[0];
         let selectedLocation = null;
         if (match)
@@ -295,7 +299,7 @@ export default class MapViewPlugin extends Plugin {
                 parseFloat(match.groups.lat),
                 parseFloat(match.groups.lng)
             );
-        else {
+        else if (alsoFrontMatter) {
             const fmLocation = getFrontMatterLocation(view.file, this.app);
             if (line.indexOf('location') > -1 && fmLocation)
                 selectedLocation = fmLocation;
@@ -333,14 +337,14 @@ export default class MapViewPlugin extends Plugin {
             .setViewState({ type: consts.MINI_MAP_VIEW_NAME });
     }
 
-    async onFileMenu(
+    onFileMenu(
         menu: Menu,
         file: TAbstractFile,
         _source: string,
         leaf?: WorkspaceLeaf
     ) {
+		const editor = leaf && leaf.view instanceof MarkdownView ? leaf.view.editor : null;
         if (file instanceof TFile) {
-            let hasAnyLocation = false;
             const location = getFrontMatterLocation(file, this.app);
             if (location) {
                 // If there is a geolocation in the front matter of the file
@@ -348,34 +352,63 @@ export default class MapViewPlugin extends Plugin {
 				menus.addShowOnMap(menu, location, file, null, this);
                 // Add an option to open it in the default app
 				menus.addOpenWith(menu, location, this.settings);
-                hasAnyLocation = true;
             } else {
-                if (leaf && leaf.view instanceof MarkdownView) {
+                if (editor) {
                     // If there is no valid geolocation in the front matter, add a menu item to populate it.
-                    const editor = leaf.view.editor;
 					menus.addGeolocationToNote(menu, this.app, editor, this.settings);
                 }
             }
-            const contentMarkers = await getMarkersFromFileContent(
-                file,
-                this.settings,
-                this.app
-            );
-            if (contentMarkers.length > 0) {
-				menus.addFocusNoteInMapView(menu, file, this.settings, this);
-            }
+			if (utils.isMobile(this.app)) {
+				// On mobile there's no editor context menu, so add it here instead
+				this.onEditorMenu(menu, editor, leaf.view as MarkdownView);
+			}
+			menus.addFocusNoteInMapView(menu, file, this.settings, this);
+			if (this.settings.debug)
+				menus.addImport(menu, editor, this.app, this, this.settings);
         }
     }
 
-    async onEditorMenu(menu: Menu, editor: Editor, view: MarkdownView) {
+    onEditorMenu(menu: Menu, editor: Editor, view: MarkdownView) {
+		if (!editor)
+			return;
         if (view instanceof FileView) {
-            const location = this.getLocationOnEditorLine(editor, view);
-            if (location) {
+			let multiLineMode = false;
+			const [fromLine, toLine, geolocations] = this.geolocationsWithinSelection(editor, view);
+			if (geolocations.length > 0) {
+				multiLineMode = true;
+				menus.addFocusLinesInMapView(menu, view.file, fromLine, toLine, geolocations.length, this, this.settings);
+			}
+			if (!multiLineMode) {
 				const editorLine = editor.getCursor().line;
-				menus.addShowOnMap(menu, location, view.file, editorLine, this);
-				menus.addOpenWith(menu, location, this.settings);
-            }
+				const location = this.getLocationOnEditorLine(editor, editorLine, view, true);
+				if (location) {
+					const editorLine = editor.getCursor().line;
+					menus.addShowOnMap(menu, location, view.file, editorLine, this);
+					menus.addOpenWith(menu, location, this.settings);
+				}
+			}
 			menus.addUrlConversionItems(menu, editor, this.suggestor, this.urlConvertor);
         }
     }
+
+	geolocationsWithinSelection(editor: Editor, view: MarkdownView): [number, number, leaflet.LatLng[]] {
+		let geolocations: leaflet.LatLng[] = [];
+		const editorSelections = editor.listSelections();
+		if (editorSelections && editorSelections.length > 0) {
+			const anchorLine = editorSelections[0].anchor.line;
+			const headLine = editorSelections[0].head.line;
+			if (anchorLine != headLine) {
+				const fromLine = Math.min(anchorLine, headLine);
+				const toLine = Math.max(anchorLine, headLine);
+				let geolocations: leaflet.LatLng[] = [];
+				for (let line = fromLine ; line <= toLine ; line++) {
+					const geolocationOnLine = this.getLocationOnEditorLine(editor, line, view, false);
+					if (geolocationOnLine)
+						geolocations.push(geolocationOnLine);
+				}
+				return [fromLine, toLine, geolocations];
+			}
+		}
+		return [null, null, []];
+	}
 }

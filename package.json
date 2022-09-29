@@ -1,6 +1,6 @@
 {
     "name": "obsidian-map-view",
-    "version": "2.1.1",
+    "version": "2.2.0",
     "description": "An interactive map view for Obsidian.md",
     "main": "main.js",
     "scripts": {
@@ -34,6 +34,7 @@
     "dependencies": {
         "@fortawesome/fontawesome-free": "^6.1.1",
         "boon-js": "^2.0.3",
+        "fast-xml-parser": "^4.0.9",
         "leaflet": "^1.7.1",
         "leaflet-extra-markers": "github:coryasilva/Leaflet.ExtraMarkers",
         "leaflet-fullscreen": "^1.0.2",
@@ -41,6 +42,7 @@
         "leaflet.markercluster": "^1.5.3",
         "moment": "^2.29.1",
         "open": "^8.2.1",
+        "query-string": "^7.1.1",
         "wildcard": "^2.0.0"
     }
 }

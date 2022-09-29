@@ -1,6 +1,6 @@
 import * as leaflet from 'leaflet';
 
-export type RealTimeLocationSource = 'geohelper';
+export type RealTimeLocationSource = 'geohelper' | 'clear';
 export type RealTimeLocation = {
 	center: leaflet.LatLng;
 	accuracy: number;

@@ -45,6 +45,7 @@ export type PluginSettings = {
     useGooglePlaces?: boolean;
     saveHistory?: boolean;
     queryForFollowActiveNote?: string;
+	supportRealTimeGeolocation?: boolean;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -180,6 +181,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     saveHistory: true,
     letZoomBeyondMax: false,
     queryForFollowActiveNote: 'path:"$PATH$"',
+	supportRealTimeGeolocation: false
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {

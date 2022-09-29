@@ -1,7 +1,7 @@
 import { request, App } from 'obsidian';
 import * as geosearch from 'leaflet-geosearch';
 import * as leaflet from 'leaflet';
-import * as querystring from 'querystring';
+import * as querystring from 'query-string';
 
 import { PluginSettings } from 'src/settings';
 import { UrlConvertor } from 'src/urlConvertor';
@@ -65,17 +65,21 @@ export class GeoSearcher {
             this.settings.useGooglePlaces &&
             this.settings.geocodingApiKey
         ) {
-            const placesResults = await googlePlacesSearch(
-                query,
-                this.settings,
-                searchArea?.getCenter()
-            );
-            for (const result of placesResults)
-                results.push({
-                    name: result.name,
-                    location: result.location,
-                    resultType: 'searchResult',
-                });
+			try {
+				const placesResults = await googlePlacesSearch(
+					query,
+					this.settings,
+					searchArea?.getCenter()
+				);
+				for (const result of placesResults)
+					results.push({
+						name: result.name,
+						location: result.location,
+						resultType: 'searchResult',
+					});
+			} catch (e) {
+				console.log('Map View: Google Places search failed: ', e.message);
+			}
         } else {
             const areaSW = searchArea?.getSouthWest() || null;
             const areaNE = searchArea?.getNorthEast() || null;
