@@ -381,6 +381,7 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 - A new `name` query filter (to filter for a geolocation name) and a `lines` filter (to filter for a line range within a file).
 - Small UI improvements, e.g. icons in pop-ups.
 - "Focus Note in Map View" is now shown also for notes that have no geolocations, since the "follow active note" query format may look into links.
+- Some behind-the-scenes work for exciting big features that are cooking...
 
 **Fixes:**
 
