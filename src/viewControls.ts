@@ -4,7 +4,7 @@ import {
     TextComponent,
     DropdownComponent,
     ToggleComponent,
-	Notice
+    Notice,
 } from 'obsidian';
 
 // A global ID to differentiate instances of the controls for the purpose of label creation
@@ -557,11 +557,11 @@ export class RealTimeControl extends leaflet.Control {
         );
         this.locateButton = div.createEl('a');
         this.locateButton.innerHTML = '⌖';
-		this.locateButton.style.fontSize = '25px';
+        this.locateButton.style.fontSize = '25px';
         this.locateButton.onClickEvent((ev: MouseEvent) => {
-			new Notice('Asking for the current location');
-			open('geohelper://locate');
-			this.clearButton.style.display = 'block';
+            new Notice('Asking for the current location');
+            open('geohelper://locate');
+            this.clearButton.style.display = 'block';
         });
         this.clearButton = div.createEl('a');
         this.clearButton.innerHTML = 'X';

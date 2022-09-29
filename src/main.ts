@@ -9,7 +9,7 @@ import {
     WorkspaceLeaf,
     TAbstractFile,
     ObsidianProtocolData,
-	MarkdownPostProcessorContext
+    MarkdownPostProcessorContext,
 } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
@@ -72,28 +72,35 @@ export default class MapViewPlugin extends Plugin {
             'mapview',
             async (params: ObsidianProtocolData) => {
                 if (params.action === 'mapview') {
-					if (params.do === 'update-real-time-location') {
-						const location = params.centerLat && params.centerLng
-							? new leaflet.LatLng(
-								  parseFloat(params.centerLat),
-								  parseFloat(params.centerLng)
-							  ) : null;
-						const accuracy = params.accuracy;
-						const map = await this.openMap(false, null);
-						if (map) {
-							map.mapContainer.setRealTimeLocation(location, parseFloat(accuracy), 'geohelper');
-						}
-					} else {
-						const state = stateFromParsedUrl(params);
-						// If a saved URL is opened in another device on which there aren't the same sources, use
-						// the default source instead
-						if (
-							state.chosenMapSource >= this.settings.mapSources.length
-						)
-							state.chosenMapSource =
-								DEFAULT_SETTINGS.defaultState.chosenMapSource;
-						this.openMapWithState(state, false, false);
-					}
+                    if (params.do === 'update-real-time-location') {
+                        const location =
+                            params.centerLat && params.centerLng
+                                ? new leaflet.LatLng(
+                                      parseFloat(params.centerLat),
+                                      parseFloat(params.centerLng)
+                                  )
+                                : null;
+                        const accuracy = params.accuracy;
+                        const map = await this.openMap(false, null);
+                        if (map) {
+                            map.mapContainer.setRealTimeLocation(
+                                location,
+                                parseFloat(accuracy),
+                                'geohelper'
+                            );
+                        }
+                    } else {
+                        const state = stateFromParsedUrl(params);
+                        // If a saved URL is opened in another device on which there aren't the same sources, use
+                        // the default source instead
+                        if (
+                            state.chosenMapSource >=
+                            this.settings.mapSources.length
+                        )
+                            state.chosenMapSource =
+                                DEFAULT_SETTINGS.defaultState.chosenMapSource;
+                        this.openMapWithState(state, false, false);
+                    }
                 }
             }
         );
@@ -204,15 +211,15 @@ export default class MapViewPlugin extends Plugin {
 
         // Add items to the editor context menu (run when the context menu is built)
         // This is the context menu when right clicking within an editor view.
-		this.app.workspace.on('editor-menu', (menu, editor, view) => {
-            this.onEditorMenu(menu, editor, view)
-		});
+        this.app.workspace.on('editor-menu', (menu, editor, view) => {
+            this.onEditorMenu(menu, editor, view);
+        });
     }
 
-	public async openMap(
-		ctrlKey: boolean,
-		state: MapState
-	): Promise<MainMapView> {
+    public async openMap(
+        ctrlKey: boolean,
+        state: MapState
+    ): Promise<MainMapView> {
         // Find the best candidate for a leaf to open the map view on.
         // If there's an open map view, use that, otherwise use the current leaf.
         // If Ctrl is pressed, override that behavior and always use the current leaf.
@@ -225,10 +232,9 @@ export default class MapViewPlugin extends Plugin {
             type: consts.MAP_VIEW_NAME,
             state: state,
         });
-        if (chosenLeaf.view instanceof MainMapView)
-			return chosenLeaf.view;
-		return null;
-	}
+        if (chosenLeaf.view instanceof MainMapView) return chosenLeaf.view;
+        return null;
+    }
 
     public async openMapWithState(
         state: MapState,
@@ -237,47 +243,46 @@ export default class MapViewPlugin extends Plugin {
         highlightFile: TAbstractFile = null,
         highlightFileLine: number = null
     ) {
-		const mapView = await this.openMap(ctrlKey, state);
-		if (mapView && mapView.mapContainer) {
-			const map = mapView.mapContainer;
-			if (forceAutoFit) map.autoFitMapToMarkers();
-			if (highlightFile) {
-				const markerToHighlight = map.findMarkerByFileLine(
-					highlightFile,
-					highlightFileLine
-				);
-				map.setHighlight(markerToHighlight);
-			}
-		}
-	}
+        const mapView = await this.openMap(ctrlKey, state);
+        if (mapView && mapView.mapContainer) {
+            const map = mapView.mapContainer;
+            if (forceAutoFit) map.autoFitMapToMarkers();
+            if (highlightFile) {
+                const markerToHighlight = map.findMarkerByFileLine(
+                    highlightFile,
+                    highlightFileLine
+                );
+                map.setHighlight(markerToHighlight);
+            }
+        }
+    }
 
-	/**
-	 * Open an instance of the map at the given geolocation.
-	 * The active query is cleared so we'll be sure that the location is actually displayed.
-	 * @param location The geolocation to open the map at
-	 * @param ctrlKey Was the control key pressed
-	 * @param file the file this location belongs to
-	 * @param fileLine the line in the file (if it's an inline link)
-	 * @param keepZoom don't zoom the map
-	 */
-	async openMapWithLocation(
-		location: leaflet.LatLng,
-		ctrlKey: boolean,
-		file: TAbstractFile,
-		fileLine: number = null,
-		keepZoom: boolean = false
-	) {
-		let newState = {
-			mapCenter: location,
-			query: '',
-		} as MapState;
-		if (!keepZoom)
-			newState = Object.assign(newState, {
-				mapZoom: this.settings.zoomOnGoFromNote,
-			});
-		await this.openMapWithState(newState, ctrlKey, false, file, fileLine);
-	}
-
+    /**
+     * Open an instance of the map at the given geolocation.
+     * The active query is cleared so we'll be sure that the location is actually displayed.
+     * @param location The geolocation to open the map at
+     * @param ctrlKey Was the control key pressed
+     * @param file the file this location belongs to
+     * @param fileLine the line in the file (if it's an inline link)
+     * @param keepZoom don't zoom the map
+     */
+    async openMapWithLocation(
+        location: leaflet.LatLng,
+        ctrlKey: boolean,
+        file: TAbstractFile,
+        fileLine: number = null,
+        keepZoom: boolean = false
+    ) {
+        let newState = {
+            mapCenter: location,
+            query: '',
+        } as MapState;
+        if (!keepZoom)
+            newState = Object.assign(newState, {
+                mapZoom: this.settings.zoomOnGoFromNote,
+            });
+        await this.openMapWithState(newState, ctrlKey, false, file, fileLine);
+    }
 
     /**
      * Get the geolocation on the current editor line
@@ -287,9 +292,9 @@ export default class MapViewPlugin extends Plugin {
      */
     private getLocationOnEditorLine(
         editor: Editor,
-		lineNumber: number,
+        lineNumber: number,
         view: FileView,
-		alsoFrontMatter: boolean
+        alsoFrontMatter: boolean
     ): leaflet.LatLng {
         const line = editor.getLine(lineNumber);
         const match = matchInlineLocation(line)[0];
@@ -343,72 +348,109 @@ export default class MapViewPlugin extends Plugin {
         _source: string,
         leaf?: WorkspaceLeaf
     ) {
-		const editor = leaf && leaf.view instanceof MarkdownView ? leaf.view.editor : null;
+        const editor =
+            leaf && leaf.view instanceof MarkdownView ? leaf.view.editor : null;
         if (file instanceof TFile) {
             const location = getFrontMatterLocation(file, this.app);
             if (location) {
                 // If there is a geolocation in the front matter of the file
                 // Add an option to open it in the map
-				menus.addShowOnMap(menu, location, file, null, this);
+                menus.addShowOnMap(menu, location, file, null, this);
                 // Add an option to open it in the default app
-				menus.addOpenWith(menu, location, this.settings);
+                menus.addOpenWith(menu, location, this.settings);
             } else {
                 if (editor) {
                     // If there is no valid geolocation in the front matter, add a menu item to populate it.
-					menus.addGeolocationToNote(menu, this.app, editor, this.settings);
+                    menus.addGeolocationToNote(
+                        menu,
+                        this.app,
+                        editor,
+                        this.settings
+                    );
                 }
             }
-			if (utils.isMobile(this.app)) {
-				// On mobile there's no editor context menu, so add it here instead
-				this.onEditorMenu(menu, editor, leaf.view as MarkdownView);
-			}
-			menus.addFocusNoteInMapView(menu, file, this.settings, this);
-			if (this.settings.debug)
-				menus.addImport(menu, editor, this.app, this, this.settings);
+            if (utils.isMobile(this.app)) {
+                // On mobile there's no editor context menu, so add it here instead
+                this.onEditorMenu(menu, editor, leaf.view as MarkdownView);
+            }
+            menus.addFocusNoteInMapView(menu, file, this.settings, this);
+            if (this.settings.debug)
+                menus.addImport(menu, editor, this.app, this, this.settings);
         }
     }
 
     onEditorMenu(menu: Menu, editor: Editor, view: MarkdownView) {
-		if (!editor)
-			return;
+        if (!editor) return;
         if (view instanceof FileView) {
-			let multiLineMode = false;
-			const [fromLine, toLine, geolocations] = this.geolocationsWithinSelection(editor, view);
-			if (geolocations.length > 0) {
-				multiLineMode = true;
-				menus.addFocusLinesInMapView(menu, view.file, fromLine, toLine, geolocations.length, this, this.settings);
-			}
-			if (!multiLineMode) {
-				const editorLine = editor.getCursor().line;
-				const location = this.getLocationOnEditorLine(editor, editorLine, view, true);
-				if (location) {
-					const editorLine = editor.getCursor().line;
-					menus.addShowOnMap(menu, location, view.file, editorLine, this);
-					menus.addOpenWith(menu, location, this.settings);
-				}
-			}
-			menus.addUrlConversionItems(menu, editor, this.suggestor, this.urlConvertor);
+            let multiLineMode = false;
+            const [fromLine, toLine, geolocations] =
+                this.geolocationsWithinSelection(editor, view);
+            if (geolocations.length > 0) {
+                multiLineMode = true;
+                menus.addFocusLinesInMapView(
+                    menu,
+                    view.file,
+                    fromLine,
+                    toLine,
+                    geolocations.length,
+                    this,
+                    this.settings
+                );
+            }
+            if (!multiLineMode) {
+                const editorLine = editor.getCursor().line;
+                const location = this.getLocationOnEditorLine(
+                    editor,
+                    editorLine,
+                    view,
+                    true
+                );
+                if (location) {
+                    const editorLine = editor.getCursor().line;
+                    menus.addShowOnMap(
+                        menu,
+                        location,
+                        view.file,
+                        editorLine,
+                        this
+                    );
+                    menus.addOpenWith(menu, location, this.settings);
+                }
+            }
+            menus.addUrlConversionItems(
+                menu,
+                editor,
+                this.suggestor,
+                this.urlConvertor
+            );
         }
     }
 
-	geolocationsWithinSelection(editor: Editor, view: MarkdownView): [number, number, leaflet.LatLng[]] {
-		let geolocations: leaflet.LatLng[] = [];
-		const editorSelections = editor.listSelections();
-		if (editorSelections && editorSelections.length > 0) {
-			const anchorLine = editorSelections[0].anchor.line;
-			const headLine = editorSelections[0].head.line;
-			if (anchorLine != headLine) {
-				const fromLine = Math.min(anchorLine, headLine);
-				const toLine = Math.max(anchorLine, headLine);
-				let geolocations: leaflet.LatLng[] = [];
-				for (let line = fromLine ; line <= toLine ; line++) {
-					const geolocationOnLine = this.getLocationOnEditorLine(editor, line, view, false);
-					if (geolocationOnLine)
-						geolocations.push(geolocationOnLine);
-				}
-				return [fromLine, toLine, geolocations];
-			}
-		}
-		return [null, null, []];
-	}
+    geolocationsWithinSelection(
+        editor: Editor,
+        view: MarkdownView
+    ): [number, number, leaflet.LatLng[]] {
+        let geolocations: leaflet.LatLng[] = [];
+        const editorSelections = editor.listSelections();
+        if (editorSelections && editorSelections.length > 0) {
+            const anchorLine = editorSelections[0].anchor.line;
+            const headLine = editorSelections[0].head.line;
+            if (anchorLine != headLine) {
+                const fromLine = Math.min(anchorLine, headLine);
+                const toLine = Math.max(anchorLine, headLine);
+                let geolocations: leaflet.LatLng[] = [];
+                for (let line = fromLine; line <= toLine; line++) {
+                    const geolocationOnLine = this.getLocationOnEditorLine(
+                        editor,
+                        line,
+                        view,
+                        false
+                    );
+                    if (geolocationOnLine) geolocations.push(geolocationOnLine);
+                }
+                return [fromLine, toLine, geolocations];
+            }
+        }
+        return [null, null, []];
+    }
 }
