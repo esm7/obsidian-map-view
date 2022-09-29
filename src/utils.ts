@@ -4,8 +4,7 @@ import {
     Editor,
     App,
     TFile,
-    Menu,
-    MenuItem,
+	TAbstractFile,
     getAllTags,
 } from 'obsidian';
 
@@ -154,32 +153,6 @@ export function verifyOrAddFrontMatter(
     return false;
 }
 
-/**
- * Populate a context menu from the user configurable URLs
- * @param menu The menu to attach
- * @param location The geolocation to use in the menu item
- * @param settings Plugin settings
- */
-export function populateOpenInItems(
-    menu: Menu,
-    location: leaflet.LatLng,
-    settings: settings.PluginSettings
-) {
-    for (let setting of settings.openIn) {
-        if (!setting.name || !setting.urlPattern) continue;
-        const fullUrl = setting.urlPattern
-            .replace('{x}', location.lat.toString())
-            .replace('{y}', location.lng.toString());
-        menu.addItem((item: MenuItem) => {
-            item.setTitle(`Open in ${setting.name}`);
-            item.setSection('mapview');
-            item.onClick((_ev) => {
-                open(fullUrl);
-            });
-        });
-    }
-}
-
 export function replaceFollowActiveNoteQuery(
     file: TFile,
     settings: settings.PluginSettings
@@ -244,4 +217,17 @@ export function getAllTagNames(app: App): string[] {
     }
     tags = tags.sort();
     return tags;
+}
+
+export function isMobile(app: App): boolean {
+	return (app as any)?.isMobile;
+}
+
+export function trimmedFileName(file: TFile) {
+	const MAX_LENGTH = 12;
+	const name = file.basename;
+	if (name.length > MAX_LENGTH)
+		return name.slice(0, MAX_LENGTH / 2) + '...' + name.slice(name.length - MAX_LENGTH / 2);
+	else
+		return name;
 }

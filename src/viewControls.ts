@@ -4,6 +4,7 @@ import {
     TextComponent,
     DropdownComponent,
     ToggleComponent,
+	Notice
 } from 'obsidian';
 
 // A global ID to differentiate instances of the controls for the purpose of label creation
@@ -527,5 +528,49 @@ export class SearchControl extends leaflet.Control {
         };
         searchDialog.searchArea = this.view.display.map.getBounds();
         searchDialog.open();
+    }
+}
+
+export class RealTimeControl extends leaflet.Control {
+    view: MapContainer;
+    app: App;
+    settings: PluginSettings;
+    locateButton: HTMLAnchorElement;
+    clearButton: HTMLAnchorElement;
+
+    constructor(
+        options: any,
+        view: MapContainer,
+        app: App,
+        settings: PluginSettings
+    ) {
+        super(options);
+        this.view = view;
+        this.app = app;
+        this.settings = settings;
+    }
+
+    onAdd(map: leaflet.Map) {
+        const div = leaflet.DomUtil.create(
+            'div',
+            'leaflet-bar leaflet-control'
+        );
+        this.locateButton = div.createEl('a');
+        this.locateButton.innerHTML = '⌖';
+		this.locateButton.style.fontSize = '25px';
+        this.locateButton.onClickEvent((ev: MouseEvent) => {
+			new Notice('Asking for the current location');
+			open('geohelper://locate');
+			this.clearButton.style.display = 'block';
+        });
+        this.clearButton = div.createEl('a');
+        this.clearButton.innerHTML = 'X';
+        this.clearButton.style.display = 'none';
+        this.clearButton.onClickEvent((ev: MouseEvent) => {
+            this.view.setRealTimeLocation(null, 0, 'clear');
+            this.clearButton.style.display = 'none';
+        });
+
+        return div;
     }
 }

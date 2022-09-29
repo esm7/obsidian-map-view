@@ -30,6 +30,7 @@ export class MainMapView extends BaseMapView {
             viewTabType: 'regular',
             showPresets: true,
             showSearch: true,
+			showRealTimeButton: true,
             showOpenButton: false,
         };
 
