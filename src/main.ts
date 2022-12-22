@@ -20,7 +20,8 @@ import * as menus from 'src/menus';
 
 import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
-// import { EmbeddedMap } from 'src/embeddedMap';
+import { EmbeddedMap } from 'src/embeddedMap';
+import { IconCache } from 'src/markerIcons';
 
 import {
     PluginSettings,
@@ -29,7 +30,6 @@ import {
 } from 'src/settings';
 import { MapState } from 'src/mapState';
 import {
-    getMarkersFromFileContent,
     getFrontMatterLocation,
     matchInlineLocation,
     verifyLocation,
@@ -42,6 +42,7 @@ import * as utils from 'src/utils';
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
     public highestVersionSeen: number = 0;
+	public iconCache: IconCache;
     private suggestor: LocationSuggest;
     private tagSuggestor: TagSuggest;
     private urlConvertor: UrlConvertor;
@@ -105,6 +106,11 @@ export default class MapViewPlugin extends Plugin {
             }
         );
 
+		this.registerMarkdownCodeBlockProcessor('mapview', async (source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
+			let map = new EmbeddedMap(el, this.settings, this);
+			map.onOpen();
+		});
+
         this.suggestor = new LocationSuggest(this.app, this.settings);
         this.tagSuggestor = new TagSuggest(this.app, this.settings);
         this.urlConvertor = new UrlConvertor(this.app, this.settings);
@@ -113,6 +119,8 @@ export default class MapViewPlugin extends Plugin {
         this.registerEditorSuggest(this.tagSuggestor);
 
         await convertLegacySettings(this.settings, this);
+
+		this.iconCache = new IconCache(document.body);
 
         // Register commands to the command palette
         // Command that opens the map view (same as clicking the map icon)
@@ -157,6 +165,7 @@ export default class MapViewPlugin extends Plugin {
             callback: () => {
                 const dialog = new LocationSearchDialog(
                     this.app,
+					this,
                     this.settings,
                     'newNote',
                     'New geolocation note'
@@ -172,6 +181,7 @@ export default class MapViewPlugin extends Plugin {
             editorCallback: (editor, view) => {
                 const dialog = new LocationSearchDialog(
                     this.app,
+					this,
                     this.settings,
                     'addToNote',
                     'Add geolocation to note',
@@ -227,7 +237,13 @@ export default class MapViewPlugin extends Plugin {
         let chosenLeaf: WorkspaceLeaf = null;
         if (maps && !ctrlKey) chosenLeaf = maps[0];
         else chosenLeaf = this.app.workspace.getLeaf();
-        if (!chosenLeaf) chosenLeaf = this.app.workspace.activeLeaf;
+		if (!chosenLeaf) {
+			const emptyLeaves = this.app.workspace.getLeavesOfType('empty');
+			if (emptyLeaves)
+				chosenLeaf = emptyLeaves[0];
+		}
+        if (!chosenLeaf) chosenLeaf = this.app.workspace.getLeaf(true);
+		this.app.workspace.setActiveLeaf(chosenLeaf);
         await chosenLeaf.setViewState({
             type: consts.MAP_VIEW_NAME,
             state: state,
@@ -364,6 +380,7 @@ export default class MapViewPlugin extends Plugin {
                     menus.addGeolocationToNote(
                         menu,
                         this.app,
+						this,
                         editor,
                         this.settings
                     );

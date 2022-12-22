@@ -99,6 +99,7 @@ export function populateOpenInItems(
 export function addGeolocationToNote(
     menu: Menu,
     app: App,
+	plugin: MapViewPlugin,
     editor: Editor,
     settings: settings.PluginSettings
 ) {
@@ -109,6 +110,7 @@ export function addGeolocationToNote(
         item.onClick(async (_evt: MouseEvent) => {
             const dialog = new LocationSearchDialog(
                 app,
+				plugin,
                 settings,
                 'addToNote',
                 'Add geolocation to note',

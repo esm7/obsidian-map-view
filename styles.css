@@ -157,3 +157,9 @@
 div.map-view-highlight.marker-cluster {
     box-shadow: 0 0 5px blue;
 }
+
+.map-view-icon {
+	margin: 10px;
+	width: 15px;
+	height: 15px;
+}

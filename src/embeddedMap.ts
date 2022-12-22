@@ -38,6 +38,12 @@ export class EmbeddedMap {
             emptyFitRevertsToDefault: true,
         };
 
+		// TODO TEMP
+		parentEl.style.height = '300px';
+		parentEl.addEventListener('resize', () => {
+			this.onResize();
+		});
+
         this.mapContainer = new MapContainer(
             parentEl,
             settings,
@@ -46,4 +52,15 @@ export class EmbeddedMap {
             plugin.app
         );
     }
+
+	async onOpen() {
+		await this.mapContainer.onOpen();
+		// // TODO TEMP this is a terrible patch
+		// setTimeout(() => this.onResize(), 100);
+	}
+
+	onResize() {
+		if (this.mapContainer.display.map)
+			this.mapContainer.display.map.invalidateSize();
+	}
 }

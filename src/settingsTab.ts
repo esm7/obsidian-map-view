@@ -13,7 +13,7 @@ import {
     UrlParsingContentType,
     DEFAULT_SETTINGS,
 } from 'src/settings';
-import { getIconFromOptions, getIconFromRules } from 'src/markers';
+import { getIconFromOptions, getIconFromRules } from 'src/markerIcons';
 import { BaseMapView } from 'src/baseMapView';
 import * as consts from 'src/consts';
 import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
@@ -758,7 +758,8 @@ export class SettingsTab extends PluginSettingTab {
                                 (element) => element.ruleName === 'default'
                             ).iconDetails,
                             rule.iconDetails
-                        )
+                        ),
+						this.plugin.iconCache
                     );
                     iconElement = compiledIcon.createIcon();
                     let style = iconElement.style;
@@ -794,7 +795,8 @@ export class SettingsTab extends PluginSettingTab {
                     ruleTestSetting.controlEl.removeChild(multiTagIconElement);
                 const compiledIcon = getIconFromRules(
                     testTagsBox.getValue().split(' '),
-                    rules
+                    rules,
+					this.plugin.iconCache
                 );
                 multiTagIconElement = compiledIcon.createIcon();
                 let style = multiTagIconElement.style;

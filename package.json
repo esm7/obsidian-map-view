@@ -1,6 +1,6 @@
 {
     "name": "obsidian-map-view",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "description": "An interactive map view for Obsidian.md",
     "main": "main.js",
     "scripts": {
@@ -15,6 +15,7 @@
     "license": "MIT",
     "devDependencies": {
         "@rollup/plugin-commonjs": "^18.0.0",
+        "@rollup/plugin-image": "^3.0.1",
         "@rollup/plugin-node-resolve": "^11.2.1",
         "@rollup/plugin-typescript": "^8.2.1",
         "@types/geojson": "^7946.0.7",

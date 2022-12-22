@@ -373,6 +373,20 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 ## Changelog
 
+### 2.3.0
+
+**New:**
+
+-	Major performance improvements, especially when displaying hundreds of markers or more. Navigation operations that could take seconds (e.g. zooming out or jumping from a note when hundreds of markers are displayed) are now done in milliseconds.
+	- **IMPORTANT:** this might break some very custom marker icon rules (especially ones that use properties that I didn't think to test).
+	- If you experience such breakage, please open an issue and use version 2.2.0 in the meantime.
+
+**Fixes:**
+
+-	Parenthesis now work in queries (https://github.com/esm7/obsidian-map-view/issues/124).
+-	Commas now work in queries (https://github.com/esm7/obsidian-map-view/issues/125).
+-	Fixed weird pane selection logic for "Open in Map View" and "Show on Map View" caused by the Obsidian 1.1 UI changes (https://github.com/esm7/obsidian-map-view/issues/127).
+
 ### 2.2.0
 
 **New:**

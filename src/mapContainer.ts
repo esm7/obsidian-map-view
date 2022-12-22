@@ -27,10 +27,10 @@ import {
     MarkersMap,
     FileMarker,
     buildMarkers,
-    getIconFromOptions,
     buildAndAppendFileMarkers,
     finalizeMarkers,
 } from 'src/markers';
+import { getIconFromOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import { ViewControls, SearchControl, RealTimeControl } from 'src/viewControls';
@@ -368,6 +368,7 @@ export class MapContainer {
                 this.settings.maxClusterRadiusPixels ??
                 DEFAULT_SETTINGS.maxClusterRadiusPixels,
             animate: false,
+			chunkedLoading: true
         });
         this.display.map.addLayer(this.display.clusterGroup);
 
@@ -413,6 +414,7 @@ export class MapContainer {
                 { position: 'topright' },
                 this,
                 this.app,
+				this.plugin,
                 this.settings
             );
             this.display.map.addControl(this.display.searchControls);
@@ -494,7 +496,7 @@ export class MapContainer {
             newMarkers = [];
             state.queryError = true;
         }
-        finalizeMarkers(newMarkers, this.settings);
+        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
         this.state = state;
         this.updateMapMarkers(newMarkers);
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
@@ -829,13 +831,13 @@ export class MapContainer {
                 this.settings,
                 this.app
             );
-        finalizeMarkers(newMarkers, this.settings);
+        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
         this.updateMapMarkers(newMarkers);
     }
 
     addSearchResultMarker(details: GeoSearchResult, keepZoom: boolean) {
         this.display.searchResult = leaflet.marker(details.location, {
-            icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER),
+            icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER, this.plugin.iconCache),
         });
         const marker = this.display.searchResult;
         marker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
@@ -948,7 +950,7 @@ export class MapContainer {
         const accuracy = this.lastRealTimeLocation.accuracy;
         this.display.realTimeLocationMarker = leaflet
             .marker(center, {
-                icon: getIconFromOptions(consts.CURRENT_LOCATION_MARKER),
+                icon: getIconFromOptions(consts.CURRENT_LOCATION_MARKER, this.plugin.iconCache),
             })
             .addTo(this.display.map);
         this.display.realTimeLocationRadius = leaflet

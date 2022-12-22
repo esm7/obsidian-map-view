@@ -439,6 +439,7 @@ export class ViewControls {
 export class SearchControl extends leaflet.Control {
     view: MapContainer;
     app: App;
+	plugin: MapViewPlugin;
     settings: PluginSettings;
     searchButton: HTMLAnchorElement;
     clearButton: HTMLAnchorElement;
@@ -447,11 +448,13 @@ export class SearchControl extends leaflet.Control {
         options: any,
         view: MapContainer,
         app: App,
+		plugin: MapViewPlugin,
         settings: PluginSettings
     ) {
         super(options);
         this.view = view;
         this.app = app;
+		this.plugin = plugin;
         this.settings = settings;
     }
 
@@ -501,6 +504,7 @@ export class SearchControl extends leaflet.Control {
 
         const searchDialog = new LocationSearchDialog(
             this.app,
+			this.plugin,
             this.settings,
             'custom',
             'Find in map',
