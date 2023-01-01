@@ -21,8 +21,13 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
-import { MapState, mergeStates, stateToUrl, copyState } from 'src/mapState';
-import { PluginSettings, TileSource, DEFAULT_SETTINGS } from 'src/settings';
+import { MapState, mergeStates, stateToUrl, getCodeBlock } from 'src/mapState';
+import {
+    OpenBehavior,
+    PluginSettings,
+    TileSource,
+    DEFAULT_SETTINGS,
+} from 'src/settings';
 import {
     MarkersMap,
     FileMarker,
@@ -48,6 +53,7 @@ export type ViewSettings = {
     showFilters: boolean;
     showView: boolean;
     viewTabType: 'regular' | 'mini';
+    showEmbeddedControls: boolean;
     showPresets: boolean;
     showSearch: boolean;
     showOpenButton: boolean;
@@ -99,16 +105,24 @@ export class MapContainer {
     public ongoingChanges = 0;
     public freezeMap: boolean = false;
     private plugin: MapViewPlugin;
-    /** The default state as saved in the plugin settings */
-    private defaultState: MapState;
+    /** The default state as saved in the plugin settings, or something else that the view sets */
+    public defaultState: MapState;
     public lastRealTimeLocation: RealTimeLocation = null;
     /**
-     * The Workspace Leaf that a note was last opened in.
+     * The Workspace Leaf that a note was last opened in when a new pane was created.
      * This is saved so the same leaf can be reused when opening subsequent notes, making the flow consistent & predictable for the user.
      */
-    private newPaneLeaf: WorkspaceLeaf;
+    private lastPaneLeaf: WorkspaceLeaf;
+    /**
+     * Same as above, but saved separately for when a new tab was created.
+     */
+    private lastTabLeaf: WorkspaceLeaf;
     /** Is the view currently open */
     private isOpen: boolean = false;
+    /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
+    public updateCodeBlockCallback: () => Promise<void>;
+    /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
+    public updateCodeBlockFromMapViewCallback: () => Promise<void>;
 
     /**
      * Construct a new map instance
@@ -156,6 +170,14 @@ export class MapContainer {
         const url = `obsidian://mapview?do=open&${params}`;
         navigator.clipboard.writeText(url);
         new Notice('Copied state URL to clipboard');
+    }
+
+    copyCodeBlock() {
+        const block = getCodeBlock(this.state);
+        navigator.clipboard.writeText(block);
+        new Notice(
+            'Copied state as code block which you can embed in any note'
+        );
     }
 
     getMarkers() {
@@ -368,7 +390,7 @@ export class MapContainer {
                 this.settings.maxClusterRadiusPixels ??
                 DEFAULT_SETTINGS.maxClusterRadiusPixels,
             animate: false,
-			chunkedLoading: true
+            chunkedLoading: true,
         });
         this.display.map.addLayer(this.display.clusterGroup);
 
@@ -379,6 +401,7 @@ export class MapContainer {
                 mapCenter: this.display.map.getCenter(),
             });
             this.display?.controls?.invalidateActivePreset();
+            this.display?.controls?.updateSaveButtonVisibility();
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
         });
@@ -389,6 +412,7 @@ export class MapContainer {
                 mapCenter: this.display.map.getCenter(),
             });
             this.display?.controls?.invalidateActivePreset();
+            this.display?.controls?.updateSaveButtonVisibility();
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
         });
@@ -414,7 +438,7 @@ export class MapContainer {
                 { position: 'topright' },
                 this,
                 this.app,
-				this.plugin,
+                this.plugin,
                 this.settings
             );
             this.display.map.addControl(this.display.searchControls);
@@ -580,7 +604,29 @@ export class MapContainer {
         newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app))
                 this.showMarkerPopups(marker, newMarker);
-            else this.goToMarker(marker, event.originalEvent.ctrlKey, true);
+            else
+                this.goToMarker(
+                    marker,
+                    utils.mouseEventToOpenMode(
+                        this.settings,
+                        event.originalEvent,
+                        'openNote'
+                    ),
+                    true
+                );
+        });
+        newMarker.on('mousedown', (event: leaflet.LeafletMouseEvent) => {
+            // Middle click is supported only on mousedown and not on click, so we're checking for it here
+            if (event.originalEvent.button === 1)
+                this.goToMarker(
+                    marker,
+                    utils.mouseEventToOpenMode(
+                        this.settings,
+                        event.originalEvent,
+                        'openNote'
+                    ),
+                    true
+                );
         });
         newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app))
@@ -607,14 +653,7 @@ export class MapContainer {
     ) {
         this.setHighlight(mapMarker);
         let mapPopup = new Menu();
-        mapPopup.addItem((item: MenuItem) => {
-            item.setTitle('Open note');
-            item.setIcon('file');
-            item.setSection('open-note');
-            item.onClick(async (ev) => {
-                this.goToMarker(fileMarker, ev.ctrlKey, true);
-            });
-        });
+        menus.populateOpenNote(this, fileMarker, mapPopup, this.settings);
         menus.populateOpenInItems(mapPopup, fileMarker.location, this.settings);
         if (ev) mapPopup.showAtPosition(ev);
     }
@@ -666,8 +705,16 @@ export class MapContainer {
                     className: 'marker-popup',
                 })
                 .on('popupopen', (event: leaflet.PopupEvent) => {
-                    event.popup.getElement()?.onClickEvent(() => {
-                        this.goToMarker(fileMarker, false, true);
+                    event.popup.getElement()?.onClickEvent((ev: MouseEvent) => {
+                        this.goToMarker(
+                            fileMarker,
+                            utils.mouseEventToOpenMode(
+                                this.settings,
+                                ev,
+                                'openNote'
+                            ),
+                            true
+                        );
                     });
                 })
                 .openPopup()
@@ -701,7 +748,7 @@ export class MapContainer {
 
     /** Zoom the map to fit all markers on the screen */
     public async autoFitMapToMarkers() {
-        if (this.display.markers.size > 1) {
+        if (this.display.markers.size > 0) {
             const locations: leaflet.LatLng[] = Array.from(
                 this.display.markers.values()
             ).map((fileMarker) => fileMarker.location);
@@ -722,85 +769,87 @@ export class MapContainer {
     /**
      * Open a file in an editor window
      * @param file The file object to open
-     * @param useCtrlKeyBehavior If true will use the alternative behaviour, as set in the settings
+     * @param openBehavior the required type of action
      * @param editorAction Optional callback to run when the file is opened
      */
     async goToFile(
         file: TFile,
-        useCtrlKeyBehavior: boolean,
+        openBehavior: OpenBehavior,
         editorAction?: (editor: Editor) => Promise<void>
     ) {
-        let leafToUse = this.app.workspace.activeLeaf;
-        const defaultDifferentPane =
-            this.settings.markerClickBehavior != 'samePane';
-        // Having a pane to reuse means that we previously opened a note in a new pane and that pane still exists (wasn't closed)
-        const havePaneToReuse =
-            this.newPaneLeaf &&
-            this.newPaneLeaf.view &&
-            this.settings.markerClickBehavior != 'alwaysNew';
-        if (
-            havePaneToReuse ||
-            (defaultDifferentPane && !useCtrlKeyBehavior) ||
-            (!defaultDifferentPane && useCtrlKeyBehavior)
-        ) {
-            // We were instructed to use a different pane for opening the note.
-            // We go here in the following cases:
-            // 1. An existing pane to reuse exists (the user previously opened it, with or without Ctrl).
-            //    In this case we use the pane regardless of the default or of Ctrl, assuming that if a user opened a pane
-            //    once, she wants to retain it until it's closed. (I hope no one will treat this as a bug...)
-            // 2. The default is to use a different pane and Ctrl is not pressed.
-            // 3. The default is to NOT use a different pane and Ctrl IS pressed.
-            const someOpenMarkdownLeaf =
-                this.app.workspace.getLeavesOfType('markdown');
-            if (havePaneToReuse) {
-                // We have an existing pane, that pane still has a view (it was not closed), and the settings say
-                // to use a 2nd pane. That's the only case on which we reuse a pane
-                this.app.workspace.setActiveLeaf(this.newPaneLeaf);
-                leafToUse = this.newPaneLeaf;
-            } else if (
-                someOpenMarkdownLeaf.length > 0 &&
-                this.settings.markerClickBehavior != 'alwaysNew'
-            ) {
-                // We don't have a pane to reuse but the user wants a new pane and there is currently an open
-                // Markdown pane. Let's take control over it and hope it's the right thing to do
-                this.app.workspace.setActiveLeaf(someOpenMarkdownLeaf[0]);
-                leafToUse = someOpenMarkdownLeaf[0];
-                this.newPaneLeaf = leafToUse;
-            } else {
-                // We need a new pane. We split it the way the settings tell us
-                this.newPaneLeaf = this.app.workspace.splitActiveLeaf(
-                    this.settings.newPaneSplitDirection || 'horizontal'
-                );
-                leafToUse = this.newPaneLeaf;
-            }
+        // Find the best candidate for a leaf to open the note according to the required behavior.
+        // This is similar to MainViewPlugin.openMap and should be in sync with that code.
+        let chosenLeaf: WorkspaceLeaf = null;
+        const paneToReuse: WorkspaceLeaf =
+            this.lastPaneLeaf && (this.lastPaneLeaf as any).parent
+                ? this.lastPaneLeaf
+                : null;
+        const tabToReuse: WorkspaceLeaf =
+            this.lastTabLeaf && (this.lastTabLeaf as any).parent
+                ? this.lastTabLeaf
+                : null;
+        const otherExistingLeaf = this.app.workspace.getLeaf(false);
+        const emptyLeaf = this.app.workspace.getLeavesOfType('empty');
+        let createPane = false;
+        let createTab = false;
+        switch (openBehavior) {
+            case 'replaceCurrent':
+                chosenLeaf = otherExistingLeaf;
+                if (!chosenLeaf && emptyLeaf) chosenLeaf = emptyLeaf[0];
+                break;
+            case 'dedicatedPane':
+                chosenLeaf = paneToReuse;
+                if (!chosenLeaf) createPane = true;
+                break;
+            case 'dedicatedTab':
+                chosenLeaf = tabToReuse;
+                if (!chosenLeaf) createTab = true;
+                break;
+            case 'alwaysNewPane':
+                createPane = true;
+                break;
+            case 'alwaysNewTab':
+                createTab = true;
+                break;
         }
-        await leafToUse.openFile(file);
-        const editor = await utils.getEditor(this.app, leafToUse);
+        if (createTab) {
+            chosenLeaf = this.app.workspace.getLeaf('tab');
+            this.lastTabLeaf = chosenLeaf;
+        }
+        if (createPane) {
+            chosenLeaf = this.app.workspace.getLeaf(
+                'split',
+                this.settings.newPaneSplitDirection
+            );
+            this.lastPaneLeaf = chosenLeaf;
+        }
+        if (!chosenLeaf) {
+            console.log('TODO TEMP unable to get a leaf in any other method');
+            chosenLeaf = this.app.workspace.getLeaf(true);
+        }
+        await chosenLeaf.openFile(file);
+        const editor = await utils.getEditor(this.app, chosenLeaf);
         if (editor && editorAction) await editorAction(editor);
     }
 
     /**
      * Open and go to the editor location represented by the marker
      * @param marker The FileMarker to open
-     * @param useCtrlKeyBehavior If true will use the alternative behaviour, as set in the settings
+     * @param openBehavior the required type of action
      * @param highlight If true will highlight the line
      */
     async goToMarker(
         marker: FileMarker,
-        useCtrlKeyBehavior: boolean,
+        openBehavior: OpenBehavior,
         highlight: boolean
     ) {
-        return this.goToFile(
-            marker.file,
-            useCtrlKeyBehavior,
-            async (editor) => {
-                await utils.goToEditorLocation(
-                    editor,
-                    marker.fileLocation,
-                    highlight
-                );
-            }
-        );
+        return this.goToFile(marker.file, openBehavior, async (editor) => {
+            await utils.goToEditorLocation(
+                editor,
+                marker.fileLocation,
+                highlight
+            );
+        });
     }
 
     /**
@@ -837,7 +886,10 @@ export class MapContainer {
 
     addSearchResultMarker(details: GeoSearchResult, keepZoom: boolean) {
         this.display.searchResult = leaflet.marker(details.location, {
-            icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER, this.plugin.iconCache),
+            icon: getIconFromOptions(
+                consts.SEARCH_RESULT_MARKER,
+                this.plugin.iconCache
+            ),
         });
         const marker = this.display.searchResult;
         marker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
@@ -950,7 +1002,10 @@ export class MapContainer {
         const accuracy = this.lastRealTimeLocation.accuracy;
         this.display.realTimeLocationMarker = leaflet
             .marker(center, {
-                icon: getIconFromOptions(consts.CURRENT_LOCATION_MARKER, this.plugin.iconCache),
+                icon: getIconFromOptions(
+                    consts.CURRENT_LOCATION_MARKER,
+                    this.plugin.iconCache
+                ),
             })
             .addTo(this.display.map);
         this.display.realTimeLocationRadius = leaflet

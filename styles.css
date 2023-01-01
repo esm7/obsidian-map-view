@@ -48,6 +48,10 @@
     display: none;
 }
 
+.mv-control-button {
+    display: inline;
+}
+
 .controls-toggle:checked
     + .lbl-triangle
     + .lbl-toggle
@@ -159,7 +163,27 @@ div.map-view-highlight.marker-cluster {
 }
 
 .map-view-icon {
-	margin: 10px;
-	width: 15px;
-	height: 15px;
+    margin: 10px;
+    width: 15px;
+    height: 15px;
+}
+
+.block-language-mapview {
+    height: 300px;
+}
+
+.markdown-reading-view .graph-control-div {
+    display: none;
+}
+.markdown-reading-view .map-view-graph-controls {
+    padding: 0;
+}
+
+@media print {
+    .map-view-graph-controls {
+        display: none;
+    }
+    .leaflet-control-zoom {
+        display: none;
+    }
 }

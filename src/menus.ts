@@ -1,16 +1,4 @@
-import {
-    Editor,
-    FileView,
-    MarkdownView,
-    MenuItem,
-    Menu,
-    App,
-    TFile,
-    Plugin,
-    WorkspaceLeaf,
-    TAbstractFile,
-    ObsidianProtocolData,
-} from 'obsidian';
+import { Editor, MenuItem, Menu, App, TFile, TAbstractFile } from 'obsidian';
 
 import * as leaflet from 'leaflet';
 
@@ -23,29 +11,32 @@ import { MapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import { MapContainer } from 'src/mapContainer';
 import { ImportDialog } from 'src/importDialog';
+import { PluginSettings } from 'src/settings';
+import { FileMarker } from 'src/markers';
 
 export function addShowOnMap(
     menu: Menu,
     geolocation: leaflet.LatLng,
     file: TAbstractFile,
     editorLine: number,
-    plugin: MapViewPlugin
+    plugin: MapViewPlugin,
+    settings: PluginSettings
 ) {
     if (geolocation) {
         menu.addItem((item: MenuItem) => {
             item.setTitle('Show on map');
             item.setSection('mapview');
             item.setIcon('globe');
-            item.onClick(
-                async (evt: MouseEvent) =>
-                    await plugin.openMapWithLocation(
-                        geolocation,
-                        evt.ctrlKey,
-                        file,
-                        editorLine,
-                        evt.shiftKey
-                    )
-            );
+            const openFunc = async (evt: MouseEvent) =>
+                await plugin.openMapWithLocation(
+                    geolocation,
+                    utils.mouseEventToOpenMode(settings, evt, 'openMap'),
+                    file,
+                    editorLine,
+                    evt.shiftKey
+                );
+            item.onClick(openFunc);
+            addPatchyMiddleClickHandler(item, menu, openFunc);
         });
     }
 }
@@ -99,7 +90,7 @@ export function populateOpenInItems(
 export function addGeolocationToNote(
     menu: Menu,
     app: App,
-	plugin: MapViewPlugin,
+    plugin: MapViewPlugin,
     editor: Editor,
     settings: settings.PluginSettings
 ) {
@@ -110,7 +101,7 @@ export function addGeolocationToNote(
         item.onClick(async (_evt: MouseEvent) => {
             const dialog = new LocationSearchDialog(
                 app,
-				plugin,
+                plugin,
                 settings,
                 'addToNote',
                 'Add geolocation to note',
@@ -132,19 +123,16 @@ export function addFocusNoteInMapView(
         item.setTitle(`Focus '${fileName}' in Map View`);
         item.setIcon('globe');
         item.setSection('mapview');
-        item.onClick(
-            async (evt: MouseEvent) =>
-                await plugin.openMapWithState(
-                    {
-                        query: utils.replaceFollowActiveNoteQuery(
-                            file,
-                            settings
-                        ),
-                    } as MapState,
-                    evt.ctrlKey,
-                    true
-                )
-        );
+        const openFunc = async (evt: MouseEvent) =>
+            await plugin.openMapWithState(
+                {
+                    query: utils.replaceFollowActiveNoteQuery(file, settings),
+                } as MapState,
+                utils.mouseEventToOpenMode(settings, evt, 'openMap'),
+                true
+            );
+        item.onClick(openFunc);
+        addPatchyMiddleClickHandler(item, menu, openFunc);
     });
 }
 
@@ -194,6 +182,17 @@ export function addUrlConversionItems(
     });
 }
 
+export function addEmbed(menu: Menu, plugin: MapViewPlugin, editor: Editor) {
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('Embed a Map View');
+        item.setSection('mapview');
+        item.setIcon('log-in');
+        item.onClick(() => {
+            plugin.openQuickEmbed(editor);
+        });
+    });
+}
+
 export function addNewNoteItems(
     menu: Menu,
     geolocation: leaflet.LatLng,
@@ -206,7 +205,7 @@ export function addNewNoteItems(
         item.setTitle('New note here (inline)');
         item.setIcon('edit');
         item.setSection('new');
-        item.onClick(async (ev) => {
+        const openFunc = async (ev: MouseEvent) => {
             const newFileName = utils.formatWithTemplates(
                 settings.newNoteNameFormat
             );
@@ -220,16 +219,18 @@ export function addNewNoteItems(
             );
             mapContainer.goToFile(
                 file,
-                ev.ctrlKey,
+                utils.mouseEventToOpenMode(settings, ev, 'openNote'),
                 utils.handleNewNoteCursorMarker
             );
-        });
+        };
+        item.onClick(openFunc);
+        addPatchyMiddleClickHandler(item, menu, openFunc);
     });
     menu.addItem((item: MenuItem) => {
         item.setTitle('New note here (front matter)');
         item.setIcon('edit');
         item.setSection('new');
-        item.onClick(async (ev) => {
+        const openFunc = async (ev: MouseEvent) => {
             const newFileName = utils.formatWithTemplates(
                 settings.newNoteNameFormat
             );
@@ -243,10 +244,12 @@ export function addNewNoteItems(
             );
             mapContainer.goToFile(
                 file,
-                ev.ctrlKey,
+                utils.mouseEventToOpenMode(settings, ev, 'openNote'),
                 utils.handleNewNoteCursorMarker
             );
-        });
+        };
+        item.onClick(openFunc);
+        addPatchyMiddleClickHandler(item, menu, openFunc);
     });
 }
 
@@ -292,16 +295,16 @@ export function addFocusLinesInMapView(
         );
         item.setIcon('globe');
         item.setSection('mapview');
-        item.onClick(
-            async (evt: MouseEvent) =>
-                await plugin.openMapWithState(
-                    {
-                        query: `path:"${file.path}" AND lines:${fromLine}-${toLine}`,
-                    } as MapState,
-                    evt.ctrlKey,
-                    true
-                )
-        );
+        const openFunc = async (evt: MouseEvent) =>
+            await plugin.openMapWithState(
+                {
+                    query: `path:"${file.path}" AND lines:${fromLine}-${toLine}`,
+                } as MapState,
+                utils.mouseEventToOpenMode(settings, evt, 'openMap'),
+                true
+            );
+        item.onClick(openFunc);
+        addPatchyMiddleClickHandler(item, menu, openFunc);
     });
 }
 
@@ -327,4 +330,48 @@ export function addImport(
             importDialog.open();
         });
     });
+}
+
+export function populateOpenNote(
+    mapContainer: MapContainer,
+    fileMarker: FileMarker,
+    menu: Menu,
+    settings: PluginSettings
+) {
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('Open note');
+        item.setIcon('file');
+        item.setSection('open-note');
+        item.onClick(async (evt: MouseEvent) => {
+            mapContainer.goToMarker(
+                fileMarker,
+                utils.mouseEventToOpenMode(settings, evt, 'openNote'),
+                true
+            );
+        });
+        addPatchyMiddleClickHandler(item, menu, async (evt: MouseEvent) => {
+            mapContainer.goToMarker(
+                fileMarker,
+                utils.mouseEventToOpenMode(settings, evt, 'openNote'),
+                true
+            );
+        });
+    });
+}
+
+// The MenuItem object in the Obsidian API doesn't let us listen to a middle-click, so we patch around it
+function addPatchyMiddleClickHandler(
+    item: MenuItem,
+    menu: Menu,
+    handler: (ev: MouseEvent) => void
+) {
+    const itemDom = (item as any).dom as HTMLDivElement;
+    if (itemDom) {
+        itemDom.addEventListener('mousedown', (ev: MouseEvent) => {
+            if (ev.button === 1) {
+                menu.close();
+                handler(ev);
+            }
+        });
+    }
 }

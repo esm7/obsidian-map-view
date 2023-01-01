@@ -377,15 +377,17 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
 
 **New:**
 
--	Major performance improvements, especially when displaying hundreds of markers or more. Navigation operations that could take seconds (e.g. zooming out or jumping from a note when hundreds of markers are displayed) are now done in milliseconds.
-	- **IMPORTANT:** this might break some very custom marker icon rules (especially ones that use properties that I didn't think to test).
-	- If you experience such breakage, please open an issue and use version 2.2.0 in the meantime.
+-   Major performance improvements, especially when displaying hundreds of markers or more. Map View now opens and interacts instantly even with thousands of markers and dozens of icon rules.
+    -   **IMPORTANT:** this might break some very custom marker icon rules (especially ones that use properties that I didn't think to test).
+    -   If you experience such breakage, please open an issue and use version 2.2.0 in the meantime.
+-   Major overhaul to the settings of "default action for map marker click". There are now fine-grained settings for fine-tuning what happens when clicking, Ctrl+clicking and middle-clicking markers (and other actions that open a note from the map), and tabs are supported as well as panes.
+-   Similarly to the above, new settings were added for all actions that open Map View, so different behaviors can be configured for a click, Ctrl+click and middle-click.
 
 **Fixes:**
 
--	Parenthesis now work in queries (https://github.com/esm7/obsidian-map-view/issues/124).
--	Commas now work in queries (https://github.com/esm7/obsidian-map-view/issues/125).
--	Fixed weird pane selection logic for "Open in Map View" and "Show on Map View" caused by the Obsidian 1.1 UI changes (https://github.com/esm7/obsidian-map-view/issues/127).
+-   Parenthesis now work in queries (https://github.com/esm7/obsidian-map-view/issues/124).
+-   Commas now work in queries (https://github.com/esm7/obsidian-map-view/issues/125).
+-   Fixed weird pane selection logic for "Open in Map View" and "Show on Map View" caused by the Obsidian 1.1 UI changes (https://github.com/esm7/obsidian-map-view/issues/127).
 
 ### 2.2.0
 

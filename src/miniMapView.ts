@@ -18,6 +18,7 @@ export class MiniMapView extends BaseMapView {
             showFilters: false,
             showView: true,
             viewTabType: 'mini',
+            showEmbeddedControls: false,
             showPresets: false,
             showSearch: true,
             showRealTimeButton: true,

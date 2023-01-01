@@ -234,3 +234,22 @@ export function trimmedFileName(file: TFile) {
         );
     else return name;
 }
+
+export function mouseEventToOpenMode(
+    settings: settings.PluginSettings,
+    ev: MouseEvent,
+    settingType: 'openMap' | 'openNote'
+) {
+    // There are events that don't include middle-click information (some 'click' handlers), so in such cases
+    // we invoke this function from keyDown, and don't want to invoke it twice in case it wasn't actually
+    // a middle click
+    if (settingType === 'openNote') {
+        if (ev.button === 1) return settings.markerMiddleClickBehavior;
+        else if (ev.ctrlKey) return settings.markerCtrlClickBehavior;
+        else return settings.markerClickBehavior;
+    } else {
+        if (ev.button === 1) return settings.openMapMiddleClickBehavior;
+        else if (ev.ctrlKey) return settings.openMapCtrlClickBehavior;
+        else return settings.openMapBehavior;
+    }
+}

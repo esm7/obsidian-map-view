@@ -15,7 +15,7 @@ import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
 import { LocationSuggest } from 'src/locationSuggest';
 import { UrlConvertor } from 'src/urlConvertor';
-import { stateFromParsedUrl } from 'src/mapState';
+import { mergeStates, stateFromParsedUrl, getCodeBlock } from 'src/mapState';
 import * as menus from 'src/menus';
 
 import { MainMapView } from 'src/mainMapView';
@@ -27,6 +27,7 @@ import {
     PluginSettings,
     DEFAULT_SETTINGS,
     convertLegacySettings,
+    OpenBehavior,
 } from 'src/settings';
 import { MapState } from 'src/mapState';
 import {
@@ -42,7 +43,7 @@ import * as utils from 'src/utils';
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
     public highestVersionSeen: number = 0;
-	public iconCache: IconCache;
+    public iconCache: IconCache;
     private suggestor: LocationSuggest;
     private tagSuggestor: TagSuggest;
     private urlConvertor: UrlConvertor;
@@ -53,11 +54,10 @@ export default class MapViewPlugin extends Plugin {
         await this.loadSettings();
 
         // Add a new ribbon entry to the left bar
-        this.addRibbonIcon('globe', 'Open map view', () => {
-            // When clicked change the active view to the map
-            this.app.workspace
-                .getLeaf()
-                .setViewState({ type: consts.MAP_VIEW_NAME });
+        this.addRibbonIcon('globe', 'Open map view', (ev: MouseEvent) => {
+            this.openMap(
+                utils.mouseEventToOpenMode(this.settings, ev, 'openMap')
+            );
         });
 
         this.registerView(consts.MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
@@ -82,7 +82,7 @@ export default class MapViewPlugin extends Plugin {
                                   )
                                 : null;
                         const accuracy = params.accuracy;
-                        const map = await this.openMap(false, null);
+                        const map = await this.openMap('replaceCurrent', null);
                         if (map) {
                             map.mapContainer.setRealTimeLocation(
                                 location,
@@ -100,16 +100,41 @@ export default class MapViewPlugin extends Plugin {
                         )
                             state.chosenMapSource =
                                 DEFAULT_SETTINGS.defaultState.chosenMapSource;
-                        this.openMapWithState(state, false, false);
+                        this.openMapWithState(state, 'replaceCurrent', false);
                     }
                 }
             }
         );
 
-		this.registerMarkdownCodeBlockProcessor('mapview', async (source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
-			let map = new EmbeddedMap(el, this.settings, this);
-			map.onOpen();
-		});
+        this.registerMarkdownCodeBlockProcessor(
+            'mapview',
+            async (
+                source: string,
+                el: HTMLElement,
+                ctx: MarkdownPostProcessorContext
+            ) => {
+                let state = null;
+                try {
+                    const rawStateObj = JSON.parse(source);
+                    state = stateFromParsedUrl(rawStateObj);
+                } catch (e) {
+                    el.setText(
+                        'Map View is unable to parse this saved state: ' +
+                            e.toString()
+                    );
+                }
+                if (state) {
+                    let map = new EmbeddedMap(
+                        el,
+                        ctx,
+                        this.app,
+                        this.settings,
+                        this
+                    );
+                    await map.open(state);
+                }
+            }
+        );
 
         this.suggestor = new LocationSuggest(this.app, this.settings);
         this.tagSuggestor = new TagSuggest(this.app, this.settings);
@@ -120,7 +145,7 @@ export default class MapViewPlugin extends Plugin {
 
         await convertLegacySettings(this.settings, this);
 
-		this.iconCache = new IconCache(document.body);
+        this.iconCache = new IconCache(document.body);
 
         // Register commands to the command palette
         // Command that opens the map view (same as clicking the map icon)
@@ -165,7 +190,7 @@ export default class MapViewPlugin extends Plugin {
             callback: () => {
                 const dialog = new LocationSearchDialog(
                     this.app,
-					this,
+                    this,
                     this.settings,
                     'newNote',
                     'New geolocation note'
@@ -181,7 +206,7 @@ export default class MapViewPlugin extends Plugin {
             editorCallback: (editor, view) => {
                 const dialog = new LocationSearchDialog(
                     this.app,
-					this,
+                    this,
                     this.settings,
                     'addToNote',
                     'Add geolocation to note',
@@ -207,6 +232,14 @@ export default class MapViewPlugin extends Plugin {
             },
         });
 
+        this.addCommand({
+            id: 'quick-map-embed',
+            name: 'Add an embedded map',
+            editorCallback: (editor: Editor, ctx) => {
+                this.openQuickEmbed(editor);
+            },
+        });
+
         this.addSettingTab(new SettingsTab(this.app, this));
 
         // Add items to the file context menu (run when the context menu is built)
@@ -222,31 +255,63 @@ export default class MapViewPlugin extends Plugin {
         // Add items to the editor context menu (run when the context menu is built)
         // This is the context menu when right clicking within an editor view.
         this.app.workspace.on('editor-menu', (menu, editor, view) => {
-            this.onEditorMenu(menu, editor, view);
+            this.onEditorMenu(menu, editor, view as MarkdownView);
         });
     }
 
-    public async openMap(
-        ctrlKey: boolean,
-        state: MapState
-    ): Promise<MainMapView> {
-        // Find the best candidate for a leaf to open the map view on.
-        // If there's an open map view, use that, otherwise use the current leaf.
-        // If Ctrl is pressed, override that behavior and always use the current leaf.
+    public findOpenMainView(): WorkspaceLeaf {
         const maps = this.app.workspace.getLeavesOfType(consts.MAP_VIEW_NAME);
+        if (maps && maps.length > 0) return maps[0];
+        else return null;
+    }
+
+    public async openMap(
+        openBehavior: OpenBehavior,
+        state?: MapState
+    ): Promise<MainMapView> {
+        // Find the best candidate for a leaf to open the map view on according to the required
+        // behavior.
         let chosenLeaf: WorkspaceLeaf = null;
-        if (maps && !ctrlKey) chosenLeaf = maps[0];
-        else chosenLeaf = this.app.workspace.getLeaf();
-		if (!chosenLeaf) {
-			const emptyLeaves = this.app.workspace.getLeavesOfType('empty');
-			if (emptyLeaves)
-				chosenLeaf = emptyLeaves[0];
-		}
-        if (!chosenLeaf) chosenLeaf = this.app.workspace.getLeaf(true);
-		this.app.workspace.setActiveLeaf(chosenLeaf);
+        // Prepare a few options for a candidate leaf
+        const openMapView = this.findOpenMainView();
+        const existingLeafToReplace = this.app.workspace.getLeaf(false);
+        const emptyLeaf = this.app.workspace.getLeavesOfType('empty');
+        let createPane = false;
+        let createTab = false;
+        switch (openBehavior) {
+            case 'replaceCurrent':
+                chosenLeaf = existingLeafToReplace;
+                if (!chosenLeaf && emptyLeaf) chosenLeaf = emptyLeaf[0];
+                break;
+            case 'dedicatedPane':
+                chosenLeaf = openMapView;
+                if (!chosenLeaf) createPane = true;
+                break;
+            case 'dedicatedTab':
+                chosenLeaf = openMapView;
+                if (!chosenLeaf) createTab = true;
+                break;
+            case 'alwaysNewPane':
+                createPane = true;
+                break;
+            case 'alwaysNewTab':
+                createTab = true;
+                break;
+        }
+        if (createTab) chosenLeaf = this.app.workspace.getLeaf('tab');
+        if (createPane)
+            chosenLeaf = this.app.workspace.getLeaf(
+                'split',
+                this.settings.newPaneSplitDirection
+            );
+        if (!chosenLeaf) {
+            console.log('TODO TEMP unable to get a leaf in any other method');
+            chosenLeaf = this.app.workspace.getLeaf(true);
+        }
+        this.app.workspace.setActiveLeaf(chosenLeaf);
         await chosenLeaf.setViewState({
             type: consts.MAP_VIEW_NAME,
-            state: state,
+            state: state ?? DEFAULT_SETTINGS,
         });
         if (chosenLeaf.view instanceof MainMapView) return chosenLeaf.view;
         return null;
@@ -254,12 +319,12 @@ export default class MapViewPlugin extends Plugin {
 
     public async openMapWithState(
         state: MapState,
-        ctrlKey: boolean,
+        openBehavior: OpenBehavior,
         forceAutoFit?: boolean,
         highlightFile: TAbstractFile = null,
         highlightFileLine: number = null
     ) {
-        const mapView = await this.openMap(ctrlKey, state);
+        const mapView = await this.openMap(openBehavior, state);
         if (mapView && mapView.mapContainer) {
             const map = mapView.mapContainer;
             if (forceAutoFit) map.autoFitMapToMarkers();
@@ -277,14 +342,14 @@ export default class MapViewPlugin extends Plugin {
      * Open an instance of the map at the given geolocation.
      * The active query is cleared so we'll be sure that the location is actually displayed.
      * @param location The geolocation to open the map at
-     * @param ctrlKey Was the control key pressed
+     * @param openBehavior the behavior to use
      * @param file the file this location belongs to
      * @param fileLine the line in the file (if it's an inline link)
      * @param keepZoom don't zoom the map
      */
     async openMapWithLocation(
         location: leaflet.LatLng,
-        ctrlKey: boolean,
+        openBehavior: OpenBehavior,
         file: TAbstractFile,
         fileLine: number = null,
         keepZoom: boolean = false
@@ -297,7 +362,13 @@ export default class MapViewPlugin extends Plugin {
             newState = Object.assign(newState, {
                 mapZoom: this.settings.zoomOnGoFromNote,
             });
-        await this.openMapWithState(newState, ctrlKey, false, file, fileLine);
+        await this.openMapWithState(
+            newState,
+            openBehavior,
+            false,
+            file,
+            fileLine
+        );
     }
 
     /**
@@ -371,7 +442,14 @@ export default class MapViewPlugin extends Plugin {
             if (location) {
                 // If there is a geolocation in the front matter of the file
                 // Add an option to open it in the map
-                menus.addShowOnMap(menu, location, file, null, this);
+                menus.addShowOnMap(
+                    menu,
+                    location,
+                    file,
+                    null,
+                    this,
+                    this.settings
+                );
                 // Add an option to open it in the default app
                 menus.addOpenWith(menu, location, this.settings);
             } else {
@@ -380,7 +458,7 @@ export default class MapViewPlugin extends Plugin {
                     menus.addGeolocationToNote(
                         menu,
                         this.app,
-						this,
+                        this,
                         editor,
                         this.settings
                     );
@@ -429,7 +507,8 @@ export default class MapViewPlugin extends Plugin {
                         location,
                         view.file,
                         editorLine,
-                        this
+                        this,
+                        this.settings
                     );
                     menus.addOpenWith(menu, location, this.settings);
                 }
@@ -440,6 +519,7 @@ export default class MapViewPlugin extends Plugin {
                 this.suggestor,
                 this.urlConvertor
             );
+            menus.addEmbed(menu, this, editor);
         }
     }
 
@@ -469,5 +549,34 @@ export default class MapViewPlugin extends Plugin {
             }
         }
         return [null, null, []];
+    }
+
+    openQuickEmbed(editor: Editor) {
+        const searchDialog = new LocationSearchDialog(
+            this.app,
+            this,
+            this.settings,
+            'custom',
+            'Quick Map Embed',
+            editor
+        );
+        searchDialog.customOnSelect = (selection, evt) => {
+            const state = mergeStates(this.settings.defaultState, {
+                mapCenter: selection.location,
+            } as MapState);
+            const codeBlock = getCodeBlock(state);
+            const cursor = editor.getCursor();
+            editor.transaction({
+                changes: [{ from: cursor, text: codeBlock }],
+            });
+            editor.setCursor({
+                line: cursor.line + codeBlock.split('\n').length,
+                ch: 0,
+            });
+        };
+        searchDialog.setPlaceholder(
+            'Quick map embed: type a searchable name to center an initial Map View embed'
+        );
+        searchDialog.open();
     }
 }

@@ -15,7 +15,7 @@ export class SuggestInfo extends GeoSearchResult {
 type DialogAction = 'newNote' | 'addToNote' | 'custom';
 
 export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
-	private plugin: MapViewPlugin;
+    private plugin: MapViewPlugin;
     private settings: PluginSettings;
     private searcher: GeoSearcher;
     private lastSearchTime = 0;
@@ -39,7 +39,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
 
     constructor(
         app: App,
-		plugin: MapViewPlugin,
+        plugin: MapViewPlugin,
         settings: PluginSettings,
         dialogAction: DialogAction,
         title: string,
@@ -49,7 +49,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         moreInstructions: Instruction[] = null
     ) {
         super(app);
-		this.plugin = plugin;
+        this.plugin = plugin;
         this.settings = settings;
         this.searcher = new GeoSearcher(app, settings);
         this.dialogAction = dialogAction;
@@ -116,7 +116,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
             let iconDiv = el.createDiv('search-icon-div');
             const compiledIcon = getIconFromOptions(
                 value.icon ?? consts.SEARCH_RESULT_MARKER,
-				this.plugin.iconCache
+                this.plugin.iconCache
             );
             let iconElement: HTMLElement = compiledIcon.createIcon();
             let style = iconElement.style;
@@ -161,7 +161,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         if (mapView) {
             mapView.mapContainer.goToFile(
                 file,
-                ev.ctrlKey,
+                ev.ctrlKey ? 'dedicatedPane' : 'replaceCurrent',
                 utils.handleNewNoteCursorMarker
             );
         } else {

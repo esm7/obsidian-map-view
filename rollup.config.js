@@ -26,10 +26,10 @@ export default {
     },
     external: ['obsidian'],
     plugins: [
-		image(),
+        image(),
         typescript(),
         nodeResolve({ browser: true }),
-		image(),
+        image(),
         commonjs(),
         postcss({
             extensions: ['.css'],

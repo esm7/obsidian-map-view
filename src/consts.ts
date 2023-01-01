@@ -33,3 +33,5 @@ export const DEFAULT_MAX_TILE_ZOOM = 19;
 export const MIN_REAL_TIME_LOCATION_ZOOM = 13;
 
 export const HIGHLIGHT_CLASS_NAME = 'map-view-highlight';
+
+export const DEFAULT_EMBEDDED_HEIGHT = 300;

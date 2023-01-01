@@ -139,10 +139,14 @@ export async function buildMarkers(
 export function finalizeMarkers(
     markers: FileMarker[],
     settings: PluginSettings,
-	iconCache: IconCache
+    iconCache: IconCache
 ) {
     for (const marker of markers)
-        marker.icon = getIconFromRules(marker.tags, settings.markerIconRules, iconCache);
+        marker.icon = getIconFromRules(
+            marker.tags,
+            settings.markerIconRules,
+            iconCache
+        );
 }
 
 /**

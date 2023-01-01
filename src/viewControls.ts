@@ -19,6 +19,8 @@ import MapViewPlugin from 'src/main';
 import { QuerySuggest } from 'src/query';
 import { LocationSearchDialog, SuggestInfo } from 'src/locationSearchDialog';
 import { MarkersMap } from 'src/markers';
+import * as utils from 'src/utils';
+import * as consts from 'src/consts';
 
 import * as leaflet from 'leaflet';
 
@@ -34,6 +36,9 @@ export class ViewControls {
     private queryBox: TextComponent;
     private mapSourceBox: DropdownComponent;
     private sourceMode: DropdownComponent;
+    private saveButton: ButtonComponent;
+    private updateFromActiveMapView: ButtonComponent;
+    private embeddedHeight: TextComponent;
     private followActiveNoteToggle: ToggleComponent;
 
     private presetsDiv: HTMLDivElement;
@@ -44,6 +49,7 @@ export class ViewControls {
     private queryDelayMs = 250;
     private lastQueryTime: number;
     private updateOngoing = false;
+    private lastSavedState: MapState;
 
     constructor(
         parentElement: HTMLElement,
@@ -108,6 +114,7 @@ export class ViewControls {
             this.followActiveNoteToggle.setValue(
                 this.getCurrentState().followActiveNote == true
             );
+        this.updateSaveButtonVisibility();
         this.updateOngoing = false;
     }
 
@@ -132,6 +139,7 @@ export class ViewControls {
         // Update the state assuming the UI is updated
         const state = this.getCurrentState();
         this.invalidateActivePreset();
+        this.updateSaveButtonVisibility();
         await this.setNewState(
             { ...state, query: newQuery },
             newQuery.length > 0
@@ -166,13 +174,36 @@ export class ViewControls {
         });
         if (this.viewSettings.showOpenButton) {
             let openMapView = new ButtonComponent(this.controlsDiv);
+            openMapView.buttonEl.addClass('mv-control-button');
             openMapView
                 .setButtonText('Open')
                 .setTooltip('Open a full Map View with the current state.')
-                .onClick(async () => {
+                .onClick(async (ev: MouseEvent) => {
                     const state = this.view.getState();
                     state.followActiveNote = false;
-                    this.plugin.openMapWithState(state, false, false);
+                    this.plugin.openMapWithState(
+                        state,
+                        utils.mouseEventToOpenMode(
+                            this.settings,
+                            ev,
+                            'openMap'
+                        ),
+                        false
+                    );
+                });
+        }
+        if (this.viewSettings.showEmbeddedControls) {
+            this.saveButton = new ButtonComponent(this.controlsDiv);
+            this.saveButton.buttonEl.addClass('mv-control-button');
+            this.saveButton
+                .setButtonText('Save')
+                .setTooltip(
+                    'Update the source code block with the updated view state'
+                )
+                .onClick(async () => {
+                    this.view.updateCodeBlockCallback();
+                    this.markStateAsSaved();
+                    this.updateSaveButtonVisibility();
                 });
         }
         if (this.viewSettings.showFilters) {
@@ -267,15 +298,45 @@ export class ViewControls {
                     await this.plugin.saveSettings();
                     this.view.refreshMap();
                 });
-            if (this.viewSettings.viewTabType === 'regular') {
-                let goDefault = new ButtonComponent(viewDivContent);
-                goDefault
-                    .setButtonText('Reset')
-                    .setTooltip('Reset the view to the defined default.')
+            let goDefault = new ButtonComponent(viewDivContent);
+            goDefault
+                .setButtonText('Reset')
+                .setTooltip('Reset the view to the defined default.')
+                .onClick(async () => {
+                    await this.choosePresetAndUpdateState(0);
+                    this.updateControlsToState();
+                });
+            if (this.viewSettings.showEmbeddedControls) {
+                this.updateFromActiveMapView = new ButtonComponent(
+                    viewDivContent
+                );
+                this.updateFromActiveMapView
+                    .setButtonText('Update from open Map View')
+                    .setTooltip(
+                        'Update the view and its source code block from an open Map View'
+                    )
                     .onClick(async () => {
-                        await this.choosePresetAndUpdateState(0);
-                        this.updateControlsToState();
+                        this.view.updateCodeBlockFromMapViewCallback();
                     });
+                this.embeddedHeight = new TextComponent(viewDivContent);
+                this.embeddedHeight
+                    .setValue(
+                        (
+                            this.getCurrentState()?.embeddedHeight ??
+                            consts.DEFAULT_EMBEDDED_HEIGHT
+                        ).toString()
+                    )
+                    .onChange(async (value) => {
+                        const state = this.getCurrentState();
+                        await this.setNewState(
+                            { ...state, embeddedHeight: parseInt(value) },
+                            false
+                        );
+                        this.updateSaveButtonVisibility();
+                    });
+                this.embeddedHeight.inputEl.style.width = '4em';
+            }
+            if (this.viewSettings.viewTabType === 'regular') {
                 let fitButton = new ButtonComponent(viewDivContent);
                 fitButton
                     .setButtonText('Fit')
@@ -312,6 +373,8 @@ export class ViewControls {
                     );
                 });
             }
+            this.markStateAsSaved();
+            this.updateSaveButtonVisibility();
         }
 
         if (this.viewSettings.showPresets) {
@@ -342,7 +405,7 @@ export class ViewControls {
         // Hacky code, not very happy with it... Entry 0 is the default, then 1 is assumed to be the first saved state
         const chosenPreset =
             chosenPresetNumber == 0
-                ? this.settings.defaultState
+                ? this.view.defaultState
                 : this.settings.savedStates[chosenPresetNumber - 1];
         this.lastSelectedPresetIndex = chosenPresetNumber;
         this.lastSelectedPreset = mergeStates(
@@ -360,7 +423,7 @@ export class ViewControls {
         });
         this.presetsBox = new DropdownComponent(this.presetsDivContent);
         const states = [
-            this.settings.defaultState,
+            this.view.defaultState,
             ...(this.settings.savedStates || []),
         ];
         this.presetsBox.addOption('-1', '');
@@ -426,6 +489,14 @@ export class ViewControls {
             .onClick(async () => {
                 this.view.copyStateUrl();
             });
+        new ButtonComponent(this.presetsDivContent)
+            .setButtonText('Copy block')
+            .setTooltip(
+                'Copy the current view as a block code you can paste in notes for an inline map.'
+            )
+            .onClick(async () => {
+                this.view.copyCodeBlock();
+            });
     }
 
     invalidateActivePreset() {
@@ -434,12 +505,24 @@ export class ViewControls {
             this.presetsBox.setValue('-1');
         }
     }
+
+    updateSaveButtonVisibility() {
+        if (!this.saveButton) return;
+        if (areStatesEqual(this.getCurrentState(), this.lastSavedState))
+            this.saveButton.buttonEl.style.display = 'none';
+        else this.saveButton.buttonEl.style.display = 'inline';
+    }
+
+    markStateAsSaved(state: MapState = null) {
+        if (state) this.lastSavedState = state;
+        else this.lastSavedState = this.getCurrentState();
+    }
 }
 
 export class SearchControl extends leaflet.Control {
     view: MapContainer;
     app: App;
-	plugin: MapViewPlugin;
+    plugin: MapViewPlugin;
     settings: PluginSettings;
     searchButton: HTMLAnchorElement;
     clearButton: HTMLAnchorElement;
@@ -448,13 +531,13 @@ export class SearchControl extends leaflet.Control {
         options: any,
         view: MapContainer,
         app: App,
-		plugin: MapViewPlugin,
+        plugin: MapViewPlugin,
         settings: PluginSettings
     ) {
         super(options);
         this.view = view;
         this.app = app;
-		this.plugin = plugin;
+        this.plugin = plugin;
         this.settings = settings;
     }
 
@@ -465,13 +548,13 @@ export class SearchControl extends leaflet.Control {
         );
         this.searchButton = div.createEl('a');
         this.searchButton.innerHTML = '🔍';
-        this.searchButton.onClickEvent((ev: MouseEvent) => {
+        this.searchButton.addEventListener('click', (ev: MouseEvent) => {
             this.openSearch(this.view.getMarkers());
         });
         this.clearButton = div.createEl('a');
         this.clearButton.innerHTML = 'X';
         this.clearButton.style.display = 'none';
-        this.clearButton.onClickEvent((ev: MouseEvent) => {
+        this.clearButton.addEventListener('click', (ev: MouseEvent) => {
             this.view.removeSearchResultMarker();
             this.clearButton.style.display = 'none';
         });
@@ -504,7 +587,7 @@ export class SearchControl extends leaflet.Control {
 
         const searchDialog = new LocationSearchDialog(
             this.app,
-			this.plugin,
+            this.plugin,
             this.settings,
             'custom',
             'Find in map',
@@ -562,7 +645,7 @@ export class RealTimeControl extends leaflet.Control {
         this.locateButton = div.createEl('a');
         this.locateButton.innerHTML = '⌖';
         this.locateButton.style.fontSize = '25px';
-        this.locateButton.onClickEvent((ev: MouseEvent) => {
+        this.locateButton.addEventListener('click', (ev: MouseEvent) => {
             new Notice('Asking for the current location');
             open('geohelper://locate');
             this.clearButton.style.display = 'block';
@@ -570,7 +653,7 @@ export class RealTimeControl extends leaflet.Control {
         this.clearButton = div.createEl('a');
         this.clearButton.innerHTML = 'X';
         this.clearButton.style.display = 'none';
-        this.clearButton.onClickEvent((ev: MouseEvent) => {
+        this.clearButton.addEventListener('click', (ev: MouseEvent) => {
             this.view.setRealTimeLocation(null, 0, 'clear');
             this.clearButton.style.display = 'none';
         });

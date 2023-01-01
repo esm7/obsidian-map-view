@@ -9,6 +9,7 @@ import {
 
 import MapViewPlugin from 'src/main';
 import {
+    OpenBehavior,
     UrlParsingRuleType,
     UrlParsingContentType,
     DEFAULT_SETTINGS,
@@ -119,50 +120,6 @@ export class SettingsTab extends PluginSettingTab {
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
         googlePlacesControl.settingEl.style.display =
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
-
-        new Setting(containerEl)
-            .setName('Default action for map marker click')
-            .setDesc(
-                'How should the corresponding note be opened when clicking a map marker? Either way, CTRL reverses the behavior.'
-            )
-            .addDropdown((component) => {
-                component
-                    .addOption(
-                        'samePane',
-                        'Open in same pane (replace map view)'
-                    )
-                    .addOption(
-                        'secondPane',
-                        'Open in a 2nd pane and keep reusing it'
-                    )
-                    .addOption('alwaysNew', 'Always open a new pane')
-                    .setValue(
-                        this.plugin.settings.markerClickBehavior || 'samePane'
-                    )
-                    .onChange(async (value: any) => {
-                        this.plugin.settings.markerClickBehavior = value;
-                        this.plugin.saveSettings();
-                    });
-            });
-
-        new Setting(containerEl)
-            .setName('New pane split direction')
-            .setDesc(
-                'Which way should the pane be split when opening in a new pane.'
-            )
-            .addDropdown((component) => {
-                component
-                    .addOption('horizontal', 'Horizontal')
-                    .addOption('vertical', 'Vertical')
-                    .setValue(
-                        this.plugin.settings.newPaneSplitDirection ||
-                            'horizontal'
-                    )
-                    .onChange(async (value: any) => {
-                        this.plugin.settings.newPaneSplitDirection = value;
-                        this.plugin.saveSettings();
-                    });
-            });
 
         new Setting(containerEl)
             .setName('New note name format')
@@ -322,6 +279,138 @@ export class SettingsTab extends PluginSettingTab {
                     )
                     .onChange(async (value: string) => {
                         this.plugin.settings.queryForFollowActiveNote = value;
+                        this.plugin.saveSettings();
+                    });
+            });
+
+        new Setting(containerEl)
+            .setHeading()
+            .setName('Pane & Tab Usage')
+            .setDesc(
+                'Control when and if Map View should use panes vs tabs, new panes vs existing ones etc.'
+            );
+
+        // Name is 'click', 'Ctrl+click' and 'middle click'
+        const addOpenBehaviorOptions = (
+            setting: Setting,
+            setValue: (value: OpenBehavior) => void,
+            getValue: () => OpenBehavior
+        ) => {
+            setting.addDropdown((component) => {
+                component
+                    .addOption(
+                        'replaceCurrent',
+                        'Open in same pane (replace Map View)'
+                    )
+                    .addOption(
+                        'dedicatedPane',
+                        'Open in a 2nd pane and keep reusing it'
+                    )
+                    .addOption('alwaysNew', 'Always open a new pane')
+                    .addOption(
+                        'dedicatedTab',
+                        'Open in a new tab and keep reusing it'
+                    )
+                    .addOption('alwaysNewTab', 'Always open a new tab')
+                    .setValue(getValue() || 'samePane')
+                    .onChange(async (value: OpenBehavior) => {
+                        setValue(value);
+                        this.plugin.saveSettings();
+                    });
+            });
+        };
+
+        addOpenBehaviorOptions(
+            new Setting(containerEl)
+                .setName('Default action for map marker click')
+                .setDesc(
+                    'How should the corresponding note be opened following a click on a marker?'
+                ),
+            (value: OpenBehavior) => {
+                this.plugin.settings.markerClickBehavior = value;
+            },
+            () => {
+                return this.plugin.settings.markerClickBehavior;
+            }
+        );
+        addOpenBehaviorOptions(
+            new Setting(containerEl)
+                .setName('Default action for map marker Ctrl+click')
+                .setDesc(
+                    'How should the corresponding note be opened following a Ctrl+click on a marker?'
+                ),
+            (value: OpenBehavior) => {
+                this.plugin.settings.markerCtrlClickBehavior = value;
+            },
+            () => {
+                return this.plugin.settings.markerCtrlClickBehavior;
+            }
+        );
+        addOpenBehaviorOptions(
+            new Setting(containerEl)
+                .setName('Default action for map marker middle-click')
+                .setDesc(
+                    'How should the corresponding note be opened following a middle-click on a marker?'
+                ),
+            (value: OpenBehavior) => {
+                this.plugin.settings.markerMiddleClickBehavior = value;
+            },
+            () => {
+                return this.plugin.settings.markerMiddleClickBehavior;
+            }
+        );
+
+        addOpenBehaviorOptions(
+            new Setting(containerEl)
+                .setName('Default mode for opening Map View')
+                .setDesc(
+                    'How should Map View open by default (e.g. when clicking the ribbon icon, or from within a note).'
+                ),
+            (value: OpenBehavior) => {
+                this.plugin.settings.openMapBehavior = value;
+            },
+            () => {
+                return this.plugin.settings.openMapBehavior;
+            }
+        );
+        addOpenBehaviorOptions(
+            new Setting(containerEl)
+                .setName('Opening Map View with Ctrl+Click')
+                .setDesc('How should Map View open when Ctrl is pressed.'),
+            (value: OpenBehavior) => {
+                this.plugin.settings.openMapCtrlClickBehavior = value;
+            },
+            () => {
+                return this.plugin.settings.openMapCtrlClickBehavior;
+            }
+        );
+        addOpenBehaviorOptions(
+            new Setting(containerEl)
+                .setName('Opening Map View with middle-Click')
+                .setDesc('How should Map View open when using middle-click.'),
+            (value: OpenBehavior) => {
+                this.plugin.settings.openMapMiddleClickBehavior = value;
+            },
+            () => {
+                return this.plugin.settings.openMapMiddleClickBehavior;
+            }
+        );
+
+        new Setting(containerEl)
+            .setName('New pane split direction')
+            .setDesc(
+                'Which way should the pane be split when opening in a new pane.'
+            )
+            .addDropdown((component) => {
+                component
+                    .addOption('horizontal', 'Horizontal')
+                    .addOption('vertical', 'Vertical')
+                    .setValue(
+                        this.plugin.settings.newPaneSplitDirection ||
+                            'horizontal'
+                    )
+                    .onChange(async (value: any) => {
+                        this.plugin.settings.newPaneSplitDirection = value;
                         this.plugin.saveSettings();
                     });
             });
@@ -759,7 +848,7 @@ export class SettingsTab extends PluginSettingTab {
                             ).iconDetails,
                             rule.iconDetails
                         ),
-						this.plugin.iconCache
+                        this.plugin.iconCache
                     );
                     iconElement = compiledIcon.createIcon();
                     let style = iconElement.style;
@@ -796,7 +885,7 @@ export class SettingsTab extends PluginSettingTab {
                 const compiledIcon = getIconFromRules(
                     testTagsBox.getValue().split(' '),
                     rules,
-					this.plugin.iconCache
+                    this.plugin.iconCache
                 );
                 multiTagIconElement = compiledIcon.createIcon();
                 let style = multiTagIconElement.style;
