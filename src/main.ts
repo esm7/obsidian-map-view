@@ -305,7 +305,6 @@ export default class MapViewPlugin extends Plugin {
                 this.settings.newPaneSplitDirection
             );
         if (!chosenLeaf) {
-            console.log('TODO TEMP unable to get a leaf in any other method');
             chosenLeaf = this.app.workspace.getLeaf(true);
         }
         this.app.workspace.setActiveLeaf(chosenLeaf);
@@ -575,7 +574,7 @@ export default class MapViewPlugin extends Plugin {
             });
         };
         searchDialog.setPlaceholder(
-            'Quick map embed: type a searchable name to center an initial Map View embed'
+            'Quick map embed: search for an address, landmark or business name to center the map on.'
         );
         searchDialog.open();
     }

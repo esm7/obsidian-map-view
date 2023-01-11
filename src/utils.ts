@@ -53,7 +53,7 @@ export async function newNote(
     fileName: string,
     location: string,
     templatePath?: string
-): Promise<TFile> {
+): Promise<[TFile, number]> {
     // `$CURSOR$` is used to set the cursor
     let content =
         newNoteType === 'singleLocation'
@@ -74,8 +74,14 @@ export async function newNote(
     let fullName = sanitizeFileName(filePath);
     if (await app.vault.adapter.exists(fullName + '.md'))
         fullName += Math.random() * 1000;
+    const cursorLocation = content.indexOf(CURSOR);
+    content = content.replace(CURSOR, '');
     try {
-        return app.vault.create(fullName + '.md', content + templateContent);
+        const file = await app.vault.create(
+            fullName + '.md',
+            content + templateContent
+        );
+        return [file, cursorLocation];
     } catch (e) {
         console.log('Map View: cannot create file', fullName);
         throw Error(`Cannot create file named ${fullName}: ${e}`);
@@ -107,15 +113,6 @@ export async function goToEditorLocation(
         }
     }
     editor.focus();
-}
-
-export async function handleNewNoteCursorMarker(editor: Editor) {
-    const templateValue = editor.getValue();
-    const cursorMarkerIndex = templateValue.indexOf(CURSOR);
-    if (cursorMarkerIndex > -1) {
-        editor.setValue(templateValue.replace(CURSOR, ''));
-        await goToEditorLocation(editor, cursorMarkerIndex, false);
-    }
 }
 
 // Creates or modifies a front matter that has the field `fieldName: fieldValue`.

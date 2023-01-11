@@ -174,7 +174,10 @@ export class ViewControls {
         });
         if (this.viewSettings.showOpenButton) {
             let openMapView = new ButtonComponent(this.controlsDiv);
-            openMapView.buttonEl.addClass('mv-control-button');
+            openMapView.buttonEl.addClass(
+                'mv-map-control',
+                'mv-control-button'
+            );
             openMapView
                 .setButtonText('Open')
                 .setTooltip('Open a full Map View with the current state.')
@@ -194,7 +197,10 @@ export class ViewControls {
         }
         if (this.viewSettings.showEmbeddedControls) {
             this.saveButton = new ButtonComponent(this.controlsDiv);
-            this.saveButton.buttonEl.addClass('mv-control-button');
+            this.saveButton.buttonEl.addClass(
+                'mv-map-control',
+                'mv-control-button'
+            );
             this.saveButton
                 .setButtonText('Save')
                 .setTooltip(
@@ -229,8 +235,10 @@ export class ViewControls {
             });
             // Wrapping the query box in a div so we can place a button in the right-middle of it
             const queryDiv = filtersContent.createDiv('search-input-container');
+            queryDiv.addClass('mv-map-control');
             queryDiv.style.margin = '0';
             this.queryBox = new TextComponent(queryDiv);
+            this.queryBox.inputEl.style.width = '100%';
             this.queryBox.setPlaceholder('Query');
             this.queryBox.onChange((query: string) => {
                 this.setStateByQueryString(query);
@@ -282,6 +290,7 @@ export class ViewControls {
                 cls: 'graph-control-content',
             });
             this.mapSourceBox = new DropdownComponent(viewDivContent);
+            this.mapSourceBox.selectEl.addClass('mv-map-control');
             for (const [index, source] of this.settings.mapSources.entries()) {
                 this.mapSourceBox.addOption(index.toString(), source.name);
             }
@@ -290,6 +299,7 @@ export class ViewControls {
             });
             this.setMapSourceBoxByState();
             this.sourceMode = new DropdownComponent(viewDivContent);
+            this.sourceMode.selectEl.addClass('mv-map-control');
             this.sourceMode
                 .addOptions({ auto: 'Auto', light: 'Light', dark: 'Dark' })
                 .setValue(this.settings.chosenMapMode ?? 'auto')
@@ -306,9 +316,13 @@ export class ViewControls {
                     await this.choosePresetAndUpdateState(0);
                     this.updateControlsToState();
                 });
+            goDefault.buttonEl.addClass('mv-map-control');
             if (this.viewSettings.showEmbeddedControls) {
                 this.updateFromActiveMapView = new ButtonComponent(
                     viewDivContent
+                );
+                this.updateFromActiveMapView.buttonEl.addClass(
+                    'mv-map-control'
                 );
                 this.updateFromActiveMapView
                     .setButtonText('Update from open Map View')
@@ -335,6 +349,7 @@ export class ViewControls {
                         this.updateSaveButtonVisibility();
                     });
                 this.embeddedHeight.inputEl.style.width = '4em';
+                this.embeddedHeight.inputEl.addClass('mv-map-control');
             }
             if (this.viewSettings.viewTabType === 'regular') {
                 let fitButton = new ButtonComponent(viewDivContent);
@@ -344,10 +359,12 @@ export class ViewControls {
                         'Set the map view to fit all currently-displayed markers.'
                     )
                     .onClick(() => this.view.autoFitMapToMarkers());
+                fitButton.buttonEl.addClass('mv-map-control');
                 const followDiv = viewDivContent.createDiv({
                     cls: 'graph-control-follow-div',
                 });
                 this.followActiveNoteToggle = new ToggleComponent(followDiv);
+                this.followActiveNoteToggle.toggleEl.addClass('mv-map-control');
                 const followLabel = followDiv.createEl('label');
                 followLabel.className = 'graph-control-follow-label';
                 const resetQueryOnFollowOff = (followValue: boolean) => {
@@ -426,6 +443,7 @@ export class ViewControls {
             this.view.defaultState,
             ...(this.settings.savedStates || []),
         ];
+        this.presetsBox.selectEl.addClass('mv-map-control');
         this.presetsBox.addOption('-1', '');
         for (const [index, preset] of states.entries()) {
             this.presetsBox.addOption(index.toString(), preset.name);
@@ -442,6 +460,7 @@ export class ViewControls {
             await this.choosePresetAndUpdateState(chosenPresetNumber);
         });
         let savePreset = new ButtonComponent(this.presetsDivContent);
+        savePreset.buttonEl.addClass('mv-map-control');
         savePreset
             .setButtonText('Save as...')
             .setTooltip('Save the current view as a preset.')
@@ -460,6 +479,7 @@ export class ViewControls {
                 dialog.open();
             });
         let deletePreset = new ButtonComponent(this.presetsDivContent);
+        deletePreset.buttonEl.addClass('mv-map-control');
         deletePreset
             .setButtonText('Delete')
             .setTooltip('Delete the currently-selected preset.')
@@ -472,6 +492,7 @@ export class ViewControls {
                 }
             });
         let saveAsDefault = new ButtonComponent(this.presetsDivContent);
+        saveAsDefault.buttonEl.addClass('mv-map-control');
         saveAsDefault
             .setButtonText('Save as Default')
             .setTooltip('Save the current view as the default one.')
@@ -483,13 +504,14 @@ export class ViewControls {
                 await this.plugin.saveSettings();
                 this.presetsBox.setValue('0');
             });
-        new ButtonComponent(this.presetsDivContent)
+        const copyAsUrl = new ButtonComponent(this.presetsDivContent)
             .setButtonText('Copy URL')
             .setTooltip('Copy the current view as a URL.')
             .onClick(async () => {
                 this.view.copyStateUrl();
             });
-        new ButtonComponent(this.presetsDivContent)
+        copyAsUrl.buttonEl.addClass('mv-map-control');
+        const copyBlock = new ButtonComponent(this.presetsDivContent)
             .setButtonText('Copy block')
             .setTooltip(
                 'Copy the current view as a block code you can paste in notes for an inline map.'
@@ -497,6 +519,7 @@ export class ViewControls {
             .onClick(async () => {
                 this.view.copyCodeBlock();
             });
+        copyBlock.buttonEl.addClass('mv-map-control');
     }
 
     invalidateActivePreset() {

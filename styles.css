@@ -168,6 +168,10 @@ div.map-view-highlight.marker-cluster {
     height: 15px;
 }
 
+.mv-map-control {
+    margin: 1px;
+}
+
 .block-language-mapview {
     height: 300px;
 }

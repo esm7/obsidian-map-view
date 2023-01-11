@@ -209,7 +209,7 @@ export function addNewNoteItems(
             const newFileName = utils.formatWithTemplates(
                 settings.newNoteNameFormat
             );
-            const file: TFile = await utils.newNote(
+            const [file, cursorPos] = await utils.newNote(
                 app,
                 'multiLocation',
                 settings.newNotePath,
@@ -220,7 +220,8 @@ export function addNewNoteItems(
             mapContainer.goToFile(
                 file,
                 utils.mouseEventToOpenMode(settings, ev, 'openNote'),
-                utils.handleNewNoteCursorMarker
+                async (editor) =>
+                    utils.goToEditorLocation(editor, cursorPos, false)
             );
         };
         item.onClick(openFunc);
@@ -234,7 +235,7 @@ export function addNewNoteItems(
             const newFileName = utils.formatWithTemplates(
                 settings.newNoteNameFormat
             );
-            const file: TFile = await utils.newNote(
+            const [file, cursorPos] = await utils.newNote(
                 app,
                 'singleLocation',
                 settings.newNotePath,
@@ -245,7 +246,8 @@ export function addNewNoteItems(
             mapContainer.goToFile(
                 file,
                 utils.mouseEventToOpenMode(settings, ev, 'openNote'),
-                utils.handleNewNoteCursorMarker
+                async (editor) =>
+                    utils.goToEditorLocation(editor, cursorPos, false)
             );
         };
         item.onClick(openFunc);

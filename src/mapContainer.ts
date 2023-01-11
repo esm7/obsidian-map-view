@@ -824,7 +824,6 @@ export class MapContainer {
             this.lastPaneLeaf = chosenLeaf;
         }
         if (!chosenLeaf) {
-            console.log('TODO TEMP unable to get a leaf in any other method');
             chosenLeaf = this.app.workspace.getLeaf(true);
         }
         await chosenLeaf.openFile(file);

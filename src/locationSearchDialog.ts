@@ -147,7 +147,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
             this.settings.newNoteNameFormat,
             query
         );
-        const file: TFile = await utils.newNote(
+        const [file, cursorPos] = await utils.newNote(
             this.app,
             'singleLocation',
             this.settings.newNotePath,
@@ -162,13 +162,15 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
             mapView.mapContainer.goToFile(
                 file,
                 ev.ctrlKey ? 'dedicatedPane' : 'replaceCurrent',
-                utils.handleNewNoteCursorMarker
+                async (editor) =>
+                    utils.goToEditorLocation(editor, cursorPos, false)
             );
         } else {
             const leaf = this.app.workspace.activeLeaf;
             await leaf.openFile(file);
             const editor = await utils.getEditor(this.app);
-            if (editor) await utils.handleNewNoteCursorMarker(editor);
+            if (editor)
+                await utils.goToEditorLocation(editor, cursorPos, false);
         }
     }
 

@@ -87,9 +87,8 @@ export function stateFromParsedUrl(obj: any) {
                   )
                 : null,
         query: obj.query,
-        chosenMapSource: obj.chosenMapSource
-            ? parseInt(obj.chosenMapSource)
-            : null,
+        chosenMapSource:
+            obj.chosenMapSource != null ? parseInt(obj.chosenMapSource) : null,
         ...(obj.embeddedHeight && {
             embeddedHeight: parseInt(obj.embeddedHeight),
         }),
