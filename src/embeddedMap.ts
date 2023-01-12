@@ -50,12 +50,10 @@ export class EmbeddedMap {
         );
 
         this.mapContainer.updateCodeBlockCallback = async () => {
-            // TODO write better
             this.updateCodeBlockWithState(this.mapContainer.state);
         };
 
         this.mapContainer.updateCodeBlockFromMapViewCallback = async () => {
-            // TODO write better
             const view = findOpenMapView(this.app);
             if (!view) {
                 new Notice(
@@ -71,7 +69,6 @@ export class EmbeddedMap {
     }
 
     async updateCodeBlockWithState(state: MapState) {
-        // TODO write better
         const sectionInfo = this.markdownContext.getSectionInfo(this.parentEl);
         if (!sectionInfo) {
             new Notice('Unable to find section info');
@@ -84,7 +81,6 @@ export class EmbeddedMap {
         } else {
             const lastLineLength = editor.getLine(sectionInfo.lineEnd).length;
             const newBlock = getCodeBlock(state);
-            // TODO disallow this in reading view (hide all buttons?)
             editor.replaceRange(
                 newBlock,
                 { line: sectionInfo.lineStart, ch: 0 },
