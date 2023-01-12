@@ -43,7 +43,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Wed Jan 11 08:29:54 PM IST 2023 -->
+<!-- Added by: erez, at: Thu Jan 12 10:17:02 AM IST 2023 -->
 
 <!--te-->
 
@@ -92,7 +92,7 @@ But if you wanna dive right in and give it a try, or get a quick glimpse of what
 
 Here are a few examples for logging a favorite location you want to see in a map.
 
-**1. Option 1: from a Note**
+**Option 1: from a Note**
 
 Starting from a note, e.g. your daily note, a note referring to a trip plan or anywhere else, launch the Obsidian Command Palette and choose "Map View: add inline geolocation link".
 A link in the format of `[](geo:)` will be added where your cursor is.
@@ -100,11 +100,11 @@ Start typing a location name inside the bracket, and some geolocation results wi
 
 ![](img/quick1.gif)
 
-**2. Option 2: from the Map**
+**Option 2: from the Map**
 
 Open Map View (e.g. from the Obsidian ribbon icon).
 Search or locate a location, e.g. using the search tool.
-Right-click the map and choose "new note here (front matter)" to create a note logging the selection point, or choose "copy geolocation" to copy an inline location to paste in some other note. (If you do it this way, make sure to add a `locations:` front matter entry.)
+Right-click the map and choose "new note here (front matter)" to create a note logging the selection point, or choose "copy geolocation" to copy an inline location to paste in some other note.
 
 **There are many other ways to log geolocations in Map View**, see [here](#adding-a-location-to-a-note) for more details.
 
@@ -209,6 +209,7 @@ It's also compatible with the way other useful plugins like [obsidian-leaflet](h
 
 Another way that the plugin parses location data is through **inline location URLs** in the format of `[link-name](geo:40.68,-74.04)`, which allow multiple markers in the same note.
 To prevent the need to scan the full content of all your notes, it requires an empty `locations:` tag in the note front matter ('locations' and not 'location').
+(In most methods of entering geolocations Map View will do this automatically.)
 Example:
 
 ```
@@ -281,7 +282,7 @@ The map can be searched using the tool on the upper-right side, so you can quick
 
 ![](img/search.gif)
 
-2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map and paste them in a note. If you use "copy geolocation", just remember you need the note to start with a front matter that has an empty `locations:` line.
+2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map and paste them in a note.
 
 ![](img/copy.png)
 
@@ -560,6 +561,7 @@ Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-ma
     -   If you experience such breakage, please open an issue and use version 2.2.0 in the meantime.
 -   Major overhaul to the settings of "default action for map marker click". There are now fine-grained settings for fine-tuning what happens when clicking, Ctrl+clicking and middle-clicking markers (and other actions that open a note from the map), and tabs are supported as well as panes.
 -   Similarly to the above, new settings were added for all actions that open Map View, so different behaviors can be configured for a click, Ctrl+click and middle-click.
+-   When pasting an inline geolocation from the clipboard, a "locations:" front-matter is automatically added (unless turned off in the plugin settings).
 
 **Fixes:**
 

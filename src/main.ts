@@ -10,6 +10,7 @@ import {
     TAbstractFile,
     ObsidianProtocolData,
     MarkdownPostProcessorContext,
+    Notice,
 } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
@@ -257,6 +258,35 @@ export default class MapViewPlugin extends Plugin {
         this.app.workspace.on('editor-menu', (menu, editor, view) => {
             this.onEditorMenu(menu, editor, view as MarkdownView);
         });
+
+        // Watch for pasted text and add a 'locations:' front matter where applicable if the user pastes
+        // an inline geolocation
+        this.app.workspace.on(
+            'editor-paste',
+            (evt: ClipboardEvent, editor: Editor) => {
+                if (this.settings.fixFrontMatterOnPaste) {
+                    const text = evt.clipboardData.getData('text');
+                    if (text) {
+                        const inlineMatch = matchInlineLocation(text);
+                        if (inlineMatch && inlineMatch.length > 0) {
+                            // The pasted text contains an inline location, so try to help the user by verifying
+                            // a frontmatter exists
+                            if (
+                                utils.verifyOrAddFrontMatter(
+                                    editor,
+                                    'locations',
+                                    ''
+                                )
+                            ) {
+                                new Notice(
+                                    "The note's front matter was updated to denote locations are present"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        );
     }
 
     public findOpenMainView(): WorkspaceLeaf {

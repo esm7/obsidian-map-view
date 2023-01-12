@@ -282,6 +282,22 @@ export class SettingsTab extends PluginSettingTab {
                         this.plugin.saveSettings();
                     });
             });
+        new Setting(containerEl)
+            .setName('Fix front-matter on inline geolocation paste')
+            .setDesc(
+                'Monitor the clipboard and add a "locations:" front-matter if a supported geolocation is pasted from the keyboard.'
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.fixFrontMatterOnPaste ??
+                            DEFAULT_SETTINGS.fixFrontMatterOnPaste
+                    )
+                    .onChange(async (value: boolean) => {
+                        this.plugin.settings.fixFrontMatterOnPaste = value;
+                        this.plugin.saveSettings();
+                    });
+            });
 
         new Setting(containerEl)
             .setHeading()
