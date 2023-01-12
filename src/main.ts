@@ -593,6 +593,8 @@ export default class MapViewPlugin extends Plugin {
             const state = mergeStates(this.settings.defaultState, {
                 mapCenter: selection.location,
             } as MapState);
+            if (state.mapZoom < consts.MIN_QUICK_EMBED_ZOOM)
+                state.mapZoom = consts.MIN_QUICK_EMBED_ZOOM;
             const codeBlock = getCodeBlock(state);
             const cursor = editor.getCursor();
             editor.transaction({

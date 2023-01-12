@@ -33,6 +33,7 @@
     -   [Follow Active Note](#follow-active-note)
     -   [Relation to Other Obsidian Plugins](#relation-to-other-obsidian-plugins)
     -   [Changelog](#changelog)
+        -   [3.0.1](#301)
         -   [3.0.0](#300)
         -   [2.2.0](#220)
         -   [2.1.1](#211)
@@ -43,7 +44,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Thu Jan 12 10:17:13 AM IST 2023 -->
+<!-- Added by: erez, at: Thu Jan 12 09:14:12 PM IST 2023 -->
 
 <!--te-->
 
@@ -547,6 +548,13 @@ In contrast, Obsidian Map View is focused on showing and interacting with your n
 Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-map) which seems to focus on powerful tools for map drawing.
 
 ## Changelog
+
+### 3.0.1
+
+**Fixes:**
+
+-   The ampersand character `&` now works in queries.
+-   Embeds added not through a map (aka "quick embeds") now open with a minimum zoom value of 7, so they won't show the entire world if this is the user's default view.
 
 ### 3.0.0
 
