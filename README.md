@@ -44,7 +44,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri Jan 13 09:09:22 AM IST 2023 -->
+<!-- Added by: erez, at: Fri Jan 13 09:10:32 AM IST 2023 -->
 
 <!--te-->
 
@@ -541,7 +541,7 @@ By default, Map View uses the [query](#queries) `path:"$PATH$"`, which means tha
 ## Relation to Obsidian Leaflet
 
 Users who are looking to add mapping capabilities to Obsidian may want to also look at the great [Obsidian Leaflet plugin](https://github.com/valentine195/obsidian-leaflet-plugin).
-And while both plugins are about maps and use Leaflet.js as their engine, they represent different approaches.
+And while both plugins are about maps and use Leaflet.js as their visual engine, they represent different approaches.
 
 **What’s similar?**
 
