@@ -31,7 +31,7 @@
     -   [URL Parsing Rules](#url-parsing-rules)
     -   [View URLs](#view-urls)
     -   [Follow Active Note](#follow-active-note)
-    -   [Relation to Other Obsidian Plugins](#relation-to-other-obsidian-plugins)
+    -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
     -   [Changelog](#changelog)
         -   [3.0.1](#301)
         -   [3.0.0](#300)
@@ -44,7 +44,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Thu Jan 12 09:14:12 PM IST 2023 -->
+<!-- Added by: erez, at: Fri Jan 13 09:09:22 AM IST 2023 -->
 
 <!--te-->
 
@@ -538,14 +538,25 @@ By default, Map View uses the [query](#queries) `path:"$PATH$"`, which means tha
 -   Use `linkedfrom:"$PATH$"` for a more elaborate inclusion of markers from both the file you're on and files it links to.
 -   Use `linkedfrom:"$PATH$" OR linkedto:"$PATH$"` to include markers that the active note links to and also markers that _link to this file_.
 
-## Relation to Other Obsidian Plugins
+## Relation to Obsidian Leaflet
 
-When thinking about Obsidian and maps, the first plugin that comes to mind is [Obsidian Leaflet](https://github.com/valentine195/obsidian-leaflet-plugin).
-That plugin is great at rendering maps based on data within a note, with great customization options.
-It can also scan for data inside a directory which gives even more power.
-In contrast, Obsidian Map View is focused on showing and interacting with your notes geographically.
+Users who are looking to add mapping capabilities to Obsidian may want to also look at the great [Obsidian Leaflet plugin](https://github.com/valentine195/obsidian-leaflet-plugin).
+And while both plugins are about maps and use Leaflet.js as their engine, they represent different approaches.
 
-Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-map) which seems to focus on powerful tools for map drawing.
+**What’s similar?**
+
+-   Both plugins support creating maps from your notes, or a folder of notes, with extensive options for customization.
+-   Both support creating a map for a specific use (e.g. a trip plan), from a focused set of notes, embedding the map in a note etc.
+
+**What's different?**
+
+-   Map View started as a view (similarly to Obsidian’s Graph View) rather than an embedded syntax. And while it now supports embedding maps in notes, the main interaction with it is with a GUI and not with a code block. Leaflet, in contrast, offers its customizations mostly via code in its code block.
+-   Map View parses geolocations from the front-matter of notes and also from an inline syntax within notes (allowing multiple geolocations in a note, also with different individual tags), while Leaflet focuses on a geolocation-per-note approach (and further locations can be added to the map code itself).
+-   Map View is meant to be a research tool based on your notes: it offers interactive queries through a UI, for example, in order to get insights from it or consult it when planning a trip or arriving to a location. In contrast, Leaflet seems to be more directed towards presenting the most fine-grained customizable map.
+-   Map View has powerful geolocation search tools that allow you to quickly add locations from within a note or from the map.
+-   Map View builds marker icons based on customizable rules, so you do stuff like “color all #food/\* items in red”, on top of that “give #food/pizza a pizza icon”, and all pizza-tagged places will have a red pizza icon. In Leaflet marker icons are given individually for each marker, or with a global setting that assigns a full icon to a tag.
+-   Leaflet supports GPX files, overlays and GeoJSON shapes to be added to the map.
+-   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
 
