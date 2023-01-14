@@ -1,0 +1,7 @@
+pre-commit:
+    parallel: true
+    commands:
+        prettier:
+            run: npm run prettier
+        toc:
+            run: tools/gh-md-toc --insert README.md

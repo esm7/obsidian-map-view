@@ -1,13 +1,10 @@
-import { App, TFile, getAllTags, FileView } from 'obsidian';
-import wildcard from 'wildcard';
+import { App, TFile, getAllTags } from 'obsidian';
 import * as leaflet from 'leaflet';
 import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
-// Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
-// @ts-ignore
-let localL = L;
 
-import { PluginSettings, MarkerIconRule } from 'src/settings';
+import { PluginSettings } from 'src/settings';
+import { getIconFromRules, IconCache } from 'src/markerIcons';
 import * as consts from 'src/consts';
 import * as regex from 'src/regex';
 
@@ -179,50 +176,20 @@ export async function buildMarkers(
  */
 export function finalizeMarkers(
     markers: BaseGeoLayer[],
-    settings: PluginSettings
+    settings: PluginSettings,
+    iconCache: IconCache
 ) {
     for (const marker of markers)
         if (marker instanceof FileMarker) {
             marker.icon = getIconFromRules(
                 marker.tags,
-                settings.markerIconRules
+                settings.markerIconRules,
+				iconCache
             );
         } else {
             // TODO: other support
             throw 'Unsupported object type ' + marker.constructor.name;
         }
-}
-
-function checkTagPatternMatch(tagPattern: string, tags: string[]) {
-    let match = wildcard(tagPattern, tags);
-    return match && match.length > 0;
-}
-
-export function getIconFromRules(tags: string[], rules: MarkerIconRule[]) {
-    // We iterate over the rules and apply them one by one, so later rules override earlier ones
-    let result = rules.find((item) => item.ruleName === 'default').iconDetails;
-    for (const rule of rules) {
-        if (checkTagPatternMatch(rule.ruleName, tags)) {
-            result = Object.assign({}, result, rule.iconDetails);
-        }
-    }
-    return getIconFromOptions(result);
-}
-
-export function getIconFromOptions(
-    iconSpec: leaflet.ExtraMarkers.IconOptions
-): leaflet.Icon {
-    // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
-    // @ts-ignore
-    const backupL = L;
-    try {
-        // @ts-ignore
-        L = localL;
-        return leaflet.ExtraMarkers.icon(iconSpec);
-    } finally {
-        // @ts-ignore
-        L = backupL;
-    }
 }
 
 /**

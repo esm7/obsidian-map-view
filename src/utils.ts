@@ -4,8 +4,7 @@ import {
     Editor,
     App,
     TFile,
-    Menu,
-    MenuItem,
+    TAbstractFile,
     getAllTags,
 } from 'obsidian';
 
@@ -54,7 +53,7 @@ export async function newNote(
     fileName: string,
     location: string,
     templatePath?: string
-): Promise<TFile> {
+): Promise<[TFile, number]> {
     // `$CURSOR$` is used to set the cursor
     let content =
         newNoteType === 'singleLocation'
@@ -75,8 +74,14 @@ export async function newNote(
     let fullName = sanitizeFileName(filePath);
     if (await app.vault.adapter.exists(fullName + '.md'))
         fullName += Math.random() * 1000;
+    const cursorLocation = content.indexOf(CURSOR);
+    content = content.replace(CURSOR, '');
     try {
-        return app.vault.create(fullName + '.md', content + templateContent);
+        const file = await app.vault.create(
+            fullName + '.md',
+            content + templateContent
+        );
+        return [file, cursorLocation];
     } catch (e) {
         console.log('Map View: cannot create file', fullName);
         throw Error(`Cannot create file named ${fullName}: ${e}`);
@@ -108,15 +113,6 @@ export async function goToEditorLocation(
         }
     }
     editor.focus();
-}
-
-export async function handleNewNoteCursorMarker(editor: Editor) {
-    const templateValue = editor.getValue();
-    const cursorMarkerIndex = templateValue.indexOf(CURSOR);
-    if (cursorMarkerIndex > -1) {
-        editor.setValue(templateValue.replace(CURSOR, ''));
-        await goToEditorLocation(editor, cursorMarkerIndex, false);
-    }
 }
 
 // Creates or modifies a front matter that has the field `fieldName: fieldValue`.
@@ -152,32 +148,6 @@ export function verifyOrAddFrontMatter(
         return true;
     }
     return false;
-}
-
-/**
- * Populate a context menu from the user configurable URLs
- * @param menu The menu to attach
- * @param location The geolocation to use in the menu item
- * @param settings Plugin settings
- */
-export function populateOpenInItems(
-    menu: Menu,
-    location: leaflet.LatLng,
-    settings: settings.PluginSettings
-) {
-    for (let setting of settings.openIn) {
-        if (!setting.name || !setting.urlPattern) continue;
-        const fullUrl = setting.urlPattern
-            .replace('{x}', location.lat.toString())
-            .replace('{y}', location.lng.toString());
-        menu.addItem((item: MenuItem) => {
-            item.setTitle(`Open in ${setting.name}`);
-            item.setSection('mapview');
-            item.onClick((_ev) => {
-                open(fullUrl);
-            });
-        });
-    }
 }
 
 export function replaceFollowActiveNoteQuery(
@@ -244,4 +214,39 @@ export function getAllTagNames(app: App): string[] {
     }
     tags = tags.sort();
     return tags;
+}
+
+export function isMobile(app: App): boolean {
+    return (app as any)?.isMobile;
+}
+
+export function trimmedFileName(file: TFile) {
+    const MAX_LENGTH = 12;
+    const name = file.basename;
+    if (name.length > MAX_LENGTH)
+        return (
+            name.slice(0, MAX_LENGTH / 2) +
+            '...' +
+            name.slice(name.length - MAX_LENGTH / 2)
+        );
+    else return name;
+}
+
+export function mouseEventToOpenMode(
+    settings: settings.PluginSettings,
+    ev: MouseEvent,
+    settingType: 'openMap' | 'openNote'
+) {
+    // There are events that don't include middle-click information (some 'click' handlers), so in such cases
+    // we invoke this function from keyDown, and don't want to invoke it twice in case it wasn't actually
+    // a middle click
+    if (settingType === 'openNote') {
+        if (ev.button === 1) return settings.markerMiddleClickBehavior;
+        else if (ev.ctrlKey) return settings.markerCtrlClickBehavior;
+        else return settings.markerClickBehavior;
+    } else {
+        if (ev.button === 1) return settings.openMapMiddleClickBehavior;
+        else if (ev.ctrlKey) return settings.openMapCtrlClickBehavior;
+        else return settings.openMapBehavior;
+    }
 }

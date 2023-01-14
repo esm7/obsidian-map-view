@@ -1,5 +1,5 @@
 import { App, Editor, EditorPosition, request } from 'obsidian';
-import * as querystring from 'querystring';
+import * as querystring from 'query-string';
 
 import * as leaflet from 'leaflet';
 import { PluginSettings, UrlParsingRule } from 'src/settings';

@@ -1,8 +1,16 @@
 import { LatLng } from 'leaflet';
-import { SplitDirection, Notice, Plugin } from 'obsidian';
+import { SplitDirection, Notice } from 'obsidian';
 import { MapState, LegacyMapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import * as consts from 'src/consts';
+
+export type LegacyOpenBehavior = 'samePane' | 'secondPane' | 'alwaysNew';
+export type OpenBehavior =
+    | 'replaceCurrent'
+    | 'dedicatedPane'
+    | 'alwaysNewPane'
+    | 'dedicatedTab'
+    | 'alwaysNewTab';
 
 export type PluginSettings = {
     defaultState: MapState;
@@ -25,7 +33,12 @@ export type PluginSettings = {
     defaultTags?: string[];
     autoZoom: boolean;
     letZoomBeyondMax?: boolean;
-    markerClickBehavior?: 'samePane' | 'secondPane' | 'alwaysNew';
+    markerClickBehavior?: OpenBehavior;
+    markerCtrlClickBehavior?: OpenBehavior;
+    markerMiddleClickBehavior?: OpenBehavior;
+    openMapBehavior?: OpenBehavior;
+    openMapCtrlClickBehavior?: OpenBehavior;
+    openMapMiddleClickBehavior?: OpenBehavior;
     newPaneSplitDirection?: SplitDirection;
     newNoteNameFormat?: string;
     newNotePath?: string;
@@ -45,6 +58,8 @@ export type PluginSettings = {
     useGooglePlaces?: boolean;
     saveHistory?: boolean;
     queryForFollowActiveNote?: string;
+    supportRealTimeGeolocation?: boolean;
+    fixFrontMatterOnPaste?: boolean;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -133,7 +148,12 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     ],
     zoomOnGoFromNote: 15,
     autoZoom: true,
-    markerClickBehavior: 'samePane',
+    markerClickBehavior: 'replaceCurrent',
+    markerCtrlClickBehavior: 'dedicatedPane',
+    markerMiddleClickBehavior: 'dedicatedTab',
+    openMapBehavior: 'replaceCurrent',
+    openMapCtrlClickBehavior: 'dedicatedPane',
+    openMapMiddleClickBehavior: 'dedicatedTab',
     newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
     showNoteNamePopup: true,
     showNotePreview: true,
@@ -180,6 +200,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     saveHistory: true,
     letZoomBeyondMax: false,
     queryForFollowActiveNote: 'path:"$PATH$"',
+    supportRealTimeGeolocation: false,
+    fixFrontMatterOnPaste: true,
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
@@ -297,6 +319,25 @@ export function convertUrlParsingRules1(settings: PluginSettings): boolean {
     return changed;
 }
 
+export function convertLegacyOpenBehavior(settings: PluginSettings): boolean {
+    let changed = false;
+    const legacyMarkerClick = settings.markerClickBehavior as any;
+    if (legacyMarkerClick === 'samePane') {
+        settings.markerClickBehavior = 'replaceCurrent';
+        settings.markerCtrlClickBehavior = 'dedicatedPane';
+        changed = true;
+    } else if (legacyMarkerClick === 'secondPane') {
+        settings.markerClickBehavior = 'dedicatedPane';
+        settings.markerCtrlClickBehavior = 'replaceCurrent';
+        changed = true;
+    } else if (legacyMarkerClick === 'alwaysNew') {
+        settings.markerClickBehavior = 'alwaysNewPane';
+        settings.markerCtrlClickBehavior = 'replaceCurrent';
+        changed = true;
+    }
+    return changed;
+}
+
 export async function convertLegacySettings(
     settings: PluginSettings,
     plugin: MapViewPlugin
@@ -337,6 +378,12 @@ export async function convertLegacySettings(
         changed = true;
         new Notice(
             'Map View: URL parsing rules were converted to the new format'
+        );
+    }
+    if (convertLegacyOpenBehavior(settings)) {
+        changed = true;
+        new Notice(
+            'Map View: marker click settings were converted to the new settings format (check the settings for new options!)'
         );
     }
 

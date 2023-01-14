@@ -1,6 +1,6 @@
 import { WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
-import * as querystring from 'querystring';
+import * as querystring from 'query-string';
 
 /** Represents a logical state of the map, in separation from the map display */
 export type MapState = {
@@ -14,6 +14,7 @@ export type MapState = {
     chosenMapSource?: number;
     forceHistorySave?: boolean;
     followActiveNote?: boolean;
+    embeddedHeight?: number;
 };
 
 /** Fields that are deprecated */
@@ -53,19 +54,25 @@ export function areStatesEqual(state1: MapState, state2: MapState) {
     return (
         state1.query == state2.query &&
         state2.mapZoom == state2.mapZoom &&
-        state1.chosenMapSource == state2.chosenMapSource
+        state1.chosenMapSource == state2.chosenMapSource &&
+        state1.embeddedHeight == state2.embeddedHeight
     );
 }
 
-export function stateToUrl(state: MapState) {
-    return querystring.stringify({
+export function stateToRawObject(state: MapState) {
+    return {
         name: state.name,
         mapZoom: state.mapZoom,
         centerLat: state.mapCenter.lat,
         centerLng: state.mapCenter.lng,
         query: state.query,
         chosenMapSource: state.chosenMapSource,
-    });
+        ...(state.embeddedHeight && { embeddedHeight: state.embeddedHeight }),
+    };
+}
+
+export function stateToUrl(state: MapState) {
+    return querystring.stringify(stateToRawObject(state));
 }
 
 export function stateFromParsedUrl(obj: any) {
@@ -80,8 +87,18 @@ export function stateFromParsedUrl(obj: any) {
                   )
                 : null,
         query: obj.query,
-        chosenMapSource: obj.chosenMapSource
-            ? parseInt(obj.chosenMapSource)
-            : null,
+        chosenMapSource:
+            obj.chosenMapSource != null ? parseInt(obj.chosenMapSource) : null,
+        ...(obj.embeddedHeight && {
+            embeddedHeight: parseInt(obj.embeddedHeight),
+        }),
     } as MapState;
+}
+
+export function getCodeBlock(state: MapState) {
+    const params = JSON.stringify(stateToRawObject(state));
+    const block = `\`\`\`mapview
+${params}
+\`\`\``;
+    return block;
 }

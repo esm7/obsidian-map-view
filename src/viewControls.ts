@@ -4,6 +4,7 @@ import {
     TextComponent,
     DropdownComponent,
     ToggleComponent,
+    Notice,
 } from 'obsidian';
 
 // A global ID to differentiate instances of the controls for the purpose of label creation
@@ -18,6 +19,8 @@ import MapViewPlugin from 'src/main';
 import { QuerySuggest } from 'src/query';
 import { LocationSearchDialog, SuggestInfo } from 'src/locationSearchDialog';
 import { FileMarker, MarkersMap } from 'src/markers';
+import * as utils from 'src/utils';
+import * as consts from 'src/consts';
 
 import * as leaflet from 'leaflet';
 
@@ -33,6 +36,9 @@ export class ViewControls {
     private queryBox: TextComponent;
     private mapSourceBox: DropdownComponent;
     private sourceMode: DropdownComponent;
+    private saveButton: ButtonComponent;
+    private updateFromActiveMapView: ButtonComponent;
+    private embeddedHeight: TextComponent;
     private followActiveNoteToggle: ToggleComponent;
 
     private presetsDiv: HTMLDivElement;
@@ -43,6 +49,7 @@ export class ViewControls {
     private queryDelayMs = 250;
     private lastQueryTime: number;
     private updateOngoing = false;
+    private lastSavedState: MapState;
 
     constructor(
         parentElement: HTMLElement,
@@ -107,6 +114,7 @@ export class ViewControls {
             this.followActiveNoteToggle.setValue(
                 this.getCurrentState().followActiveNote == true
             );
+        this.updateSaveButtonVisibility();
         this.updateOngoing = false;
     }
 
@@ -131,6 +139,7 @@ export class ViewControls {
         // Update the state assuming the UI is updated
         const state = this.getCurrentState();
         this.invalidateActivePreset();
+        this.updateSaveButtonVisibility();
         await this.setNewState(
             { ...state, query: newQuery },
             newQuery.length > 0
@@ -165,13 +174,42 @@ export class ViewControls {
         });
         if (this.viewSettings.showOpenButton) {
             let openMapView = new ButtonComponent(this.controlsDiv);
+            openMapView.buttonEl.addClass(
+                'mv-map-control',
+                'mv-control-button'
+            );
             openMapView
                 .setButtonText('Open')
                 .setTooltip('Open a full Map View with the current state.')
-                .onClick(async () => {
+                .onClick(async (ev: MouseEvent) => {
                     const state = this.view.getState();
                     state.followActiveNote = false;
-                    this.plugin.openMapWithState(state, false, false);
+                    this.plugin.openMapWithState(
+                        state,
+                        utils.mouseEventToOpenMode(
+                            this.settings,
+                            ev,
+                            'openMap'
+                        ),
+                        false
+                    );
+                });
+        }
+        if (this.viewSettings.showEmbeddedControls) {
+            this.saveButton = new ButtonComponent(this.controlsDiv);
+            this.saveButton.buttonEl.addClass(
+                'mv-map-control',
+                'mv-control-button'
+            );
+            this.saveButton
+                .setButtonText('Save')
+                .setTooltip(
+                    'Update the source code block with the updated view state'
+                )
+                .onClick(async () => {
+                    this.view.updateCodeBlockCallback();
+                    this.markStateAsSaved();
+                    this.updateSaveButtonVisibility();
                 });
         }
         if (this.viewSettings.showFilters) {
@@ -197,8 +235,10 @@ export class ViewControls {
             });
             // Wrapping the query box in a div so we can place a button in the right-middle of it
             const queryDiv = filtersContent.createDiv('search-input-container');
+            queryDiv.addClass('mv-map-control');
             queryDiv.style.margin = '0';
             this.queryBox = new TextComponent(queryDiv);
+            this.queryBox.inputEl.style.width = '100%';
             this.queryBox.setPlaceholder('Query');
             this.queryBox.onChange((query: string) => {
                 this.setStateByQueryString(query);
@@ -250,6 +290,7 @@ export class ViewControls {
                 cls: 'graph-control-content',
             });
             this.mapSourceBox = new DropdownComponent(viewDivContent);
+            this.mapSourceBox.selectEl.addClass('mv-map-control');
             for (const [index, source] of this.settings.mapSources.entries()) {
                 this.mapSourceBox.addOption(index.toString(), source.name);
             }
@@ -258,6 +299,7 @@ export class ViewControls {
             });
             this.setMapSourceBoxByState();
             this.sourceMode = new DropdownComponent(viewDivContent);
+            this.sourceMode.selectEl.addClass('mv-map-control');
             this.sourceMode
                 .addOptions({ auto: 'Auto', light: 'Light', dark: 'Dark' })
                 .setValue(this.settings.chosenMapMode ?? 'auto')
@@ -266,15 +308,50 @@ export class ViewControls {
                     await this.plugin.saveSettings();
                     this.view.refreshMap();
                 });
-            if (this.viewSettings.viewTabType === 'regular') {
-                let goDefault = new ButtonComponent(viewDivContent);
-                goDefault
-                    .setButtonText('Reset')
-                    .setTooltip('Reset the view to the defined default.')
+            let goDefault = new ButtonComponent(viewDivContent);
+            goDefault
+                .setButtonText('Reset')
+                .setTooltip('Reset the view to the defined default.')
+                .onClick(async () => {
+                    await this.choosePresetAndUpdateState(0);
+                    this.updateControlsToState();
+                });
+            goDefault.buttonEl.addClass('mv-map-control');
+            if (this.viewSettings.showEmbeddedControls) {
+                this.updateFromActiveMapView = new ButtonComponent(
+                    viewDivContent
+                );
+                this.updateFromActiveMapView.buttonEl.addClass(
+                    'mv-map-control'
+                );
+                this.updateFromActiveMapView
+                    .setButtonText('Update from open Map View')
+                    .setTooltip(
+                        'Update the view and its source code block from an open Map View'
+                    )
                     .onClick(async () => {
-                        await this.choosePresetAndUpdateState(0);
-                        this.updateControlsToState();
+                        this.view.updateCodeBlockFromMapViewCallback();
                     });
+                this.embeddedHeight = new TextComponent(viewDivContent);
+                this.embeddedHeight
+                    .setValue(
+                        (
+                            this.getCurrentState()?.embeddedHeight ??
+                            consts.DEFAULT_EMBEDDED_HEIGHT
+                        ).toString()
+                    )
+                    .onChange(async (value) => {
+                        const state = this.getCurrentState();
+                        await this.setNewState(
+                            { ...state, embeddedHeight: parseInt(value) },
+                            false
+                        );
+                        this.updateSaveButtonVisibility();
+                    });
+                this.embeddedHeight.inputEl.style.width = '4em';
+                this.embeddedHeight.inputEl.addClass('mv-map-control');
+            }
+            if (this.viewSettings.viewTabType === 'regular') {
                 let fitButton = new ButtonComponent(viewDivContent);
                 fitButton
                     .setButtonText('Fit')
@@ -282,10 +359,12 @@ export class ViewControls {
                         'Set the map view to fit all currently-displayed markers.'
                     )
                     .onClick(() => this.view.autoFitMapToMarkers());
+                fitButton.buttonEl.addClass('mv-map-control');
                 const followDiv = viewDivContent.createDiv({
                     cls: 'graph-control-follow-div',
                 });
                 this.followActiveNoteToggle = new ToggleComponent(followDiv);
+                this.followActiveNoteToggle.toggleEl.addClass('mv-map-control');
                 const followLabel = followDiv.createEl('label');
                 followLabel.className = 'graph-control-follow-label';
                 const resetQueryOnFollowOff = (followValue: boolean) => {
@@ -311,6 +390,8 @@ export class ViewControls {
                     );
                 });
             }
+            this.markStateAsSaved();
+            this.updateSaveButtonVisibility();
         }
 
         if (this.viewSettings.showPresets) {
@@ -341,7 +422,7 @@ export class ViewControls {
         // Hacky code, not very happy with it... Entry 0 is the default, then 1 is assumed to be the first saved state
         const chosenPreset =
             chosenPresetNumber == 0
-                ? this.settings.defaultState
+                ? this.view.defaultState
                 : this.settings.savedStates[chosenPresetNumber - 1];
         this.lastSelectedPresetIndex = chosenPresetNumber;
         this.lastSelectedPreset = mergeStates(
@@ -359,9 +440,10 @@ export class ViewControls {
         });
         this.presetsBox = new DropdownComponent(this.presetsDivContent);
         const states = [
-            this.settings.defaultState,
+            this.view.defaultState,
             ...(this.settings.savedStates || []),
         ];
+        this.presetsBox.selectEl.addClass('mv-map-control');
         this.presetsBox.addOption('-1', '');
         for (const [index, preset] of states.entries()) {
             this.presetsBox.addOption(index.toString(), preset.name);
@@ -378,6 +460,7 @@ export class ViewControls {
             await this.choosePresetAndUpdateState(chosenPresetNumber);
         });
         let savePreset = new ButtonComponent(this.presetsDivContent);
+        savePreset.buttonEl.addClass('mv-map-control');
         savePreset
             .setButtonText('Save as...')
             .setTooltip('Save the current view as a preset.')
@@ -396,6 +479,7 @@ export class ViewControls {
                 dialog.open();
             });
         let deletePreset = new ButtonComponent(this.presetsDivContent);
+        deletePreset.buttonEl.addClass('mv-map-control');
         deletePreset
             .setButtonText('Delete')
             .setTooltip('Delete the currently-selected preset.')
@@ -408,6 +492,7 @@ export class ViewControls {
                 }
             });
         let saveAsDefault = new ButtonComponent(this.presetsDivContent);
+        saveAsDefault.buttonEl.addClass('mv-map-control');
         saveAsDefault
             .setButtonText('Save as Default')
             .setTooltip('Save the current view as the default one.')
@@ -419,12 +504,22 @@ export class ViewControls {
                 await this.plugin.saveSettings();
                 this.presetsBox.setValue('0');
             });
-        new ButtonComponent(this.presetsDivContent)
+        const copyAsUrl = new ButtonComponent(this.presetsDivContent)
             .setButtonText('Copy URL')
             .setTooltip('Copy the current view as a URL.')
             .onClick(async () => {
                 this.view.copyStateUrl();
             });
+        copyAsUrl.buttonEl.addClass('mv-map-control');
+        const copyBlock = new ButtonComponent(this.presetsDivContent)
+            .setButtonText('Copy block')
+            .setTooltip(
+                'Copy the current view as a block code you can paste in notes for an inline map.'
+            )
+            .onClick(async () => {
+                this.view.copyCodeBlock();
+            });
+        copyBlock.buttonEl.addClass('mv-map-control');
     }
 
     invalidateActivePreset() {
@@ -433,11 +528,24 @@ export class ViewControls {
             this.presetsBox.setValue('-1');
         }
     }
+
+    updateSaveButtonVisibility() {
+        if (!this.saveButton) return;
+        if (areStatesEqual(this.getCurrentState(), this.lastSavedState))
+            this.saveButton.buttonEl.style.display = 'none';
+        else this.saveButton.buttonEl.style.display = 'inline';
+    }
+
+    markStateAsSaved(state: MapState = null) {
+        if (state) this.lastSavedState = state;
+        else this.lastSavedState = this.getCurrentState();
+    }
 }
 
 export class SearchControl extends leaflet.Control {
     view: MapContainer;
     app: App;
+    plugin: MapViewPlugin;
     settings: PluginSettings;
     searchButton: HTMLAnchorElement;
     clearButton: HTMLAnchorElement;
@@ -446,11 +554,13 @@ export class SearchControl extends leaflet.Control {
         options: any,
         view: MapContainer,
         app: App,
+        plugin: MapViewPlugin,
         settings: PluginSettings
     ) {
         super(options);
         this.view = view;
         this.app = app;
+        this.plugin = plugin;
         this.settings = settings;
     }
 
@@ -461,13 +571,13 @@ export class SearchControl extends leaflet.Control {
         );
         this.searchButton = div.createEl('a');
         this.searchButton.innerHTML = '🔍';
-        this.searchButton.onClickEvent((ev: MouseEvent) => {
+        this.searchButton.addEventListener('click', (ev: MouseEvent) => {
             this.openSearch(this.view.getMarkers());
         });
         this.clearButton = div.createEl('a');
         this.clearButton.innerHTML = 'X';
         this.clearButton.style.display = 'none';
-        this.clearButton.onClickEvent((ev: MouseEvent) => {
+        this.clearButton.addEventListener('click', (ev: MouseEvent) => {
             this.view.removeSearchResultMarker();
             this.clearButton.style.display = 'none';
         });
@@ -504,6 +614,7 @@ export class SearchControl extends leaflet.Control {
 
         const searchDialog = new LocationSearchDialog(
             this.app,
+            this.plugin,
             this.settings,
             'custom',
             'Find in map',
@@ -531,5 +642,49 @@ export class SearchControl extends leaflet.Control {
         };
         searchDialog.searchArea = this.view.display.map.getBounds();
         searchDialog.open();
+    }
+}
+
+export class RealTimeControl extends leaflet.Control {
+    view: MapContainer;
+    app: App;
+    settings: PluginSettings;
+    locateButton: HTMLAnchorElement;
+    clearButton: HTMLAnchorElement;
+
+    constructor(
+        options: any,
+        view: MapContainer,
+        app: App,
+        settings: PluginSettings
+    ) {
+        super(options);
+        this.view = view;
+        this.app = app;
+        this.settings = settings;
+    }
+
+    onAdd(map: leaflet.Map) {
+        const div = leaflet.DomUtil.create(
+            'div',
+            'leaflet-bar leaflet-control'
+        );
+        this.locateButton = div.createEl('a');
+        this.locateButton.innerHTML = '⌖';
+        this.locateButton.style.fontSize = '25px';
+        this.locateButton.addEventListener('click', (ev: MouseEvent) => {
+            new Notice('Asking for the current location');
+            open('geohelper://locate');
+            this.clearButton.style.display = 'block';
+        });
+        this.clearButton = div.createEl('a');
+        this.clearButton.innerHTML = 'X';
+        this.clearButton.style.display = 'none';
+        this.clearButton.addEventListener('click', (ev: MouseEvent) => {
+            this.view.setRealTimeLocation(null, 0, 'clear');
+            this.clearButton.style.display = 'none';
+        });
+
+        return div;
     }
 }

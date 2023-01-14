@@ -2,18 +2,66 @@
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/esm7)
 
+<!--ts-->
+
+-   [Obsidian.md Map View](#obsidianmd-map-view)
+    -   [Intro](#intro)
+    -   [With Obsidian Mobile](#with-obsidian-mobile)
+    -   [Support the Development](#support-the-development)
+    -   [Quick How To](#quick-how-to)
+        -   [Log a Geolocation](#log-a-geolocation)
+        -   [Create a Trip Plan Map](#create-a-trip-plan-map)
+        -   [Build Your Personal Geographic Information System (GIS)](#build-your-personal-geographic-information-system-gis)
+    -   [Understanding Map View: Parsing Location Data](#understanding-map-view-parsing-location-data)
+    -   [Adding a Location to a Note](#adding-a-location-to-a-note)
+        -   [Anywhere in Obsidian](#anywhere-in-obsidian)
+        -   [In an Existing Note](#in-an-existing-note)
+        -   [From the Map](#from-the-map)
+        -   [Paste as Geolocation](#paste-as-geolocation)
+        -   [Tip: Copying from Google Maps](#tip-copying-from-google-maps)
+    -   [Embedding Maps in Notes](#embedding-maps-in-notes)
+    -   [Queries](#queries)
+    -   [Marker Icons](#marker-icons)
+        -   [Tag Rules](#tag-rules)
+    -   [In-Note Location Search &amp; Auto-Complete](#in-note-location-search--auto-complete)
+        -   [Changing a Geocoding Provider](#changing-a-geocoding-provider)
+    -   [Map Sources](#map-sources)
+    -   [Presets](#presets)
+    -   [Open In](#open-in)
+    -   [URL Parsing Rules](#url-parsing-rules)
+    -   [View URLs](#view-urls)
+    -   [Follow Active Note](#follow-active-note)
+    -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
+    -   [Changelog](#changelog)
+        -   [3.0.1](#301)
+        -   [3.0.0](#300)
+        -   [2.2.0](#220)
+        -   [2.1.1](#211)
+        -   [2.1.0](#210)
+        -   [2.0.5](#205)
+        -   [2.0.4](#204)
+        -   [2.0.3](#203)
+        -   [2.0.0](#200)
+
+<!-- Created by https://github.com/ekalinin/github-markdown-toc -->
+<!-- Added by: erez, at: Fri Jan 13 09:10:32 AM IST 2023 -->
+
+<!--te-->
+
 ## Intro
 
 This plugin introduces an **interactive map view** for [Obsidian.md](https://obsidian.md/).
-It searches your notes for encoded geolocations (see below), places them as markers on a map and offers multiple tools to interact with them.
+It searches your notes for encoded geolocations (see below), places them as markers on a map and offers many tools to interact with them.
 
 It effectively turns your Obsidian vault into a **personal GIS system** that adds a geographical layer to your notes, journals, trip planning and pretty much anything you use Obsidian for.
 
-You can set different icons for different note types according to custom rules, save geolocations from a variety of sources (Google Maps and many others), save custom views, switch between map layers, run powerful queries and so much more.
+You can set different icons for different note types according to custom rules, save geolocations from a variety of sources (Google Maps and many others), save custom views, embed maps in notes, switch between map layers, run powerful queries and so much more.
 
 ![](img/sample.png)
 
 ![](img/intro.gif)
+
+![](img/quick-embed.gif)
 
 I wrote this plugin because I wanted my ever-growing Zettelkasten to be able to answer questions like...
 
@@ -35,7 +83,111 @@ Please help us ask the Obsidian developers to get these permissions added, as it
 
 If you want to support the development of this plugin, please consider to [buy me a coffee](https://www.buymeacoffee.com/esm7).
 
-## Parsing Location Data
+## Quick How To
+
+Map View is a powerful tool with many ways to use it.
+If you wanna learn it thoroughly, you may wanna start from [understanding how it works](#understanding-map-view-parsing-location-data).
+But if you wanna dive right in and give it a try, or get a quick glimpse of what it can do, continue reading.
+
+### Log a Geolocation
+
+Here are a few examples for logging a favorite location you want to see in a map.
+
+**Option 1: from a Note**
+
+Starting from a note, e.g. your daily note, a note referring to a trip plan or anywhere else, launch the Obsidian Command Palette and choose "Map View: add inline geolocation link".
+A link in the format of `[](geo:)` will be added where your cursor is.
+Start typing a location name inside the bracket, and some geolocation results will pop up. Choose one and your _inline location_ is complete.
+
+![](img/quick1.gif)
+
+**Option 2: from the Map**
+
+Open Map View (e.g. from the Obsidian ribbon icon).
+Search or locate a location, e.g. using the search tool.
+Right-click the map and choose "new note here (front matter)" to create a note logging the selection point, or choose "copy geolocation" to copy an inline location to paste in some other note.
+
+**There are many other ways to log geolocations in Map View**, see [here](#adding-a-location-to-a-note) for more details.
+
+### Create a Trip Plan Map
+
+There are many flows you can use to create custom maps, interact with them and use them for research and planning -- here's one that I typically use for trip planning.
+
+**Step 1: log some locations.**
+
+For most trips, I like to use a single note with sections, for example:
+
+```
+## To Visit
+
+- [Place 1](geo:...) tag:activity
+  - Some information about this place
+- [Place 2](geo:...) tag:activity
+  - Information about this place
+
+## To Eat
+
+- [Restaurant1](geo:...) tag:food
+  - Opening hours, other data...
+- [Restaurant2](geo:...) tag:food
+  - Opening hours, other data...
+```
+
+I add the places using one of the methods above (by searching with "add inline geolocation link") or by one of the many other methods described below.
+Notice the [inline tags](#understanding-map-view-parsing-location-data), these can be used for custom filters and/or creating different icons for different types of places.
+
+**Step 2: map them!**
+
+In the case of a single note, just click the note's menu (3 dots) and choose "focus (note name) in Map View".
+You should immediately see a map of all your locations, and if you spend some moments to configure [marker icons](#marker-icons), you can easily get different shapes and colors for your various tags.
+
+**Step 3: save this map**
+
+You have a few options here.
+
+One thing you can do is to open the Presets section on the map and save the current view, then open it from Map View anytime.
+
+Another option is to save an embed: in Presets click 'Copy block' (or "Copy Map View code block" from the note menu), then paste the resulting code into a note.
+
+![](img/quick2.gif)
+
+**There are many more options of how to build a trip plan, present it and use it.**
+[This](https://www.reddit.com/r/ObsidianMD/comments/xi42pt/planning_a_vacation_with_map_view/) post gives a more detailed example, and diving into the details of how Map View works will help you find your own optimal flow.
+
+### Build Your Personal Geographic Information System (GIS)
+
+The most powerful way to use Map View is to build a complete personal GIS (Geographic Information System) from your notes vault.
+I personally do this as follows.
+
+**1. Collection**
+
+This part isn't specific to Map View, but the main idea is that I [collect](https://en.wikipedia.org/wiki/Getting_Things_Done) pieces of information from various sources, that often contain some geographic information.
+
+For example, I can save a Facebook post that recommends a new restaurant, clip a cool hike from a hiking group, or draft a quick note when a friend tells me about a place that I want to remember.
+
+I later turn these into notes, but of course if that's not how you do things, you can skip to Processing.
+
+**2. Processing**
+
+When I turn my clipped pieces of information into notes, I add geolocations as follows.
+
+-   For pieces of information that are _mainly geographical_, e.g. a restaurant recommendation, a hike or somewhere I may want to visit, I create a Zettelkasten note, then use the Map View "add geolocation (front matter) to current note" to tag the relevant geolocation.
+    -   If the location isn't easy to find using a text search, I usually open a more specific mapping tool like a hiking map, locate the place that I want, copy it in lat,lng format and paste it into the same search box above.
+    -   Alternatively, I sometimes prefer to locate it on the map, then right-click and "copy geolocation as front matter" (or create the note from the map in the first place).
+    -   I then tag the complete note with some useful metadata. Examples include: `#hike`, `#season/spring`, `#dogs`, `#camping`, `#food`, `#food/pizza`, `#activity`, `#activity/kids`, `#not` (for negative recommendations).
+-   For bulks of geographical information, like a list of recommended coffee shops in a city, I create a note and add all geolocations via inline geolocation links. I have the "add inline geolocation link" command mapped to `Alt+L` so I can easily start a location search while typing a note.
+
+**3. Querying**
+
+There are countless occasions that I query my Personal GIS.
+
+-   When planning a trip I often look at the area that I'm visiting, sometimes saving it as a preset without any filter applied, and get a general understanding of what I know about the area.
+-   I often query the system for a specific set of needs. For example, I obsessively collect information about dog-friendly activities around where I live, so when I want to go camping I query for `#dogs AND #sleep` (to search for dog-friendly camp sites) and to choose dining options I query for `#dogs AND #food`. See [here](#queries) to learn more about how queries work and what you can do with them.
+-   When visiting an unknown area I frequently launch Map View from Obsidian Mobile to account for change in plans or finding what to do without planning in advance.
+
+See also [this](https://www.reddit.com/r/ObsidianMD/comments/xi42pt/planning_a_vacation_with_map_view/) Reddit post about planning a vacation with Map View.
+
+## Understanding Map View: Parsing Location Data
 
 Map View provides [several methods to log locations in notes](#adding-a-location-to-a-note) and can manage the technicalities for you.
 You can skip to that section if you want to just get started, or continue reading the more technical explanation below.
@@ -58,6 +210,7 @@ It's also compatible with the way other useful plugins like [obsidian-leaflet](h
 
 Another way that the plugin parses location data is through **inline location URLs** in the format of `[link-name](geo:40.68,-74.04)`, which allow multiple markers in the same note.
 To prevent the need to scan the full content of all your notes, it requires an empty `locations:` tag in the note front matter ('locations' and not 'location').
+(In most methods of entering geolocations Map View will do this automatically.)
 Example:
 
 ```
@@ -126,26 +279,24 @@ The map offers several tools to create notes.
 ![](img/new-note.png)
 
 The map can be searched using the tool on the upper-right side, so you can quickly jump to the place you want to mark.
-[URL parsing rules](#url-parsing-rules) also work here, so you can [copy a geolocation from Google Maps](#tips) (or any other service) and jump to it.
+[URL parsing rules](#url-parsing-rules) also work here, so you can [copy a geolocation from Google Maps](#tip-copying-from-google-maps) (or any other service) and jump to it.
 
 ![](img/search.gif)
 
-2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map and paste them in a note. If you use "copy geolocation", just remember you need the note to start with a front matter that has an empty `locations:` line.
+2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map and paste them in a note.
 
 ![](img/copy.png)
 
 ### Paste as Geolocation
 
 Map View monitors the system clipboard, and when it is is detected to contain an encoded geolocation (e.g. a Google Maps "lat, lng" location), a "Paste as geolocation" entry is added to the editor context menu.
-For example, if you right-click a location in Google Maps and click the first item in the menu (coordinates in lat,lng format, see [below](#tips)), you can then paste it as a geolocation inside a note.
+For example, if you right-click a location in Google Maps and click the first item in the menu (coordinates in lat,lng format, see [below](#tip-copying-from-google-maps)), you can then paste it as a geolocation inside a note.
 
 Alternatively, you can right-click a URL or a supported formatted string that is already present in a note and choose "Convert to geolocation".
 
 By default Map View can parse URLs from two services: the OpenStreetMap "show address" link and a generic "lat, lng" encoding used by many URLs.
 
-### Tips
-
-#### Copying from Google Maps
+### Tip: Copying from Google Maps
 
 Google Maps on desktop web offers a very easy shortcut for copying universal `lat, lng` coordinates.
 
@@ -154,6 +305,31 @@ Google Maps on desktop web offers a very easy shortcut for copying universal `la
 3. In any Obsidian note, right click and choose "paste as geolocation", or paste the coordinates into any Map View search box.
 
 ![](img/google-copy.png)
+
+## Embedding Maps in Notes
+
+Map View supports the Obsidian code block format for embedding maps in notes.
+There are several ways to do this:
+
+1. **Embedding an existing map.** To embed an existing map from Map View, including its query and any other settings, click 'Copy Block' from the map's Presets dropdown and paste the block into a note.
+
+![](img/copy-block-embed.gif)
+
+1. **Embedding directly from a note.** From the editor, right-click and choose "embed a Map View" from the context menu, then enter a search term that will be used for the center of the map. Alternatively, there's an Obsidian command named "Map View: add an embedded map" that you can assign to a keyboard shortcut.
+
+![](img/quick-embed.gif)
+
+Once a map is embedded in a note, it represents a live view that updates according to your notes.
+Geolocations that are added or modified in the viewed area, and match the query that is saved in the embed, will be updated live.
+
+You can make light adjustments to the view from within the embed (change its zoom, pan or height), and if you want these to be saved, click the 'Save' button that will appear.
+
+To make bigger adjustments, such as updating the query or changing the view completely, use the Open button, make your changes, then click 'Update from open Map View' in the embed's View menu.
+Note that if you have multiple full instances of Map View open, 'Update from open Map View' may not do what you intended, and you may need to close the unwanted views first.
+
+Embeds also work really nicely in Canvas including live updates.
+
+![](img/canvas.gif)
 
 ## Queries
 
@@ -165,6 +341,9 @@ The query string can contain the following _search operators_:
 
 -   `tag:#...` to search for notes or markers tagged with a specific tag.
     -   This works on both whole notes (`#hiking`) and inline tags for specific markers (`tag:hiking`).
+-   `name:...` to search for markers that their name contains the given string.
+    -   For front-matter geolocations this matches the file name.
+    -   For inline geolocations this matches the link name and **ignores** the file name (if you want to always match the file name, use `OR` with `path:`).
 -   `path:...` to search by the note path.
     -   This operator will include all the markers in the path that matches the query.
 -   `linkedto:...` includes notes that contain a specific link.
@@ -173,6 +352,8 @@ The query string can contain the following _search operators_:
 -   `linkedfrom:...` includes notes that are linked from a specific note, and also the origin note itself.
     -   This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query.
     -   For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
+-   `lines:x-y` includes only inline markers that are defined in the given line range in their note.
+    -   For example, `lines:20-30` includes only inline geolocations that are defined in lines 20 to 30 in the file that contains them.
 
 All operators are case insensitive.
 
@@ -357,16 +538,75 @@ By default, Map View uses the [query](#queries) `path:"$PATH$"`, which means tha
 -   Use `linkedfrom:"$PATH$"` for a more elaborate inclusion of markers from both the file you're on and files it links to.
 -   Use `linkedfrom:"$PATH$" OR linkedto:"$PATH$"` to include markers that the active note links to and also markers that _link to this file_.
 
-## Relation to Other Obsidian Plugins
+## Relation to Obsidian Leaflet
 
-When thinking about Obsidian and maps, the first plugin that comes to mind is [Obsidian Leaflet](https://github.com/valentine195/obsidian-leaflet-plugin).
-That plugin is great at rendering maps based on data within a note, with great customization options.
-It can also scan for data inside a directory which gives even more power.
-In contrast, Obsidian Map View is focused on showing and interacting with your notes geographically.
+Users who are looking to add mapping capabilities to Obsidian may want to also look at the great [Obsidian Leaflet plugin](https://github.com/valentine195/obsidian-leaflet-plugin).
+And while both plugins are about maps and use Leaflet.js as their visual engine, they represent different approaches.
 
-Another relevant plugin is [Obsidian Map](https://github.com/Darakah/obsidian-map) which seems to focus on powerful tools for map drawing.
+**What’s similar?**
+
+-   Both plugins support creating maps from your notes, or a folder of notes, with extensive options for customization.
+-   Both support creating a map for a specific use (e.g. a trip plan), from a focused set of notes, embedding the map in a note etc.
+
+**What's different?**
+
+-   Map View started as a view (similarly to Obsidian’s Graph View) rather than an embedded syntax. And while it now supports embedding maps in notes, the main interaction with it is with a GUI and not with a code block. Leaflet, in contrast, offers its customizations mostly via code in its code block.
+-   Map View parses geolocations from the front-matter of notes and also from an inline syntax within notes (allowing multiple geolocations in a note, also with different individual tags), while Leaflet focuses on a geolocation-per-note approach (and further locations can be added to the map code itself).
+-   Map View is meant to be a research tool based on your notes: it offers interactive queries through a UI, for example, in order to get insights from it or consult it when planning a trip or arriving to a location. In contrast, Leaflet seems to be more directed towards presenting the most fine-grained customizable map.
+-   Map View has powerful geolocation search tools that allow you to quickly add locations from within a note or from the map.
+-   Map View builds marker icons based on customizable rules, so you do stuff like “color all #food/\* items in red”, on top of that “give #food/pizza a pizza icon”, and all pizza-tagged places will have a red pizza icon. In Leaflet marker icons are given individually for each marker, or with a global setting that assigns a full icon to a tag.
+-   Leaflet supports GPX files, overlays and GeoJSON shapes to be added to the map.
+-   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 3.0.1
+
+**Fixes:**
+
+-   The ampersand character `&` now works in queries.
+-   Embeds added not through a map (aka "quick embeds") now open with a minimum zoom value of 7, so they won't show the entire world if this is the user's default view.
+
+### 3.0.0
+
+**New:**
+
+-   **Map embeds are finally here!**
+    -   Map View now supports embedding maps in notes.
+    -   This works really well also in Canvas!
+    -   See [here](#embedding-maps-in-notes) for more details.
+-   Major performance improvements, especially when displaying hundreds of markers or more. Map View now opens and interacts instantly even with thousands of markers and dozens of icon rules.
+    -   **IMPORTANT:** this might break some very custom marker icon rules (especially ones that use properties that I didn't think to test).
+    -   If you experience such breakage, please open an issue and use version 2.2.0 in the meantime.
+-   Major overhaul to the settings of "default action for map marker click". There are now fine-grained settings for fine-tuning what happens when clicking, Ctrl+clicking and middle-clicking markers (and other actions that open a note from the map), and tabs are supported as well as panes.
+-   Similarly to the above, new settings were added for all actions that open Map View, so different behaviors can be configured for a click, Ctrl+click and middle-click.
+-   When pasting an inline geolocation from the clipboard, a "locations:" front-matter is automatically added (unless turned off in the plugin settings).
+
+**Fixes:**
+
+-   Parenthesis now work in queries (https://github.com/esm7/obsidian-map-view/issues/124).
+-   Commas now work in queries (https://github.com/esm7/obsidian-map-view/issues/125).
+-   Fixed weird pane selection logic for "Open in Map View" and "Show on Map View" caused by the Obsidian 1.1 UI changes (https://github.com/esm7/obsidian-map-view/issues/127).
+-   Fixed the annoying `$CURSOR` that was added to some notes for some people (https://github.com/esm7/obsidian-map-view/issues/21).
+-   Fixes to "follow active note" (https://github.com/esm7/obsidian-map-view/issues/113).
+
+### 2.2.0
+
+**New:**
+
+-   Selecting a range of lines in the editor that have multiple geolocations will show a new "focus X geolocations in Map View" context menu item.
+-   A new `name` query filter (to filter for a geolocation name) and a `lines` filter (to filter for a line range within a file).
+-   Small UI improvements, e.g. icons in pop-ups.
+-   "Focus Note in Map View" is now shown also for notes that have no geolocations, since the "follow active note" query format may look into links.
+-   Some behind-the-scenes work for exciting big features that are cooking...
+
+**Fixes:**
+
+-   **Various fixes and tweaks required for Obsidian 0.16.x.**
+    -   As part of this, "paste as geolocation" is now always shown in the editor context menu, regardless of whether a string that can be parsed was found in the clipboard. This is due to a change of how menus in Obsidian work, which doesn't allow to inspect the clipboard while populating the menu.
+-   Fixed Google Places search not working on Mobile due to `querystring` not being present for some reason.
+-   Fixed pop-ups not always clickable on mobile.
+-   Fixed a problem in parsing link names on lines that contain other links.
 
 ### 2.1.1
 
@@ -447,59 +687,3 @@ This is a massive version with a huge number of updates, pushing Map View to the
 -   Several UI improvements:
     -   The map control panel is now prettier and smaller when unused.
     -   The note name and cluster popups now follow the Obsidian theme.
-
-### 1.5.0
-
--   Map View now saves its state to the Obsidian back/forward mechanism (unless configured not to).
--   Fixed an issue with markers temporarily duplicating (until the map is refreshed) when their note is renamed.
-
-### 1.4.0
-
--   Replaced OpenStreetMap with CartoDB as the new default map source (https://github.com/esm7/obsidian-map-view/issues/59).
--   Map View now displays a more useful error when tiles fail to load.
--   Removed the "Google Maps" default URL parsing rule because apparently it was incorrect (https://github.com/esm7/obsidian-map-view/issues/57). It is now replaced by a more generic "lat,lng" rule that can also be used with Google Maps, _not_ by parsing the URL but by right-clicking the map in Google Maps and choosing the first menu item that copies the coordinates.
--   Hovering on a map marker now opens the Obsidian note preview, scrolled to the correct line (https://github.com/esm7/obsidian-map-view/issues/60). This is configurable in the settings and comes _in addition_ to the existing note pop-up (without a snippet), because the preview does not include the note name.
-    -   **Important note:** this replaces the "snippet" functionality of previous versions.
--   Marker clusters now show a preview of their own; they show a popup with the first 4 icons in the cluster.
-
-### 1.3.0
-
--   Introduction of **Presets** as a way to save the state of the view including the map state, filters and optionally the chosen map source.
-    -   As part of this, the 'default view' functionality was converted to a built-in 'Default' preset and the UI was revamped accordingly.
--   As part of the above, the internal structure of the plugin had to be reorganized and many features needed to be rewired. **I put major effort to test the entire functionality of the plugin, but pretty much anything could break and I may have missed some bugs.** Please open issues if something had stopped working.
--   When using `{{query}}` in file name templates, the file name is sanitized so the creation won't fail on illegal strings.
-
-### 1.2.1
-
--   The "new geolocation note" dialog can now also be used to add a location to an existing note, both via a new Obsidian command and a file menu action (https://github.com/esm7/obsidian-map-view/issues/46).
--   Added a `{{query}}` file name template option to auto-add the search query for new location notes (https://github.com/esm7/obsidian-map-view/issues/45).
-
-### 1.2.0
-
--   Added a "new geolocation note" Obsidian command with an interactive search and URL parser.
--   Fixed a bug of highlighting more than the intended line after clicking a map marker and opening a note.
--   Fixed a bug of inline tags not recognized if immediately followed by a dot (which is a common pattern).
--   Fixed an exception that could prevent settings to be applied after closing the settings dialog.
-
-### 1.1.0
-
--   The plugin now supports a configurable list of map sources, switchable from the View pane on the map, including optional separate URLs for light & dark themes.
--   Support dark mode using a CSS hue revert, as [recommended for Leaflet](https://gist.github.com/BrendonKoz/b1df234fe3ee388b402cd8e98f7eedbd) and as done by obsidian-leaflet.
--   [Support multiple inline locations per line](https://github.com/esm7/obsidian-map-view/issues/35).
--   [Support multiple tags per inline location](https://github.com/esm7/obsidian-map-view/issues/32).
--   Fixed an [issue](https://github.com/esm7/obsidian-map-view/issues/30) of inline tags not properly including the dash (`-`) character.
--   Popups now have a close button (to make them more mobile-friendly).
-
-### 1.0.0
-
--   UI revisions and cleanups to make it easier for new users. **Some changes break existing notions.**
-    -   Map View now treats "inline locations" as the default. It is first in the menus, and front matter actions are listed as "front matter".
-    -   "Copy as coordinates" was removed, believing it's not really useful anymore. Please drop me a note if you find it important.
-    -   Several other tweaks to make the plugin easier to use.
--   At last, a settings UI for editing marker icons! Check it out under the plugin settings.
-    -   In order to do this, the rule format in the plugin's data file had to be changed. The plugin will auto-convert your existing rules to the new format when first launched. After this conversion, _do not_ manually enter rules under the old key!
-    -   You may still edit rules manually, through the plugin's "edit marker icons as JSON" box or directly in the data file, but **only use the new key** `markerIconRules`.
--   Added an inline geolocation search, which can get results from either OSM or Google (with an API key), and a command to insert a geolocation.
--   With relation to the above, the search tool in the map can now use the selected geocoding service too, meaning you can use Google Maps to search for locations if you have an API key.
--   New "paste as geolocation" and "convert to geolocation" right-click editor menu items, that can automatically convert URLs in the clipboard or URLs in the note to a geolocation link.
-    -   The rules that convert URLs to geolocations are configurable in the settings.

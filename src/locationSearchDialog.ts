@@ -1,9 +1,10 @@
 import { Editor, App, SuggestModal, TFile, Instruction } from 'obsidian';
 import * as leaflet from 'leaflet';
 
+import MapViewPlugin from 'src/main';
 import { PluginSettings } from 'src/settings';
 import { GeoSearcher, GeoSearchResult } from 'src/geosearch';
-import { getIconFromOptions } from 'src/markers';
+import { getIconFromOptions } from 'src/markerIcons';
 import * as utils from 'src/utils';
 import * as consts from 'src/consts';
 
@@ -14,6 +15,7 @@ export class SuggestInfo extends GeoSearchResult {
 type DialogAction = 'newNote' | 'addToNote' | 'custom';
 
 export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
+    private plugin: MapViewPlugin;
     private settings: PluginSettings;
     private searcher: GeoSearcher;
     private lastSearchTime = 0;
@@ -37,6 +39,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
 
     constructor(
         app: App,
+        plugin: MapViewPlugin,
         settings: PluginSettings,
         dialogAction: DialogAction,
         title: string,
@@ -46,6 +49,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         moreInstructions: Instruction[] = null
     ) {
         super(app);
+        this.plugin = plugin;
         this.settings = settings;
         this.searcher = new GeoSearcher(app, settings);
         this.dialogAction = dialogAction;
@@ -111,7 +115,8 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         if (this.hasIcons) {
             let iconDiv = el.createDiv('search-icon-div');
             const compiledIcon = getIconFromOptions(
-                value.icon ?? consts.SEARCH_RESULT_MARKER
+                value.icon ?? consts.SEARCH_RESULT_MARKER,
+                this.plugin.iconCache
             );
             let iconElement: HTMLElement = compiledIcon.createIcon();
             let style = iconElement.style;
@@ -142,7 +147,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
             this.settings.newNoteNameFormat,
             query
         );
-        const file: TFile = await utils.newNote(
+        const [file, cursorPos] = await utils.newNote(
             this.app,
             'singleLocation',
             this.settings.newNotePath,
@@ -156,14 +161,16 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         if (mapView) {
             mapView.mapContainer.goToFile(
                 file,
-                ev.ctrlKey,
-                utils.handleNewNoteCursorMarker
+                ev.ctrlKey ? 'dedicatedPane' : 'replaceCurrent',
+                async (editor) =>
+                    utils.goToEditorLocation(editor, cursorPos, false)
             );
         } else {
             const leaf = this.app.workspace.activeLeaf;
             await leaf.openFile(file);
             const editor = await utils.getEditor(this.app);
-            if (editor) await utils.handleNewNoteCursorMarker(editor);
+            if (editor)
+                await utils.goToEditorLocation(editor, cursorPos, false);
         }
     }
 

@@ -8,7 +8,6 @@ import {
     TFile,
     WorkspaceLeaf,
     Notice,
-    MarkdownView,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -22,31 +21,44 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
-import { MapState, mergeStates, stateToUrl, copyState } from 'src/mapState';
-import { PluginSettings, TileSource, DEFAULT_SETTINGS } from 'src/settings';
+import { MapState, mergeStates, stateToUrl, getCodeBlock } from 'src/mapState';
+import {
+    OpenBehavior,
+    PluginSettings,
+    TileSource,
+    DEFAULT_SETTINGS,
+} from 'src/settings';
 import {
     MarkersMap,
     BaseGeoLayer,
     FileMarker,
     buildMarkers,
-    getIconFromOptions,
     buildAndAppendFileMarkers,
     finalizeMarkers,
 } from 'src/markers';
+import { getIconFromOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
-import { ViewControls, SearchControl } from 'src/viewControls';
+import { ViewControls, SearchControl, RealTimeControl } from 'src/viewControls';
 import { Query } from 'src/query';
 import { GeoSearchResult } from 'src/geosearch';
+import {
+    RealTimeLocation,
+    RealTimeLocationSource,
+    isSame,
+} from 'src/realTimeLocation';
+import * as menus from 'src/menus';
 
 export type ViewSettings = {
     showMapControls: boolean;
     showFilters: boolean;
     showView: boolean;
     viewTabType: 'regular' | 'mini';
+    showEmbeddedControls: boolean;
     showPresets: boolean;
     showSearch: boolean;
     showOpenButton: boolean;
+    showRealTimeButton: boolean;
 
     // Override the global settings auto zoom.
     // Unlike the global auto zoom, the view auto zoom also happens on every setState, so when a new view opens,
@@ -79,25 +91,39 @@ export class MapContainer {
         controls: ViewControls;
         /** The search controls (search & clear buttons) */
         searchControls: SearchControl = null;
+        /** The real-time geolocation controls */
+        realTimeControls: RealTimeControl = null;
         /** A marker of the last search result */
         searchResult: leaflet.Marker = null;
         /** The currently highlighted marker (if any) */
         highlight: leaflet.Layer = null;
         /** The actual entity that is highlighted, which is either equal to the above, or the cluster group that it belongs to */
         actualHighlight: leaflet.Marker = null;
+        // TODO document
+        realTimeLocationMarker: leaflet.Marker = null;
+        realTimeLocationRadius: leaflet.Circle = null;
     })();
     public ongoingChanges = 0;
     public freezeMap: boolean = false;
     private plugin: MapViewPlugin;
-    /** The default state as saved in the plugin settings */
-    private defaultState: MapState;
+    /** The default state as saved in the plugin settings, or something else that the view sets */
+    public defaultState: MapState;
+    public lastRealTimeLocation: RealTimeLocation = null;
     /**
-     * The Workspace Leaf that a note was last opened in.
+     * The Workspace Leaf that a note was last opened in when a new pane was created.
      * This is saved so the same leaf can be reused when opening subsequent notes, making the flow consistent & predictable for the user.
      */
-    private newPaneLeaf: WorkspaceLeaf;
+    private lastPaneLeaf: WorkspaceLeaf;
+    /**
+     * Same as above, but saved separately for when a new tab was created.
+     */
+    private lastTabLeaf: WorkspaceLeaf;
     /** Is the view currently open */
     private isOpen: boolean = false;
+    /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
+    public updateCodeBlockCallback: () => Promise<void>;
+    /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
+    public updateCodeBlockFromMapViewCallback: () => Promise<void>;
 
     /**
      * Construct a new map instance
@@ -142,9 +168,17 @@ export class MapContainer {
 
     copyStateUrl() {
         const params = stateToUrl(this.state);
-        const url = `obsidian://mapview?action=open&${params}`;
+        const url = `obsidian://mapview?do=open&${params}`;
         navigator.clipboard.writeText(url);
         new Notice('Copied state URL to clipboard');
+    }
+
+    copyCodeBlock() {
+        const block = getCodeBlock(this.state);
+        navigator.clipboard.writeText(block);
+        new Notice(
+            'Copied state as code block which you can embed in any note'
+        );
     }
 
     getMarkers() {
@@ -234,6 +268,7 @@ export class MapContainer {
      * we want to reliably get the status of freezeMap
      */
     public highLevelSetViewState(partialState: Partial<MapState>) {
+        if (Object.keys(partialState).length === 0) return;
         const state = this.getState();
         if (state) {
             const newState = Object.assign({}, state, partialState);
@@ -336,7 +371,7 @@ export class MapContainer {
     }
 
     async createMap() {
-        // LeafletJS compatability: disable tree-shaking for the full-screen module
+        // Obsidian Leaflet compatability: disable tree-shaking for the full-screen module
         var dummy = leafletFullscreen;
         this.display.map = new leaflet.Map(this.display.mapDiv, {
             center: this.defaultState.mapCenter,
@@ -356,6 +391,7 @@ export class MapContainer {
                 this.settings.maxClusterRadiusPixels ??
                 DEFAULT_SETTINGS.maxClusterRadiusPixels,
             animate: false,
+            chunkedLoading: true,
         });
         this.display.map.addLayer(this.display.clusterGroup);
 
@@ -366,7 +402,9 @@ export class MapContainer {
                 mapCenter: this.display.map.getCenter(),
             });
             this.display?.controls?.invalidateActivePreset();
+            this.display?.controls?.updateSaveButtonVisibility();
             this.setHighlight(this.display.highlight);
+            this.updateRealTimeLocationMarkers();
         });
         this.display.map.on('moveend', async (event: leaflet.LeafletEvent) => {
             this.ongoingChanges -= 1;
@@ -375,7 +413,9 @@ export class MapContainer {
                 mapCenter: this.display.map.getCenter(),
             });
             this.display?.controls?.invalidateActivePreset();
+            this.display?.controls?.updateSaveButtonVisibility();
             this.setHighlight(this.display.highlight);
+            this.updateRealTimeLocationMarkers();
         });
         this.display.map.on('movestart', (event: leaflet.LeafletEvent) => {
             this.ongoingChanges += 1;
@@ -391,6 +431,7 @@ export class MapContainer {
         );
         this.display.map.on('viewreset', () => {
             this.setHighlight(this.display.highlight);
+            this.updateRealTimeLocationMarkers();
         });
 
         if (this.viewSettings.showSearch) {
@@ -398,18 +439,32 @@ export class MapContainer {
                 { position: 'topright' },
                 this,
                 this.app,
+                this.plugin,
                 this.settings
             );
             this.display.map.addControl(this.display.searchControls);
         }
 
+        if (
+            this.viewSettings.showRealTimeButton &&
+            this.settings.supportRealTimeGeolocation
+        ) {
+            this.display.realTimeControls = new RealTimeControl(
+                { position: 'topright' },
+                this,
+                this.app,
+                this.settings
+            );
+            this.display.map.addControl(this.display.realTimeControls);
+        }
+
         if (this.settings.showClusterPreview) {
             this.display.clusterGroup.on('clustermouseover', (event) => {
-                if (!(this.app as any)?.isMobile)
+                if (!utils.isMobile(this.app))
                     this.openClusterPreviewPopup(event);
             });
             this.display.clusterGroup.on('clustercontextmenu', (event) => {
-                if ((this.app as any)?.isMobile)
+                if (utils.isMobile(this.app))
                     this.openClusterPreviewPopup(event);
             });
             this.display.clusterGroup.on('clustermouseout', (event) => {
@@ -417,6 +472,7 @@ export class MapContainer {
             });
             this.display.clusterGroup.on('clusterclick', () => {
                 this.setHighlight(this.display.highlight);
+                this.updateRealTimeLocationMarkers();
             });
         }
 
@@ -429,75 +485,15 @@ export class MapContainer {
             'contextmenu',
             async (event: leaflet.LeafletMouseEvent) => {
                 let mapPopup = new Menu();
-                mapPopup.setNoIcon();
-                const location = `${event.latlng.lat},${event.latlng.lng}`;
-                mapPopup.addItem((item: MenuItem) => {
-                    item.setTitle('New note here (inline)');
-                    item.onClick(async (ev) => {
-                        const newFileName = utils.formatWithTemplates(
-                            this.settings.newNoteNameFormat
-                        );
-                        const file: TFile = await utils.newNote(
-                            this.app,
-                            'multiLocation',
-                            this.settings.newNotePath,
-                            newFileName,
-                            location,
-                            this.settings.newNoteTemplate
-                        );
-                        this.goToFile(
-                            file,
-                            ev.ctrlKey,
-                            utils.handleNewNoteCursorMarker
-                        );
-                    });
-                });
-                mapPopup.addItem((item: MenuItem) => {
-                    item.setTitle('New note here (front matter)');
-                    item.onClick(async (ev) => {
-                        const newFileName = utils.formatWithTemplates(
-                            this.settings.newNoteNameFormat
-                        );
-                        const file: TFile = await utils.newNote(
-                            this.app,
-                            'singleLocation',
-                            this.settings.newNotePath,
-                            newFileName,
-                            location,
-                            this.settings.newNoteTemplate
-                        );
-                        this.goToFile(
-                            file,
-                            ev.ctrlKey,
-                            utils.handleNewNoteCursorMarker
-                        );
-                    });
-                });
-                mapPopup.addItem((item: MenuItem) => {
-                    item.setTitle(`Copy geolocation`);
-                    item.onClick((_ev) => {
-                        navigator.clipboard.writeText(`[](geo:${location})`);
-                    });
-                });
-                mapPopup.addItem((item: MenuItem) => {
-                    item.setTitle(`Copy geolocation as front matter`);
-                    item.onClick((_ev) => {
-                        navigator.clipboard.writeText(
-                            `---\nlocation: [${location}]\n---\n\n`
-                        );
-                    });
-                });
-                mapPopup.addItem((item: MenuItem) => {
-                    item.setTitle('Open in default app');
-                    item.onClick((_ev) => {
-                        open(`geo:${event.latlng.lat},${event.latlng.lng}`);
-                    });
-                });
-                utils.populateOpenInItems(
+                menus.addNewNoteItems(
                     mapPopup,
                     event.latlng,
-                    this.settings
+                    this,
+                    this.settings,
+                    this.app
                 );
+                menus.addCopyGeolocationItems(mapPopup, event.latlng);
+                menus.addOpenWith(mapPopup, event.latlng, this.settings);
                 mapPopup.showAtPosition(event.originalEvent);
             }
         );
@@ -525,7 +521,7 @@ export class MapContainer {
             newMarkers = [];
             state.queryError = true;
         }
-        finalizeMarkers(newMarkers, this.settings);
+        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
         this.state = state;
         this.updateMapMarkers(newMarkers);
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
@@ -610,16 +606,38 @@ export class MapContainer {
             icon: marker.icon || new leaflet.Icon.Default(),
         });
         newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
-            if ((this.app as any)?.isMobile)
+            if (utils.isMobile(this.app))
                 this.showMarkerPopups(marker, newMarker);
-            else this.goToMarker(marker, event.originalEvent.ctrlKey, true);
+            else
+                this.goToMarker(
+                    marker,
+                    utils.mouseEventToOpenMode(
+                        this.settings,
+                        event.originalEvent,
+                        'openNote'
+                    ),
+                    true
+                );
+        });
+        newMarker.on('mousedown', (event: leaflet.LeafletMouseEvent) => {
+            // Middle click is supported only on mousedown and not on click, so we're checking for it here
+            if (event.originalEvent.button === 1)
+                this.goToMarker(
+                    marker,
+                    utils.mouseEventToOpenMode(
+                        this.settings,
+                        event.originalEvent,
+                        'openNote'
+                    ),
+                    true
+                );
         });
         newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
-            if (!(this.app as any)?.isMobile)
+            if (!utils.isMobile(this.app))
                 this.showMarkerPopups(marker, newMarker);
         });
         newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
-            if (!(this.app as any)?.isMobile) newMarker.closePopup();
+            if (!utils.isMobile(this.app)) newMarker.closePopup();
         });
         newMarker.on('add', (event: leaflet.LeafletEvent) => {
             newMarker
@@ -639,25 +657,10 @@ export class MapContainer {
     ) {
         this.setHighlight(mapMarker);
         let mapPopup = new Menu();
-        mapPopup.setNoIcon();
         if (marker instanceof FileMarker) {
-            mapPopup.addItem((item: MenuItem) => {
-                item.setTitle('Open note');
-                item.onClick(async (ev) => {
-                    this.goToMarker(marker, ev.ctrlKey, true);
-                });
-            });
-            mapPopup.addItem((item: MenuItem) => {
-                item.setTitle('Open geolocation in default app');
-                item.onClick((ev) => {
-                    open(`geo:${marker.location.lat},${marker.location.lng}`);
-                });
-            });
-            utils.populateOpenInItems(mapPopup, marker.location, this.settings);
-        } else {
-            // TODO: other support
-            throw 'Unsupported object type ' + marker.constructor.name;
-        }
+			menus.populateOpenNote(this, marker, mapPopup, this.settings);
+			menus.populateOpenInItems(mapPopup, marker.location, this.settings);
+		}
         if (ev) mapPopup.showAtPosition(ev);
     }
 
@@ -696,7 +699,7 @@ export class MapContainer {
                 : fileName;
             let content = `<p class="map-view-marker-name">${fileNameWithoutExtension}</p>`;
             if (
-                (this.app as any)?.isMobile &&
+                utils.isMobile(this.app) &&
                 fileMarker.extraName &&
                 fileMarker.extraName.length > 0
             )
@@ -707,16 +710,23 @@ export class MapContainer {
                     autoPan: false,
                     className: 'marker-popup',
                 })
+                .on('popupopen', (event: leaflet.PopupEvent) => {
+                    event.popup.getElement()?.onClickEvent((ev: MouseEvent) => {
+                        this.goToMarker(
+                            fileMarker,
+                            utils.mouseEventToOpenMode(
+                                this.settings,
+                                ev,
+                                'openNote'
+                            ),
+                            true
+                        );
+                    });
+                })
                 .openPopup()
                 .on('popupclose', (event: leaflet.LeafletEvent) => {
                     // For some reason popups don't recycle on mobile if this is not added
                     mapMarker.unbindPopup();
-                });
-            mapMarker
-                .getPopup()
-                .getElement()
-                ?.onClickEvent(() => {
-                    this.goToMarker(fileMarker, false, true);
                 });
         }
     }
@@ -744,7 +754,7 @@ export class MapContainer {
 
     /** Zoom the map to fit all markers on the screen */
     public async autoFitMapToMarkers() {
-        if (this.display.markers.size > 1) {
+        if (this.display.markers.size > 0) {
             const locations: leaflet.LatLng[] = [];
             for (const marker of this.display.markers.values()) {
                 locations.push(...marker.getBounds());
@@ -766,85 +776,86 @@ export class MapContainer {
     /**
      * Open a file in an editor window
      * @param file The file object to open
-     * @param useCtrlKeyBehavior If true will use the alternative behaviour, as set in the settings
+     * @param openBehavior the required type of action
      * @param editorAction Optional callback to run when the file is opened
      */
     async goToFile(
         file: TFile,
-        useCtrlKeyBehavior: boolean,
+        openBehavior: OpenBehavior,
         editorAction?: (editor: Editor) => Promise<void>
     ) {
-        let leafToUse = this.app.workspace.activeLeaf;
-        const defaultDifferentPane =
-            this.settings.markerClickBehavior != 'samePane';
-        // Having a pane to reuse means that we previously opened a note in a new pane and that pane still exists (wasn't closed)
-        const havePaneToReuse =
-            this.newPaneLeaf &&
-            this.newPaneLeaf.view &&
-            this.settings.markerClickBehavior != 'alwaysNew';
-        if (
-            havePaneToReuse ||
-            (defaultDifferentPane && !useCtrlKeyBehavior) ||
-            (!defaultDifferentPane && useCtrlKeyBehavior)
-        ) {
-            // We were instructed to use a different pane for opening the note.
-            // We go here in the following cases:
-            // 1. An existing pane to reuse exists (the user previously opened it, with or without Ctrl).
-            //    In this case we use the pane regardless of the default or of Ctrl, assuming that if a user opened a pane
-            //    once, she wants to retain it until it's closed. (I hope no one will treat this as a bug...)
-            // 2. The default is to use a different pane and Ctrl is not pressed.
-            // 3. The default is to NOT use a different pane and Ctrl IS pressed.
-            const someOpenMarkdownLeaf =
-                this.app.workspace.getLeavesOfType('markdown');
-            if (havePaneToReuse) {
-                // We have an existing pane, that pane still has a view (it was not closed), and the settings say
-                // to use a 2nd pane. That's the only case on which we reuse a pane
-                this.app.workspace.setActiveLeaf(this.newPaneLeaf);
-                leafToUse = this.newPaneLeaf;
-            } else if (
-                someOpenMarkdownLeaf.length > 0 &&
-                this.settings.markerClickBehavior != 'alwaysNew'
-            ) {
-                // We don't have a pane to reuse but the user wants a new pane and there is currently an open
-                // Markdown pane. Let's take control over it and hope it's the right thing to do
-                this.app.workspace.setActiveLeaf(someOpenMarkdownLeaf[0]);
-                leafToUse = someOpenMarkdownLeaf[0];
-                this.newPaneLeaf = leafToUse;
-            } else {
-                // We need a new pane. We split it the way the settings tell us
-                this.newPaneLeaf = this.app.workspace.splitActiveLeaf(
-                    this.settings.newPaneSplitDirection || 'horizontal'
-                );
-                leafToUse = this.newPaneLeaf;
-            }
+        // Find the best candidate for a leaf to open the note according to the required behavior.
+        // This is similar to MainViewPlugin.openMap and should be in sync with that code.
+        let chosenLeaf: WorkspaceLeaf = null;
+        const paneToReuse: WorkspaceLeaf =
+            this.lastPaneLeaf && (this.lastPaneLeaf as any).parent
+                ? this.lastPaneLeaf
+                : null;
+        const tabToReuse: WorkspaceLeaf =
+            this.lastTabLeaf && (this.lastTabLeaf as any).parent
+                ? this.lastTabLeaf
+                : null;
+        const otherExistingLeaf = this.app.workspace.getLeaf(false);
+        const emptyLeaf = this.app.workspace.getLeavesOfType('empty');
+        let createPane = false;
+        let createTab = false;
+        switch (openBehavior) {
+            case 'replaceCurrent':
+                chosenLeaf = otherExistingLeaf;
+                if (!chosenLeaf && emptyLeaf) chosenLeaf = emptyLeaf[0];
+                break;
+            case 'dedicatedPane':
+                chosenLeaf = paneToReuse;
+                if (!chosenLeaf) createPane = true;
+                break;
+            case 'dedicatedTab':
+                chosenLeaf = tabToReuse;
+                if (!chosenLeaf) createTab = true;
+                break;
+            case 'alwaysNewPane':
+                createPane = true;
+                break;
+            case 'alwaysNewTab':
+                createTab = true;
+                break;
         }
-        await leafToUse.openFile(file);
-        const editor = await utils.getEditor(this.app, leafToUse);
+        if (createTab) {
+            chosenLeaf = this.app.workspace.getLeaf('tab');
+            this.lastTabLeaf = chosenLeaf;
+        }
+        if (createPane) {
+            chosenLeaf = this.app.workspace.getLeaf(
+                'split',
+                this.settings.newPaneSplitDirection
+            );
+            this.lastPaneLeaf = chosenLeaf;
+        }
+        if (!chosenLeaf) {
+            chosenLeaf = this.app.workspace.getLeaf(true);
+        }
+        await chosenLeaf.openFile(file);
+        const editor = await utils.getEditor(this.app, chosenLeaf);
         if (editor && editorAction) await editorAction(editor);
     }
 
     /**
      * Open and go to the editor location represented by the marker
      * @param marker The FileMarker to open
-     * @param useCtrlKeyBehavior If true will use the alternative behaviour, as set in the settings
+     * @param openBehavior the required type of action
      * @param highlight If true will highlight the line
      */
     async goToMarker(
         marker: FileMarker,
-        useCtrlKeyBehavior: boolean,
+        openBehavior: OpenBehavior,
         highlight: boolean
     ) {
-        return this.goToFile(
-            marker.file,
-            useCtrlKeyBehavior,
-            async (editor) => {
-                await utils.goToEditorLocation(
-                    editor,
-                    marker.fileLocation,
-                    highlight
-                );
-            }
-        );
+        return this.goToFile(marker.file, openBehavior, async (editor) => {
+            await utils.goToEditorLocation(
+                editor,
+                marker.fileLocation,
+                highlight
+            );
+        });
     }
 
     /**
@@ -875,13 +886,16 @@ export class MapContainer {
                 this.settings,
                 this.app
             );
-        finalizeMarkers(newMarkers, this.settings);
+        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
         this.updateMapMarkers(newMarkers);
     }
 
     addSearchResultMarker(details: GeoSearchResult, keepZoom: boolean) {
         this.display.searchResult = leaflet.marker(details.location, {
-            icon: getIconFromOptions(consts.SEARCH_RESULT_MARKER),
+            icon: getIconFromOptions(
+                consts.SEARCH_RESULT_MARKER,
+                this.plugin.iconCache
+            ),
         });
         const marker = this.display.searchResult;
         marker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
@@ -987,5 +1001,54 @@ export class MapContainer {
             }
         }
         return null;
+    }
+
+    updateRealTimeLocationMarkers() {
+        if (this.display.realTimeLocationMarker)
+            this.display.realTimeLocationMarker.removeFrom(this.display.map);
+        if (this.display.realTimeLocationRadius)
+            this.display.realTimeLocationRadius.removeFrom(this.display.map);
+        if (this.lastRealTimeLocation === null) return;
+        const center = this.lastRealTimeLocation.center;
+        const accuracy = this.lastRealTimeLocation.accuracy;
+        this.display.realTimeLocationMarker = leaflet
+            .marker(center, {
+                icon: getIconFromOptions(
+                    consts.CURRENT_LOCATION_MARKER,
+                    this.plugin.iconCache
+                ),
+            })
+            .addTo(this.display.map);
+        this.display.realTimeLocationRadius = leaflet
+            .circle(center, { radius: accuracy })
+            .addTo(this.display.map);
+    }
+
+    setRealTimeLocation(
+        center: leaflet.LatLng,
+        accuracy: number,
+        source: RealTimeLocationSource
+    ) {
+        const location =
+            center === null
+                ? null
+                : {
+                      center: center,
+                      accuracy: accuracy,
+                      source: source,
+                      timestamp: Date.now(),
+                  };
+        console.log('new location:', location);
+        if (!isSame(location, this.lastRealTimeLocation)) {
+            this.lastRealTimeLocation = location;
+            this.updateRealTimeLocationMarkers();
+            let newState: Partial<MapState> = {};
+            if (!this.display.map.getBounds().contains(location.center))
+                newState.mapCenter = location.center;
+            // TODO take the radius into account
+            if (this.state.mapZoom < consts.MIN_REAL_TIME_LOCATION_ZOOM)
+                newState.mapZoom = consts.MIN_REAL_TIME_LOCATION_ZOOM;
+            this.highLevelSetViewState(newState);
+        }
     }
 }

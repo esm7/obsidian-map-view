@@ -10,6 +10,7 @@ dist
 # build
 main.js
 *.js.map
+README.md.*
 
 # obsidian
 data.json

@@ -3,33 +3,35 @@ import {
     Editor,
     FileView,
     MarkdownView,
-    MenuItem,
     Menu,
     TFile,
     Plugin,
     WorkspaceLeaf,
     TAbstractFile,
     ObsidianProtocolData,
+    MarkdownPostProcessorContext,
+    Notice,
 } from 'obsidian';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
 import { LocationSuggest } from 'src/locationSuggest';
 import { UrlConvertor } from 'src/urlConvertor';
-import { stateFromParsedUrl } from 'src/mapState';
+import { mergeStates, stateFromParsedUrl, getCodeBlock } from 'src/mapState';
+import * as menus from 'src/menus';
 
 import { MainMapView } from 'src/mainMapView';
-import { FileMarker } from 'src/markers';
 // import { MiniMapView } from 'src/miniMapView';
-// import { EmbeddedMap } from 'src/embeddedMap';
+import { EmbeddedMap } from 'src/embeddedMap';
+import { IconCache } from 'src/markerIcons';
 
 import {
     PluginSettings,
     DEFAULT_SETTINGS,
     convertLegacySettings,
+    OpenBehavior,
 } from 'src/settings';
 import { MapState } from 'src/mapState';
 import {
-    getMarkersFromFileContent,
     getFrontMatterLocation,
     matchInlineLocation,
     verifyLocation,
@@ -42,6 +44,7 @@ import * as utils from 'src/utils';
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
     public highestVersionSeen: number = 0;
+    public iconCache: IconCache;
     private suggestor: LocationSuggest;
     private tagSuggestor: TagSuggest;
     private urlConvertor: UrlConvertor;
@@ -52,11 +55,10 @@ export default class MapViewPlugin extends Plugin {
         await this.loadSettings();
 
         // Add a new ribbon entry to the left bar
-        this.addRibbonIcon('globe', 'Open map view', () => {
-            // When clicked change the active view to the map
-            this.app.workspace
-                .getLeaf()
-                .setViewState({ type: consts.MAP_VIEW_NAME });
+        this.addRibbonIcon('globe', 'Open map view', (ev: MouseEvent) => {
+            this.openMap(
+                utils.mouseEventToOpenMode(this.settings, ev, 'openMap')
+            );
         });
 
         this.registerView(consts.MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
@@ -70,17 +72,67 @@ export default class MapViewPlugin extends Plugin {
 
         this.registerObsidianProtocolHandler(
             'mapview',
-            (params: ObsidianProtocolData) => {
-                if (params.action == 'mapview') {
-                    const state = stateFromParsedUrl(params);
-                    // If a saved URL is opened in another device on which there aren't the same sources, use
-                    // the default source instead
-                    if (
-                        state.chosenMapSource >= this.settings.mapSources.length
-                    )
-                        state.chosenMapSource =
-                            DEFAULT_SETTINGS.defaultState.chosenMapSource;
-                    this.openMapWithState(state, false, false);
+            async (params: ObsidianProtocolData) => {
+                if (params.action === 'mapview') {
+                    if (params.do === 'update-real-time-location') {
+                        const location =
+                            params.centerLat && params.centerLng
+                                ? new leaflet.LatLng(
+                                      parseFloat(params.centerLat),
+                                      parseFloat(params.centerLng)
+                                  )
+                                : null;
+                        const accuracy = params.accuracy;
+                        const map = await this.openMap('replaceCurrent', null);
+                        if (map) {
+                            map.mapContainer.setRealTimeLocation(
+                                location,
+                                parseFloat(accuracy),
+                                'geohelper'
+                            );
+                        }
+                    } else {
+                        const state = stateFromParsedUrl(params);
+                        // If a saved URL is opened in another device on which there aren't the same sources, use
+                        // the default source instead
+                        if (
+                            state.chosenMapSource >=
+                            this.settings.mapSources.length
+                        )
+                            state.chosenMapSource =
+                                DEFAULT_SETTINGS.defaultState.chosenMapSource;
+                        this.openMapWithState(state, 'replaceCurrent', false);
+                    }
+                }
+            }
+        );
+
+        this.registerMarkdownCodeBlockProcessor(
+            'mapview',
+            async (
+                source: string,
+                el: HTMLElement,
+                ctx: MarkdownPostProcessorContext
+            ) => {
+                let state = null;
+                try {
+                    const rawStateObj = JSON.parse(source);
+                    state = stateFromParsedUrl(rawStateObj);
+                } catch (e) {
+                    el.setText(
+                        'Map View is unable to parse this saved state: ' +
+                            e.toString()
+                    );
+                }
+                if (state) {
+                    let map = new EmbeddedMap(
+                        el,
+                        ctx,
+                        this.app,
+                        this.settings,
+                        this
+                    );
+                    await map.open(state);
                 }
             }
         );
@@ -93,6 +145,8 @@ export default class MapViewPlugin extends Plugin {
         this.registerEditorSuggest(this.tagSuggestor);
 
         await convertLegacySettings(this.settings, this);
+
+        this.iconCache = new IconCache(document.body);
 
         // Register commands to the command palette
         // Command that opens the map view (same as clicking the map icon)
@@ -137,6 +191,7 @@ export default class MapViewPlugin extends Plugin {
             callback: () => {
                 const dialog = new LocationSearchDialog(
                     this.app,
+                    this,
                     this.settings,
                     'newNote',
                     'New geolocation note'
@@ -152,6 +207,7 @@ export default class MapViewPlugin extends Plugin {
             editorCallback: (editor, view) => {
                 const dialog = new LocationSearchDialog(
                     this.app,
+                    this,
                     this.settings,
                     'addToNote',
                     'Add geolocation to note',
@@ -177,11 +233,19 @@ export default class MapViewPlugin extends Plugin {
             },
         });
 
+        this.addCommand({
+            id: 'quick-map-embed',
+            name: 'Add an embedded map',
+            editorCallback: (editor: Editor, ctx) => {
+                this.openQuickEmbed(editor);
+            },
+        });
+
         this.addSettingTab(new SettingsTab(this.app, this));
 
         // Add items to the file context menu (run when the context menu is built)
         // This is the context menu in the File Explorer and clicking "More options" (three dots) from within a file.
-        this.app.workspace.on('file-menu', async (menu, file, source, leaf) =>
+        this.app.workspace.on('file-menu', (menu, file, source, leaf) =>
             this.onFileMenu(menu, file, source, leaf)
         );
 
@@ -191,23 +255,130 @@ export default class MapViewPlugin extends Plugin {
 
         // Add items to the editor context menu (run when the context menu is built)
         // This is the context menu when right clicking within an editor view.
-        this.app.workspace.on('editor-menu', async (menu, editor, view) =>
-            this.onEditorMenu(menu, editor, view)
+        this.app.workspace.on('editor-menu', (menu, editor, view) => {
+            this.onEditorMenu(menu, editor, view as MarkdownView);
+        });
+
+        // Watch for pasted text and add a 'locations:' front matter where applicable if the user pastes
+        // an inline geolocation
+        this.app.workspace.on(
+            'editor-paste',
+            (evt: ClipboardEvent, editor: Editor) => {
+                if (this.settings.fixFrontMatterOnPaste) {
+                    const text = evt.clipboardData.getData('text');
+                    if (text) {
+                        const inlineMatch = matchInlineLocation(text);
+                        if (inlineMatch && inlineMatch.length > 0) {
+                            // The pasted text contains an inline location, so try to help the user by verifying
+                            // a frontmatter exists
+                            if (
+                                utils.verifyOrAddFrontMatter(
+                                    editor,
+                                    'locations',
+                                    ''
+                                )
+                            ) {
+                                new Notice(
+                                    "The note's front matter was updated to denote locations are present"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
         );
+    }
+
+    public findOpenMainView(): WorkspaceLeaf {
+        const maps = this.app.workspace.getLeavesOfType(consts.MAP_VIEW_NAME);
+        if (maps && maps.length > 0) return maps[0];
+        else return null;
+    }
+
+    public async openMap(
+        openBehavior: OpenBehavior,
+        state?: MapState
+    ): Promise<MainMapView> {
+        // Find the best candidate for a leaf to open the map view on according to the required
+        // behavior.
+        let chosenLeaf: WorkspaceLeaf = null;
+        // Prepare a few options for a candidate leaf
+        const openMapView = this.findOpenMainView();
+        const existingLeafToReplace = this.app.workspace.getLeaf(false);
+        const emptyLeaf = this.app.workspace.getLeavesOfType('empty');
+        let createPane = false;
+        let createTab = false;
+        switch (openBehavior) {
+            case 'replaceCurrent':
+                chosenLeaf = existingLeafToReplace;
+                if (!chosenLeaf && emptyLeaf) chosenLeaf = emptyLeaf[0];
+                break;
+            case 'dedicatedPane':
+                chosenLeaf = openMapView;
+                if (!chosenLeaf) createPane = true;
+                break;
+            case 'dedicatedTab':
+                chosenLeaf = openMapView;
+                if (!chosenLeaf) createTab = true;
+                break;
+            case 'alwaysNewPane':
+                createPane = true;
+                break;
+            case 'alwaysNewTab':
+                createTab = true;
+                break;
+        }
+        if (createTab) chosenLeaf = this.app.workspace.getLeaf('tab');
+        if (createPane)
+            chosenLeaf = this.app.workspace.getLeaf(
+                'split',
+                this.settings.newPaneSplitDirection
+            );
+        if (!chosenLeaf) {
+            chosenLeaf = this.app.workspace.getLeaf(true);
+        }
+        this.app.workspace.setActiveLeaf(chosenLeaf);
+        await chosenLeaf.setViewState({
+            type: consts.MAP_VIEW_NAME,
+            state: state ?? DEFAULT_SETTINGS,
+        });
+        if (chosenLeaf.view instanceof MainMapView) return chosenLeaf.view;
+        return null;
+    }
+
+    public async openMapWithState(
+        state: MapState,
+        openBehavior: OpenBehavior,
+        forceAutoFit?: boolean,
+        highlightFile: TAbstractFile = null,
+        highlightFileLine: number = null
+    ) {
+        const mapView = await this.openMap(openBehavior, state);
+        if (mapView && mapView.mapContainer) {
+            const map = mapView.mapContainer;
+            if (forceAutoFit) map.autoFitMapToMarkers();
+            if (highlightFile) {
+                const markerToHighlight = map.findMarkerByFileLine(
+                    highlightFile,
+                    highlightFileLine
+                );
+                map.setHighlight(markerToHighlight);
+            }
+        }
     }
 
     /**
      * Open an instance of the map at the given geolocation.
      * The active query is cleared so we'll be sure that the location is actually displayed.
      * @param location The geolocation to open the map at
-     * @param ctrlKey Was the control key pressed
+     * @param openBehavior the behavior to use
      * @param file the file this location belongs to
      * @param fileLine the line in the file (if it's an inline link)
      * @param keepZoom don't zoom the map
      */
-    private async openMapWithLocation(
+    async openMapWithLocation(
         location: leaflet.LatLng,
-        ctrlKey: boolean,
+        openBehavior: OpenBehavior,
         file: TAbstractFile,
         fileLine: number = null,
         keepZoom: boolean = false
@@ -220,39 +391,13 @@ export default class MapViewPlugin extends Plugin {
             newState = Object.assign(newState, {
                 mapZoom: this.settings.zoomOnGoFromNote,
             });
-        await this.openMapWithState(newState, ctrlKey, false, file, fileLine);
-    }
-
-    public async openMapWithState(
-        state: MapState,
-        ctrlKey: boolean,
-        forceAutoFit?: boolean,
-        highlightFile: TAbstractFile = null,
-        highlightFileLine: number = null
-    ) {
-        // Find the best candidate for a leaf to open the map view on.
-        // If there's an open map view, use that, otherwise use the current leaf.
-        // If Ctrl is pressed, override that behavior and always use the current leaf.
-        const maps = this.app.workspace.getLeavesOfType(consts.MAP_VIEW_NAME);
-        let chosenLeaf: WorkspaceLeaf = null;
-        if (maps && !ctrlKey) chosenLeaf = maps[0];
-        else chosenLeaf = this.app.workspace.getLeaf();
-        if (!chosenLeaf) chosenLeaf = this.app.workspace.activeLeaf;
-        await chosenLeaf.setViewState({
-            type: consts.MAP_VIEW_NAME,
-            state: state,
-        });
-        if (chosenLeaf.view instanceof MainMapView) {
-            const map = chosenLeaf.view.mapContainer;
-            if (forceAutoFit) map.autoFitMapToMarkers();
-            if (highlightFile) {
-                const markerToHighlight = map.findMarkerByFileLine(
-                    highlightFile,
-                    highlightFileLine
-                );
-                chosenLeaf.view.mapContainer.setHighlight(markerToHighlight);
-            }
-        }
+        await this.openMapWithState(
+            newState,
+            openBehavior,
+            false,
+            file,
+            fileLine
+        );
     }
 
     /**
@@ -263,9 +408,11 @@ export default class MapViewPlugin extends Plugin {
      */
     private getLocationOnEditorLine(
         editor: Editor,
-        view: FileView
+        lineNumber: number,
+        view: FileView,
+        alsoFrontMatter: boolean
     ): leaflet.LatLng {
-        const line = editor.getLine(editor.getCursor().line);
+        const line = editor.getLine(lineNumber);
         const match = matchInlineLocation(line)[0];
         let selectedLocation = null;
         if (match)
@@ -273,7 +420,7 @@ export default class MapViewPlugin extends Plugin {
                 parseFloat(match.groups.lat),
                 parseFloat(match.groups.lng)
             );
-        else {
+        else if (alsoFrontMatter) {
             const fmLocation = getFrontMatterLocation(view.file, this.app);
             if (line.indexOf('location') > -1 && fmLocation)
                 selectedLocation = fmLocation;
@@ -311,170 +458,156 @@ export default class MapViewPlugin extends Plugin {
             .setViewState({ type: consts.MINI_MAP_VIEW_NAME });
     }
 
-    async onFileMenu(
+    onFileMenu(
         menu: Menu,
         file: TAbstractFile,
         _source: string,
         leaf?: WorkspaceLeaf
     ) {
+        const editor =
+            leaf && leaf.view instanceof MarkdownView ? leaf.view.editor : null;
         if (file instanceof TFile) {
-            let hasAnyLocation = false;
             const location = getFrontMatterLocation(file, this.app);
             if (location) {
                 // If there is a geolocation in the front matter of the file
                 // Add an option to open it in the map
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Show on map');
-                    item.setSection('mapview');
-                    item.setIcon('globe');
-                    item.onClick(
-                        async (evt: MouseEvent) =>
-                            await this.openMapWithLocation(
-                                location,
-                                evt.ctrlKey,
-                                file,
-                                null,
-                                evt.shiftKey
-                            )
-                    );
-                });
+                menus.addShowOnMap(
+                    menu,
+                    location,
+                    file,
+                    null,
+                    this,
+                    this.settings
+                );
                 // Add an option to open it in the default app
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Open with default app');
-                    item.setSection('mapview');
-                    item.onClick((_ev) => {
-                        open(`geo:${location.lat},${location.lng}`);
-                    });
-                });
-                // Populate menu items from user defined "Open In" strings
-                utils.populateOpenInItems(menu, location, this.settings);
-                hasAnyLocation = true;
+                menus.addOpenWith(menu, location, this.settings);
             } else {
-                if (leaf && leaf.view instanceof MarkdownView) {
+                if (editor) {
                     // If there is no valid geolocation in the front matter, add a menu item to populate it.
-                    const editor = leaf.view.editor;
-                    menu.addItem((item: MenuItem) => {
-                        item.setTitle('Add geolocation (front matter)');
-                        item.setSection('mapview');
-                        item.setIcon('globe');
-                        item.onClick(async (evt: MouseEvent) => {
-                            const dialog = new LocationSearchDialog(
-                                this.app,
-                                this.settings,
-                                'addToNote',
-                                'Add geolocation to note',
-                                editor
-                            );
-                            dialog.open();
-                        });
-                    });
+                    menus.addGeolocationToNote(
+                        menu,
+                        this.app,
+                        this,
+                        editor,
+                        this.settings
+                    );
                 }
             }
-            const contentMarkers = await getMarkersFromFileContent(
-                file,
-                this.settings,
-                this.app
-            );
-            if (contentMarkers.length > 0) {
-                hasAnyLocation = true;
+            if (utils.isMobile(this.app)) {
+                // On mobile there's no editor context menu, so add it here instead
+                this.onEditorMenu(menu, editor, leaf.view as MarkdownView);
             }
-            if (hasAnyLocation) {
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Focus note in Map View');
-                    item.setIcon('globe');
-                    item.setSection('mapview');
-                    item.onClick(
-                        async (evt: MouseEvent) =>
-                            await this.openMapWithState(
-                                {
-                                    query: utils.replaceFollowActiveNoteQuery(
-                                        file,
-                                        this.settings
-                                    ),
-                                } as MapState,
-                                evt.ctrlKey,
-                                true
-                            )
-                    );
-                });
-            }
+            menus.addFocusNoteInMapView(menu, file, this.settings, this);
+            if (this.settings.debug)
+                menus.addImport(menu, editor, this.app, this, this.settings);
         }
     }
 
-    async onEditorMenu(menu: Menu, editor: Editor, view: MarkdownView) {
+    onEditorMenu(menu: Menu, editor: Editor, view: MarkdownView) {
+        if (!editor) return;
         if (view instanceof FileView) {
-            const location = this.getLocationOnEditorLine(editor, view);
-            if (location) {
-                // If there is a geolocation on the line
-                // Add an option to open it in the map
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Show on map');
-                    item.setIcon('globe');
-                    item.setSection('mapview');
-                    item.onClick(
-                        async (evt: MouseEvent) =>
-                            await this.openMapWithLocation(
-                                location,
-                                evt.ctrlKey,
-                                view.file,
-                                editor.getCursor().line,
-                                evt.shiftKey
-                            )
-                    );
-                });
-                // Add an option to open it in the default app
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Open with default app');
-                    item.setSection('mapview');
-                    item.onClick((_ev) => {
-                        open(`geo:${location.lat},${location.lng}`);
-                    });
-                });
-                // Populate menu items from user defined "Open In" strings
-                utils.populateOpenInItems(menu, location, this.settings);
+            let multiLineMode = false;
+            const [fromLine, toLine, geolocations] =
+                this.geolocationsWithinSelection(editor, view);
+            if (geolocations.length > 0) {
+                multiLineMode = true;
+                menus.addFocusLinesInMapView(
+                    menu,
+                    view.file,
+                    fromLine,
+                    toLine,
+                    geolocations.length,
+                    this,
+                    this.settings
+                );
             }
-            if (editor.getSelection()) {
-                // If there is text selected, add a menu item to convert it to coordinates using geosearch
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Convert to geolocation (geosearch)');
-                    item.setSection('mapview');
-                    item.onClick(
-                        async () => await this.suggestor.selectionToLink(editor)
+            if (!multiLineMode) {
+                const editorLine = editor.getCursor().line;
+                const location = this.getLocationOnEditorLine(
+                    editor,
+                    editorLine,
+                    view,
+                    true
+                );
+                if (location) {
+                    const editorLine = editor.getCursor().line;
+                    menus.addShowOnMap(
+                        menu,
+                        location,
+                        view.file,
+                        editorLine,
+                        this,
+                        this.settings
                     );
-                });
+                    menus.addOpenWith(menu, location, this.settings);
+                }
             }
+            menus.addUrlConversionItems(
+                menu,
+                editor,
+                this.suggestor,
+                this.urlConvertor
+            );
+            menus.addEmbed(menu, this, editor);
+        }
+    }
 
-            if (this.urlConvertor.hasMatchInLine(editor))
-                // If the line contains a recognized geolocation that can be converted from a URL parsing rule
-                menu.addItem(async (item: MenuItem) => {
-                    item.setTitle('Convert to geolocation');
-                    item.setSection('mapview');
-                    item.onClick(async () => {
-                        this.urlConvertor.convertUrlAtCursorToGeolocation(
-                            editor
-                        );
-                    });
-                });
-
-            const clipboard = await navigator.clipboard.readText();
-            let clipboardLocation =
-                this.urlConvertor.parseLocationFromUrl(clipboard);
-            if (clipboardLocation) {
-                // If the clipboard contains a recognized geolocation that can be converted from a URL parsing rule
-                menu.addItem((item: MenuItem) => {
-                    item.setTitle('Paste as geolocation');
-                    item.setSection('mapview');
-                    item.onClick(async () => {
-                        if (clipboardLocation instanceof Promise)
-                            clipboardLocation = await clipboardLocation;
-                        if (clipboardLocation)
-                            this.urlConvertor.insertLocationToEditor(
-                                clipboardLocation.location,
-                                editor
-                            );
-                    });
-                });
+    geolocationsWithinSelection(
+        editor: Editor,
+        view: MarkdownView
+    ): [number, number, leaflet.LatLng[]] {
+        let geolocations: leaflet.LatLng[] = [];
+        const editorSelections = editor.listSelections();
+        if (editorSelections && editorSelections.length > 0) {
+            const anchorLine = editorSelections[0].anchor.line;
+            const headLine = editorSelections[0].head.line;
+            if (anchorLine != headLine) {
+                const fromLine = Math.min(anchorLine, headLine);
+                const toLine = Math.max(anchorLine, headLine);
+                let geolocations: leaflet.LatLng[] = [];
+                for (let line = fromLine; line <= toLine; line++) {
+                    const geolocationOnLine = this.getLocationOnEditorLine(
+                        editor,
+                        line,
+                        view,
+                        false
+                    );
+                    if (geolocationOnLine) geolocations.push(geolocationOnLine);
+                }
+                return [fromLine, toLine, geolocations];
             }
         }
+        return [null, null, []];
+    }
+
+    openQuickEmbed(editor: Editor) {
+        const searchDialog = new LocationSearchDialog(
+            this.app,
+            this,
+            this.settings,
+            'custom',
+            'Quick Map Embed',
+            editor
+        );
+        searchDialog.customOnSelect = (selection, evt) => {
+            const state = mergeStates(this.settings.defaultState, {
+                mapCenter: selection.location,
+            } as MapState);
+            if (state.mapZoom < consts.MIN_QUICK_EMBED_ZOOM)
+                state.mapZoom = consts.MIN_QUICK_EMBED_ZOOM;
+            const codeBlock = getCodeBlock(state);
+            const cursor = editor.getCursor();
+            editor.transaction({
+                changes: [{ from: cursor, text: codeBlock }],
+            });
+            editor.setCursor({
+                line: cursor.line + codeBlock.split('\n').length,
+                ch: 0,
+            });
+        };
+        searchDialog.setPlaceholder(
+            'Quick map embed: search for an address, landmark or business name to center the map on.'
+        );
+        searchDialog.open();
     }
 }

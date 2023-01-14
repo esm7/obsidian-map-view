@@ -92,6 +92,13 @@ export abstract class BaseMapView extends ItemView {
             item.setTitle('Copy Map View URL').onClick(() => {
                 this.mapContainer.copyStateUrl();
             });
+            item.setIcon('curly-braces');
+        });
+        menu.addItem((item: MenuItem) => {
+            item.setTitle('Copy Map View code block').onClick(() => {
+                this.mapContainer.copyCodeBlock();
+            });
+            item.setIcon('curly-braces');
         });
         super.onPaneMenu(menu, source);
     }
