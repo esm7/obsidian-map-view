@@ -658,9 +658,9 @@ export class MapContainer {
         this.setHighlight(mapMarker);
         let mapPopup = new Menu();
         if (marker instanceof FileMarker) {
-			menus.populateOpenNote(this, marker, mapPopup, this.settings);
-			menus.populateOpenInItems(mapPopup, marker.location, this.settings);
-		}
+            menus.populateOpenNote(this, marker, mapPopup, this.settings);
+            menus.populateOpenInItems(mapPopup, marker.location, this.settings);
+        }
         if (ev) mapPopup.showAtPosition(ev);
     }
 

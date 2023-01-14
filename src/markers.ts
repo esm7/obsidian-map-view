@@ -184,7 +184,7 @@ export function finalizeMarkers(
             marker.icon = getIconFromRules(
                 marker.tags,
                 settings.markerIconRules,
-				iconCache
+                iconCache
             );
         } else {
             // TODO: other support
