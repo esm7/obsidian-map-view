@@ -3,7 +3,7 @@ import { App, TFile, TextComponent, PopoverSuggest, Scope } from 'obsidian';
 import * as consts from 'src/consts';
 import { matchByPosition } from 'src/utils';
 import * as regex from 'src/regex';
-import { FileMarker } from 'src/markers';
+import { BaseGeoLayer, FileMarker } from 'src/markers';
 import * as utils from 'src/utils';
 
 import * as parser from 'boon-js';
@@ -43,7 +43,7 @@ export class Query {
         return newString;
     }
 
-    testMarker(marker: FileMarker): boolean {
+    testMarker(marker: BaseGeoLayer): boolean {
         if (this.queryEmpty) return true;
         const toBool = (s: string) => {
             return s === 'true';
@@ -54,8 +54,13 @@ export class Query {
         let booleanStack: string[] = [];
         for (const token of this.queryRpn) {
             if (token.name === 'IDENTIFIER') {
-                const result = this.testIdentifier(marker, token.value);
-                booleanStack.push(toString(result));
+                if (marker instanceof FileMarker) {
+                    const result = this.testIdentifier(marker, token.value);
+                    booleanStack.push(toString(result));
+                } else {
+                    // TODO: other support
+                    throw 'Unsupported object type ' + marker.constructor.name;
+                }
             } else if (token.name === 'OPERATOR') {
                 let result;
                 if (token.value === 'NOT') {

@@ -30,6 +30,7 @@ import {
 } from 'src/settings';
 import {
     MarkersMap,
+    BaseGeoLayer,
     FileMarker,
     buildMarkers,
     buildAndAppendFileMarkers,
@@ -95,7 +96,7 @@ export class MapContainer {
         /** A marker of the last search result */
         searchResult: leaflet.Marker = null;
         /** The currently highlighted marker (if any) */
-        highlight: leaflet.Marker = null;
+        highlight: leaflet.Layer = null;
         /** The actual entity that is highlighted, which is either equal to the above, or the cluster group that it belongs to */
         actualHighlight: leaflet.Marker = null;
         // TODO document
@@ -548,8 +549,8 @@ export class MapContainer {
         if (this.settings.debug) console.timeEnd('updateMarkersToState');
     }
 
-    filterMarkers(allMarkers: FileMarker[], queryString: string) {
-        let results: FileMarker[] = [];
+    filterMarkers(allMarkers: BaseGeoLayer[], queryString: string) {
+        let results: BaseGeoLayer[] = [];
         const query = new Query(this.app, queryString);
         for (const marker of allMarkers)
             if (query.testMarker(marker)) results.push(marker);
@@ -561,10 +562,10 @@ export class MapContainer {
      * Unchanged markers are not touched, new markers are created and old markers that are not in the updated list are removed.
      * @param newMarkers The new array of FileMarkers
      */
-    updateMapMarkers(newMarkers: FileMarker[]) {
+    updateMapMarkers(newMarkers: BaseGeoLayer[]) {
         let newMarkersMap: MarkersMap = new Map();
-        let markersToAdd: leaflet.Marker[] = [];
-        let markersToRemove: leaflet.Marker[] = [];
+        let markersToAdd: leaflet.Layer[] = [];
+        let markersToRemove: leaflet.Layer[] = [];
         for (let marker of newMarkers) {
             const existingMarker = this.display.markers.has(marker.id)
                 ? this.display.markers.get(marker.id)
@@ -576,10 +577,10 @@ export class MapContainer {
                     this.display.markers.get(marker.id)
                 );
                 this.display.markers.delete(marker.id);
-            } else {
+            } else if (marker instanceof FileMarker) {
                 // New marker - create it
-                marker.mapMarker = this.newLeafletMarker(marker);
-                markersToAdd.push(marker.mapMarker);
+                marker.geoLayer = this.newLeafletMarker(marker);
+                markersToAdd.push(marker.geoLayer);
                 if (newMarkersMap.get(marker.id))
                     console.log(
                         'Map view: warning, marker ID',
@@ -587,10 +588,13 @@ export class MapContainer {
                         'already exists, please open an issue if you see this.'
                     );
                 newMarkersMap.set(marker.id, marker);
+            } else {
+                // TODO: other support
+                throw 'Unsupported object type ' + marker.constructor.name;
             }
         }
         for (let [key, value] of this.display.markers) {
-            markersToRemove.push(value.mapMarker);
+            markersToRemove.push(value.geoLayer);
         }
         this.display.clusterGroup.removeLayers(markersToRemove);
         this.display.clusterGroup.addLayers(markersToAdd);
@@ -647,14 +651,16 @@ export class MapContainer {
     }
 
     private openMarkerContextMenu(
-        fileMarker: FileMarker,
+        marker: BaseGeoLayer,
         mapMarker: leaflet.Marker,
         ev: MouseEvent
     ) {
         this.setHighlight(mapMarker);
         let mapPopup = new Menu();
-        menus.populateOpenNote(this, fileMarker, mapPopup, this.settings);
-        menus.populateOpenInItems(mapPopup, fileMarker.location, this.settings);
+        if (marker instanceof FileMarker) {
+            menus.populateOpenNote(this, marker, mapPopup, this.settings);
+            menus.populateOpenInItems(mapPopup, marker.location, this.settings);
+        }
         if (ev) mapPopup.showAtPosition(ev);
     }
 
@@ -749,9 +755,10 @@ export class MapContainer {
     /** Zoom the map to fit all markers on the screen */
     public async autoFitMapToMarkers() {
         if (this.display.markers.size > 0) {
-            const locations: leaflet.LatLng[] = Array.from(
-                this.display.markers.values()
-            ).map((fileMarker) => fileMarker.location);
+            const locations: leaflet.LatLng[] = [];
+            for (const marker of this.display.markers.values()) {
+                locations.push(...marker.getBounds());
+            }
             this.display.map.fitBounds(leaflet.latLngBounds(locations), {
                 maxZoom: Math.min(
                     this.settings.zoomOnGoFromNote,
@@ -865,11 +872,11 @@ export class MapContainer {
         if (!this.display.map || !this.isOpen)
             // If the map has not been set up yet then do nothing
             return;
-        let newMarkers: FileMarker[] = [];
+        let newMarkers: BaseGeoLayer[] = [];
         // Create an array of all file markers not in the removed file
-        for (let [_markerId, existingFileMarker] of this.display.markers) {
-            if (existingFileMarker.file.path !== fileRemoved)
-                newMarkers.push(existingFileMarker);
+        for (let [_markerId, existingMarker] of this.display.markers) {
+            if (existingMarker.file.path !== fileRemoved)
+                newMarkers.push(existingMarker);
         }
         if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
             // Add file markers from the added file
@@ -941,20 +948,25 @@ export class MapContainer {
             this.display.searchControls.openSearch(this.display.markers);
     }
 
-    setHighlight(mapOrFileMarker: leaflet.Marker | FileMarker) {
+    setHighlight(mapOrFileMarker: leaflet.Layer | BaseGeoLayer) {
         // The Marker object that should be highlighted
-        let highlight: leaflet.Marker = mapOrFileMarker
-            ? mapOrFileMarker instanceof leaflet.Marker
+        let highlight: leaflet.Layer = mapOrFileMarker
+            ? mapOrFileMarker instanceof leaflet.Layer
                 ? mapOrFileMarker
-                : mapOrFileMarker.mapMarker
+                : mapOrFileMarker.geoLayer
             : null;
         // In case the marker is hidden in a cluster group, we actually want the cluster group
         // to be the highlighted item
         let actualHighlight: leaflet.Marker = null;
         if (highlight) {
-            const parent =
-                this.display.clusterGroup.getVisibleParent(highlight);
-            actualHighlight = parent || actualHighlight;
+            if (highlight instanceof leaflet.Marker) {
+                const parent =
+                    this.display.clusterGroup.getVisibleParent(highlight);
+                actualHighlight = parent || actualHighlight;
+            } else {
+                // Work out how to do this for non-marker data
+                throw 'Unsupported object type';
+            }
         }
         if (
             this.display.actualHighlight &&
@@ -981,7 +993,7 @@ export class MapContainer {
     findMarkerByFileLine(
         file: TAbstractFile,
         fileLine: number | null = null
-    ): FileMarker | null {
+    ): BaseGeoLayer | null {
         for (let [_, fileMarker] of this.display.markers) {
             if (fileMarker.file == file) {
                 if (!fileLine) return fileMarker;
