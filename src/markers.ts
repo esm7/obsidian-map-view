@@ -187,7 +187,6 @@ export function finalizeMarkers(
                 iconCache
             );
         } else {
-            // TODO: other support
             throw 'Unsupported object type ' + marker.constructor.name;
         }
 }

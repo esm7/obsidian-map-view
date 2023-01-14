@@ -588,9 +588,6 @@ export class MapContainer {
                         'already exists, please open an issue if you see this.'
                     );
                 newMarkersMap.set(marker.id, marker);
-            } else {
-                // TODO: other support
-                throw 'Unsupported object type ' + marker.constructor.name;
             }
         }
         for (let [key, value] of this.display.markers) {
@@ -963,9 +960,6 @@ export class MapContainer {
                 const parent =
                     this.display.clusterGroup.getVisibleParent(highlight);
                 actualHighlight = parent || actualHighlight;
-            } else {
-                // Work out how to do this for non-marker data
-                throw 'Unsupported object type';
             }
         }
         if (

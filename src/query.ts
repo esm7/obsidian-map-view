@@ -57,9 +57,6 @@ export class Query {
                 if (marker instanceof FileMarker) {
                     const result = this.testIdentifier(marker, token.value);
                     booleanStack.push(toString(result));
-                } else {
-                    // TODO: other support
-                    throw 'Unsupported object type ' + marker.constructor.name;
                 }
             } else if (token.name === 'OPERATOR') {
                 let result;

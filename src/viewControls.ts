@@ -598,8 +598,6 @@ export class SearchControl extends leaflet.Control {
                     existingMarker: marker,
                     icon: marker.icon.options,
                 });
-            } else {
-                throw 'Unsupported object type ' + marker.constructor.name;
             }
         }
         const markersByDistanceToCenter = markerSearchResults.sort(
