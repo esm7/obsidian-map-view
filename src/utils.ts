@@ -21,12 +21,12 @@ import { BaseMapView } from './baseMapView';
 export let lastUsedLeaves: WorkspaceLeaf[] = [];
 
 export function getLastUsedValidMarkdownLeaf() {
-	for (const leaf of lastUsedLeaves) {
-		if ((leaf as any).parent && leaf.view instanceof MarkdownView) {
-			return leaf;
-		}
-	}
-	return null;
+    for (const leaf of lastUsedLeaves) {
+        if ((leaf as any).parent && leaf.view instanceof MarkdownView) {
+            return leaf;
+        }
+    }
+    return null;
 }
 
 export function formatWithTemplates(s: string, query = '') {

@@ -11,7 +11,7 @@ export type OpenBehavior =
     | 'alwaysNewPane'
     | 'dedicatedTab'
     | 'alwaysNewTab'
-	| 'lastUsed';
+    | 'lastUsed';
 
 export type PluginSettings = {
     defaultState: MapState;
