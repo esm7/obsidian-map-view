@@ -4,7 +4,6 @@ import {
     Editor,
     App,
     TFile,
-    TAbstractFile,
     getAllTags,
 } from 'obsidian';
 
@@ -14,6 +13,21 @@ import * as path from 'path';
 import * as settings from './settings';
 import * as consts from './consts';
 import { BaseMapView } from './baseMapView';
+
+/**
+ * An ordered stack (latest first) of the latest used leaves.
+ * Maintained by the main plugin object.
+ */
+export let lastUsedLeaves: WorkspaceLeaf[] = [];
+
+export function getLastUsedValidMarkdownLeaf() {
+	for (const leaf of lastUsedLeaves) {
+		if ((leaf as any).parent && leaf.view instanceof MarkdownView) {
+			return leaf;
+		}
+	}
+	return null;
+}
 
 export function formatWithTemplates(s: string, query = '') {
     const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;

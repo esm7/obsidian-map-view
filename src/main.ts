@@ -249,6 +249,13 @@ export default class MapViewPlugin extends Plugin {
             this.onFileMenu(menu, file, source, leaf)
         );
 
+		this.app.workspace.on('active-leaf-change', (leaf) => {
+			if (utils.lastUsedLeaves.contains(leaf)) {
+				utils.lastUsedLeaves.remove(leaf);
+			}
+			utils.lastUsedLeaves.unshift(leaf);
+		});
+
         // Currently frozen until I have time to work on this feature's quirks
         // if (this.app.workspace.layoutReady) this.initMiniMap()
         // else this.app.workspace.onLayoutReady(() => this.initMiniMap());
@@ -327,6 +334,8 @@ export default class MapViewPlugin extends Plugin {
             case 'alwaysNewTab':
                 createTab = true;
                 break;
+			 case 'lastUsed':
+				throw Error('This option is not supported here');
         }
         if (createTab) chosenLeaf = this.app.workspace.getLeaf('tab');
         if (createPane)

@@ -310,7 +310,8 @@ export class SettingsTab extends PluginSettingTab {
         const addOpenBehaviorOptions = (
             setting: Setting,
             setValue: (value: OpenBehavior) => void,
-            getValue: () => OpenBehavior
+            getValue: () => OpenBehavior,
+			includeLatest: boolean
         ) => {
             setting.addDropdown((component) => {
                 component
@@ -327,7 +328,10 @@ export class SettingsTab extends PluginSettingTab {
                         'dedicatedTab',
                         'Open in a new tab and keep reusing it'
                     )
-                    .addOption('alwaysNewTab', 'Always open a new tab')
+                    .addOption('alwaysNewTab', 'Always open a new tab');
+				if (includeLatest)
+					component.addOption('lastUsed', 'Open in last-used pane');
+				component
                     .setValue(getValue() || 'samePane')
                     .onChange(async (value: OpenBehavior) => {
                         setValue(value);
@@ -347,7 +351,8 @@ export class SettingsTab extends PluginSettingTab {
             },
             () => {
                 return this.plugin.settings.markerClickBehavior;
-            }
+            },
+			true
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
@@ -360,7 +365,8 @@ export class SettingsTab extends PluginSettingTab {
             },
             () => {
                 return this.plugin.settings.markerCtrlClickBehavior;
-            }
+            },
+			true
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
@@ -373,7 +379,8 @@ export class SettingsTab extends PluginSettingTab {
             },
             () => {
                 return this.plugin.settings.markerMiddleClickBehavior;
-            }
+            },
+			true
         );
 
         addOpenBehaviorOptions(
@@ -387,7 +394,8 @@ export class SettingsTab extends PluginSettingTab {
             },
             () => {
                 return this.plugin.settings.openMapBehavior;
-            }
+            },
+			false
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
@@ -398,7 +406,8 @@ export class SettingsTab extends PluginSettingTab {
             },
             () => {
                 return this.plugin.settings.openMapCtrlClickBehavior;
-            }
+            },
+			false
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
@@ -409,7 +418,8 @@ export class SettingsTab extends PluginSettingTab {
             },
             () => {
                 return this.plugin.settings.openMapMiddleClickBehavior;
-            }
+            },
+			false
         );
 
         new Setting(containerEl)

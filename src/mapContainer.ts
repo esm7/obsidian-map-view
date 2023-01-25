@@ -3,7 +3,6 @@ import {
     TAbstractFile,
     Loc,
     Editor,
-    MenuItem,
     Menu,
     TFile,
     WorkspaceLeaf,
@@ -815,6 +814,9 @@ export class MapContainer {
             case 'alwaysNewTab':
                 createTab = true;
                 break;
+			case 'lastUsed':
+				chosenLeaf = utils.getLastUsedValidMarkdownLeaf();
+				if (!chosenLeaf) createPane = true;
         }
         if (createTab) {
             chosenLeaf = this.app.workspace.getLeaf('tab');
