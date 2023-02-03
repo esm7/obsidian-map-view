@@ -11,20 +11,21 @@ import * as regex from 'src/regex';
 type MarkerId = string;
 
 export abstract class BaseGeoLayer {
+    public layerType: 'fileMarker';
     /** The file object on which this location was found */
-    file: TFile;
+    public file: TFile;
     /** An ID to recognize the marker */
-    id: MarkerId;
+    public id: MarkerId;
     /** In the case of an inline location, the position within the file where the location was found */
-    fileLocation?: number;
+    public fileLocation?: number;
     /** The leaflet layer on the map */
-    geoLayer?: leaflet.Layer;
+    public geoLayer?: leaflet.Layer;
     /** In case of an inline location, the line within the file where the geolocation was found */
-    fileLine?: number;
+    public fileLine?: number;
     /** Optional extra name that can be set for geolocation links (this is the link name rather than the file name) */
-    extraName?: string;
+    public extraName?: string;
     /** Tags that this marker includes */
-    tags: string[] = [];
+    public tags: string[] = [];
 
     /**
      * Construct a new BaseGeoLayer object
@@ -41,7 +42,7 @@ export abstract class BaseGeoLayer {
     // abstract initGeoLayer(map: MapView): void;
 
     /** Generate a unique identifier for this layer */
-    abstract generateId(): MarkerId;
+    abstract generateId(): void;
 
     /**
      * Is this geographic layer identical to the other object.
@@ -56,9 +57,9 @@ export abstract class BaseGeoLayer {
 
 /** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
 export class FileMarker extends BaseGeoLayer {
-    geoLayer?: leaflet.Marker;
-    location: leaflet.LatLng;
-    icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
+    public geoLayer?: leaflet.Marker;
+    public location: leaflet.LatLng;
+    public icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
 
     /**
      * Construct a new FileMarker object
@@ -67,8 +68,9 @@ export class FileMarker extends BaseGeoLayer {
      */
     constructor(file: TFile, location: leaflet.LatLng) {
         super(file);
+        this.layerType = 'fileMarker';
         this.location = location;
-        this.id = this.generateId();
+        this.generateId();
     }
 
     isSame(other: BaseGeoLayer): boolean {
@@ -92,15 +94,17 @@ export class FileMarker extends BaseGeoLayer {
         );
     }
 
-    generateId(): MarkerId {
-        return (
+    generateId() {
+        this.id =
             this.file.name +
-                this.location.lat.toString() +
-                this.location.lng.toString() +
-                this.fileLocation ||
-            'nofileloc' + this.fileLine ||
-            'nofileline'
-        );
+            this.location.lat.toString() +
+            this.location.lng.toString() +
+            'loc-' +
+            (this.fileLocation
+                ? this.fileLocation
+                : this.fileLine
+                ? 'nofileloc' + this.fileLine
+                : 'nofileline');
     }
 
     getBounds(): leaflet.LatLng[] {

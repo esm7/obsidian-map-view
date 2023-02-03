@@ -4,6 +4,7 @@ import { MapState, LegacyMapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import * as consts from 'src/consts';
 
+export type GeoHelperType = 'auto' | 'lite' | 'app' | 'custom';
 export type LegacyOpenBehavior = 'samePane' | 'secondPane' | 'alwaysNew';
 export type OpenBehavior =
     | 'replaceCurrent'
@@ -61,6 +62,8 @@ export type PluginSettings = {
     queryForFollowActiveNote?: string;
     supportRealTimeGeolocation?: boolean;
     fixFrontMatterOnPaste?: boolean;
+    geoHelperType?: GeoHelperType;
+    geoHelperFilePath?: string;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -203,6 +206,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     queryForFollowActiveNote: 'path:"$PATH$"',
     supportRealTimeGeolocation: false,
     fixFrontMatterOnPaste: true,
+    geoHelperType: 'auto',
+    geoHelperFilePath: '',
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {

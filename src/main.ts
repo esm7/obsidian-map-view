@@ -23,6 +23,7 @@ import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
 import { EmbeddedMap } from 'src/embeddedMap';
 import { IconCache } from 'src/markerIcons';
+import { RealTimeLocationSource } from 'src/realTimeLocation';
 
 import {
     PluginSettings,
@@ -83,12 +84,13 @@ export default class MapViewPlugin extends Plugin {
                                   )
                                 : null;
                         const accuracy = params.accuracy;
+                        const source = params?.source ?? 'unknown';
                         const map = await this.openMap('replaceCurrent', null);
                         if (map) {
                             map.mapContainer.setRealTimeLocation(
                                 location,
                                 parseFloat(accuracy),
-                                'geohelper'
+                                source as RealTimeLocationSource
                             );
                         }
                     } else {

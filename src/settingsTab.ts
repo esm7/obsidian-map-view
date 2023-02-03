@@ -1,5 +1,6 @@
 import {
     App,
+    ButtonComponent,
     TextComponent,
     PluginSettingTab,
     TextAreaComponent,
@@ -12,12 +13,14 @@ import {
     OpenBehavior,
     UrlParsingRuleType,
     UrlParsingContentType,
+    GeoHelperType,
     DEFAULT_SETTINGS,
 } from 'src/settings';
 import { getIconFromOptions, getIconFromRules } from 'src/markerIcons';
 import { BaseMapView } from 'src/baseMapView';
 import * as consts from 'src/consts';
 import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
+import { getGeoHelperType } from 'src/realTimeLocation';
 
 export class SettingsTab extends PluginSettingTab {
     plugin: MapViewPlugin;
@@ -524,6 +527,56 @@ export class SettingsTab extends PluginSettingTab {
         );
         markerIconsDiv = containerEl.createDiv();
         this.refreshMarkerIcons(markerIconsDiv);
+
+        new Setting(containerEl).setHeading().setName('GPS');
+        new Setting(containerEl)
+            .setName('Enable GPS location (see docs)')
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.supportRealTimeGeolocation ??
+                            DEFAULT_SETTINGS.supportRealTimeGeolocation
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.supportRealTimeGeolocation = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Geo helper type')
+            .addDropdown((component) => {
+                component
+                    .setValue(
+                        getGeoHelperType(this.plugin.settings, this.app) ??
+                            DEFAULT_SETTINGS.geoHelperType
+                    )
+                    .addOption('lite', 'Geo Helper Lite (local HTML)')
+                    .addOption('app', 'Installed app')
+                    .addOption('custom', 'Custom path')
+                    .onChange(async (value) => {
+                        this.plugin.settings.geoHelperType =
+                            value as GeoHelperType;
+                        geoHelperFile.settingEl.style.display =
+                            value === 'custom' ? '' : 'none';
+                        await this.plugin.saveSettings();
+                    });
+            });
+        const geoHelperFile = new Setting(containerEl).setName(
+            'Custom geo helper path'
+        );
+        geoHelperFile.addText((component) => {
+            component
+                .setPlaceholder(
+                    'Absolute path to open (see README for more details)'
+                )
+                .setValue(this.plugin.settings.geoHelperFilePath ?? '')
+                .onChange(async (value) => {
+                    this.plugin.settings.geoHelperFilePath = value;
+                    await this.plugin.saveSettings();
+                });
+        });
+        geoHelperFile.settingEl.style.display =
+            this.plugin.settings.geoHelperType === 'custom' ? '' : 'none';
 
         new Setting(containerEl).setHeading().setName('Advanced');
 
