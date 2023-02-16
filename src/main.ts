@@ -40,11 +40,13 @@ import { SettingsTab } from 'src/settingsTab';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { TagSuggest } from 'src/tagSuggest';
 import * as utils from 'src/utils';
+import { MapViewAPI } from './mapViewAPI';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
     public highestVersionSeen: number = 0;
     public iconCache: IconCache;
+    public mapViewAPI: MapViewAPI;
     private suggestor: LocationSuggest;
     private tagSuggestor: TagSuggest;
     private urlConvertor: UrlConvertor;
@@ -138,6 +140,7 @@ export default class MapViewPlugin extends Plugin {
         );
 
         this.suggestor = new LocationSuggest(this.app, this.settings);
+        this.mapViewAPI = new MapViewAPI(this.app, this.settings);
         this.tagSuggestor = new TagSuggest(this.app, this.settings);
         this.urlConvertor = new UrlConvertor(this.app, this.settings);
 
