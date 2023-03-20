@@ -1,5 +1,5 @@
 import {
-    addIcon,
+    setIcon,
     Editor,
     FileView,
     MarkdownView,
@@ -50,12 +50,10 @@ export default class MapViewPlugin extends Plugin {
     private urlConvertor: UrlConvertor;
 
     async onload() {
-        addIcon('globe', consts.RIBBON_ICON);
-
         await this.loadSettings();
 
         // Add a new ribbon entry to the left bar
-        this.addRibbonIcon('globe', 'Open map view', (ev: MouseEvent) => {
+        this.addRibbonIcon('map-pin', 'Open map view', (ev: MouseEvent) => {
             this.openMap(
                 utils.mouseEventToOpenMode(this.settings, ev, 'openMap')
             );
