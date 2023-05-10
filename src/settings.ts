@@ -13,6 +13,7 @@ export type OpenBehavior =
     | 'dedicatedTab'
     | 'alwaysNewTab'
     | 'lastUsed';
+export type LinkNamePopupBehavior = 'never' | 'always' | 'mobileOnly';
 
 export type PluginSettings = {
     defaultState: MapState;
@@ -48,6 +49,7 @@ export type PluginSettings = {
     // Deprecated
     snippetLines?: number;
     showNoteNamePopup?: boolean;
+    showLinkNameInPopup?: LinkNamePopupBehavior;
     showNotePreview?: boolean;
     showClusterPreview?: boolean;
     debug?: boolean;
@@ -64,6 +66,7 @@ export type PluginSettings = {
     fixFrontMatterOnPaste?: boolean;
     geoHelperType?: GeoHelperType;
     geoHelperFilePath?: string;
+    tagForGeolocationNotes?: string;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -160,6 +163,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     openMapMiddleClickBehavior: 'dedicatedTab',
     newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
     showNoteNamePopup: true,
+    showLinkNameInPopup: 'mobileOnly',
     showNotePreview: true,
     showClusterPreview: false,
     debug: false,

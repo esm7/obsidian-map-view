@@ -14,6 +14,7 @@ import {
     UrlParsingRuleType,
     UrlParsingContentType,
     GeoHelperType,
+    LinkNamePopupBehavior,
     DEFAULT_SETTINGS,
 } from 'src/settings';
 import { getIconFromOptions, getIconFromRules } from 'src/markerIcons';
@@ -183,46 +184,6 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Show note name on marker hover')
-            .setDesc(
-                'Show a popup with the note name when hovering on a map marker.'
-            )
-            .addToggle((component) => {
-                component
-                    .setValue(this.plugin.settings.showNoteNamePopup)
-                    .onChange(async (value) => {
-                        this.plugin.settings.showNoteNamePopup = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-        new Setting(containerEl)
-            .setName('Show note preview on map marker hover')
-            .setDesc(
-                'In addition to the note name, show the native Obsidian note preview.'
-            )
-            .addToggle((component) => {
-                component
-                    .setValue(this.plugin.settings.showNotePreview)
-                    .onChange(async (value) => {
-                        this.plugin.settings.showNotePreview = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-        new Setting(containerEl)
-            .setName('Show preview for marker clusters')
-            .setDesc(
-                'Show a hover popup summarizing the icons inside a marker cluster.'
-            )
-            .addToggle((component) => {
-                component
-                    .setValue(this.plugin.settings.showClusterPreview)
-                    .onChange(async (value) => {
-                        this.plugin.settings.showClusterPreview = value;
-                        this.refreshPluginOnHide = true;
-                        await this.plugin.saveSettings();
-                    });
-            });
-        new Setting(containerEl)
             .setName('Default zoom for "show on map" action')
             .setDesc(
                 'When jumping to the map from a note, what should be the display zoom? This is also used as a max zoom for "Map follows search results" above.'
@@ -299,6 +260,86 @@ export class SettingsTab extends PluginSettingTab {
                     .onChange(async (value: boolean) => {
                         this.plugin.settings.fixFrontMatterOnPaste = value;
                         this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Tag name to denote inline geolocations')
+            .setDesc(
+                'Instead or in addition to the "locations:" YAML tag, you can use a regular tag that will mark for Map View that a note has inline geolocations, e.g. "#hasLocations".'
+            )
+            .addText((component) => {
+                component
+                    .setValue(this.plugin.settings.tagForGeolocationNotes ?? '')
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.tagForGeolocationNotes = value;
+                        this.plugin.saveSettings();
+                    });
+            });
+
+        new Setting(containerEl)
+            .setHeading()
+            .setName('Marker Hover & Previews')
+            .setDesc(
+                'What is shown when hovering (desktop) or clicking (mobile) map markers.'
+            );
+        new Setting(containerEl)
+            .setName('Show note name on marker hover')
+            .setDesc(
+                'Show a popup with the note name when hovering on a map marker.'
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.showNoteNamePopup)
+                    .onChange(async (value) => {
+                        this.plugin.settings.showNoteNamePopup = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Show inline link name on marker hover')
+            .setDesc(
+                'In the popup above, show also the link name, in the case of an inline link.'
+            )
+            .addDropdown((component) => {
+                component
+                    .addOption('always', 'Always')
+                    .addOption('mobileOnly', 'Only on mobile')
+                    .addOption('never', 'Never')
+                    .setValue(
+                        this.plugin.settings.showLinkNameInPopup ??
+                            DEFAULT_SETTINGS.showLinkNameInPopup
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.showLinkNameInPopup =
+                            value as LinkNamePopupBehavior;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Show note preview on map marker hover')
+            .setDesc(
+                'In addition to the note name, show the native Obsidian note preview.'
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.showNotePreview)
+                    .onChange(async (value) => {
+                        this.plugin.settings.showNotePreview = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Show preview for marker clusters')
+            .setDesc(
+                'Show a hover popup summarizing the icons inside a marker cluster.'
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.showClusterPreview)
+                    .onChange(async (value) => {
+                        this.plugin.settings.showClusterPreview = value;
+                        this.refreshPluginOnHide = true;
+                        await this.plugin.saveSettings();
                     });
             });
 
@@ -528,55 +569,55 @@ export class SettingsTab extends PluginSettingTab {
         markerIconsDiv = containerEl.createDiv();
         this.refreshMarkerIcons(markerIconsDiv);
 
-        new Setting(containerEl).setHeading().setName('GPS');
-        new Setting(containerEl)
-            .setName('Enable GPS location (see docs)')
-            .addToggle((component) => {
-                component
-                    .setValue(
-                        this.plugin.settings.supportRealTimeGeolocation ??
-                            DEFAULT_SETTINGS.supportRealTimeGeolocation
-                    )
-                    .onChange(async (value) => {
-                        this.plugin.settings.supportRealTimeGeolocation = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-        new Setting(containerEl)
-            .setName('Geo helper type')
-            .addDropdown((component) => {
-                component
-                    .setValue(
-                        getGeoHelperType(this.plugin.settings, this.app) ??
-                            DEFAULT_SETTINGS.geoHelperType
-                    )
-                    .addOption('lite', 'Geo Helper Lite (local HTML)')
-                    .addOption('app', 'Installed app')
-                    .addOption('custom', 'Custom path')
-                    .onChange(async (value) => {
-                        this.plugin.settings.geoHelperType =
-                            value as GeoHelperType;
-                        geoHelperFile.settingEl.style.display =
-                            value === 'custom' ? '' : 'none';
-                        await this.plugin.saveSettings();
-                    });
-            });
-        const geoHelperFile = new Setting(containerEl).setName(
-            'Custom geo helper path'
-        );
-        geoHelperFile.addText((component) => {
-            component
-                .setPlaceholder(
-                    'Absolute path to open (see README for more details)'
-                )
-                .setValue(this.plugin.settings.geoHelperFilePath ?? '')
-                .onChange(async (value) => {
-                    this.plugin.settings.geoHelperFilePath = value;
-                    await this.plugin.saveSettings();
-                });
-        });
-        geoHelperFile.settingEl.style.display =
-            this.plugin.settings.geoHelperType === 'custom' ? '' : 'none';
+        // new Setting(containerEl).setHeading().setName('GPS');
+        // new Setting(containerEl)
+        //     .setName('Enable GPS location (see docs)')
+        //     .addToggle((component) => {
+        //         component
+        //             .setValue(
+        //                 this.plugin.settings.supportRealTimeGeolocation ??
+        //                     DEFAULT_SETTINGS.supportRealTimeGeolocation
+        //             )
+        //             .onChange(async (value) => {
+        //                 this.plugin.settings.supportRealTimeGeolocation = value;
+        //                 await this.plugin.saveSettings();
+        //             });
+        //     });
+        // new Setting(containerEl)
+        //     .setName('Geo helper type')
+        //     .addDropdown((component) => {
+        //         component
+        //             .setValue(
+        //                 getGeoHelperType(this.plugin.settings, this.app) ??
+        //                     DEFAULT_SETTINGS.geoHelperType
+        //             )
+        //             .addOption('lite', 'Geo Helper Lite (local HTML)')
+        //             .addOption('app', 'Installed app')
+        //             .addOption('custom', 'Custom path')
+        //             .onChange(async (value) => {
+        //                 this.plugin.settings.geoHelperType =
+        //                     value as GeoHelperType;
+        //                 geoHelperFile.settingEl.style.display =
+        //                     value === 'custom' ? '' : 'none';
+        //                 await this.plugin.saveSettings();
+        //             });
+        //     });
+        // const geoHelperFile = new Setting(containerEl).setName(
+        //     'Custom geo helper path'
+        // );
+        // geoHelperFile.addText((component) => {
+        //     component
+        //         .setPlaceholder(
+        //             'Absolute path to open (see README for more details)'
+        //         )
+        //         .setValue(this.plugin.settings.geoHelperFilePath ?? '')
+        //         .onChange(async (value) => {
+        //             this.plugin.settings.geoHelperFilePath = value;
+        //             await this.plugin.saveSettings();
+        //         });
+        // });
+        // geoHelperFile.settingEl.style.display =
+        //     this.plugin.settings.geoHelperType === 'custom' ? '' : 'none';
 
         new Setting(containerEl).setHeading().setName('Advanced');
 

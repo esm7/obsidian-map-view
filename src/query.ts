@@ -5,6 +5,7 @@ import { matchByPosition } from 'src/utils';
 import * as regex from 'src/regex';
 import { BaseGeoLayer, FileMarker } from 'src/markers';
 import * as utils from 'src/utils';
+import { checkTagPatternMatch } from 'src/markerIcons';
 
 import * as parser from 'boon-js';
 
@@ -35,7 +36,7 @@ export class Query {
         // 2. Replace path:"abc def/ghi" by "path:abc def/dhi" because the parser doesn't like quotes as part of the words
         // 3. Same goes for linkedto:"", linkedfrom:"" and name:""
         let newString = queryString
-            .replace(regex.TAG_NAME_WITH_HEADER, '"tag:$1"')
+            .replace(regex.TAG_NAME_WITH_HEADER_AND_WILDCARD, '"tag:$1"')
             .replace(regex.PATH_QUERY_WITH_HEADER, '"path:$1"')
             .replace(regex.LINKEDTO_QUERY_WITH_HEADER, '"linkedto:$1"')
             .replace(regex.LINKEDFROM_QUERY_WITH_HEADER, '"linkedfrom:$1"')
@@ -85,9 +86,7 @@ export class Query {
         if (value.startsWith('tag:#')) {
             const queryTag = value.replace('tag:', '');
             if (queryTag.length === 0) return false;
-            if (marker.tags.find((markerTag) => markerTag === queryTag)) {
-                return true;
-            }
+            if (checkTagPatternMatch(queryTag, marker.tags)) return true;
             return false;
         } else if (value.startsWith('name:')) {
             const query = value.replace('name:', '').toLowerCase();
@@ -121,15 +120,14 @@ export class Query {
             if (fileMatch) {
                 const linksFrom =
                     this.app.metadataCache.getFileCache(fileMatch);
+                // Check if the given marker is linked from 'fileMatch'
                 if (
                     linksFrom?.links?.some(
                         (linkCache) =>
-                            linkCache.link
-                                .toLowerCase()
-                                .includes(marker.file.basename.toLowerCase()) ||
-                            linkCache.displayText
-                                .toLowerCase()
-                                .includes(marker.file.basename.toLowerCase())
+                            linkCache.link.toLowerCase() ===
+                                marker.file.basename.toLowerCase() ||
+                            linkCache.displayText.toLowerCase() ===
+                                marker.file.basename.toLowerCase()
                     )
                 ) {
                     return true;

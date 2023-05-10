@@ -132,8 +132,9 @@ export async function buildAndAppendFileMarkers(
 ) {
     const fileCache = app.metadataCache.getFileCache(file);
     const frontMatter = fileCache?.frontmatter;
-    if (frontMatter) {
-        if (!skipMetadata) {
+    const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
+    if (frontMatter || tagNameToSearch?.length > 0) {
+        if (frontMatter && !skipMetadata) {
             const location = getFrontMatterLocation(file, app);
             if (location) {
                 verifyLocation(location);
@@ -142,7 +143,11 @@ export async function buildAndAppendFileMarkers(
                 mapToAppendTo.push(marker);
             }
         }
-        if ('locations' in frontMatter) {
+        if (
+            (frontMatter && 'locations' in frontMatter) ||
+            (tagNameToSearch?.length > 0 &&
+                getAllTags(fileCache).includes(tagNameToSearch))
+        ) {
             const markersFromFile = await getMarkersFromFileContent(
                 file,
                 settings,

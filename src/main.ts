@@ -279,10 +279,9 @@ export default class MapViewPlugin extends Plugin {
                             // The pasted text contains an inline location, so try to help the user by verifying
                             // a frontmatter exists
                             if (
-                                utils.verifyOrAddFrontMatter(
+                                utils.verifyOrAddFrontMatterForInline(
                                     editor,
-                                    'locations',
-                                    ''
+                                    this.settings
                                 )
                             ) {
                                 new Notice(

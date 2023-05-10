@@ -694,8 +694,11 @@ export class MapContainer {
                 ? fileName.substring(0, fileName.lastIndexOf('.md'))
                 : fileName;
             let content = `<p class="map-view-marker-name">${fileNameWithoutExtension}</p>`;
+            const showLinkSetting = this.settings.showLinkNameInPopup;
             if (
-                utils.isMobile(this.app) &&
+                (showLinkSetting === 'always' ||
+                    (showLinkSetting === 'mobileOnly' &&
+                        utils.isMobile(this.app))) &&
                 fileMarker.extraName &&
                 fileMarker.extraName.length > 0
             )
