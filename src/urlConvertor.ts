@@ -181,7 +181,7 @@ export class UrlConvertor {
         // We want to put the cursor right after the beginning of the newly-inserted link
         const newCursorPos = replaceStart ? replaceStart.ch + 1 : cursor.ch + 1;
         editor.setCursor({ line: cursor.line, ch: newCursorPos });
-        utils.verifyOrAddFrontMatter(editor, 'locations', '');
+        utils.verifyOrAddFrontMatterForInline(editor, this.settings);
     }
 
     /**

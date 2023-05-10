@@ -6,6 +6,7 @@ import {
     ToggleComponent,
     Notice,
 } from 'obsidian';
+import { askForLocation } from 'src/realTimeLocation';
 
 // A global ID to differentiate instances of the controls for the purpose of label creation
 let lastGlobalId = 0;
@@ -672,8 +673,7 @@ export class RealTimeControl extends leaflet.Control {
         this.locateButton.style.fontSize = '25px';
         this.locateButton.addEventListener('click', (ev: MouseEvent) => {
             new Notice('Asking for the current location');
-            open('geohelper://locate');
-            this.clearButton.style.display = 'block';
+            askForLocation(this.settings, this.app);
         });
         this.clearButton = div.createEl('a');
         this.clearButton.innerHTML = 'X';
@@ -684,5 +684,10 @@ export class RealTimeControl extends leaflet.Control {
         });
 
         return div;
+    }
+
+    onLocationFound() {
+        // Show the 'clear' button
+        this.clearButton.style.display = 'block';
     }
 }

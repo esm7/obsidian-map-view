@@ -694,8 +694,11 @@ export class MapContainer {
                 ? fileName.substring(0, fileName.lastIndexOf('.md'))
                 : fileName;
             let content = `<p class="map-view-marker-name">${fileNameWithoutExtension}</p>`;
+            const showLinkSetting = this.settings.showLinkNameInPopup;
             if (
-                utils.isMobile(this.app) &&
+                (showLinkSetting === 'always' ||
+                    (showLinkSetting === 'mobileOnly' &&
+                        utils.isMobile(this.app))) &&
                 fileMarker.extraName &&
                 fileMarker.extraName.length > 0
             )
@@ -1018,6 +1021,7 @@ export class MapContainer {
         this.display.realTimeLocationRadius = leaflet
             .circle(center, { radius: accuracy })
             .addTo(this.display.map);
+        this.display.realTimeControls.onLocationFound();
     }
 
     setRealTimeLocation(
@@ -1034,17 +1038,26 @@ export class MapContainer {
                       source: source,
                       timestamp: Date.now(),
                   };
-        console.log('new location:', location);
+        console.log(`New location received from source '${source}':`, location);
         if (!isSame(location, this.lastRealTimeLocation)) {
             this.lastRealTimeLocation = location;
             this.updateRealTimeLocationMarkers();
-            let newState: Partial<MapState> = {};
-            if (!this.display.map.getBounds().contains(location.center))
-                newState.mapCenter = location.center;
-            // TODO take the radius into account
-            if (this.state.mapZoom < consts.MIN_REAL_TIME_LOCATION_ZOOM)
-                newState.mapZoom = consts.MIN_REAL_TIME_LOCATION_ZOOM;
-            this.highLevelSetViewState(newState);
+            if (location) {
+                // If there's a real location (contrary to clearing an existing location), update the view
+                let newState: Partial<MapState> = {};
+                if (this.state.mapZoom < consts.MIN_REAL_TIME_LOCATION_ZOOM)
+                    newState.mapZoom = consts.MIN_REAL_TIME_LOCATION_ZOOM;
+                // If the new zoom is higher than the current zoom, OR the new center isn't already visible, change
+                // the map center.
+                // Or maybe easier to understand it this way: if the new center is already visible in the viewport, AND
+                // the new zoom is lower (meaning it will remain visible), we don't need to bother the user with a center change
+                if (
+                    newState.mapZoom > this.state.mapZoom ||
+                    !this.display.map.getBounds().contains(location.center)
+                )
+                    newState.mapCenter = location.center;
+                this.highLevelSetViewState(newState);
+            }
         }
     }
 }

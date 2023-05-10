@@ -4,6 +4,7 @@ import { MapState, LegacyMapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import * as consts from 'src/consts';
 
+export type GeoHelperType = 'auto' | 'lite' | 'app' | 'custom';
 export type LegacyOpenBehavior = 'samePane' | 'secondPane' | 'alwaysNew';
 export type OpenBehavior =
     | 'replaceCurrent'
@@ -12,6 +13,7 @@ export type OpenBehavior =
     | 'dedicatedTab'
     | 'alwaysNewTab'
     | 'lastUsed';
+export type LinkNamePopupBehavior = 'never' | 'always' | 'mobileOnly';
 
 export type PluginSettings = {
     defaultState: MapState;
@@ -47,6 +49,7 @@ export type PluginSettings = {
     // Deprecated
     snippetLines?: number;
     showNoteNamePopup?: boolean;
+    showLinkNameInPopup?: LinkNamePopupBehavior;
     showNotePreview?: boolean;
     showClusterPreview?: boolean;
     debug?: boolean;
@@ -61,6 +64,9 @@ export type PluginSettings = {
     queryForFollowActiveNote?: string;
     supportRealTimeGeolocation?: boolean;
     fixFrontMatterOnPaste?: boolean;
+    geoHelperType?: GeoHelperType;
+    geoHelperFilePath?: string;
+    tagForGeolocationNotes?: string;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -157,6 +163,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     openMapMiddleClickBehavior: 'dedicatedTab',
     newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
     showNoteNamePopup: true,
+    showLinkNameInPopup: 'mobileOnly',
     showNotePreview: true,
     showClusterPreview: false,
     debug: false,
@@ -203,6 +210,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     queryForFollowActiveNote: 'path:"$PATH$"',
     supportRealTimeGeolocation: false,
     fixFrontMatterOnPaste: true,
+    geoHelperType: 'auto',
+    geoHelperFilePath: '',
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {

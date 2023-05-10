@@ -53,7 +53,7 @@ export function areStatesEqual(state1: MapState, state2: MapState) {
     }
     return (
         state1.query == state2.query &&
-        state2.mapZoom == state2.mapZoom &&
+        state1.mapZoom == state2.mapZoom &&
         state1.chosenMapSource == state2.chosenMapSource &&
         state1.embeddedHeight == state2.embeddedHeight
     );

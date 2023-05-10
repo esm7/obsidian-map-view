@@ -44,7 +44,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Wed Jan 25 09:55:53 PM IST 2023 -->
+<!-- Added by: erez, at: Wed May 10 07:24:45 PM IDT 2023 -->
 
 <!--te-->
 
@@ -246,6 +246,9 @@ Multiple inline tags can be separated with a whitespace: `[](geo:42.2,-76.15) ta
 
 Multiple inline locations can be added in the same line, and the tags that follow them will be associated to the location on the left, but the right-click editor context menu will not know to choose the location that was selected.
 
+Instead of using a `locations:` YAML tag, you can use a custom note tag. See "tag name to denote inline geolocations" in the settings.
+It will not be automatically added when you need it like the `locations:` YAML tag, however if you add an inline geolocation to an existing note where your custom tag is found, Map View will not add a `locations:` YAML tag.
+
 ## Adding a Location to a Note
 
 Map View offers many ways to add geolocations to notes.
@@ -341,6 +344,7 @@ The query string can contain the following _search operators_:
 
 -   `tag:#...` to search for notes or markers tagged with a specific tag.
     -   This works on both whole notes (`#hiking`) and inline tags for specific markers (`tag:hiking`).
+    -   You can also use wildcards like in [tag rules](#tag-rules), e.g. `tag:#sleep*` will match `#sleep` but also `#sleep/camping`.
 -   `name:...` to search for markers that their name contains the given string.
     -   For front-matter geolocations this matches the file name.
     -   For inline geolocations this matches the link name and **ignores** the file name (if you want to always match the file name, use `OR` with `path:`).
@@ -559,6 +563,18 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 3.0.2
+
+Many small improvements and fixes:
+
+-   New ribbon icon, based on Lucide, to be consistent with the Obsidian design guidelines (thanks @huy-vuong!)
+-   Added a setting to always show the link name on map view popup (and organized the relevant settings into their own section). (https://github.com/esm7/obsidian-map-view/issues/149)
+-   Added support for wildcards in tag queries (https://github.com/esm7/obsidian-map-view/issues/159).
+-   Fixed a bug with queries set in "query format for follow active note" that include multiple `$PATH$` items (https://github.com/esm7/obsidian-map-view/issues/158).
+-   Added the ability to use a custom tag instead of an empty `locations:` YAML tag (https://github.com/esm7/obsidian-map-view/issues/135).
+-   The `linkedfrom` query filter now requires an exact match (https://github.com/esm7/obsidian-map-view/issues/152).
+-   Fixed a bug where the "save" button didn't pop up on embedded maps if only the zoom was changed (https://github.com/esm7/obsidian-map-view/issues/156).
 
 ### 3.0.1
 

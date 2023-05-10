@@ -164,11 +164,27 @@ export function verifyOrAddFrontMatter(
     return false;
 }
 
+export function verifyOrAddFrontMatterForInline(
+    editor: Editor,
+    settings: settings.PluginSettings
+): boolean {
+    // If the user has a custom tag to denote a location, and this tag exists in the note, there's no need to add
+    // a front-matter
+    const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
+    if (
+        tagNameToSearch?.length > 0 &&
+        editor.getValue()?.contains(tagNameToSearch)
+    )
+        return false;
+    // Otherwise, verify this note has a front matter with an empty 'locations' tag
+    return verifyOrAddFrontMatter(editor, 'locations', '');
+}
+
 export function replaceFollowActiveNoteQuery(
     file: TFile,
     settings: settings.PluginSettings
 ) {
-    return settings.queryForFollowActiveNote.replace('$PATH$', file.path);
+    return settings.queryForFollowActiveNote.replace(/\$PATH\$/g, file.path);
 }
 
 /**

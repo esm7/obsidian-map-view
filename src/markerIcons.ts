@@ -93,7 +93,7 @@ export class IconCache {
     }
 }
 
-function checkTagPatternMatch(tagPattern: string, tags: string[]) {
+export function checkTagPatternMatch(tagPattern: string, tags: string[]) {
     let match = wildcard(tagPattern, tags);
     return match && match.length > 0;
 }

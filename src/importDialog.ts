@@ -78,7 +78,10 @@ export class ImportDialog extends Modal {
                 );
                 if (text) {
                     this.editor.replaceSelection(text);
-                    utils.verifyOrAddFrontMatter(this.editor, 'locations', '');
+                    utils.verifyOrAddFrontMatterForInline(
+                        this.editor,
+                        this.settings
+                    );
                 }
                 this.close();
             });
