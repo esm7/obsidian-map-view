@@ -1,12 +1,12 @@
-import { request, App } from 'obsidian';
+import { App } from 'obsidian';
 import * as geosearch from 'leaflet-geosearch';
 import * as leaflet from 'leaflet';
-import * as querystring from 'query-string';
 
 import { PluginSettings } from 'src/settings';
 import { UrlConvertor } from 'src/urlConvertor';
 import { FileMarker } from 'src/markers';
 import * as consts from 'src/consts';
+import { GooglePlacesAPI } from './geosearchGoogleApi';
 
 /**
  * A generic result of a geosearch
@@ -19,10 +19,18 @@ export class GeoSearchResult {
     existingMarker?: FileMarker;
 }
 
+type searchProviderParms = {
+    query: string;
+    location?: string;
+};
+
+export type GeoSearcherProvider =
+    | geosearch.OpenStreetMapProvider
+    | geosearch.GoogleProvider
+    | GooglePlacesAPI;
+
 export class GeoSearcher {
-    private searchProvider:
-        | geosearch.OpenStreetMapProvider
-        | geosearch.GoogleProvider = null;
+    public searchProvider: GeoSearcherProvider;
     private settings: PluginSettings;
     private urlConvertor: UrlConvertor;
 
@@ -31,7 +39,9 @@ export class GeoSearcher {
         this.urlConvertor = new UrlConvertor(app, settings);
         if (settings.searchProvider == 'osm')
             this.searchProvider = new geosearch.OpenStreetMapProvider();
-        else if (settings.searchProvider == 'google') {
+        else if (this.usingGooglePlacesSearch) {
+            this.searchProvider = new GooglePlacesAPI(settings);
+        } else if (settings.searchProvider == 'google') {
             this.searchProvider = new geosearch.GoogleProvider({
                 params: { key: settings.geocodingApiKey },
             });
@@ -59,97 +69,42 @@ export class GeoSearcher {
             });
         }
 
-        // Google Place results
-        if (
-            this.settings.searchProvider == 'google' &&
-            this.settings.useGooglePlaces &&
-            this.settings.geocodingApiKey
-        ) {
-            try {
-                const placesResults = await googlePlacesSearch(
-                    query,
-                    this.settings,
-                    searchArea?.getCenter()
-                );
-                for (const result of placesResults)
-                    results.push({
-                        name: result.name,
-                        location: result.location,
-                        resultType: 'searchResult',
-                    });
-            } catch (e) {
-                console.log(
-                    'Map View: Google Places search failed: ',
-                    e.message
-                );
-            }
-        } else {
-            const areaSW = searchArea?.getSouthWest() || null;
-            const areaNE = searchArea?.getNorthEast() || null;
-            let searchResults = await this.searchProvider.search({
-                query: query,
-            });
+        let params: searchProviderParms = {
+            query: query,
+        };
+
+        if (this.usingGooglePlacesSearch() && searchArea) {
+            const centerOfSearch = searchArea?.getCenter();
+            params.location = `${centerOfSearch.lat},${centerOfSearch.lng}`;
+        }
+        let searchResults = await this.searchProvider.search(params);
+
+        if (!this.usingGooglePlacesSearch()) {
             searchResults = searchResults.slice(
                 0,
                 consts.MAX_EXTERNAL_SEARCH_SUGGESTIONS
             );
-            results = results.concat(
-                searchResults.map(
-                    (result) =>
-                        ({
-                            name: result.label,
-                            location: new leaflet.LatLng(result.y, result.x),
-                            resultType: 'searchResult',
-                        } as GeoSearchResult)
-                )
-            );
         }
+
+        results = results.concat(
+            searchResults.map(
+                (result) =>
+                    ({
+                        name: result.label,
+                        location: new leaflet.LatLng(result.y, result.x),
+                        resultType: 'searchResult',
+                    } as GeoSearchResult)
+            )
+        );
 
         return results;
     }
-}
 
-export async function googlePlacesSearch(
-    query: string,
-    settings: PluginSettings,
-    centerOfSearch: leaflet.LatLng | null
-): Promise<GeoSearchResult[]> {
-    if (settings.searchProvider != 'google' || !settings.useGooglePlaces)
-        return [];
-    const googleApiKey = settings.geocodingApiKey;
-    const params = {
-        query: query,
-        key: googleApiKey,
-    };
-    if (centerOfSearch)
-        (params as any)[
-            'location'
-        ] = `${centerOfSearch.lat},${centerOfSearch.lng}`;
-    const googleUrl =
-        'https://maps.googleapis.com/maps/api/place/textsearch/json?' +
-        querystring.stringify(params);
-    const googleContent = await request({ url: googleUrl });
-    const jsonContent = JSON.parse(googleContent) as any;
-    let results: GeoSearchResult[] = [];
-    if (
-        jsonContent &&
-        'results' in jsonContent &&
-        jsonContent?.results.length > 0
-    ) {
-        for (const result of jsonContent.results) {
-            const location = result.geometry?.location;
-            if (location && location.lat && location.lng) {
-                const geolocation = new leaflet.LatLng(
-                    location.lat,
-                    location.lng
-                );
-                results.push({
-                    name: `${result?.name} (${result?.formatted_address})`,
-                    location: geolocation,
-                    resultType: 'searchResult',
-                } as GeoSearchResult);
-            }
-        }
+    usingGooglePlacesSearch(): boolean {
+        return (
+            this.settings.searchProvider == 'google' &&
+            this.settings.useGooglePlaces &&
+            this.settings.geocodingApiKey !== null
+        );
     }
-    return results;
 }
