@@ -33,7 +33,7 @@
     -   [Follow Active Note](#follow-active-note)
     -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
     -   [Changelog](#changelog)
-        -   [3.1.0](#310)
+        -   [3.1.1](#311)
         -   [3.0.2](#302)
         -   [3.0.1](#301)
         -   [3.0.0](#300)
@@ -46,7 +46,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Tue May 23 09:05:04 PM IDT 2023 -->
+<!-- Added by: erez, at: Tue May 23 10:12:26 PM IDT 2023 -->
 
 <!--te-->
 
@@ -566,13 +566,13 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
-### 3.1.0
+### 3.1.1
 
 -   Geolinks in notes, and also front matter geolocations, are now internal Map View links! (https://github.com/esm7/obsidian-map-view/issues/144)
-    - It means that by default, when you click a geolink in Map View, it will open inside Map View.
-    - This can be turned off in the settings.
+    -   It means that by default, when you click a geolink in Map View, it will open inside Map View.
+    -   This can be turned off in the settings.
 -   There are now optional **map preview hovers** for geolinks in notes (if the above feature is turned on).
-    - This is currently off by default, and will probably become on by default while I gain confidence in its performance and stability.
+    -   This is currently off by default, and will probably become on by default while I gain confidence in its performance and stability.
 -   Wildcard support for "tag that denotes inline locations" (https://github.com/esm7/obsidian-map-view/issues/164).
 -   Fixed background in the wrong color on dark mode (https://github.com/esm7/obsidian-map-view/issues/163).
 

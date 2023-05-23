@@ -24,6 +24,7 @@ export class MapPreviewPopup {
     private plugin: MapViewPlugin;
     private app: App;
     private popperInstance: PopperInstance;
+    private isOpen: boolean = false;
 
     constructor(settings: PluginSettings, plugin: MapViewPlugin, app: App) {
         this.settings = settings;
@@ -80,6 +81,7 @@ export class MapPreviewPopup {
             placement: 'bottom-start',
         });
         await this.popperInstance.update();
+        this.isOpen = true;
         this.popupDiv.addClass('show');
 
         const state: Partial<MapState> = {
@@ -88,15 +90,21 @@ export class MapPreviewPopup {
         };
         await this.map.open(Object.assign(this.settings.defaultState, state));
         const marker = markerId
-            ? this.map.mapContainer.findMarkerById(markerId)
+            ? this.map.mapContainer?.findMarkerById(markerId)
             : null;
         if (marker) this.map.mapContainer.setHighlight(marker);
     }
 
     close(event: PointerEvent) {
+        this.isOpen = false;
         this.popupDiv?.removeClass('show');
         this.popupObserver?.disconnect();
         this.popperInstance?.destroy();
-        this.map = null;
+        // The animation makes it difficult to find the right time to clean up the popup div, so
+        // we're just doing it a second after the popup closes
+        setTimeout(() => {
+            if (this.popupDiv)
+                this.popupDiv.parentNode?.removeChild(this.popupDiv);
+        }, 1000);
     }
 }
