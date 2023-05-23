@@ -59,7 +59,7 @@ export abstract class BaseMapView extends ItemView {
 
         this.mapContainer.highLevelSetViewState = (
             partialState: Partial<MapState>
-        ) => {
+        ): MapState => {
             if (!this.leaf || this.leaf.view == null) return;
             const viewState = this.leaf?.getViewState();
             if (viewState?.state) {
@@ -69,7 +69,9 @@ export abstract class BaseMapView extends ItemView {
                     partialState
                 );
                 this.leaf.setViewState({ ...viewState, state: newState });
+                return newState;
             }
+            return null;
         };
 
         this.app.workspace.on(

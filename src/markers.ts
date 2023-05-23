@@ -7,6 +7,7 @@ import { PluginSettings } from 'src/settings';
 import { getIconFromRules, IconCache } from 'src/markerIcons';
 import * as consts from 'src/consts';
 import * as regex from 'src/regex';
+import { djb2Hash } from 'src/utils';
 
 type MarkerId = string;
 
@@ -95,21 +96,38 @@ export class FileMarker extends BaseGeoLayer {
     }
 
     generateId() {
-        this.id =
-            this.file.name +
-            this.location.lat.toString() +
-            this.location.lng.toString() +
-            'loc-' +
-            (this.fileLocation
-                ? this.fileLocation
-                : this.fileLine
-                ? 'nofileloc' + this.fileLine
-                : 'nofileline');
+        this.id = generateMarkerId(
+            this.file.name,
+            this.location.lat.toString(),
+            this.location.lng.toString(),
+            this.fileLocation,
+            this.fileLine
+        );
     }
 
     getBounds(): leaflet.LatLng[] {
         return [this.location];
     }
+}
+
+export function generateMarkerId(
+    fileName: string,
+    lat: string,
+    lng: string,
+    fileLocation?: number,
+    fileLine?: number
+): string {
+    return (
+        djb2Hash(fileName) +
+        lat +
+        lng +
+        'loc-' +
+        (fileLocation
+            ? fileLocation
+            : fileLine
+            ? 'nofileloc' + fileLine
+            : 'nofileline')
+    );
 }
 
 export type MarkersMap = Map<MarkerId, BaseGeoLayer>;

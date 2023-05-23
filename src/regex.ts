@@ -25,15 +25,18 @@ export const QUOTED_OR_NOT_QUOTED_LINKEDTO =
     /linkedto:(("([\p{L}\p{N}_,&\(\)\s'/\-\\\.]*)")|([\p{L}\p{N}_,&\(\)'/\-\\\.]*))/gu;
 export const QUOTED_OR_NOT_QUOTED_LINKEDFROM =
     /linkedfrom:(("([\p{L}\p{N}_,&\(\)\s'/\-\\\.]*)")|([\p{L}\p{N}_,&\(\)'/\-\\\.]*))/gu;
-// TODO use named groups here
 export const COORDINATES =
-    /([+-]?([0-9]*[.])?[0-9]+),([+-]?([0-9]*[.])?[0-9]+)/;
+    /(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)/;
 export const INLINE_LOCATION_OLD_SYNTAX =
     /`location:\s*\[?(?<lat>[+-]?([0-9]*[.])?[0-9]+)\s*,\s*(?<lng>[+-]?([0-9]*[.])?[0-9]+)\]?/g;
 // A link name is defined here as [^\]]* to prevent a previous link in the same line to count as the beginning
 // of the link name
 export const INLINE_LOCATION_WITH_TAGS =
-    /\[(?<name>[^\]]*?)\]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\)[ \t]*(?<tags>(tag:[\p{L}\p{N}_\/\-]+[\s,.]+)*)/gu;
+    /(?<link>\[(?<name>[^\]]*?)\]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\))[ \t]*(?<tags>(tag:[\p{L}\p{N}_\/\-]+[\s,.]+)*)/gu;
+export const FRONT_MATTER_LOCATION =
+    /(?<header>^---.*)(?<loc>location:[ \t]*\[(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\]).*^---/ms;
+
+// location: [32.84577588420059,35.36074429750443]
 
 /**
  * Returns a match object if the given cursor position has the beginning

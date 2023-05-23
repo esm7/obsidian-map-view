@@ -280,3 +280,11 @@ export function mouseEventToOpenMode(
         else return settings.openMapBehavior;
     }
 }
+
+export function djb2Hash(s: string) {
+    var hash = 5381;
+    for (var i = 0; i < s.length; i++) {
+        hash = (hash << 5) + hash + s.charCodeAt(i); /* hash * 33 + c */
+    }
+    return hash.toString();
+}

@@ -191,6 +191,7 @@ export class SettingsTab extends PluginSettingTab {
             .addSlider((component) => {
                 component
                     .setLimits(1, 18, 1)
+                    .setDynamicTooltip()
                     .setValue(
                         this.plugin.settings.zoomOnGoFromNote ??
                             DEFAULT_SETTINGS.zoomOnGoFromNote
@@ -273,6 +274,61 @@ export class SettingsTab extends PluginSettingTab {
                     .onChange(async (value: string) => {
                         this.plugin.settings.tagForGeolocationNotes = value;
                         this.plugin.saveSettings();
+                    });
+            });
+
+        new Setting(containerEl)
+            .setHeading()
+            .setName('Geolinks in Notes')
+            .setDesc(
+                'How and if Map View handles geolinks in notes (both front matter and inline)'
+            );
+        new Setting(containerEl)
+            .setName('Handle geolinks in notes')
+            .setDesc(
+                'When turned on, Map View will handle geolinks internally, and turn front matter locations into links. (Requires restarting Obsidian to update correctly.)'
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.handleGeolinksInNotes ??
+                            DEFAULT_SETTINGS.handleGeolinksInNotes
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.handleGeolinksInNotes = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Show geolink previews in notes')
+            .setDesc(
+                'Show a popup with a map preview when hovering on geolinks in notes. Requires "Geolinks in Notes" above.'
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.showGeolinkPreview ??
+                            DEFAULT_SETTINGS.showGeolinkPreview
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.showGeolinkPreview = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Zoom of the geolink map preview')
+            .setDesc('Zoom level to use for the geolink map preview popup.')
+            .addSlider((component) => {
+                component
+                    .setLimits(1, 18, 1)
+                    .setDynamicTooltip()
+                    .setValue(
+                        this.plugin.settings.zoomOnGeolinkPreview ??
+                            DEFAULT_SETTINGS.zoomOnGeolinkPreview
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.zoomOnGeolinkPreview = value;
+                        await this.plugin.saveSettings();
                     });
             });
 

@@ -67,6 +67,9 @@ export type PluginSettings = {
     geoHelperType?: GeoHelperType;
     geoHelperFilePath?: string;
     tagForGeolocationNotes?: string;
+    handleGeolinksInNotes?: boolean;
+    showGeolinkPreview?: boolean;
+    zoomOnGeolinkPreview?: number;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -212,6 +215,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     fixFrontMatterOnPaste: true,
     geoHelperType: 'auto',
     geoHelperFilePath: '',
+    handleGeolinksInNotes: true,
+    showGeolinkPreview: false,
+    zoomOnGeolinkPreview: 10,
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {

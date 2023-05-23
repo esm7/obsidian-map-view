@@ -1,5 +1,4 @@
 import {
-    setIcon,
     Editor,
     FileView,
     MarkdownView,
@@ -12,6 +11,7 @@ import {
     MarkdownPostProcessorContext,
     Notice,
 } from 'obsidian';
+import { ViewPlugin } from '@codemirror/view';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
 import { LocationSuggest } from 'src/locationSuggest';
@@ -24,6 +24,11 @@ import { MainMapView } from 'src/mainMapView';
 import { EmbeddedMap } from 'src/embeddedMap';
 import { IconCache } from 'src/markerIcons';
 import { RealTimeLocationSource } from 'src/realTimeLocation';
+import {
+    getLinkReplaceEditorPlugin,
+    GeoLinkReplacePlugin,
+    replaceLinksPostProcessor,
+} from 'src/geoLinkReplacers';
 
 import {
     PluginSettings,
@@ -41,6 +46,7 @@ import { SettingsTab } from 'src/settingsTab';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { TagSuggest } from 'src/tagSuggest';
 import * as utils from 'src/utils';
+import { MapPreviewPopup } from 'src/mapPreviewPopup';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
@@ -49,6 +55,8 @@ export default class MapViewPlugin extends Plugin {
     private suggestor: LocationSuggest;
     private tagSuggestor: TagSuggest;
     private urlConvertor: UrlConvertor;
+    private mapPreviewPopup: MapPreviewPopup;
+    public editorLinkReplacePlugin: ViewPlugin<GeoLinkReplacePlugin>;
 
     async onload() {
         await this.loadSettings();
@@ -63,6 +71,9 @@ export default class MapViewPlugin extends Plugin {
         this.registerView(consts.MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
             return new MainMapView(leaf, this.settings, this);
         });
+
+        this.editorLinkReplacePlugin = getLinkReplaceEditorPlugin(this);
+        this.registerEditorExtension(this.editorLinkReplacePlugin);
 
         // Currently not in use; the feature is frozen until I have the time to work on its various quirks
         // this.registerView(consts.MINI_MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
@@ -137,6 +148,8 @@ export default class MapViewPlugin extends Plugin {
             }
         );
 
+        this.registerMarkdownPostProcessor(replaceLinksPostProcessor(this));
+
         this.suggestor = new LocationSuggest(this.app, this.settings);
         this.tagSuggestor = new TagSuggest(this.app, this.settings);
         this.urlConvertor = new UrlConvertor(this.app, this.settings);
@@ -147,6 +160,8 @@ export default class MapViewPlugin extends Plugin {
         await convertLegacySettings(this.settings, this);
 
         this.iconCache = new IconCache(document.body);
+
+        this.mapPreviewPopup = null;
 
         // Register commands to the command palette
         // Command that opens the map view (same as clicking the map icon)
@@ -242,6 +257,76 @@ export default class MapViewPlugin extends Plugin {
         });
 
         this.addSettingTab(new SettingsTab(this.app, this));
+
+        // As part of geoLinkReplacers.ts, geolinks in notes are embedded with mouse events that
+        // override the default Obsidian behavior.
+        // We can only add these as strings, so to make this work, the functions that handle these mouse
+        // events need to be global.
+        // This one handles a geolink in a note.
+        (window as any).handleMapViewGeoLink = (
+            event: PointerEvent,
+            documentLocation: number,
+            markerId: string,
+            lat: string,
+            lng: string
+        ) => {
+            event.preventDefault();
+            const location = new leaflet.LatLng(
+                parseFloat(lat),
+                parseFloat(lng)
+            );
+            this.openMapWithLocation(
+                location,
+                utils.mouseEventToOpenMode(this.settings, event, 'openMap'),
+                null,
+                null,
+                false,
+                markerId
+            );
+        };
+
+        // As part of geoLinkReplacers.ts, geolinks in notes are embedded with mouse events that
+        // override the default Obsidian behavior.
+        // We can only add these as strings, so to make this work, the functions that handle these mouse
+        // events need to be global.
+        // This one opens a map preview popup on mouse enter.
+        (window as any).createMapPopup = (
+            event: PointerEvent,
+            documentLocation: number,
+            markerId: string,
+            lat: string,
+            lng: string
+        ) => {
+            if (!this.settings.showGeolinkPreview) return;
+            if (this.mapPreviewPopup) {
+                this.mapPreviewPopup.close(event);
+                this.mapPreviewPopup = null;
+            }
+            // See the class comment in MapPreviewPopup.
+            // This is inefficient: the map is loaded every time a user hovers a link, which can be time-consuming
+            // for huge vaults.
+            this.mapPreviewPopup = new MapPreviewPopup(
+                this.settings,
+                this,
+                this.app
+            );
+            this.mapPreviewPopup.open(
+                event,
+                documentLocation,
+                markerId,
+                lat,
+                lng
+            );
+        };
+
+        // As part of geoLinkReplacers.ts, geolinks in notes are embedded with mouse events that
+        // override the default Obsidian behavior.
+        // We can only add these as strings, so to make this work, the functions that handle these mouse
+        // events need to be global.
+        // This one closes the map preview popup on mouse leave.
+        (window as any).closeMapPopup = (event: PointerEvent) => {
+            this.mapPreviewPopup.close(event);
+        };
 
         // Add items to the file context menu (run when the context menu is built)
         // This is the context menu in the File Explorer and clicking "More options" (three dots) from within a file.
@@ -359,7 +444,8 @@ export default class MapViewPlugin extends Plugin {
         openBehavior: OpenBehavior,
         forceAutoFit?: boolean,
         highlightFile: TAbstractFile = null,
-        highlightFileLine: number = null
+        highlightFileLine: number = null,
+        highlightMarkerId: string = null
     ) {
         const mapView = await this.openMap(openBehavior, state);
         if (mapView && mapView.mapContainer) {
@@ -371,6 +457,9 @@ export default class MapViewPlugin extends Plugin {
                     highlightFileLine
                 );
                 map.setHighlight(markerToHighlight);
+            } else if (highlightMarkerId) {
+                const markerToHighlight = map.findMarkerById(highlightMarkerId);
+                map.setHighlight(markerToHighlight);
             }
         }
     }
@@ -380,16 +469,17 @@ export default class MapViewPlugin extends Plugin {
      * The active query is cleared so we'll be sure that the location is actually displayed.
      * @param location The geolocation to open the map at
      * @param openBehavior the behavior to use
-     * @param file the file this location belongs to
+     * @param file the file this location belongs to (for highlighting)
      * @param fileLine the line in the file (if it's an inline link)
      * @param keepZoom don't zoom the map
      */
     async openMapWithLocation(
         location: leaflet.LatLng,
         openBehavior: OpenBehavior,
-        file: TAbstractFile,
+        file: TAbstractFile | null = null,
         fileLine: number = null,
-        keepZoom: boolean = false
+        keepZoom: boolean = false,
+        markerIdToHighlight: string = null
     ) {
         let newState = {
             mapCenter: location,
@@ -404,7 +494,8 @@ export default class MapViewPlugin extends Plugin {
             openBehavior,
             false,
             file,
-            fileLine
+            fileLine,
+            markerIdToHighlight
         );
     }
 

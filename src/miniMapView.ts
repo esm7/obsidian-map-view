@@ -14,6 +14,7 @@ export class MiniMapView extends BaseMapView {
         plugin: MapViewPlugin
     ) {
         const viewSettings: ViewSettings = {
+            showZoomButtons: true,
             showMapControls: true,
             showFilters: false,
             showView: true,

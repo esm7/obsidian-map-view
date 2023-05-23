@@ -33,7 +33,7 @@ export class GeoSearcher {
             this.searchProvider = new geosearch.OpenStreetMapProvider();
         else if (settings.searchProvider == 'google') {
             this.searchProvider = new geosearch.GoogleProvider({
-                params: { key: settings.geocodingApiKey },
+                apiKey: settings.geocodingApiKey,
             });
         }
     }

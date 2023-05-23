@@ -20,7 +20,8 @@ export class EmbeddedMap {
         ctx: MarkdownPostProcessorContext,
         app: App,
         settings: PluginSettings,
-        plugin: MapViewPlugin
+        plugin: MapViewPlugin,
+        customViewSettings: Partial<ViewSettings> = null
     ) {
         this.app = app;
         this.settings = settings;
@@ -28,6 +29,7 @@ export class EmbeddedMap {
         this.parentEl = parentEl;
 
         const viewSettings: ViewSettings = {
+            showZoomButtons: true,
             showMapControls: true,
             showFilters: false,
             showView: true,
@@ -39,6 +41,7 @@ export class EmbeddedMap {
             showOpenButton: true,
             autoZoom: true,
             emptyFitRevertsToDefault: true,
+            ...customViewSettings,
         };
 
         this.mapContainer = new MapContainer(
@@ -105,12 +108,18 @@ export class EmbeddedMap {
             this.onResize();
         });
         this.resizeObserver.observe(this.mapContainer.display.mapDiv);
-        this.mapContainer.highLevelSetViewState(state);
-        this.mapContainer.display.controls.markStateAsSaved(state);
-        this.mapContainer.display.controls.updateSaveButtonVisibility();
+        await this.mapContainer.highLevelSetViewStateAsync(state);
+        if (this.mapContainer.display?.controls) {
+            this.mapContainer.display.controls.markStateAsSaved(state);
+            this.mapContainer.display.controls.updateSaveButtonVisibility();
+        }
         if (state.embeddedHeight)
             this.parentEl.style.height = `${state.embeddedHeight}px`;
         this.settings.mapControls.viewDisplayed = false;
+    }
+
+    async setState(state: Partial<MapState>): Promise<MapState> {
+        return this.mapContainer.highLevelSetViewState(state);
     }
 
     onResize() {

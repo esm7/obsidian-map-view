@@ -49,6 +49,7 @@ import {
 import * as menus from 'src/menus';
 
 export type ViewSettings = {
+    showZoomButtons: boolean;
     showMapControls: boolean;
     showFilters: boolean;
     showView: boolean;
@@ -64,6 +65,7 @@ export type ViewSettings = {
     // it makes sure to zoom
     autoZoom?: boolean;
     emptyFitRevertsToDefault?: boolean;
+    skipAnimations?: boolean;
 };
 
 export class MapContainer {
@@ -266,13 +268,32 @@ export class MapContainer {
      * This is deliberately *not* an async method, because in the version that calls the Obsidian setState method,
      * we want to reliably get the status of freezeMap
      */
-    public highLevelSetViewState(partialState: Partial<MapState>) {
+    public highLevelSetViewState(partialState: Partial<MapState>): MapState {
         if (Object.keys(partialState).length === 0) return;
         const state = this.getState();
         if (state) {
             const newState = Object.assign({}, state, partialState);
             this.internalSetViewState(newState);
+            return newState;
         }
+        return null;
+    }
+
+    /**
+     * Same as above, but an async version, that can be awaited, for cases that an updated map is required
+     * after the method returns.
+     */
+    public async highLevelSetViewStateAsync(
+        partialState: Partial<MapState>
+    ): Promise<MapState> {
+        if (Object.keys(partialState).length === 0) return;
+        const state = this.getState();
+        if (state) {
+            const newState = Object.assign({}, state, partialState);
+            await this.internalSetViewState(newState);
+            return newState;
+        }
+        return null;
     }
 
     /**
@@ -379,11 +400,12 @@ export class MapContainer {
             worldCopyJump: true,
             maxBoundsViscosity: 1.0,
         });
-        leaflet.control
-            .zoom({
-                position: 'topright',
-            })
-            .addTo(this.display.map);
+        if (this.viewSettings.showZoomButtons)
+            leaflet.control
+                .zoom({
+                    position: 'topright',
+                })
+                .addTo(this.display.map);
         this.updateTileLayerByState(this.state);
         this.display.clusterGroup = new leaflet.MarkerClusterGroup({
             maxClusterRadius:
@@ -539,7 +561,7 @@ export class MapContainer {
             // Also, in the case that we know the view is about to be changed immediately (e.g. due to a fitBounds call
             // that would follow this method), we want to skip the change too
             this.display.map.setView(this.state.mapCenter, this.state.mapZoom, {
-                animate: true,
+                animate: this.viewSettings.skipAnimations ? false : true,
                 duration: 0.1,
             });
         }
@@ -1000,6 +1022,10 @@ export class MapContainer {
             }
         }
         return null;
+    }
+
+    findMarkerById(markerId: string): BaseGeoLayer | undefined {
+        return this.display.markers.get(markerId);
     }
 
     updateRealTimeLocationMarkers() {

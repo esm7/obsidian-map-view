@@ -13,6 +13,7 @@ export class MainMapView extends BaseMapView {
         plugin: MapViewPlugin
     ) {
         const viewSettings: ViewSettings = {
+            showZoomButtons: true,
             showMapControls: true,
             showFilters: true,
             showView: true,

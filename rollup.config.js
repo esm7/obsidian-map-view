@@ -24,7 +24,12 @@ export default {
         exports: 'default',
         banner,
     },
-    external: ['obsidian'],
+    external: [
+        'obsidian',
+        '@codemirror/view',
+        '@codemirror/state',
+        'codemirror',
+    ],
     plugins: [
         image(),
         typescript(),
