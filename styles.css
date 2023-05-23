@@ -86,6 +86,10 @@
         saturate(0.3) brightness(0.7);
 }
 
+.leaflet-container {
+    background-color: var(--titlebar-background-focused) !important;
+}
+
 .newPresetDialogGrid {
     display: grid;
     grid-row-gap: 10px;

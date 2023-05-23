@@ -33,6 +33,7 @@
     -   [Follow Active Note](#follow-active-note)
     -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
     -   [Changelog](#changelog)
+        -   [3.1.0](#310)
         -   [3.0.2](#302)
         -   [3.0.1](#301)
         -   [3.0.0](#300)
@@ -45,7 +46,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Tue May 23 08:32:35 PM IDT 2023 -->
+<!-- Added by: erez, at: Tue May 23 09:04:39 PM IDT 2023 -->
 
 <!--te-->
 
@@ -247,7 +248,7 @@ Multiple inline tags can be separated with a whitespace: `[](geo:42.2,-76.15) ta
 
 Multiple inline locations can be added in the same line, and the tags that follow them will be associated to the location on the left, but the right-click editor context menu will not know to choose the location that was selected.
 
-Instead of using a `locations:` YAML tag, you can use a custom note tag. See "tag name to denote inline geolocations" in the settings.
+Instead of using a `locations:` YAML tag, you can use a custom note tag. See "tag name to denote inline geolocations" in the settings. (This also works with wildcards.)
 It will not be automatically added when you need it like the `locations:` YAML tag, however if you add an inline geolocation to an existing note where your custom tag is found, Map View will not add a `locations:` YAML tag.
 
 ## Adding a Location to a Note
@@ -564,6 +565,13 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 3.1.0
+
+-   Links
+-   Popup previews
+-   Wildcards (https://github.com/esm7/obsidian-map-view/issues/164)
+-   Fixed empty background on dark mode (https://github.com/esm7/obsidian-map-view/issues/163)
 
 ### 3.0.2
 

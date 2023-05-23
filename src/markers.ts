@@ -8,6 +8,7 @@ import { getIconFromRules, IconCache } from 'src/markerIcons';
 import * as consts from 'src/consts';
 import * as regex from 'src/regex';
 import { djb2Hash } from 'src/utils';
+import wildcard from 'wildcard';
 
 type MarkerId = string;
 
@@ -164,7 +165,7 @@ export async function buildAndAppendFileMarkers(
         if (
             (frontMatter && 'locations' in frontMatter) ||
             (tagNameToSearch?.length > 0 &&
-                getAllTags(fileCache).includes(tagNameToSearch))
+                wildcard(tagNameToSearch, getAllTags(fileCache)))
         ) {
             const markersFromFile = await getMarkersFromFileContent(
                 file,
