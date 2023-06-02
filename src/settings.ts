@@ -190,12 +190,12 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             ruleType: 'latLng',
             preset: true,
         },
-		{
-			name: 'Geolocation Link',
-			regExp: /\[.*\]\(geo:([0-9\.\-]+),([0-9\.\-]+)\)/.source,
-			ruleType: 'latLng',
-			preset: true
-		}
+        {
+            name: 'Geolocation Link',
+            regExp: /\[.*\]\(geo:([0-9\.\-]+),([0-9\.\-]+)\)/.source,
+            ruleType: 'latLng',
+            preset: true,
+        },
     ],
     mapControls: {
         filtersDisplayed: true,

@@ -26,30 +26,44 @@ export function isSame(loc1: RealTimeLocation, loc2: RealTimeLocation) {
 
 // Should be the same between obsidian-map-view and obsidian-geo-helper
 type GeoHelperAction = 'locate';
-type MapViewGpsAction = 'showonmap' | 'newnotehere' | 'addtocurrentnote' | 'copyinlinelocation';
+type MapViewGpsAction =
+    | 'showonmap'
+    | 'newnotehere'
+    | 'addtocurrentnote'
+    | 'copyinlinelocation';
 
 // Should be the same between obsidian-map-view and obsidian-geo-helper
 type Params = {
-	// Action required by Geohelper
-	geoaction?: GeoHelperAction | null;
-	// Action required by Map View when it receives the location
-	mvaction?: MapViewGpsAction | null;
-	// Additional context Map View may want to receive
-	mvcontext?: string | null;
+    // Action required by Geohelper
+    geoaction?: GeoHelperAction | null;
+    // Action required by Map View when it receives the location
+    mvaction?: MapViewGpsAction | null;
+    // Additional context Map View may want to receive
+    mvcontext?: string | null;
 };
 
-export function askForLocation(settings: PluginSettings, geoaction: GeoHelperAction='locate', mvaction: MapViewGpsAction='showonmap', mvcontext=''): boolean {
+export function askForLocation(
+    settings: PluginSettings,
+    geoaction: GeoHelperAction = 'locate',
+    mvaction: MapViewGpsAction = 'showonmap',
+    mvcontext = ''
+): boolean {
     if (!settings.supportRealTimeGeolocation) return false;
     const geoHelperType = settings.geoHelperType;
     switch (geoHelperType) {
         case 'url': {
-			const url = settings.geoHelperUrl + `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`;
+            const url =
+                settings.geoHelperUrl +
+                `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`;
             new Notice('Asking GeoHelper URL for location');
-			open(url);
-			return true;
+            open(url);
+            return true;
         }
         case 'app': {
-            open('geohelper://locate' + `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`);
+            open(
+                'geohelper://locate' +
+                    `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`
+            );
             new Notice('Asking GeoHelper App for location');
             return true;
         }

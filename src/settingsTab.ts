@@ -643,7 +643,8 @@ export class SettingsTab extends PluginSettingTab {
             .addDropdown((component) => {
                 component
                     .setValue(
-                        this.plugin.settings.geoHelperType ?? DEFAULT_SETTINGS.geoHelperType
+                        this.plugin.settings.geoHelperType ??
+                            DEFAULT_SETTINGS.geoHelperType
                     )
                     .addOption('url', 'External URL')
                     .addOption('app', 'Installed app')
@@ -655,14 +656,10 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
-        const geoHelperUrl = new Setting(containerEl).setName(
-            'Geo Helper URL'
-        );
+        const geoHelperUrl = new Setting(containerEl).setName('Geo Helper URL');
         geoHelperUrl.addText((component) => {
             component
-                .setPlaceholder(
-                    'URL to open (see README for more details)'
-                )
+                .setPlaceholder('URL to open (see README for more details)')
                 .setValue(this.plugin.settings.geoHelperUrl ?? '')
                 .onChange(async (value) => {
                     this.plugin.settings.geoHelperUrl = value;

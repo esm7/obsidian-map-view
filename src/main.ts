@@ -102,7 +102,7 @@ export default class MapViewPlugin extends Plugin {
                                 source as RealTimeLocationSource
                             );
                         }
-					} else if (params.mvaction === 'newnotehere') {
+                    } else if (params.mvaction === 'newnotehere') {
                         const location =
                             params.centerLat && params.centerLng
                                 ? new leaflet.LatLng(
@@ -110,10 +110,10 @@ export default class MapViewPlugin extends Plugin {
                                       parseFloat(params.centerLng)
                                   )
                                 : null;
-						if (location) {
-							this.newFrontMatterNote(location, null, '');
-						}
-					} else if (params.mvaction === 'addtocurrentnote') {
+                        if (location) {
+                            this.newFrontMatterNote(location, null, '');
+                        }
+                    } else if (params.mvaction === 'addtocurrentnote') {
                         const location =
                             params.centerLat && params.centerLng
                                 ? new leaflet.LatLng(
@@ -121,17 +121,18 @@ export default class MapViewPlugin extends Plugin {
                                       parseFloat(params.centerLng)
                                   )
                                 : null;
-						const editor = await utils.getEditor(this.app);
-						if (location && editor) {
-							const locationString = `[${location.lat},${location.lng}]`;
-							utils.verifyOrAddFrontMatter(editor, 'location', locationString);
-						}
-					} else if (params.mvaction === 'copyinlinelocation') {
-						new Notice(
-							"Inline location copied to clipboard"
-						);
-					}
-					else {
+                        const editor = await utils.getEditor(this.app);
+                        if (location && editor) {
+                            const locationString = `[${location.lat},${location.lng}]`;
+                            utils.verifyOrAddFrontMatter(
+                                editor,
+                                'location',
+                                locationString
+                            );
+                        }
+                    } else if (params.mvaction === 'copyinlinelocation') {
+                        new Notice('Inline location copied to clipboard');
+                    } else {
                         const state = stateFromParsedUrl(params);
                         // If a saved URL is opened in another device on which there aren't the same sources, use
                         // the default source instead
@@ -285,37 +286,37 @@ export default class MapViewPlugin extends Plugin {
             },
         });
 
-		this.addCommand({
-			id: 'gps-focus-in-map-view',
-			name: 'GPS: find location and focus',
-			callback: () => {
-				askForLocation(this.settings, 'locate', 'showonmap');
-			}
-		});
+        this.addCommand({
+            id: 'gps-focus-in-map-view',
+            name: 'GPS: find location and focus',
+            callback: () => {
+                askForLocation(this.settings, 'locate', 'showonmap');
+            },
+        });
 
-		this.addCommand({
-			id: 'gps-copy-inline-location',
-			name: 'GPS: copy inline location',
-			callback: () => {
-				askForLocation(this.settings, 'locate', 'copyinlinelocation');
-			}
-		});
+        this.addCommand({
+            id: 'gps-copy-inline-location',
+            name: 'GPS: copy inline location',
+            callback: () => {
+                askForLocation(this.settings, 'locate', 'copyinlinelocation');
+            },
+        });
 
-		this.addCommand({
-			id: 'gps-new-note-here',
-			name: 'GPS: new geolocation note',
-			callback: () => {
-				askForLocation(this.settings, 'locate', 'newnotehere');
-			}
-		});
+        this.addCommand({
+            id: 'gps-new-note-here',
+            name: 'GPS: new geolocation note',
+            callback: () => {
+                askForLocation(this.settings, 'locate', 'newnotehere');
+            },
+        });
 
-		this.addCommand({
-			id: 'gps-add-to-current-note',
-			name: 'GPS: add geolocation (front matter) to current note',
-			editorCallback: () => {
-				askForLocation(this.settings, 'locate', 'newnotehere');
-			}
-		});
+        this.addCommand({
+            id: 'gps-add-to-current-note',
+            name: 'GPS: add geolocation (front matter) to current note',
+            editorCallback: () => {
+                askForLocation(this.settings, 'locate', 'newnotehere');
+            },
+        });
 
         this.addSettingTab(new SettingsTab(this.app, this));
 
@@ -771,11 +772,11 @@ export default class MapViewPlugin extends Plugin {
         searchDialog.open();
     }
 
-	async newFrontMatterNote(
+    async newFrontMatterNote(
         location: leaflet.LatLng,
         ev: MouseEvent | KeyboardEvent | null,
         query: string
-	) {
+    ) {
         const locationString = `${location.lat},${location.lng}`;
         const newFileName = utils.formatWithTemplates(
             this.settings.newNoteNameFormat,
@@ -806,5 +807,5 @@ export default class MapViewPlugin extends Plugin {
             if (editor)
                 await utils.goToEditorLocation(editor, cursorPos, false);
         }
-	}
+    }
 }

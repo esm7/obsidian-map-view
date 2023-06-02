@@ -4,7 +4,7 @@ import {
     Editor,
     Menu,
     TFile,
-	Loc,
+    Loc,
     WorkspaceLeaf,
     Notice,
 } from 'obsidian';
