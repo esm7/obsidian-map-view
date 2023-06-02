@@ -4,7 +4,7 @@ import { MapState, LegacyMapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import * as consts from 'src/consts';
 
-export type GeoHelperType = 'auto' | 'lite' | 'app' | 'custom';
+export type GeoHelperType = 'url' | 'app';
 export type LegacyOpenBehavior = 'samePane' | 'secondPane' | 'alwaysNew';
 export type OpenBehavior =
     | 'replaceCurrent'
@@ -65,7 +65,7 @@ export type PluginSettings = {
     supportRealTimeGeolocation?: boolean;
     fixFrontMatterOnPaste?: boolean;
     geoHelperType?: GeoHelperType;
-    geoHelperFilePath?: string;
+    geoHelperUrl?: string;
     tagForGeolocationNotes?: string;
     handleGeolinksInNotes?: boolean;
     showGeolinkPreview?: boolean;
@@ -190,6 +190,12 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             ruleType: 'latLng',
             preset: true,
         },
+		{
+			name: 'Geolocation Link',
+			regExp: /\[.*\]\(geo:([0-9\.\-]+),([0-9\.\-]+)\)/.source,
+			ruleType: 'latLng',
+			preset: true
+		}
     ],
     mapControls: {
         filtersDisplayed: true,
@@ -213,8 +219,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     queryForFollowActiveNote: 'path:"$PATH$"',
     supportRealTimeGeolocation: false,
     fixFrontMatterOnPaste: true,
-    geoHelperType: 'auto',
-    geoHelperFilePath: '',
+    geoHelperType: 'url',
+    geoHelperUrl: 'https://esm7.github.io/obsidian-geo-helper/',
     handleGeolinksInNotes: true,
     showGeolinkPreview: false,
     zoomOnGeolinkPreview: 10,

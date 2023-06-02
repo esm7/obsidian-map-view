@@ -1,10 +1,10 @@
 import {
     App,
     TAbstractFile,
-    Loc,
     Editor,
     Menu,
     TFile,
+	Loc,
     WorkspaceLeaf,
     Notice,
 } from 'obsidian';
@@ -220,9 +220,18 @@ export class MapContainer {
             }
         );
         // Make touch move nicer on mobile
-        this.display.viewDiv.addEventListener('touchmove', (ev) => {
+        this.display.viewDiv.addEventListener('pointerdown', (ev) => {
             ev.stopPropagation();
         });
+        this.display.viewDiv.addEventListener('pointerup', (ev) => {
+            ev.stopPropagation();
+        });
+        this.display.viewDiv.addEventListener('pointermove', (ev) => {
+            ev.stopPropagation();
+        });
+        // this.display.viewDiv.addEventListener('touchend', (ev) => {
+        //     ev.stopPropagation();
+        // });
         await this.createMap();
     }
 

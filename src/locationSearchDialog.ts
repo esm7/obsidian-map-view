@@ -130,48 +130,11 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
 
     onChooseSuggestion(value: SuggestInfo, evt: MouseEvent | KeyboardEvent) {
         if (this.dialogAction == 'newNote')
-            this.newNote(value.location, evt, value.name);
+            this.plugin.newFrontMatterNote(value.location, evt, value.name);
         else if (this.dialogAction == 'addToNote')
             this.addToNote(value.location, evt, value.name);
         else if (this.dialogAction == 'custom' && this.customOnSelect != null)
             this.customOnSelect(value, evt);
-    }
-
-    async newNote(
-        location: leaflet.LatLng,
-        ev: MouseEvent | KeyboardEvent,
-        query: string
-    ) {
-        const locationString = `${location.lat},${location.lng}`;
-        const newFileName = utils.formatWithTemplates(
-            this.settings.newNoteNameFormat,
-            query
-        );
-        const [file, cursorPos] = await utils.newNote(
-            this.app,
-            'singleLocation',
-            this.settings.newNotePath,
-            newFileName,
-            locationString,
-            this.settings.newNoteTemplate
-        );
-        // If there is an open map view, use it to decide how and where to open the file.
-        // Otherwise, open the file from the active leaf
-        const mapView = utils.findOpenMapView(this.app);
-        if (mapView) {
-            mapView.mapContainer.goToFile(
-                file,
-                ev.ctrlKey ? 'dedicatedPane' : 'replaceCurrent',
-                async (editor) =>
-                    utils.goToEditorLocation(editor, cursorPos, false)
-            );
-        } else {
-            const leaf = this.app.workspace.activeLeaf;
-            await leaf.openFile(file);
-            const editor = await utils.getEditor(this.app);
-            if (editor)
-                await utils.goToEditorLocation(editor, cursorPos, false);
-        }
     }
 
     async addToNote(

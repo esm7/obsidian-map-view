@@ -23,7 +23,7 @@ import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
 import { EmbeddedMap } from 'src/embeddedMap';
 import { IconCache } from 'src/markerIcons';
-import { RealTimeLocationSource } from 'src/realTimeLocation';
+import { askForLocation, RealTimeLocationSource } from 'src/realTimeLocation';
 import {
     getLinkReplaceEditorPlugin,
     GeoLinkReplacePlugin,
@@ -84,7 +84,7 @@ export default class MapViewPlugin extends Plugin {
             'mapview',
             async (params: ObsidianProtocolData) => {
                 if (params.action === 'mapview') {
-                    if (params.do === 'update-real-time-location') {
+                    if (params.mvaction === 'showonmap') {
                         const location =
                             params.centerLat && params.centerLng
                                 ? new leaflet.LatLng(
@@ -102,7 +102,36 @@ export default class MapViewPlugin extends Plugin {
                                 source as RealTimeLocationSource
                             );
                         }
-                    } else {
+					} else if (params.mvaction === 'newnotehere') {
+                        const location =
+                            params.centerLat && params.centerLng
+                                ? new leaflet.LatLng(
+                                      parseFloat(params.centerLat),
+                                      parseFloat(params.centerLng)
+                                  )
+                                : null;
+						if (location) {
+							this.newFrontMatterNote(location, null, '');
+						}
+					} else if (params.mvaction === 'addtocurrentnote') {
+                        const location =
+                            params.centerLat && params.centerLng
+                                ? new leaflet.LatLng(
+                                      parseFloat(params.centerLat),
+                                      parseFloat(params.centerLng)
+                                  )
+                                : null;
+						const editor = await utils.getEditor(this.app);
+						if (location && editor) {
+							const locationString = `[${location.lat},${location.lng}]`;
+							utils.verifyOrAddFrontMatter(editor, 'location', locationString);
+						}
+					} else if (params.mvaction === 'copyinlinelocation') {
+						new Notice(
+							"Inline location copied to clipboard"
+						);
+					}
+					else {
                         const state = stateFromParsedUrl(params);
                         // If a saved URL is opened in another device on which there aren't the same sources, use
                         // the default source instead
@@ -255,6 +284,38 @@ export default class MapViewPlugin extends Plugin {
                 this.openQuickEmbed(editor);
             },
         });
+
+		this.addCommand({
+			id: 'gps-focus-in-map-view',
+			name: 'GPS: find location and focus',
+			callback: () => {
+				askForLocation(this.settings, 'locate', 'showonmap');
+			}
+		});
+
+		this.addCommand({
+			id: 'gps-copy-inline-location',
+			name: 'GPS: copy inline location',
+			callback: () => {
+				askForLocation(this.settings, 'locate', 'copyinlinelocation');
+			}
+		});
+
+		this.addCommand({
+			id: 'gps-new-note-here',
+			name: 'GPS: new geolocation note',
+			callback: () => {
+				askForLocation(this.settings, 'locate', 'newnotehere');
+			}
+		});
+
+		this.addCommand({
+			id: 'gps-add-to-current-note',
+			name: 'GPS: add geolocation (front matter) to current note',
+			editorCallback: () => {
+				askForLocation(this.settings, 'locate', 'newnotehere');
+			}
+		});
 
         this.addSettingTab(new SettingsTab(this.app, this));
 
@@ -709,4 +770,41 @@ export default class MapViewPlugin extends Plugin {
         );
         searchDialog.open();
     }
+
+	async newFrontMatterNote(
+        location: leaflet.LatLng,
+        ev: MouseEvent | KeyboardEvent | null,
+        query: string
+	) {
+        const locationString = `${location.lat},${location.lng}`;
+        const newFileName = utils.formatWithTemplates(
+            this.settings.newNoteNameFormat,
+            query
+        );
+        const [file, cursorPos] = await utils.newNote(
+            this.app,
+            'singleLocation',
+            this.settings.newNotePath,
+            newFileName,
+            locationString,
+            this.settings.newNoteTemplate
+        );
+        // If there is an open map view, use it to decide how and where to open the file.
+        // Otherwise, open the file from the active leaf
+        const mapView = utils.findOpenMapView(this.app);
+        if (mapView) {
+            mapView.mapContainer.goToFile(
+                file,
+                ev?.ctrlKey ? 'dedicatedPane' : 'replaceCurrent',
+                async (editor) =>
+                    utils.goToEditorLocation(editor, cursorPos, false)
+            );
+        } else {
+            const leaf = this.app.workspace.activeLeaf;
+            await leaf.openFile(file);
+            const editor = await utils.getEditor(this.app);
+            if (editor)
+                await utils.goToEditorLocation(editor, cursorPos, false);
+        }
+	}
 }

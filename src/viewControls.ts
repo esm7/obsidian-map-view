@@ -672,8 +672,7 @@ export class RealTimeControl extends leaflet.Control {
         this.locateButton.innerHTML = '⌖';
         this.locateButton.style.fontSize = '25px';
         this.locateButton.addEventListener('click', (ev: MouseEvent) => {
-            new Notice('Asking for the current location');
-            askForLocation(this.settings, this.app);
+            askForLocation(this.settings, 'locate', 'showonmap');
         });
         this.clearButton = div.createEl('a');
         this.clearButton.innerHTML = 'X';

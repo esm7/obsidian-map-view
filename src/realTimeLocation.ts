@@ -1,12 +1,9 @@
 import * as leaflet from 'leaflet';
-import { PluginSettings, GeoHelperType } from 'src/settings';
-import { isMobile } from 'src/utils';
-import { App, FileSystemAdapter } from 'obsidian';
-
-import { existsSync } from 'fs';
+import { PluginSettings } from 'src/settings';
+import { App, Notice } from 'obsidian';
 
 export type RealTimeLocationSource =
-    | 'geohelper-app'
+    | 'url'
     | 'geohelper-lite'
     | 'custom'
     | 'clear'
@@ -27,59 +24,33 @@ export function isSame(loc1: RealTimeLocation, loc2: RealTimeLocation) {
     );
 }
 
-export function getGeoHelperType(
-    settings: PluginSettings,
-    app: App
-): GeoHelperType {
-    let geoHelperType = settings.geoHelperType;
-    if (geoHelperType === 'auto') {
-        if (isMobile(app)) geoHelperType = 'app';
-        else geoHelperType = 'lite';
-    }
-    return geoHelperType;
-}
+// Should be the same between obsidian-map-view and obsidian-geo-helper
+type GeoHelperAction = 'locate';
+type MapViewGpsAction = 'showonmap' | 'newnotehere' | 'addtocurrentnote' | 'copyinlinelocation';
 
-export function askForLocation(settings: PluginSettings, app: App): boolean {
+// Should be the same between obsidian-map-view and obsidian-geo-helper
+type Params = {
+	// Action required by Geohelper
+	geoaction?: GeoHelperAction | null;
+	// Action required by Map View when it receives the location
+	mvaction?: MapViewGpsAction | null;
+	// Additional context Map View may want to receive
+	mvcontext?: string | null;
+};
+
+export function askForLocation(settings: PluginSettings, geoaction: GeoHelperAction='locate', mvaction: MapViewGpsAction='showonmap', mvcontext=''): boolean {
     if (!settings.supportRealTimeGeolocation) return false;
-    const geoHelperType = getGeoHelperType(settings, app);
+    const geoHelperType = settings.geoHelperType;
     switch (geoHelperType) {
-        case 'lite': {
-            const geohelperLiteName =
-                '.obsidian/plugins/obsidian-map-view/geohelper.html';
-            if (app.vault.adapter instanceof FileSystemAdapter) {
-                const path = app.vault.adapter.getFullPath(geohelperLiteName);
-                if (existsSync(path)) {
-                    open(`file:///${path}`);
-                    return true;
-                } else {
-                    console.warn(
-                        "Can't find Geo Helper Lite: file not found",
-                        path
-                    );
-                    return false;
-                }
-            } else {
-                console.warn(
-                    "Can't use Geo Helper Lite: vault is not a FileSystemAdapter"
-                );
-                return false;
-            }
+        case 'url': {
+			const url = settings.geoHelperUrl + `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`;
+            new Notice('Asking GeoHelper URL for location');
+			open(url);
+			return true;
         }
         case 'app': {
-            open('geohelper://locate');
-            return true;
-        }
-        case 'custom': {
-            const path = settings.geoHelperFilePath;
-            if (!path) {
-                console.warn('Geo helper custom path is empty');
-                return false;
-            }
-            if (!existsSync(path)) {
-                console.warn('Geo helper custom path does not exist:', path);
-                return false;
-            }
-            open(`${path}`);
+            open('geohelper://locate' + `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`);
+            new Notice('Asking GeoHelper App for location');
             return true;
         }
     }
