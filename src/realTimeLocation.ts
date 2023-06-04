@@ -29,7 +29,8 @@ type GeoHelperAction = 'locate';
 type MapViewGpsAction =
     | 'showonmap'
     | 'newnotehere'
-    | 'addtocurrentnote'
+    | 'addtocurrentnotefm'
+	| 'addtocurrentnoteinline'
     | 'copyinlinelocation';
 
 // Should be the same between obsidian-map-view and obsidian-geo-helper

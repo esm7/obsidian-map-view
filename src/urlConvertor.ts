@@ -158,33 +158,6 @@ export class UrlConvertor {
     }
 
     /**
-     * Insert a geo link into the editor at the cursor position
-     * @param location The geolocation to convert to text and insert
-     * @param editor The Obsidian Editor instance
-     * @param replaceStart The EditorPosition to start the replacement at. If null will replace any text selected
-     * @param replaceLength The EditorPosition to stop the replacement at. If null will replace any text selected
-     */
-    insertLocationToEditor(
-        location: leaflet.LatLng,
-        editor: Editor,
-        replaceStart?: EditorPosition,
-        replaceLength?: number
-    ) {
-        const locationString = `[](geo:${location.lat},${location.lng})`;
-        const cursor = editor.getCursor();
-        if (replaceStart && replaceLength) {
-            editor.replaceRange(locationString, replaceStart, {
-                line: replaceStart.line,
-                ch: replaceStart.ch + replaceLength,
-            });
-        } else editor.replaceSelection(locationString);
-        // We want to put the cursor right after the beginning of the newly-inserted link
-        const newCursorPos = replaceStart ? replaceStart.ch + 1 : cursor.ch + 1;
-        editor.setCursor({ line: cursor.line, ch: newCursorPos });
-        utils.verifyOrAddFrontMatterForInline(editor, this.settings);
-    }
-
-    /**
      * Replace the text at the cursor location with a geo link
      * @param editor The Obsidian Editor instance
      */
@@ -195,9 +168,10 @@ export class UrlConvertor {
         if (result instanceof Promise) geolocation = await result;
         else geolocation = result;
         if (geolocation)
-            this.insertLocationToEditor(
+            utils.insertLocationToEditor(
                 geolocation.location,
                 editor,
+				this.settings,
                 { line: cursor.line, ch: geolocation.index },
                 geolocation.matchLength
             );

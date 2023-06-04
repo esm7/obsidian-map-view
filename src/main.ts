@@ -99,7 +99,8 @@ export default class MapViewPlugin extends Plugin {
                             map.mapContainer.setRealTimeLocation(
                                 location,
                                 parseFloat(accuracy),
-                                source as RealTimeLocationSource
+                                source as RealTimeLocationSource,
+								true
                             );
                         }
                     } else if (params.mvaction === 'newnotehere') {
@@ -113,7 +114,7 @@ export default class MapViewPlugin extends Plugin {
                         if (location) {
                             this.newFrontMatterNote(location, null, '');
                         }
-                    } else if (params.mvaction === 'addtocurrentnote') {
+                    } else if (params.mvaction === 'addtocurrentnotefm') {
                         const location =
                             params.centerLat && params.centerLng
                                 ? new leaflet.LatLng(
@@ -130,7 +131,17 @@ export default class MapViewPlugin extends Plugin {
                                 locationString
                             );
                         }
-                    } else if (params.mvaction === 'copyinlinelocation') {
+					} else if (params.mvaction === 'addtocurrentnoteinline') {
+                        const location =
+                            params.centerLat && params.centerLng
+                                ? new leaflet.LatLng(
+                                      parseFloat(params.centerLat),
+                                      parseFloat(params.centerLng)
+                                  )
+                                : null;
+                        const editor = await utils.getEditor(this.app);
+						utils.insertLocationToEditor(location, editor, this.settings);
+					} else if (params.mvaction === 'copyinlinelocation') {
                         new Notice('Inline location copied to clipboard');
                     } else {
                         const state = stateFromParsedUrl(params);
@@ -311,10 +322,18 @@ export default class MapViewPlugin extends Plugin {
         });
 
         this.addCommand({
-            id: 'gps-add-to-current-note',
+            id: 'gps-add-to-current-note-front-matter',
             name: 'GPS: add geolocation (front matter) to current note',
             editorCallback: () => {
-                askForLocation(this.settings, 'locate', 'newnotehere');
+                askForLocation(this.settings, 'locate', 'addtocurrentnotefm');
+            },
+        });
+
+        this.addCommand({
+            id: 'gps-add-to-current-note-inline',
+            name: 'GPS: add geolocation (inline) at current position',
+            editorCallback: () => {
+                askForLocation(this.settings, 'locate', 'addtocurrentnoteinline');
             },
         });
 
@@ -707,7 +726,8 @@ export default class MapViewPlugin extends Plugin {
                 menu,
                 editor,
                 this.suggestor,
-                this.urlConvertor
+                this.urlConvertor,
+				this.settings
             );
             menus.addEmbed(menu, this, editor);
         }

@@ -220,18 +220,9 @@ export class MapContainer {
             }
         );
         // Make touch move nicer on mobile
-        this.display.viewDiv.addEventListener('pointerdown', (ev) => {
+        this.display.viewDiv.addEventListener('touchmove', (ev) => {
             ev.stopPropagation();
         });
-        this.display.viewDiv.addEventListener('pointerup', (ev) => {
-            ev.stopPropagation();
-        });
-        this.display.viewDiv.addEventListener('pointermove', (ev) => {
-            ev.stopPropagation();
-        });
-        // this.display.viewDiv.addEventListener('touchend', (ev) => {
-        //     ev.stopPropagation();
-        // });
         await this.createMap();
     }
 
@@ -1062,7 +1053,8 @@ export class MapContainer {
     setRealTimeLocation(
         center: leaflet.LatLng,
         accuracy: number,
-        source: RealTimeLocationSource
+        source: RealTimeLocationSource,
+		forceRefresh: boolean = false
     ) {
         const location =
             center === null
@@ -1074,20 +1066,20 @@ export class MapContainer {
                       timestamp: Date.now(),
                   };
         console.log(`New location received from source '${source}':`, location);
-        if (!isSame(location, this.lastRealTimeLocation)) {
+        if (!isSame(location, this.lastRealTimeLocation) || forceRefresh) {
             this.lastRealTimeLocation = location;
             this.updateRealTimeLocationMarkers();
             if (location) {
                 // If there's a real location (contrary to clearing an existing location), update the view
                 let newState: Partial<MapState> = {};
-                if (this.state.mapZoom < consts.MIN_REAL_TIME_LOCATION_ZOOM)
-                    newState.mapZoom = consts.MIN_REAL_TIME_LOCATION_ZOOM;
+                if (this.state.mapZoom < this.settings.zoomOnGoFromNote)
+                    newState.mapZoom = this.settings.zoomOnGoFromNote;
                 // If the new zoom is higher than the current zoom, OR the new center isn't already visible, change
                 // the map center.
                 // Or maybe easier to understand it this way: if the new center is already visible in the viewport, AND
                 // the new zoom is lower (meaning it will remain visible), we don't need to bother the user with a center change
                 if (
-                    newState.mapZoom > this.state.mapZoom ||
+                    newState.mapZoom != this.state.mapZoom ||
                     !this.display.map.getBounds().contains(location.center)
                 )
                     newState.mapCenter = location.center;

@@ -140,7 +140,8 @@ export function addUrlConversionItems(
     menu: Menu,
     editor: Editor,
     suggestor: LocationSuggest,
-    urlConvertor: UrlConvertor
+    urlConvertor: UrlConvertor,
+	settings: PluginSettings
 ) {
     if (editor.getSelection()) {
         // If there is text selected, add a menu item to convert it to coordinates using geosearch
@@ -174,9 +175,10 @@ export function addUrlConversionItems(
             if (clipboardLocation instanceof Promise)
                 clipboardLocation = await clipboardLocation;
             if (clipboardLocation)
-                urlConvertor.insertLocationToEditor(
+                utils.insertLocationToEditor(
                     clipboardLocation.location,
-                    editor
+                    editor,
+					settings
                 );
         });
     });
