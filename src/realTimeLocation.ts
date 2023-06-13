@@ -69,12 +69,12 @@ export function askForLocation(
             new Notice('Asking GeoHelper App for location');
             return true;
         }
-		case 'commandline': {
-			// We call in the format `command "url?params"`
+        case 'commandline': {
+            // We call in the format `command "url?params"`
             const url =
                 settings.geoHelperCommand +
-				` "${settings.geoHelperUrl}?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}"`;
-			exec(url);
-		}
+                ` "${settings.geoHelperUrl}?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}"`;
+            exec(url);
+        }
     }
 }

@@ -7,7 +7,7 @@ import {
     Loc,
     WorkspaceLeaf,
     Notice,
-	MenuItem
+    MenuItem,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -101,8 +101,8 @@ export class MapContainer {
         highlight: leaflet.Layer = null;
         /** The actual entity that is highlighted, which is either equal to the above, or the cluster group that it belongs to */
         actualHighlight: leaflet.Marker = null;
-		/** The marker used to denote a routing source if any */
-		routingSource: leaflet.Marker = null;
+        /** The marker used to denote a routing source if any */
+        routingSource: leaflet.Marker = null;
         // TODO document
         realTimeLocationMarker: leaflet.Marker = null;
         realTimeLocationRadius: leaflet.Circle = null;
@@ -517,7 +517,12 @@ export class MapContainer {
                     this.app
                 );
                 menus.addCopyGeolocationItems(mapPopup, event.latlng);
-				menus.populateRouting(this, event.latlng, mapPopup, this.settings);
+                menus.populateRouting(
+                    this,
+                    event.latlng,
+                    mapPopup,
+                    this.settings
+                );
                 menus.addOpenWith(mapPopup, event.latlng, this.settings);
                 mapPopup.showAtPosition(event.originalEvent);
             }
@@ -681,7 +686,12 @@ export class MapContainer {
         let mapPopup = new Menu();
         if (marker instanceof FileMarker) {
             menus.populateOpenNote(this, marker, mapPopup, this.settings);
-			menus.populateRouting(this, marker.location, mapPopup, this.settings);
+            menus.populateRouting(
+                this,
+                marker.location,
+                mapPopup,
+                this.settings
+            );
             menus.populateOpenInItems(mapPopup, marker.location, this.settings);
         }
         if (ev) mapPopup.showAtPosition(ev);
@@ -1093,31 +1103,34 @@ export class MapContainer {
         }
     }
 
-	setRoutingSource(location: leaflet.LatLng) {
-		if (this.display.routingSource) {
-			this.display.routingSource.removeFrom(this.display.map);
-			this.display.routingSource = null;
-		}
-		if (location) {
-			this.display.routingSource = leaflet
-				.marker(location, {
-					icon: getIconFromOptions(
-						consts.ROUTING_SOURCE_MARKER,
-						this.plugin.iconCache
-					),
-				})
-				.addTo(this.display.map);
-			this.display.routingSource.on('contextmenu', (ev: leaflet.LeafletMouseEvent) => {
-                let routingSourcePopup = new Menu();
-				routingSourcePopup.addItem((item: MenuItem) => {
-					item.setTitle('Remove');
-					item.setIcon('trash');
-					item.onClick(() => {
-						this.setRoutingSource(null);
-					});
-				});
-                routingSourcePopup.showAtPosition(ev.originalEvent);
-			});
-		}
-	}
+    setRoutingSource(location: leaflet.LatLng) {
+        if (this.display.routingSource) {
+            this.display.routingSource.removeFrom(this.display.map);
+            this.display.routingSource = null;
+        }
+        if (location) {
+            this.display.routingSource = leaflet
+                .marker(location, {
+                    icon: getIconFromOptions(
+                        consts.ROUTING_SOURCE_MARKER,
+                        this.plugin.iconCache
+                    ),
+                })
+                .addTo(this.display.map);
+            this.display.routingSource.on(
+                'contextmenu',
+                (ev: leaflet.LeafletMouseEvent) => {
+                    let routingSourcePopup = new Menu();
+                    routingSourcePopup.addItem((item: MenuItem) => {
+                        item.setTitle('Remove');
+                        item.setIcon('trash');
+                        item.onClick(() => {
+                            this.setRoutingSource(null);
+                        });
+                    });
+                    routingSourcePopup.showAtPosition(ev.originalEvent);
+                }
+            );
+        }
+    }
 }

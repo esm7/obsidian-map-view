@@ -386,33 +386,33 @@ export function populateRouting(
     menu: Menu,
     settings: settings.PluginSettings
 ) {
-	if (geolocation) {
-		menu.addItem((item: MenuItem) => {
-			item.setTitle('Mark as routing source');
-			item.setSection('mapview');
-			item.setIcon('flag')
-			item.onClick(() => {
-				mapContainer.setRoutingSource(geolocation);
-			})
-		});
+    if (geolocation) {
+        menu.addItem((item: MenuItem) => {
+            item.setTitle('Mark as routing source');
+            item.setSection('mapview');
+            item.setIcon('flag');
+            item.onClick(() => {
+                mapContainer.setRoutingSource(geolocation);
+            });
+        });
 
-		if (mapContainer.display.routingSource) {
-			menu.addItem((item: MenuItem) => {
-				item.setTitle('Route to point');
-				item.setSection('mapview');
-				item.setIcon('milestone')
-				item.onClick(() => {
-					const origin = mapContainer.display.routingSource.getLatLng();
-					const routingTemplate = settings.routingUrl;
-					const url = routingTemplate
-						.replace('{x0}', origin.lat.toString())
-						.replace('{y0}', origin.lng.toString())
-						.replace('{x1}', geolocation.lat.toString())
-						.replace('{y1}', geolocation.lng.toString())
-					open(url);
-				})
-			});
-
-		}
-	}
+        if (mapContainer.display.routingSource) {
+            menu.addItem((item: MenuItem) => {
+                item.setTitle('Route to point');
+                item.setSection('mapview');
+                item.setIcon('milestone');
+                item.onClick(() => {
+                    const origin =
+                        mapContainer.display.routingSource.getLatLng();
+                    const routingTemplate = settings.routingUrl;
+                    const url = routingTemplate
+                        .replace('{x0}', origin.lat.toString())
+                        .replace('{y0}', origin.lng.toString())
+                        .replace('{x1}', geolocation.lat.toString())
+                        .replace('{y1}', geolocation.lng.toString());
+                    open(url);
+                });
+            });
+        }
+    }
 }

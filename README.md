@@ -3,51 +3,52 @@
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/esm7)
 
 <!--ts-->
-* [Obsidian.md Map View](#obsidianmd-map-view)
-   * [Intro](#intro)
-   * [With Obsidian Mobile](#with-obsidian-mobile)
-   * [Support the Development](#support-the-development)
-   * [Quick How To](#quick-how-to)
-      * [Log a Geolocation](#log-a-geolocation)
-      * [Create a Trip Plan Map](#create-a-trip-plan-map)
-      * [Build Your Personal Geographic Information System (GIS)](#build-your-personal-geographic-information-system-gis)
-   * [Understanding Map View: Parsing Location Data](#understanding-map-view-parsing-location-data)
-   * [Adding a Location to a Note](#adding-a-location-to-a-note)
-      * [Anywhere in Obsidian](#anywhere-in-obsidian)
-      * [In an Existing Note](#in-an-existing-note)
-      * [From the Map](#from-the-map)
-      * [Paste as Geolocation](#paste-as-geolocation)
-      * [Tip: Copying from Google Maps](#tip-copying-from-google-maps)
-   * [Embedding Maps in Notes](#embedding-maps-in-notes)
-   * [Queries](#queries)
-   * [Marker Icons](#marker-icons)
-      * [Tag Rules](#tag-rules)
-   * [In-Note Location Search &amp; Auto-Complete](#in-note-location-search--auto-complete)
-      * [Changing a Geocoding Provider](#changing-a-geocoding-provider)
-   * [Map Sources](#map-sources)
-   * [Presets](#presets)
-   * [Open In](#open-in)
-   * [URL Parsing Rules](#url-parsing-rules)
-   * [View URLs](#view-urls)
-   * [Follow Active Note](#follow-active-note)
-   * [GPS Location Support](#gps-location-support)
-   * [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
-   * [Changelog](#changelog)
-      * [3.2.0](#320)
-      * [3.1.1](#311)
-      * [3.0.2](#302)
-      * [3.0.1](#301)
-      * [3.0.0](#300)
-      * [2.2.0](#220)
-      * [2.1.1](#211)
-      * [2.1.0](#210)
-      * [2.0.5](#205)
-      * [2.0.4](#204)
-      * [2.0.3](#203)
-      * [2.0.0](#200)
+
+-   [Obsidian.md Map View](#obsidianmd-map-view)
+    -   [Intro](#intro)
+    -   [With Obsidian Mobile](#with-obsidian-mobile)
+    -   [Support the Development](#support-the-development)
+    -   [Quick How To](#quick-how-to)
+        -   [Log a Geolocation](#log-a-geolocation)
+        -   [Create a Trip Plan Map](#create-a-trip-plan-map)
+        -   [Build Your Personal Geographic Information System (GIS)](#build-your-personal-geographic-information-system-gis)
+    -   [Understanding Map View: Parsing Location Data](#understanding-map-view-parsing-location-data)
+    -   [Adding a Location to a Note](#adding-a-location-to-a-note)
+        -   [Anywhere in Obsidian](#anywhere-in-obsidian)
+        -   [In an Existing Note](#in-an-existing-note)
+        -   [From the Map](#from-the-map)
+        -   [Paste as Geolocation](#paste-as-geolocation)
+        -   [Tip: Copying from Google Maps](#tip-copying-from-google-maps)
+    -   [Embedding Maps in Notes](#embedding-maps-in-notes)
+    -   [Queries](#queries)
+    -   [Marker Icons](#marker-icons)
+        -   [Tag Rules](#tag-rules)
+    -   [In-Note Location Search &amp; Auto-Complete](#in-note-location-search--auto-complete)
+        -   [Changing a Geocoding Provider](#changing-a-geocoding-provider)
+    -   [Map Sources](#map-sources)
+    -   [Presets](#presets)
+    -   [Open In](#open-in)
+    -   [URL Parsing Rules](#url-parsing-rules)
+    -   [View URLs](#view-urls)
+    -   [Follow Active Note](#follow-active-note)
+    -   [GPS Location Support](#gps-location-support)
+    -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
+    -   [Changelog](#changelog)
+        -   [3.2.0](#320)
+        -   [3.1.1](#311)
+        -   [3.0.2](#302)
+        -   [3.0.1](#301)
+        -   [3.0.0](#300)
+        -   [2.2.0](#220)
+        -   [2.1.1](#211)
+        -   [2.1.0](#210)
+        -   [2.0.5](#205)
+        -   [2.0.4](#204)
+        -   [2.0.3](#203)
+        -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Tue Jun 13 11:58:52 AM IDT 2023 -->
+<!-- Added by: erez, at: Tue Jun 13 11:59:04 AM IDT 2023 -->
 
 <!--te-->
 
@@ -568,13 +569,13 @@ The use for "command line" is for more advanced usages where you want the web ap
 
 This adds the following functionality:
 
-- A GPS location icon is added to Map View maps (below the search controls). When clicked, it tries to get your location via the Geo Helper, and displays it on the map if successful.
-- Multiple commands that can be mapped and launched from within notes:
-    * GPS: copy inline location
-    * GPS: new geolocation note
-    * GPS: find location and focus
-    * GPS: add geolocation (inline) at current position
-    * GPS: add geolocation (front matter) to current note.
+-   A GPS location icon is added to Map View maps (below the search controls). When clicked, it tries to get your location via the Geo Helper, and displays it on the map if successful.
+-   Multiple commands that can be mapped and launched from within notes:
+    -   GPS: copy inline location
+    -   GPS: new geolocation note
+    -   GPS: find location and focus
+    -   GPS: add geolocation (inline) at current position
+    -   GPS: add geolocation (front matter) to current note.
 
 Many of these can also be launched directly from the geo helper after it finds your location.
 
@@ -602,8 +603,8 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ### 3.2.0
 
-- Routing
-- GPS support
+-   Routing
+-   GPS support
 
 ### 3.1.1
 

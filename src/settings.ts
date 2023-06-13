@@ -65,13 +65,13 @@ export type PluginSettings = {
     supportRealTimeGeolocation?: boolean;
     fixFrontMatterOnPaste?: boolean;
     geoHelperType?: GeoHelperType;
-	geoHelperCommand?: string;
+    geoHelperCommand?: string;
     geoHelperUrl?: string;
     tagForGeolocationNotes?: string;
     handleGeolinksInNotes?: boolean;
     showGeolinkPreview?: boolean;
     zoomOnGeolinkPreview?: number;
-	routingUrl?: string;
+    routingUrl?: string;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -222,12 +222,13 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     supportRealTimeGeolocation: false,
     fixFrontMatterOnPaste: true,
     geoHelperType: 'url',
-	geoHelperCommand: 'chrome',
+    geoHelperCommand: 'chrome',
     geoHelperUrl: 'https://esm7.github.io/obsidian-geo-helper/',
     handleGeolinksInNotes: true,
     showGeolinkPreview: false,
     zoomOnGeolinkPreview: 10,
-	routingUrl: 'https://www.google.com/maps/dir/?api=1&origin={x0},{y0}&destination={x1},{y1}'
+    routingUrl:
+        'https://www.google.com/maps/dir/?api=1&origin={x0},{y0}&destination={x1},{y1}',
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {

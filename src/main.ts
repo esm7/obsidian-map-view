@@ -301,51 +301,59 @@ export default class MapViewPlugin extends Plugin {
             },
         });
 
-		if (this.settings.supportRealTimeGeolocation) {
-			this.addCommand({
-				id: 'gps-focus-in-map-view',
-				name: 'GPS: find location and focus',
-				callback: () => {
-					askForLocation(this.settings, 'locate', 'showonmap');
-				},
-			});
+        if (this.settings.supportRealTimeGeolocation) {
+            this.addCommand({
+                id: 'gps-focus-in-map-view',
+                name: 'GPS: find location and focus',
+                callback: () => {
+                    askForLocation(this.settings, 'locate', 'showonmap');
+                },
+            });
 
-			this.addCommand({
-				id: 'gps-copy-inline-location',
-				name: 'GPS: copy inline location',
-				callback: () => {
-					askForLocation(this.settings, 'locate', 'copyinlinelocation');
-				},
-			});
+            this.addCommand({
+                id: 'gps-copy-inline-location',
+                name: 'GPS: copy inline location',
+                callback: () => {
+                    askForLocation(
+                        this.settings,
+                        'locate',
+                        'copyinlinelocation'
+                    );
+                },
+            });
 
-			this.addCommand({
-				id: 'gps-new-note-here',
-				name: 'GPS: new geolocation note',
-				callback: () => {
-					askForLocation(this.settings, 'locate', 'newnotehere');
-				},
-			});
+            this.addCommand({
+                id: 'gps-new-note-here',
+                name: 'GPS: new geolocation note',
+                callback: () => {
+                    askForLocation(this.settings, 'locate', 'newnotehere');
+                },
+            });
 
-			this.addCommand({
-				id: 'gps-add-to-current-note-front-matter',
-				name: 'GPS: add geolocation (front matter) to current note',
-				editorCallback: () => {
-					askForLocation(this.settings, 'locate', 'addtocurrentnotefm');
-				},
-			});
+            this.addCommand({
+                id: 'gps-add-to-current-note-front-matter',
+                name: 'GPS: add geolocation (front matter) to current note',
+                editorCallback: () => {
+                    askForLocation(
+                        this.settings,
+                        'locate',
+                        'addtocurrentnotefm'
+                    );
+                },
+            });
 
-			this.addCommand({
-				id: 'gps-add-to-current-note-inline',
-				name: 'GPS: add geolocation (inline) at current position',
-				editorCallback: () => {
-					askForLocation(
-						this.settings,
-						'locate',
-						'addtocurrentnoteinline'
-					);
-				},
-			});
-		}
+            this.addCommand({
+                id: 'gps-add-to-current-note-inline',
+                name: 'GPS: add geolocation (inline) at current position',
+                editorCallback: () => {
+                    askForLocation(
+                        this.settings,
+                        'locate',
+                        'addtocurrentnoteinline'
+                    );
+                },
+            });
+        }
 
         this.addSettingTab(new SettingsTab(this.app, this));
 

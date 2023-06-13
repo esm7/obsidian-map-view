@@ -275,19 +275,22 @@ export class SettingsTab extends PluginSettingTab {
                         this.plugin.saveSettings();
                     });
             });
-		new Setting(containerEl)
-			.setName('Routing service URL')
-		.setDesc(
-			'URL to use for calculating and showing routes and directions, used for "route to point". {x0},{y0} are the source lat,lng and {x1},{y1} are the destination lat,lng.'
-		)
-		.addText((component) => {
-			component
-				.setValue(this.plugin.settings.routingUrl ?? DEFAULT_SETTINGS.routingUrl)
-				.onChange(async (value: string) => {
-					this.plugin.settings.routingUrl = value;
-					this.plugin.saveSettings();
-				});
-		});
+        new Setting(containerEl)
+            .setName('Routing service URL')
+            .setDesc(
+                'URL to use for calculating and showing routes and directions, used for "route to point". {x0},{y0} are the source lat,lng and {x1},{y1} are the destination lat,lng.'
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.routingUrl ??
+                            DEFAULT_SETTINGS.routingUrl
+                    )
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.routingUrl = value;
+                        this.plugin.saveSettings();
+                    });
+            });
 
         new Setting(containerEl)
             .setHeading()
@@ -637,8 +640,8 @@ export class SettingsTab extends PluginSettingTab {
         markerIconsDiv = containerEl.createDiv();
         this.refreshMarkerIcons(markerIconsDiv);
 
-		// TODO add a link to the readme
-		// TODO popup to read the docs when enabling
+        // TODO add a link to the readme
+        // TODO popup to read the docs when enabling
         new Setting(containerEl).setHeading().setName('GPS');
         new Setting(containerEl)
             .setName('Enable GPS location (see docs)')
@@ -659,7 +662,7 @@ export class SettingsTab extends PluginSettingTab {
                 component
                     .addOption('url', 'External URL')
                     .addOption('app', 'Installed app')
-					.addOption('commandline', 'Command line')
+                    .addOption('commandline', 'Command line')
                     .setValue(
                         this.plugin.settings.geoHelperType ??
                             DEFAULT_SETTINGS.geoHelperType
@@ -669,23 +672,31 @@ export class SettingsTab extends PluginSettingTab {
                             value as GeoHelperType;
                         geoHelperUrl.settingEl.style.display =
                             value === 'url' || 'commandline' ? '' : 'none';
-						geoHelperCommand.settingEl.style.display =
-							value === 'commandline' ? '' : 'none';
+                        geoHelperCommand.settingEl.style.display =
+                            value === 'commandline' ? '' : 'none';
                         await this.plugin.saveSettings();
                     });
             });
-		const geoHelperCommand = new Setting(containerEl).setName('Geo Helper Command');
-		geoHelperCommand.addText((component) => {
-			component.setValue(this.plugin.settings.geoHelperCommand ?? DEFAULT_SETTINGS.geoHelperCommand)
-				.onChange(async (value) => {
-					this.plugin.settings.geoHelperCommand = value;
-					await this.plugin.saveSettings();
-				})
-		});
+        const geoHelperCommand = new Setting(containerEl).setName(
+            'Geo Helper Command'
+        );
+        geoHelperCommand.addText((component) => {
+            component
+                .setValue(
+                    this.plugin.settings.geoHelperCommand ??
+                        DEFAULT_SETTINGS.geoHelperCommand
+                )
+                .onChange(async (value) => {
+                    this.plugin.settings.geoHelperCommand = value;
+                    await this.plugin.saveSettings();
+                });
+        });
         const geoHelperUrl = new Setting(containerEl).setName('Geo Helper URL');
         geoHelperUrl.addText((component) => {
             component
-                .setPlaceholder('URL to open (directly or using the defined command; see README for more details)')
+                .setPlaceholder(
+                    'URL to open (directly or using the defined command; see README for more details)'
+                )
                 .setValue(this.plugin.settings.geoHelperUrl ?? '')
                 .onChange(async (value) => {
                     this.plugin.settings.geoHelperUrl = value;
@@ -693,8 +704,11 @@ export class SettingsTab extends PluginSettingTab {
                 });
         });
         geoHelperUrl.settingEl.style.display =
-            this.plugin.settings.geoHelperUrl === 'url' || 'commandline' ? '' : 'none';
-		geoHelperCommand.settingEl.style.display = this.plugin.settings.geoHelperType === 'commandline' ? '' : 'none';
+            this.plugin.settings.geoHelperUrl === 'url' || 'commandline'
+                ? ''
+                : 'none';
+        geoHelperCommand.settingEl.style.display =
+            this.plugin.settings.geoHelperType === 'commandline' ? '' : 'none';
 
         new Setting(containerEl).setHeading().setName('Advanced');
 
