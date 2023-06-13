@@ -15,6 +15,11 @@ export const CURRENT_LOCATION_MARKER = {
     icon: 'fa-location-crosshairs',
     markerColor: 'blue',
 } as leaflet.ExtraMarkers.IconOptions;
+export const ROUTING_SOURCE_MARKER = {
+	prefix: 'fas',
+	icon: 'fa-flag',
+	markerColor: 'red'
+} as leaflet.ExtraMarkers.IconOptions;
 export const MAX_CLUSTER_PREVIEW_ICONS = 4;
 export const HISTORY_SAVE_ZOOM_DIFF = 2;
 

@@ -1,6 +1,7 @@
 import * as leaflet from 'leaflet';
 import { PluginSettings } from 'src/settings';
-import { App, Notice } from 'obsidian';
+import { Notice } from 'obsidian';
+import { exec } from 'child_process';
 
 export type RealTimeLocationSource =
     | 'url'
@@ -30,7 +31,7 @@ type MapViewGpsAction =
     | 'showonmap'
     | 'newnotehere'
     | 'addtocurrentnotefm'
-	| 'addtocurrentnoteinline'
+    | 'addtocurrentnoteinline'
     | 'copyinlinelocation';
 
 // Should be the same between obsidian-map-view and obsidian-geo-helper
@@ -68,5 +69,12 @@ export function askForLocation(
             new Notice('Asking GeoHelper App for location');
             return true;
         }
+		case 'commandline': {
+			// We call in the format `command "url?params"`
+            const url =
+                settings.geoHelperCommand +
+				` "${settings.geoHelperUrl}?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}"`;
+			exec(url);
+		}
     }
 }

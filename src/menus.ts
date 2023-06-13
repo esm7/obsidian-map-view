@@ -141,7 +141,7 @@ export function addUrlConversionItems(
     editor: Editor,
     suggestor: LocationSuggest,
     urlConvertor: UrlConvertor,
-	settings: PluginSettings
+    settings: PluginSettings
 ) {
     if (editor.getSelection()) {
         // If there is text selected, add a menu item to convert it to coordinates using geosearch
@@ -178,7 +178,7 @@ export function addUrlConversionItems(
                 utils.insertLocationToEditor(
                     clipboardLocation.location,
                     editor,
-					settings
+                    settings
                 );
         });
     });
@@ -378,4 +378,41 @@ function addPatchyMiddleClickHandler(
             }
         });
     }
+}
+
+export function populateRouting(
+    mapContainer: MapContainer,
+    geolocation: leaflet.LatLng,
+    menu: Menu,
+    settings: settings.PluginSettings
+) {
+	if (geolocation) {
+		menu.addItem((item: MenuItem) => {
+			item.setTitle('Mark as routing source');
+			item.setSection('mapview');
+			item.setIcon('flag')
+			item.onClick(() => {
+				mapContainer.setRoutingSource(geolocation);
+			})
+		});
+
+		if (mapContainer.display.routingSource) {
+			menu.addItem((item: MenuItem) => {
+				item.setTitle('Route to point');
+				item.setSection('mapview');
+				item.setIcon('milestone')
+				item.onClick(() => {
+					const origin = mapContainer.display.routingSource.getLatLng();
+					const routingTemplate = settings.routingUrl;
+					const url = routingTemplate
+						.replace('{x0}', origin.lat.toString())
+						.replace('{y0}', origin.lng.toString())
+						.replace('{x1}', geolocation.lat.toString())
+						.replace('{y1}', geolocation.lng.toString())
+					open(url);
+				})
+			});
+
+		}
+	}
 }

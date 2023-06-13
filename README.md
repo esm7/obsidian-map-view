@@ -3,50 +3,51 @@
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/esm7)
 
 <!--ts-->
-
--   [Obsidian.md Map View](#obsidianmd-map-view)
-    -   [Intro](#intro)
-    -   [With Obsidian Mobile](#with-obsidian-mobile)
-    -   [Support the Development](#support-the-development)
-    -   [Quick How To](#quick-how-to)
-        -   [Log a Geolocation](#log-a-geolocation)
-        -   [Create a Trip Plan Map](#create-a-trip-plan-map)
-        -   [Build Your Personal Geographic Information System (GIS)](#build-your-personal-geographic-information-system-gis)
-    -   [Understanding Map View: Parsing Location Data](#understanding-map-view-parsing-location-data)
-    -   [Adding a Location to a Note](#adding-a-location-to-a-note)
-        -   [Anywhere in Obsidian](#anywhere-in-obsidian)
-        -   [In an Existing Note](#in-an-existing-note)
-        -   [From the Map](#from-the-map)
-        -   [Paste as Geolocation](#paste-as-geolocation)
-        -   [Tip: Copying from Google Maps](#tip-copying-from-google-maps)
-    -   [Embedding Maps in Notes](#embedding-maps-in-notes)
-    -   [Queries](#queries)
-    -   [Marker Icons](#marker-icons)
-        -   [Tag Rules](#tag-rules)
-    -   [In-Note Location Search &amp; Auto-Complete](#in-note-location-search--auto-complete)
-        -   [Changing a Geocoding Provider](#changing-a-geocoding-provider)
-    -   [Map Sources](#map-sources)
-    -   [Presets](#presets)
-    -   [Open In](#open-in)
-    -   [URL Parsing Rules](#url-parsing-rules)
-    -   [View URLs](#view-urls)
-    -   [Follow Active Note](#follow-active-note)
-    -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
-    -   [Changelog](#changelog)
-        -   [3.1.1](#311)
-        -   [3.0.2](#302)
-        -   [3.0.1](#301)
-        -   [3.0.0](#300)
-        -   [2.2.0](#220)
-        -   [2.1.1](#211)
-        -   [2.1.0](#210)
-        -   [2.0.5](#205)
-        -   [2.0.4](#204)
-        -   [2.0.3](#203)
-        -   [2.0.0](#200)
+* [Obsidian.md Map View](#obsidianmd-map-view)
+   * [Intro](#intro)
+   * [With Obsidian Mobile](#with-obsidian-mobile)
+   * [Support the Development](#support-the-development)
+   * [Quick How To](#quick-how-to)
+      * [Log a Geolocation](#log-a-geolocation)
+      * [Create a Trip Plan Map](#create-a-trip-plan-map)
+      * [Build Your Personal Geographic Information System (GIS)](#build-your-personal-geographic-information-system-gis)
+   * [Understanding Map View: Parsing Location Data](#understanding-map-view-parsing-location-data)
+   * [Adding a Location to a Note](#adding-a-location-to-a-note)
+      * [Anywhere in Obsidian](#anywhere-in-obsidian)
+      * [In an Existing Note](#in-an-existing-note)
+      * [From the Map](#from-the-map)
+      * [Paste as Geolocation](#paste-as-geolocation)
+      * [Tip: Copying from Google Maps](#tip-copying-from-google-maps)
+   * [Embedding Maps in Notes](#embedding-maps-in-notes)
+   * [Queries](#queries)
+   * [Marker Icons](#marker-icons)
+      * [Tag Rules](#tag-rules)
+   * [In-Note Location Search &amp; Auto-Complete](#in-note-location-search--auto-complete)
+      * [Changing a Geocoding Provider](#changing-a-geocoding-provider)
+   * [Map Sources](#map-sources)
+   * [Presets](#presets)
+   * [Open In](#open-in)
+   * [URL Parsing Rules](#url-parsing-rules)
+   * [View URLs](#view-urls)
+   * [Follow Active Note](#follow-active-note)
+   * [GPS Location Support](#gps-location-support)
+   * [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
+   * [Changelog](#changelog)
+      * [3.2.0](#320)
+      * [3.1.1](#311)
+      * [3.0.2](#302)
+      * [3.0.1](#301)
+      * [3.0.0](#300)
+      * [2.2.0](#220)
+      * [2.1.1](#211)
+      * [2.1.0](#210)
+      * [2.0.5](#205)
+      * [2.0.4](#204)
+      * [2.0.3](#203)
+      * [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri Jun  2 10:00:55 PM IDT 2023 -->
+<!-- Added by: erez, at: Tue Jun 13 11:58:52 AM IDT 2023 -->
 
 <!--te-->
 
@@ -544,6 +545,39 @@ By default, Map View uses the [query](#queries) `path:"$PATH$"`, which means tha
 -   Use `linkedfrom:"$PATH$"` for a more elaborate inclusion of markers from both the file you're on and files it links to.
 -   Use `linkedfrom:"$PATH$" OR linkedto:"$PATH$"` to include markers that the active note links to and also markers that _link to this file_.
 
+## GPS Location Support
+
+**This still in early beta.**
+
+Map View works inside Obsidian, and as such, is limited by some restrictions that Obsidian enforces.
+One of these restrictions is that the Obsidian apps (both desktop and mobile) do not ship with location permission enabled, and as such, plugins that run within Obsidian cannot access the device location.
+This has been discussed in the past with the Obsidian developers, but as a notes app, they prefer to keep this unavailable for the time being.
+
+As a workaround, Map View supports an external **geo helper** app, which has separate permissions, and can report the current location to Map View from outside the app.
+**This is currently in an early beta, and the experience may not be optimal.**
+However, it answers the basic need of adding proper GPS support to Map View in many cases.
+
+There are currently two variants of the Geo Helper app: a web app and an Android app.
+[Visit the Geo Helper repo for instructions how to install and use it](https://github.com/esm7/obsidian-geo-helper) (the web app requires no installation, but you should still read the instructions).
+
+**Either way, the Geo Helper runs completely locally and your location is not sent to any server. Feel free to inspect the code (and improvements are welcome).**
+
+To use the Geo Helper, first turn on "GPS" in the Map View settings.
+Then, select the Geo Helper type: external URL (default), installed app or command line.
+The use for "command line" is for more advanced usages where you want the web app saved locally, or if you want it launched with a browser that is not your default.
+
+This adds the following functionality:
+
+- A GPS location icon is added to Map View maps (below the search controls). When clicked, it tries to get your location via the Geo Helper, and displays it on the map if successful.
+- Multiple commands that can be mapped and launched from within notes:
+    * GPS: copy inline location
+    * GPS: new geolocation note
+    * GPS: find location and focus
+    * GPS: add geolocation (inline) at current position
+    * GPS: add geolocation (front matter) to current note.
+
+Many of these can also be launched directly from the geo helper after it finds your location.
+
 ## Relation to Obsidian Leaflet
 
 Users who are looking to add mapping capabilities to Obsidian may want to also look at the great [Obsidian Leaflet plugin](https://github.com/valentine195/obsidian-leaflet-plugin).
@@ -565,6 +599,11 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 3.2.0
+
+- Routing
+- GPS support
 
 ### 3.1.1
 

@@ -171,7 +171,7 @@ export class UrlConvertor {
             utils.insertLocationToEditor(
                 geolocation.location,
                 editor,
-				this.settings,
+                this.settings,
                 { line: cursor.line, ch: geolocation.index },
                 geolocation.matchLength
             );

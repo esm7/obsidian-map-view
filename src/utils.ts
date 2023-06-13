@@ -2,7 +2,7 @@ import {
     WorkspaceLeaf,
     MarkdownView,
     Editor,
-	EditorPosition,
+    EditorPosition,
     App,
     TFile,
     getAllTags,
@@ -216,24 +216,24 @@ export async function getEditor(
  * @param replaceLength The EditorPosition to stop the replacement at. If null will replace any text selected
  */
 export function insertLocationToEditor(
-	location: leaflet.LatLng,
-	editor: Editor,
-	settings: settings.PluginSettings,
-	replaceStart?: EditorPosition,
-	replaceLength?: number
+    location: leaflet.LatLng,
+    editor: Editor,
+    settings: settings.PluginSettings,
+    replaceStart?: EditorPosition,
+    replaceLength?: number
 ) {
-	const locationString = `[](geo:${location.lat},${location.lng})`;
-	const cursor = editor.getCursor();
-	if (replaceStart && replaceLength) {
-		editor.replaceRange(locationString, replaceStart, {
-			line: replaceStart.line,
-			ch: replaceStart.ch + replaceLength,
-		});
-	} else editor.replaceSelection(locationString);
-	// We want to put the cursor right after the beginning of the newly-inserted link
-	const newCursorPos = replaceStart ? replaceStart.ch + 1 : cursor.ch + 1;
-	editor.setCursor({ line: cursor.line, ch: newCursorPos });
-	verifyOrAddFrontMatterForInline(editor, settings);
+    const locationString = `[](geo:${location.lat},${location.lng})`;
+    const cursor = editor.getCursor();
+    if (replaceStart && replaceLength) {
+        editor.replaceRange(locationString, replaceStart, {
+            line: replaceStart.line,
+            ch: replaceStart.ch + replaceLength,
+        });
+    } else editor.replaceSelection(locationString);
+    // We want to put the cursor right after the beginning of the newly-inserted link
+    const newCursorPos = replaceStart ? replaceStart.ch + 1 : cursor.ch + 1;
+    editor.setCursor({ line: cursor.line, ch: newCursorPos });
+    verifyOrAddFrontMatterForInline(editor, settings);
 }
 
 /**
