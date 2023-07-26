@@ -58,6 +58,17 @@
     display: inline;
 }
 
+/* An icon button on the map, e.g. lock */
+.mv-icon-button {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+a.mv-icon-button.on {
+    background-color: var(--background-modifier-border-focus) !important;
+}
+
 .controls-toggle:checked
     + .lbl-triangle
     + .lbl-toggle

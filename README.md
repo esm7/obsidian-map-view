@@ -20,6 +20,7 @@
         -   [Paste as Geolocation](#paste-as-geolocation)
         -   [Tip: Copying from Google Maps](#tip-copying-from-google-maps)
     -   [Embedding Maps in Notes](#embedding-maps-in-notes)
+        -   [Additional Options](#additional-options)
     -   [Queries](#queries)
     -   [Marker Icons](#marker-icons)
         -   [Tag Rules](#tag-rules)
@@ -34,7 +35,7 @@
     -   [GPS Location Support](#gps-location-support)
     -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
     -   [Changelog](#changelog)
-        -   [3.2.0](#320)
+        -   [4.0.0](#400)
         -   [3.1.1](#311)
         -   [3.0.2](#302)
         -   [3.0.1](#301)
@@ -48,7 +49,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Tue Jun 13 11:59:04 AM IDT 2023 -->
+<!-- Added by: erez, at: Wed Jul 26 09:35:56 PM IDT 2023 -->
 
 <!--te-->
 
@@ -252,6 +253,7 @@ Multiple inline locations can be added in the same line, and the tags that follo
 
 Instead of using a `locations:` YAML tag, you can use a custom note tag. See "tag name to denote inline geolocations" in the settings. (This also works with wildcards.)
 It will not be automatically added when you need it like the `locations:` YAML tag, however if you add an inline geolocation to an existing note where your custom tag is found, Map View will not add a `locations:` YAML tag.
+**IMPORTANT NOTE:** for the time being, using this feature (i.e. having a non-empty "tag name to denote inline geolocations") slows down Map View by an order of magnitude. I'm looking into speeding it up in future releases.
 
 ## Adding a Location to a Note
 
@@ -337,6 +339,12 @@ Note that if you have multiple full instances of Map View open, 'Update from ope
 Embeds also work really nicely in Canvas including live updates.
 
 ![](img/canvas.gif)
+
+### Additional Options
+
+-   The query field in an embedded map supports a template parameter `$filename$`. If, for example, you wish to embed a map in a note template, you can edit the `query` field of the code block to be `"query":"linkedfrom:\"$filename$\" OR linkedto:\"$filename$\""`, and the map will always reference the host note.
+
+**Known annoyance:** the `$filename$` replacement is currently performed when processing the code block and sent to Map View as a final result. Therefore, if you edit the embed interactively (e.g. by zoom or pan and clicking Save), the `query` field will be overwritten with the actual file name rather than the template.
 
 ## Queries
 
@@ -601,10 +609,14 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
-### 3.2.0
+### 4.0.0
 
 -   Routing
 -   GPS support
+-   Issues with presets and the default preset (https://github.com/esm7/obsidian-map-view/issues/175)
+-   Fix to blank or malformed inline geolocations throwing exceptions (https://github.com/esm7/obsidian-map-view/issues/172)
+-   Fixed issues with Map View trying to process non-Markdown files in the vault (https://github.com/esm7/obsidian-map-view/issues/181)
+-   Lock controls in embeds
 
 ### 3.1.1
 

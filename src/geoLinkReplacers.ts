@@ -190,19 +190,26 @@ export const replaceLinksPostProcessor = (mapViewPlugin: MapViewPlugin) => {
                 // However one main difference is that we don't have a reliable way to calculate the document position
                 // of the links, and thus don't have a marker ID to highlight.
                 const match = link.href.substring(4).match(regex.COORDINATES);
-                link.setAttribute(
-                    'onclick',
-                    `handleMapViewGeoLink(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`
-                );
-                link.setAttribute(
-                    'ontouchstart',
-                    `handleMapViewGeoLink(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`
-                );
-                link.setAttribute(
-                    'onmouseover',
-                    `createMapPopup(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`
-                );
-                link.setAttribute('onmouseout', 'closeMapPopup(event)');
+                if (
+                    match &&
+                    match.groups &&
+                    match.groups.lat &&
+                    match.groups.lng
+                ) {
+                    link.setAttribute(
+                        'onclick',
+                        `handleMapViewGeoLink(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`
+                    );
+                    link.setAttribute(
+                        'ontouchstart',
+                        `handleMapViewGeoLink(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`
+                    );
+                    link.setAttribute(
+                        'onmouseover',
+                        `createMapPopup(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`
+                    );
+                    link.setAttribute('onmouseout', 'closeMapPopup(event)');
+                }
             }
         }
     };

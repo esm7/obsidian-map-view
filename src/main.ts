@@ -181,6 +181,11 @@ export default class MapViewPlugin extends Plugin {
                     );
                 }
                 if (state) {
+                    // Allow templates in the embedded query, e.g. to automatically insert the file name
+                    state.query = utils.formatEmbeddedWithTemplates(
+                        state.query,
+                        ctx.sourcePath
+                    );
                     let map = new EmbeddedMap(
                         el,
                         ctx,
@@ -532,7 +537,7 @@ export default class MapViewPlugin extends Plugin {
         this.app.workspace.setActiveLeaf(chosenLeaf);
         await chosenLeaf.setViewState({
             type: consts.MAP_VIEW_NAME,
-            state: state ?? DEFAULT_SETTINGS,
+            state: state ?? this.settings.defaultState,
         });
         if (chosenLeaf.view instanceof MainMapView) return chosenLeaf.view;
         return null;
@@ -549,7 +554,7 @@ export default class MapViewPlugin extends Plugin {
         const mapView = await this.openMap(openBehavior, state);
         if (mapView && mapView.mapContainer) {
             const map = mapView.mapContainer;
-            if (forceAutoFit) map.autoFitMapToMarkers();
+            if (forceAutoFit || state.autoFit) map.autoFitMapToMarkers();
             if (highlightFile) {
                 const markerToHighlight = map.findMarkerByFileLine(
                     highlightFile,
@@ -585,7 +590,7 @@ export default class MapViewPlugin extends Plugin {
             query: '',
         } as MapState;
         if (!keepZoom)
-            newState = Object.assign(newState, {
+            newState = mergeStates(newState, {
                 mapZoom: this.settings.zoomOnGoFromNote,
             });
         await this.openMapWithState(
@@ -634,11 +639,8 @@ export default class MapViewPlugin extends Plugin {
 
     /** Initialise the plugin settings from Obsidian's cache */
     async loadSettings() {
-        this.settings = Object.assign(
-            {},
-            DEFAULT_SETTINGS,
-            await this.loadData()
-        );
+        this.settings = Object.assign({}, structuredClone(DEFAULT_SETTINGS));
+        Object.assign(this.settings, await this.loadData());
     }
 
     /** Save the plugin settings to Obsidian's cache so it can be reused later. */

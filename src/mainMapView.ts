@@ -22,6 +22,7 @@ export class MainMapView extends BaseMapView {
             showPresets: true,
             showSearch: true,
             showRealTimeButton: true,
+            showLockButton: false,
             showOpenButton: false,
         };
 

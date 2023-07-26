@@ -2,7 +2,7 @@ import { PluginSettings } from 'src/settings';
 import { EmbeddedMap } from 'src/embeddedMap';
 import MapViewPlugin from './main';
 import { App } from 'obsidian';
-import { MapState } from 'src/mapState';
+import { MapState, mergeStates } from 'src/mapState';
 import * as leaflet from 'leaflet';
 import { createPopper, Instance as PopperInstance } from '@popperjs/core';
 
@@ -88,7 +88,7 @@ export class MapPreviewPopup {
             mapCenter: new leaflet.LatLng(parseFloat(lat), parseFloat(lng)),
             mapZoom: this.settings.zoomOnGeolinkPreview,
         };
-        await this.map.open(Object.assign(this.settings.defaultState, state));
+        await this.map.open(mergeStates(this.settings.defaultState, state));
         const marker = markerId
             ? this.map.mapContainer?.findMarkerById(markerId)
             : null;

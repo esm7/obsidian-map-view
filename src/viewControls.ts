@@ -5,6 +5,7 @@ import {
     DropdownComponent,
     ToggleComponent,
     Notice,
+    getIcon,
 } from 'obsidian';
 import { askForLocation } from 'src/realTimeLocation';
 
@@ -69,7 +70,7 @@ export class ViewControls {
     }
 
     getCurrentState(): MapState {
-        return this.view.getState() as MapState;
+        return this.view.getState();
     }
 
     async setNewState(newState: MapState, considerAutoFit: boolean) {
@@ -81,6 +82,7 @@ export class ViewControls {
         // Update the state assuming the controls are updated
         const state = this.getCurrentState();
         await this.setNewState({ ...state, chosenMapSource: newSource }, false);
+        this.invalidateActivePreset();
     }
 
     async setStateByFollowActiveNote(follow: boolean) {
@@ -100,7 +102,7 @@ export class ViewControls {
             if (areStatesEqual(state, currentState)) {
                 this.presetsBox.setValue(index.toString());
                 this.lastSelectedPresetIndex = index;
-                this.lastSelectedPreset = currentState;
+                this.lastSelectedPreset = structuredClone(currentState);
                 break;
             }
     }
@@ -504,6 +506,7 @@ export class ViewControls {
                 };
                 await this.plugin.saveSettings();
                 this.presetsBox.setValue('0');
+                new Notice('Default preset updated');
             });
         const copyAsUrl = new ButtonComponent(this.presetsDivContent)
             .setButtonText('Copy URL')
@@ -688,5 +691,52 @@ export class RealTimeControl extends leaflet.Control {
     onLocationFound() {
         // Show the 'clear' button
         this.clearButton.style.display = 'block';
+    }
+}
+
+export class LockControl extends leaflet.Control {
+    view: MapContainer;
+    app: App;
+    settings: PluginSettings;
+    lockButton: HTMLAnchorElement;
+    locked: boolean = false;
+
+    constructor(
+        options: any,
+        view: MapContainer,
+        app: App,
+        settings: PluginSettings
+    ) {
+        super(options);
+        this.view = view;
+        this.app = app;
+        this.settings = settings;
+    }
+
+    onAdd(map: leaflet.Map) {
+        const div = leaflet.DomUtil.create(
+            'div',
+            'leaflet-bar leaflet-control'
+        );
+        this.lockButton = div.createEl('a', 'mv-icon-button');
+        const icon = getIcon('lock');
+        this.lockButton.appendChild(icon);
+        this.lockButton.addEventListener('click', (ev: MouseEvent) => {
+            this.locked = !this.locked;
+            this.updateIcon();
+            this.view.setLock(this.locked);
+        });
+
+        return div;
+    }
+
+    updateFromState(locked: boolean) {
+        this.locked = locked;
+        this.updateIcon();
+    }
+
+    updateIcon() {
+        if (this.locked) this.lockButton.addClass('on');
+        else this.lockButton.removeClass('on');
     }
 }

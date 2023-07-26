@@ -438,7 +438,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
     }
 
     getAllPathNames(search: string): string[] {
-        const allFiles = this.app.vault.getFiles();
+        const allFiles = this.app.vault.getMarkdownFiles();
         let toReturn: string[] = [];
         for (const file of allFiles) {
             if (

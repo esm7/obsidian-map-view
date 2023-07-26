@@ -43,6 +43,12 @@ export function formatWithTemplates(s: string, query = '') {
     return replaced;
 }
 
+export function formatEmbeddedWithTemplates(s: string, fileName: string) {
+    const fileNamePattern = /\$filename\$/g;
+    const replaced = s.replace(fileNamePattern, fileName);
+    return replaced;
+}
+
 type NewNoteType = 'singleLocation' | 'multiLocation';
 
 const CURSOR = '$CURSOR$';
@@ -261,7 +267,7 @@ export function matchByPosition(
  */
 export function getAllTagNames(app: App): string[] {
     let tags: string[] = [];
-    const allFiles = app.vault.getFiles();
+    const allFiles = app.vault.getMarkdownFiles();
     for (const file of allFiles) {
         const fileCache = app.metadataCache.getFileCache(file);
         const fileTagNames = getAllTags(fileCache) || [];

@@ -265,7 +265,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Tag name to denote inline geolocations')
             .setDesc(
-                'Instead or in addition to the "locations:" YAML tag, you can use a regular tag that will mark for Map View that a note has inline geolocations, e.g. "#hasLocations".'
+                'Instead or in addition to the "locations:" YAML tag, you can use a regular tag that will mark for Map View that a note has inline geolocations, e.g. "#hasLocations". (Note: this has a performance penalty for the time being.)'
             )
             .addText((component) => {
                 component

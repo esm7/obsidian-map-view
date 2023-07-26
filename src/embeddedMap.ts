@@ -38,6 +38,7 @@ export class EmbeddedMap {
             showPresets: false,
             showSearch: false,
             showRealTimeButton: false,
+            showLockButton: true,
             showOpenButton: true,
             autoZoom: true,
             emptyFitRevertsToDefault: true,

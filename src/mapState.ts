@@ -15,6 +15,10 @@ export type MapState = {
     forceHistorySave?: boolean;
     followActiveNote?: boolean;
     embeddedHeight?: number;
+    /** Ignore the zoom level and force auto-fit */
+    autoFit?: boolean;
+    /** Do not allow panning & zooming the map */
+    lock?: boolean;
 };
 
 /** Fields that are deprecated */
@@ -24,13 +28,16 @@ export function copyState(state: MapState): MapState {
     return Object.assign({}, state);
 }
 
-export function mergeStates(state1: MapState, state2: MapState): MapState {
+export function mergeStates(
+    state1: MapState,
+    state2: Partial<MapState>
+): MapState {
     // Overwrite an existing state with a new one, that may have null or partial values which need to be ignored
     // and taken from the existing state
     const clearedState = Object.fromEntries(
         Object.entries(state2).filter(([_, value]) => value != null)
     );
-    return { ...state1, ...clearedState };
+    return structuredClone({ ...state1, ...clearedState });
 }
 
 const xor = (a: any, b: any) => (a && !b) || (!a && b);
@@ -52,10 +59,12 @@ export function areStatesEqual(state1: MapState, state2: MapState) {
         if (mapCenter1.distanceTo(mapCenter2) > 1000) return false;
     }
     return (
-        state1.query == state2.query &&
-        state1.mapZoom == state2.mapZoom &&
-        state1.chosenMapSource == state2.chosenMapSource &&
-        state1.embeddedHeight == state2.embeddedHeight
+        state1.query === state2.query &&
+        state1.mapZoom === state2.mapZoom &&
+        state1.chosenMapSource === state2.chosenMapSource &&
+        state1.embeddedHeight === state2.embeddedHeight &&
+        state1.autoFit === state2.autoFit &&
+        state1.lock === state2.lock
     );
 }
 
@@ -67,6 +76,8 @@ export function stateToRawObject(state: MapState) {
         centerLng: state.mapCenter.lng,
         query: state.query,
         chosenMapSource: state.chosenMapSource,
+        autoFit: state.autoFit,
+        lock: state.lock,
         ...(state.embeddedHeight && { embeddedHeight: state.embeddedHeight }),
     };
 }
@@ -89,6 +100,8 @@ export function stateFromParsedUrl(obj: any) {
         query: obj.query,
         chosenMapSource:
             obj.chosenMapSource != null ? parseInt(obj.chosenMapSource) : null,
+        autoFit: obj?.autoFit,
+        lock: obj?.lock,
         ...(obj.embeddedHeight && {
             embeddedHeight: parseInt(obj.embeddedHeight),
         }),

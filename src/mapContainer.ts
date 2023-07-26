@@ -39,7 +39,12 @@ import {
 import { getIconFromOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
-import { ViewControls, SearchControl, RealTimeControl } from 'src/viewControls';
+import {
+    ViewControls,
+    SearchControl,
+    RealTimeControl,
+    LockControl,
+} from 'src/viewControls';
 import { Query } from 'src/query';
 import { GeoSearchResult } from 'src/geosearch';
 import {
@@ -60,6 +65,7 @@ export type ViewSettings = {
     showSearch: boolean;
     showOpenButton: boolean;
     showRealTimeButton: boolean;
+    showLockButton: boolean;
 
     // Override the global settings auto zoom.
     // Unlike the global auto zoom, the view auto zoom also happens on every setState, so when a new view opens,
@@ -91,10 +97,14 @@ export class MapContainer {
         /** The markers currently on the map */
         markers: MarkersMap = new Map();
         controls: ViewControls;
+        /** The zoom controls */
+        zoomControls: leaflet.Control.Zoom;
         /** The search controls (search & clear buttons) */
         searchControls: SearchControl = null;
         /** The real-time geolocation controls */
         realTimeControls: RealTimeControl = null;
+        /** The lock control */
+        lockControl: LockControl = null;
         /** A marker of the last search result */
         searchResult: leaflet.Marker = null;
         /** The currently highlighted marker (if any) */
@@ -166,7 +176,7 @@ export class MapContainer {
         });
     }
 
-    getState() {
+    getState(): MapState {
         return this.state;
     }
 
@@ -200,7 +210,7 @@ export class MapContainer {
 
     async onOpen() {
         this.isOpen = true;
-        this.state = this.defaultState;
+        this.state = structuredClone(this.defaultState);
         this.display.viewDiv = this.parentEl.createDiv('map-view-main');
         if (this.viewSettings.showMapControls) {
             this.display.controls = new ViewControls(
@@ -255,12 +265,18 @@ export class MapContainer {
             if (!freezeMap && this.ongoingChanges == 0) {
                 const willAutoFit =
                     considerAutoFit &&
-                    (this.settings.autoZoom || this.viewSettings.autoZoom);
+                    (this.settings.autoZoom ||
+                        this.viewSettings.autoZoom ||
+                        state.autoFit);
                 await this.updateMarkersToState(newState, false, willAutoFit);
                 if (willAutoFit) await this.autoFitMapToMarkers();
+                this.applyLock();
             }
-            if (updateControls && this.display.controls)
+            if (updateControls && this.display.controls) {
                 this.display.controls.updateControlsToState();
+            }
+            if (this.display.lockControl)
+                this.display.lockControl.updateFromState(state.lock);
         }
     }
 
@@ -275,7 +291,7 @@ export class MapContainer {
         if (Object.keys(partialState).length === 0) return;
         const state = this.getState();
         if (state) {
-            const newState = Object.assign({}, state, partialState);
+            const newState = mergeStates(state, partialState);
             this.internalSetViewState(newState);
             return newState;
         }
@@ -287,13 +303,14 @@ export class MapContainer {
      * after the method returns.
      */
     public async highLevelSetViewStateAsync(
-        partialState: Partial<MapState>
+        partialState: Partial<MapState>,
+        considerAutoFit: boolean = false
     ): Promise<MapState> {
         if (Object.keys(partialState).length === 0) return;
         const state = this.getState();
         if (state) {
-            const newState = Object.assign({}, state, partialState);
-            await this.internalSetViewState(newState);
+            const newState = mergeStates(state, partialState);
+            await this.internalSetViewState(newState, false, considerAutoFit);
             return newState;
         }
         return null;
@@ -308,7 +325,7 @@ export class MapContainer {
      * For this purpose, this part of the flow is synchronuous.
      */
     public updateStateAfterMapChange(partialState: Partial<MapState>) {
-        this.state = Object.assign(this.state, partialState);
+        this.state = mergeStates(this.state, partialState);
         this.freezeMap = true;
         this.highLevelSetViewState(partialState);
         if (this.ongoingChanges <= 0) {
@@ -403,12 +420,18 @@ export class MapContainer {
             worldCopyJump: true,
             maxBoundsViscosity: 1.0,
         });
-        if (this.viewSettings.showZoomButtons)
-            leaflet.control
-                .zoom({
-                    position: 'topright',
-                })
-                .addTo(this.display.map);
+
+        if (this.viewSettings.showLockButton) {
+            this.display.lockControl = new LockControl(
+                { position: 'topright' },
+                this,
+                this.app,
+                this.settings
+            );
+            this.display.map.addControl(this.display.lockControl);
+        }
+
+        this.addZoomButtons();
         this.updateTileLayerByState(this.state);
         this.display.clusterGroup = new leaflet.MarkerClusterGroup({
             maxClusterRadius:
@@ -541,7 +564,7 @@ export class MapContainer {
         freezeMap: boolean = false
     ) {
         if (this.settings.debug) console.time('updateMarkersToState');
-        let files = this.app.vault.getFiles();
+        let files = this.app.vault.getMarkdownFiles();
         // Build the markers and filter them according to the query
         let newMarkers = await buildMarkers(files, this.settings, this.app);
         try {
@@ -552,7 +575,7 @@ export class MapContainer {
             state.queryError = true;
         }
         finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
-        this.state = state;
+        this.state = structuredClone(state);
         this.updateMapMarkers(newMarkers);
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
         // of interactions and async updates compete over the map.
@@ -1131,6 +1154,45 @@ export class MapContainer {
                     routingSourcePopup.showAtPosition(ev.originalEvent);
                 }
             );
+        }
+    }
+
+    setLock(lock: boolean) {
+        this.state.lock = lock;
+        this.applyLock();
+        this.display?.controls?.updateSaveButtonVisibility();
+    }
+
+    addZoomButtons() {
+        if (this.viewSettings.showZoomButtons && !this.state.lock) {
+            this.display.zoomControls = leaflet.control
+                .zoom({
+                    position: 'topright',
+                })
+                .addTo(this.display.map);
+        }
+    }
+
+    applyLock() {
+        if (this.state.lock) {
+            this.display.map.dragging.disable();
+            this.display.map.touchZoom.disable();
+            this.display.map.doubleClickZoom.disable();
+            this.display.map.scrollWheelZoom.disable();
+            this.display.map.boxZoom.disable();
+            this.display.map.keyboard.disable();
+            if (this.display.zoomControls) {
+                this.display.zoomControls.remove();
+                this.display.zoomControls = null;
+            }
+        } else {
+            this.display.map.dragging.enable();
+            this.display.map.touchZoom.enable();
+            this.display.map.doubleClickZoom.enable();
+            this.display.map.scrollWheelZoom.enable();
+            this.display.map.boxZoom.enable();
+            this.display.map.keyboard.enable();
+            if (!this.display.zoomControls) this.addZoomButtons();
         }
     }
 }
