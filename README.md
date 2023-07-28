@@ -49,7 +49,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri Jul 28 08:56:09 AM IDT 2023 -->
+<!-- Added by: erez, at: Fri Jul 28 09:40:21 AM IDT 2023 -->
 
 <!--te-->
 
@@ -621,9 +621,9 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 ### 4.0.0
 
 -   **GPS support** (to some extent!)
-    - Map View now supports a companion app that can help receive a precise location and use it in the map or within your notes.
-    - This is experimental and will not work smoothly for everyone right away.
-    - See [here](#gps-location-support) for more details.
+    -   Map View now supports a companion app that can help receive a precise location and use it in the map or within your notes.
+    -   This is experimental and will not work smoothly for everyone right away.
+    -   See [here](#gps-location-support) for more details.
 -   Routing: when right-clicking the map you now have a "mark as routing source", and once such a source is marked, you can launch an external tool for driving directions or ETAs (by default Google Maps) for various destinations. This is really useful for assessing distances or travel times in trip planning.
 -   Embedded maps now have a 'lock' control that disables accidental changes to the map (https://github.com/esm7/obsidian-map-view/issues/178).
 -   Added a not-fully-baked `autoFit` flag, with no proper UI yet (https://github.com/esm7/obsidian-map-view/issues/171). See [here](#advanced-additional-options) for details.
