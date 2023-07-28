@@ -49,7 +49,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri Jul 28 09:45:41 AM IDT 2023 -->
+<!-- Added by: erez, at: Fri Jul 28 09:47:43 AM IDT 2023 -->
 
 <!--te-->
 
@@ -80,9 +80,9 @@ Just like the Obsidian graph view lets you visualize associative relations betwe
 
 ## With Obsidian Mobile
 
-The main limitation of the plugin right now is that the Obsidian Mobile app has no location permission, so on mobile you cannot see your current location.
+The main limitation of the plugin right now is that the Obsidian Mobile app has no location permission, so on mobile you cannot see your current location natively.
 
-Please help us ask the Obsidian developers to get these permissions added, as it will make this plugin so much better!
+To overcome this, Map View introduced a companion [Geo Helper app](#gps-location-support).
 
 ## Support the Development
 
