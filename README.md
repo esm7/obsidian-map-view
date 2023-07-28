@@ -20,7 +20,7 @@
         -   [Paste as Geolocation](#paste-as-geolocation)
         -   [Tip: Copying from Google Maps](#tip-copying-from-google-maps)
     -   [Embedding Maps in Notes](#embedding-maps-in-notes)
-        -   [Additional Options](#additional-options)
+        -   [Advanced Additional Options](#advanced-additional-options)
     -   [Queries](#queries)
     -   [Marker Icons](#marker-icons)
         -   [Tag Rules](#tag-rules)
@@ -49,7 +49,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Wed Jul 26 09:35:56 PM IDT 2023 -->
+<!-- Added by: erez, at: Fri Jul 28 08:55:30 AM IDT 2023 -->
 
 <!--te-->
 
@@ -340,11 +340,13 @@ Embeds also work really nicely in Canvas including live updates.
 
 ![](img/canvas.gif)
 
-### Additional Options
+### Advanced Additional Options
 
 -   The query field in an embedded map supports a template parameter `$filename$`. If, for example, you wish to embed a map in a note template, you can edit the `query` field of the code block to be `"query":"linkedfrom:\"$filename$\" OR linkedto:\"$filename$\""`, and the map will always reference the host note.
 
 **Known annoyance:** the `$filename$` replacement is currently performed when processing the code block and sent to Map View as a final result. Therefore, if you edit the embed interactively (e.g. by zoom or pan and clicking Save), the `query` field will be overwritten with the actual file name rather than the template.
+
+-   The JSON in the embedded map code block supports a still-rather-raw `autoFit` boolean flag. When set to `true` (i.e. add `"autoFit":true` to the code block's JSON), the map will load with the given pan and zoom, but will then perform an auto-fit and override further zoom and pan changes. This has the annoyance of animating zoom/pan if the saved state is different than the auto-fitted one (click Save to freeze a new state in such a case). I eventually want to bake this nicely to the UI with some more reasonable behaviors.
 
 ## Queries
 
@@ -364,10 +366,12 @@ The query string can contain the following _search operators_:
     -   This operator will include all the markers in the path that matches the query.
 -   `linkedto:...` includes notes that contain a specific link.
     -   This operator will include a note (with all the markers in it) if it has a link name that matches the query.
-    -   For example, if you have a note named `Cave Hikes` and you have geolocated notes that **link to it** (e.g. include `[[Cave Hikes]]` as a link), include them by the filter `linkedto:"Cave Hikes"` or a portion of that name.
+    -   For example, if you have a note named `Cave Hikes` and you have geolocated notes that **link to it** (e.g. include `[[Cave Hikes]]` as a link), include them by the filter `linkedto:"Cave Hikes"`.
+    -   Anything that resolves into a legal Obsidian link will work, e.g. both a note name ('Cave Hikes') or a path will do, but a partial name will not.
 -   `linkedfrom:...` includes notes that are linked from a specific note, and also the origin note itself.
     -   This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query.
     -   For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
+    -   Anything that resolves into a legal Obsidian link will work, e.g. both a note name ('Cave Hikes') or a path will do, but a partial name will not.
 -   `lines:x-y` includes only inline markers that are defined in the given line range in their note.
     -   For example, `lines:20-30` includes only inline geolocations that are defined in lines 20 to 30 in the file that contains them.
 
@@ -466,7 +470,10 @@ By default, Map View uses the [CartoDB Voyager Map](https://github.com/CartoDB/b
 However, you can change or add map sources in the configuration with any service that has a tiles API using a standard URL syntax.
 
 There are many services of localized, specialized or just beautifully-rendered maps that you can use, sometimes following a free registration.
-See a pretty comprehensive list [here](https://wiki.openstreetmap.org/wiki/Tiles).
+See a pretty comprehensive list [here](https://wiki.openstreetmap.org/wiki/Raster_tile_providers).
+
+For providers that use an API key (e.g. MapTiler or Mapbox), consult the provider documentation for how to add the key to the API URL.
+For example, in MapTiler it would be `https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key=ABCDEFGH`.
 
 Although that's the case with this plugin in general, it's worth noting explicitly that using 3rd party map data properly, and making sure you are not violating any terms of use, is your own responsibility.
 
@@ -587,6 +594,8 @@ This adds the following functionality:
 
 Many of these can also be launched directly from the geo helper after it finds your location.
 
+**Help needed:** the geo helper mobile app is currently only available for Android. If you are an iOS developer who wishes to build and maintain the corresponding app, please reach out.
+
 ## Relation to Obsidian Leaflet
 
 Users who are looking to add mapping capabilities to Obsidian may want to also look at the great [Obsidian Leaflet plugin](https://github.com/valentine195/obsidian-leaflet-plugin).
@@ -617,6 +626,10 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Fix to blank or malformed inline geolocations throwing exceptions (https://github.com/esm7/obsidian-map-view/issues/172)
 -   Fixed issues with Map View trying to process non-Markdown files in the vault (https://github.com/esm7/obsidian-map-view/issues/181)
 -   Lock controls in embeds
+-   Added a not-fully-baked `autoFit` flag, with no proper UI yet.
+-   The `linkedto:` query operator now actually resolves Obsidian links instead of doing textual comparison (https://github.com/esm7/obsidian-map-view/issues/162).
+    -   Note: this might break existing queries that counted on it to work on text comparison rather than an actual note path.
+-   The "open in last-used pane" setting now respects pinned panes (https://github.com/esm7/obsidian-map-view/issues/134).
 
 ### 3.1.1
 

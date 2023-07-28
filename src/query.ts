@@ -102,12 +102,19 @@ export class Query {
             return marker.file.path.toLowerCase().includes(queryPath);
         } else if (value.startsWith('linkedto:')) {
             const query = value.replace('linkedto:', '').toLowerCase();
+            const linkedToDest = this.app.metadataCache.getFirstLinkpathDest(
+                query,
+                ''
+            );
+            if (!linkedToDest) return false;
             const fileCache = this.app.metadataCache.getFileCache(marker.file);
             if (
                 fileCache?.links?.some(
                     (linkCache) =>
-                        linkCache.link.toLowerCase().includes(query) ||
-                        linkCache.displayText.toLowerCase().includes(query)
+                        this.app.metadataCache.getFirstLinkpathDest(
+                            linkCache.link,
+                            ''
+                        ) == linkedToDest
                 )
             )
                 return true;

@@ -23,7 +23,11 @@ export let lastUsedLeaves: WorkspaceLeaf[] = [];
 
 export function getLastUsedValidMarkdownLeaf() {
     for (const leaf of lastUsedLeaves) {
-        if ((leaf as any).parent && leaf.view instanceof MarkdownView) {
+        if (
+            (leaf as any).parent &&
+            leaf.view instanceof MarkdownView &&
+            !leaf.getViewState()?.pinned
+        ) {
             return leaf;
         }
     }

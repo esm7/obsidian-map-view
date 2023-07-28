@@ -264,10 +264,9 @@ export class MapContainer {
             // the ongoingChanges counter, and inside updateMarkersToState there are additional safeguards
             if (!freezeMap && this.ongoingChanges == 0) {
                 const willAutoFit =
-                    considerAutoFit &&
-                    (this.settings.autoZoom ||
-                        this.viewSettings.autoZoom ||
-                        state.autoFit);
+                    state.autoFit || // State auto-fit
+                    (considerAutoFit && // Global auto-fit
+                        (this.settings.autoZoom || this.viewSettings.autoZoom));
                 await this.updateMarkersToState(newState, false, willAutoFit);
                 if (willAutoFit) await this.autoFitMapToMarkers();
                 this.applyLock();
@@ -303,14 +302,13 @@ export class MapContainer {
      * after the method returns.
      */
     public async highLevelSetViewStateAsync(
-        partialState: Partial<MapState>,
-        considerAutoFit: boolean = false
+        partialState: Partial<MapState>
     ): Promise<MapState> {
         if (Object.keys(partialState).length === 0) return;
         const state = this.getState();
         if (state) {
             const newState = mergeStates(state, partialState);
-            await this.internalSetViewState(newState, false, considerAutoFit);
+            await this.internalSetViewState(newState, false);
             return newState;
         }
         return null;
@@ -1174,6 +1172,13 @@ export class MapContainer {
     }
 
     applyLock() {
+        // If the view does not support locking, refuse to lock.
+        // This is important if the MapState is taken from another view, e.g. Open is clicked in a locked embedded map
+        // to open it in a full Map View, which cannot be locked.
+        if (this.state.lock && !this.viewSettings.showLockButton) {
+            this.setLock(false);
+            return;
+        }
         if (this.state.lock) {
             this.display.map.dragging.disable();
             this.display.map.touchZoom.disable();

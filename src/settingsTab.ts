@@ -640,11 +640,14 @@ export class SettingsTab extends PluginSettingTab {
         markerIconsDiv = containerEl.createDiv();
         this.refreshMarkerIcons(markerIconsDiv);
 
-        // TODO add a link to the readme
-        // TODO popup to read the docs when enabling
-        new Setting(containerEl).setHeading().setName('GPS');
+        const gpsTitle = new Setting(containerEl).setHeading().setName('GPS');
+        const warningFragment = document.createDocumentFragment();
+        const warningText = warningFragment.createDiv();
+        warningText.innerHTML =
+            '<strong>Warning!</strong> This is an experimental feature -- your milage may vary.<br>Make sure to read <a href="">the documentation</a> before using.';
+        gpsTitle.setDesc(warningFragment);
         new Setting(containerEl)
-            .setName('Enable GPS location (see docs)')
+            .setName('Enable experimental GPS support')
             .addToggle((component) => {
                 component
                     .setValue(
