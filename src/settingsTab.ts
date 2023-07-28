@@ -644,7 +644,7 @@ export class SettingsTab extends PluginSettingTab {
         const warningFragment = document.createDocumentFragment();
         const warningText = warningFragment.createDiv();
         warningText.innerHTML =
-            '<strong>Warning!</strong> This is an experimental feature -- your milage may vary.<br>Make sure to read <a href="">the documentation</a> before using.';
+            '<strong>Warning!</strong> This is an experimental feature -- your milage may vary.<br>Make sure to read <a href="https://github.com/esm7/obsidian-map-view#gps-location-support">the documentation</a> before using.';
         gpsTitle.setDesc(warningFragment);
         new Setting(containerEl)
             .setName('Enable experimental GPS support')
