@@ -49,7 +49,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri Jul 28 09:47:43 AM IDT 2023 -->
+<!-- Added by: erez, at: Fri Jul 28 09:51:19 AM IDT 2023 -->
 
 <!--te-->
 
@@ -627,6 +627,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Routing: when right-clicking the map you now have a "mark as routing source", and once such a source is marked, you can launch an external tool for driving directions or ETAs (by default Google Maps) for various destinations. This is really useful for assessing distances or travel times in trip planning.
 -   Embedded maps now have a 'lock' control that disables accidental changes to the map (https://github.com/esm7/obsidian-map-view/issues/178).
 -   Added a not-fully-baked `autoFit` flag, with no proper UI yet (https://github.com/esm7/obsidian-map-view/issues/171). See [here](#advanced-additional-options) for details.
+-   Added a `$filename$` template parameter to embedded map code blocks (https://github.com/esm7/obsidian-map-view/issues/146).
 -   The `linkedto:` query operator now actually resolves Obsidian links instead of doing textual comparison (https://github.com/esm7/obsidian-map-view/issues/162).
     -   Note: this might break existing queries that counted on it to work on text comparison rather than an actual note path.
 -   Fixed various major issues with presets (https://github.com/esm7/obsidian-map-view/issues/175).
