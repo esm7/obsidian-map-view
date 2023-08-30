@@ -11,6 +11,7 @@ import {
     MarkdownPostProcessorContext,
     Notice,
 } from 'obsidian';
+import 'core-js/actual/structured-clone';
 import { ViewPlugin } from '@codemirror/view';
 import * as consts from 'src/consts';
 import * as leaflet from 'leaflet';
