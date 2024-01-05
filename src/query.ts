@@ -356,9 +356,10 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
         const allPathNames = this.getAllPathNames(pathQuery);
         let toReturn: Suggestion[] = [{ text: 'PATHS', group: true }];
         for (const pathName of allPathNames) {
+            const escapedPathName = utils.escapeDoubleQuotes(pathName);
             toReturn.push({
                 text: pathName,
-                textToInsert: `${operator}:"${pathName}" `,
+                textToInsert: `${operator}:"${escapedPathName}" `,
                 insertAt: pathMatch.index,
                 insertSkip: pathMatch[0].length,
             });
