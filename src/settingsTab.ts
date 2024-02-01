@@ -1054,15 +1054,16 @@ export class SettingsTab extends PluginSettingTab {
                 let iconElement: HTMLElement = null;
                 const updateIconAndJson = () => {
                     if (iconElement) setting.controlEl.removeChild(iconElement);
+                    let options = Object.assign(
+                        {},
+                        rules.find((element) => element.ruleName === 'default')
+                            .iconDetails,
+                        rule.iconDetails
+                    );
                     const compiledIcon = getIconFromOptions(
-                        Object.assign(
-                            {},
-                            rules.find(
-                                (element) => element.ruleName === 'default'
-                            ).iconDetails,
-                            rule.iconDetails
-                        ),
-                        this.plugin.iconCache
+                        options,
+                        this.plugin.iconCache,
+                        options.shape
                     );
                     iconElement = compiledIcon.createIcon();
                     let style = iconElement.style;
@@ -1081,6 +1082,43 @@ export class SettingsTab extends PluginSettingTab {
                 iconUpdateFunctions.push(updateIconAndJson);
                 updateIconAndJson();
             }
+
+            new Setting(containerEl)
+                .setName('Enable Resizing of Circle Markers')
+                .setDesc(
+                    'Size/resize resizable circle markers based on the degree (number of edges) connected to the node.'
+                )
+                .addToggle((component) => {
+                    component
+                        .setValue(
+                            this.plugin.settings
+                                .resizeResizableCircleMarkersBasedOnDegree ??
+                                DEFAULT_SETTINGS.resizeResizableCircleMarkersBasedOnDegree
+                        )
+                        .onChange(async (value) => {
+                            this.plugin.settings.resizeResizableCircleMarkersBasedOnDegree =
+                                value;
+                            await this.plugin.saveSettings();
+                        });
+                });
+
+            new Setting(containerEl)
+                .setName('Edge Color')
+                .setDesc(
+                    'The color of the edges between nodes. The default color is red.'
+                )
+                .addText((component) => {
+                    component
+                        .setValue(
+                            this.plugin.settings.edgeColor ??
+                                DEFAULT_SETTINGS.edgeColor
+                        )
+                        .onChange(async (value) => {
+                            this.plugin.settings.edgeColor = value;
+                            await this.plugin.saveSettings();
+                        });
+                });
+
             let multiTagIconElement: HTMLElement = null;
             let testTagsBox: TextComponent = null;
             const ruleTestSetting = new Setting(containerEl)

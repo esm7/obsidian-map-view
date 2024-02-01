@@ -10,6 +10,8 @@ import {
     MenuItem,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
+import frontMatter from 'front-matter';
+import * as yaml from 'js-yaml';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 import * as leafletFullscreen from 'leaflet-fullscreen';
@@ -36,7 +38,11 @@ import {
     buildAndAppendFileMarkers,
     finalizeMarkers,
 } from 'src/markers';
-import { getIconFromOptions } from 'src/markerIcons';
+import {
+    getIconFromOptions,
+    createCircleMarker,
+    createCircleMarkerBasedOnDegree,
+} from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import {
@@ -75,6 +81,63 @@ export type ViewSettings = {
     skipAnimations?: boolean;
 };
 
+type Edge = {
+    v1: leaflet.LatLng;
+    v2: leaflet.LatLng;
+    polyline?: leaflet.Polyline;
+};
+
+type FileWithMarkers = {
+    file: TFile;
+    markers: FileMarker[];
+};
+
+interface FrontMatterAttributes {
+    [key: string]: any; // This allows any property with string keys
+}
+
+class Vertex {
+    public marker: FileMarker;
+    private _edges: Edge[];
+
+    constructor(marker: FileMarker, edges: Edge[] = []) {
+        this.marker = marker;
+        this._edges = edges || [];
+    }
+
+    [Symbol.iterator]() {
+        let index = 0;
+        return {
+            next: () => {
+                if (index < this._edges.length) {
+                    return { value: this._edges[index++], done: false };
+                } else {
+                    return { done: true };
+                }
+            },
+        };
+    }
+
+    get degree(): number {
+        return this._edges.length;
+    }
+
+    get location(): leaflet.LatLng {
+        return this.marker?.location;
+    }
+
+    addEdge(edge: Edge) {
+        this._edges.push(edge);
+    }
+
+    removeEdges() {
+        for (let edge of this._edges) {
+            edge.polyline?.remove();
+        }
+        this._edges.length = 0;
+    }
+}
+
 export class MapContainer {
     private app: App;
     public settings: PluginSettings;
@@ -96,6 +159,11 @@ export class MapContainer {
         clusterGroup: leaflet.MarkerClusterGroup;
         /** The markers currently on the map */
         markers: MarkersMap = new Map();
+        /** The vertices currently on the map */
+        vertices: Map<string, Vertex> = new Map();
+        /** The polylines currently on the map */
+        polylines: leaflet.Polyline[] = [];
+        /** The view controls */
         controls: ViewControls;
         /** The zoom controls */
         zoomControls: leaflet.Control.Zoom;
@@ -410,7 +478,6 @@ export class MapContainer {
 
     async createMap() {
         // Obsidian Leaflet compatability: disable tree-shaking for the full-screen module
-        var dummy = leafletFullscreen;
         this.display.map = new leaflet.Map(this.display.mapDiv, {
             center: this.defaultState.mapCenter,
             zoom: this.defaultState.mapZoom,
@@ -574,6 +641,7 @@ export class MapContainer {
         }
         finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
         this.state = structuredClone(state);
+
         this.updateMapMarkers(newMarkers);
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
         // of interactions and async updates compete over the map.
@@ -647,18 +715,180 @@ export class MapContainer {
         this.display.clusterGroup.removeLayers(markersToRemove);
         this.display.clusterGroup.addLayers(markersToAdd);
         this.display.markers = newMarkersMap;
+
+        // create a mapping from file to markers
+        let fileMarkerMap: Map<string, FileWithMarkers> = new Map();
+        for (let marker of this.display.markers.values()) {
+            if (marker instanceof FileMarker) {
+                let path = marker.file.path;
+                let file = marker.file;
+                if (!fileMarkerMap.has(path)) {
+                    fileMarkerMap.set(path, { file: file, markers: [] });
+                }
+                fileMarkerMap.get(path).markers.push(marker);
+            }
+        }
+
+        this.display.vertices = new Map();
+        for (let m of this.display.markers.values()) {
+            if (m instanceof FileMarker) {
+                this.display.vertices.set(m.location.toString(), new Vertex(m));
+            }
+        }
+
+        this.clearPolylines();
+        let edges = this.generateEdgesFromFilesWithMarkers(fileMarkerMap);
+
+        // remove all edges which have lost one or more vertices
+        // but if the edge is still valid, add it to each of its vertices.
+        for (let [k, edge] of edges) {
+            let [v1, v2] = k.split('<<->>');
+            if (
+                this.display.vertices.has(v1) &&
+                this.display.vertices.has(v2)
+            ) {
+                this.display.vertices.get(v1).addEdge(edge);
+                this.display.vertices.get(v2).addEdge(edge);
+            } else {
+                // I don't think should ever happen...
+                edges.delete(k);
+            }
+        }
+
+        let degrees = [...this.display.vertices.values()]
+            .map((v) => v.degree)
+            .sort((a, b) => a - b);
+        // update vertices sizes based on degree percentile
+        for (let v of this.display.vertices.values()) {
+            let m = v.marker;
+            if (m.geoLayer && m.hasResizableIcon()) {
+                let newIcon: leaflet.DivIcon;
+                if (this.settings.resizeResizableCircleMarkersBasedOnDegree) {
+                    newIcon = createCircleMarkerBasedOnDegree(
+                        m.backgroundColor,
+                        m.iconClasses,
+                        v.degree,
+                        degrees
+                    );
+                } else {
+                    newIcon = createCircleMarker(
+                        m.backgroundColor,
+                        m.iconClasses
+                    );
+                }
+                m.geoLayer.setIcon(newIcon);
+            }
+        }
+
+        for (let edge of edges.values()) {
+            let polyline = leaflet.polyline([edge.v1, edge.v2], {
+                color: this.settings.edgeColor,
+                weight: 1,
+            });
+            edge.polyline = polyline;
+            polyline.addTo(this.display.map);
+            this.display.polylines.push(polyline);
+        }
     }
 
-    private newLeafletMarker(marker: FileMarker): leaflet.Marker {
-        let newMarker = leaflet.marker(marker.location, {
-            icon: marker.icon || new leaflet.Icon.Default(),
+    private clearPolylines() {
+        // clear previous polylines from the map
+        for (const p of this.display.polylines) {
+            p.remove();
+        }
+        this.display.polylines.length = 0;
+    }
+
+    private generateEdgesFromFilesWithMarkers(
+        fileMarkerMap: Map<string, FileWithMarkers>
+    ): Map<string, Edge> {
+        let nodesSeen: Set<string> = new Set();
+        let edges: Map<string, Edge> = new Map();
+        for (let [k, fwm] of fileMarkerMap) {
+            this.generateEdgesFromFileWithMarkers(
+                fwm,
+                fileMarkerMap,
+                edges,
+                nodesSeen
+            );
+        }
+        return edges;
+    }
+
+    private generateEdgesFromFileWithMarkers(
+        source: FileWithMarkers,
+        fileMarkerMap: Map<string, FileWithMarkers>,
+        edges: Map<string, Edge>,
+        nodesSeen: Set<string>
+    ) {
+        const file = source.file;
+        const path = file.path;
+        if (nodesSeen.has(path)) {
+            return;
+        }
+        nodesSeen.add(path);
+        const fileCache = this.app.metadataCache.getFileCache(file);
+        for (let link of fileCache?.links || []) {
+            let destination = this.app.metadataCache.getFirstLinkpathDest(
+                link.link,
+                path
+            );
+            if (destination?.path && fileMarkerMap.has(destination.path)) {
+                // both the source file and the destination file have markers;
+                // let's connect them and create edges
+                let destinationFileWithMarkers = fileMarkerMap.get(
+                    destination.path
+                );
+                for (let sourceMarker of source.markers) {
+                    for (let destinationMarker of destinationFileWithMarkers.markers) {
+                        let edge: Edge = {
+                            v1: new leaflet.LatLng(
+                                sourceMarker.location.lat,
+                                sourceMarker.location.lng
+                            ),
+                            v2: new leaflet.LatLng(
+                                destinationMarker.location.lat,
+                                destinationMarker.location.lng
+                            ),
+                        };
+                        edges.set(
+                            `${edge.v1.toString()}<<->>${edge.v2.toString()}`,
+                            edge
+                        );
+                    }
+                }
+                // continue to traverse files and links recursively
+                this.generateEdgesFromFileWithMarkers(
+                    destinationFileWithMarkers,
+                    fileMarkerMap,
+                    edges,
+                    nodesSeen
+                );
+            }
+        }
+    }
+
+    private newLeafletMarker(fileMarker: FileMarker): leaflet.Marker {
+        let icon:
+            | leaflet.Icon<leaflet.ExtraMarkers.IconOptions>
+            | leaflet.DivIcon;
+        if (fileMarker.icon) {
+            icon = fileMarker.icon;
+        } else {
+            icon = new leaflet.Icon.Default();
+        }
+
+        let leafletMarker = leaflet.marker(fileMarker.location, {
+            icon: icon,
+            draggable: true,
+            autoPan: true,
         });
-        newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
+        leafletMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app))
-                this.showMarkerPopups(marker, newMarker);
+                this.showMarkerPopups(fileMarker, leafletMarker);
             else
                 this.goToMarker(
-                    marker,
+                    fileMarker,
                     utils.mouseEventToOpenMode(
                         this.settings,
                         event.originalEvent,
@@ -667,11 +897,11 @@ export class MapContainer {
                     true
                 );
         });
-        newMarker.on('mousedown', (event: leaflet.LeafletMouseEvent) => {
+        leafletMarker.on('mousedown', (event: leaflet.LeafletMouseEvent) => {
             // Middle click is supported only on mousedown and not on click, so we're checking for it here
             if (event.originalEvent.button === 1)
                 this.goToMarker(
-                    marker,
+                    fileMarker,
                     utils.mouseEventToOpenMode(
                         this.settings,
                         event.originalEvent,
@@ -680,22 +910,83 @@ export class MapContainer {
                     true
                 );
         });
-        newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+        leafletMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app))
-                this.showMarkerPopups(marker, newMarker);
+                this.showMarkerPopups(fileMarker, leafletMarker);
         });
-        newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
-            if (!utils.isMobile(this.app)) newMarker.closePopup();
+        leafletMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
+            if (!utils.isMobile(this.app)) leafletMarker.closePopup();
         });
-        newMarker.on('add', (event: leaflet.LeafletEvent) => {
-            newMarker
+        leafletMarker.on('add', (event: leaflet.LeafletEvent) => {
+            leafletMarker
                 .getElement()
                 .addEventListener('contextmenu', (ev: MouseEvent) => {
-                    this.openMarkerContextMenu(marker, newMarker, ev);
+                    this.openMarkerContextMenu(fileMarker, leafletMarker, ev);
                     ev.stopPropagation();
                 });
         });
-        return newMarker;
+        leafletMarker.on('move', (event: leaflet.LeafletEvent) => {
+            let oldMarkerLocation = fileMarker.location.toString();
+            let vertices = this.display.vertices;
+            if (vertices.has(oldMarkerLocation)) {
+                let vertexToUpdate = vertices.get(oldMarkerLocation);
+                let newLatLng = leafletMarker.getLatLng().clone();
+                for (let edge of vertexToUpdate) {
+                    if (edge.polyline) {
+                        if (edge.v1.toString() === oldMarkerLocation) {
+                            edge.v1 = newLatLng;
+                        } else if (edge.v2.toString() === oldMarkerLocation) {
+                            edge.v2 = newLatLng;
+                        }
+                        edge.polyline.remove();
+                        this.display.polylines = this.display.polylines.filter(
+                            (x) => x !== edge.polyline
+                        );
+                        let polyline = leaflet.polyline([edge.v1, edge.v2], {
+                            color: this.settings.edgeColor,
+                            weight: 1,
+                        });
+                        edge.polyline = polyline;
+                        polyline.addTo(this.display.map);
+                        this.display.polylines.push(polyline);
+                    }
+                }
+                fileMarker.location = newLatLng;
+                vertices.delete(oldMarkerLocation);
+                vertices.set(fileMarker.location.toString(), vertexToUpdate);
+            }
+        });
+        leafletMarker.on('moveend', async (event: leaflet.LeafletEvent) => {
+            const content = await this.app.vault.read(fileMarker.file);
+            let newLat = fileMarker.location.lat;
+            let newLng = fileMarker.location.lng;
+            if (fileMarker.isFrontmatterMarker) {
+                let parsed = frontMatter<FrontMatterAttributes>(content);
+                parsed.attributes.location = [newLat, newLng];
+                let updatedContent = `---\n${yaml.dump(
+                    parsed.attributes
+                )}---\n${parsed.body}`;
+                await this.app.vault.modify(fileMarker.file, updatedContent);
+            } else if (fileMarker.geolocationMatch?.groups) {
+                let groups = fileMarker.geolocationMatch?.groups;
+                let newGeoLocationText = '';
+                if (groups.name) {
+                    newGeoLocationText = `[${groups.name}](geo:${newLat},${newLng})`;
+                } else {
+                    newGeoLocationText = `\`location: [${newLat},${newLng}]`;
+                }
+                let oldGeolocationText = fileMarker.geolocationMatch[0];
+                let before = content.slice(0, fileMarker.fileLocation);
+                let after = content.slice(
+                    fileMarker.fileLocation + oldGeolocationText.length
+                );
+                await this.app.vault.modify(
+                    fileMarker.file,
+                    `${before}${newGeoLocationText}${after}`
+                );
+            }
+        });
+        return leafletMarker;
     }
 
     private openMarkerContextMenu(
