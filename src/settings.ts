@@ -64,6 +64,7 @@ export type PluginSettings = {
     queryForFollowActiveNote?: string;
     supportRealTimeGeolocation?: boolean;
     resizeResizableCircleMarkersBasedOnDegree?: boolean;
+    drawEdgesBetweenMarkers?: boolean;
     fixFrontMatterOnPaste?: boolean;
     geoHelperType?: GeoHelperType;
     geoHelperCommand?: string;
@@ -223,6 +224,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     queryForFollowActiveNote: 'path:"$PATH$"',
     supportRealTimeGeolocation: false,
     resizeResizableCircleMarkersBasedOnDegree: false,
+    drawEdgesBetweenMarkers: false,
     fixFrontMatterOnPaste: true,
     geoHelperType: 'url',
     geoHelperCommand: 'chrome',
