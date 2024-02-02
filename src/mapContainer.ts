@@ -734,7 +734,10 @@ export class MapContainer {
             this.display.vertices = new Map();
             for (let m of this.display.markers.values()) {
                 if (m instanceof FileMarker) {
-                    this.display.vertices.set(m.location.toString(), new Vertex(m));
+                    this.display.vertices.set(
+                        m.location.toString(),
+                        new Vertex(m)
+                    );
                 }
             }
 
@@ -763,7 +766,9 @@ export class MapContainer {
                 let m = v.marker;
                 if (m.geoLayer && m.hasResizableIcon()) {
                     let newIcon: leaflet.DivIcon;
-                    if (this.settings.resizeResizableCircleMarkersBasedOnDegree) {
+                    if (
+                        this.settings.resizeResizableCircleMarkersBasedOnDegree
+                    ) {
                         newIcon = createCircleMarkerBasedOnDegree(
                             m.backgroundColor,
                             m.iconClasses,

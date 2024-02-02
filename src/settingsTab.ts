@@ -1084,23 +1084,24 @@ export class SettingsTab extends PluginSettingTab {
             }
 
             new Setting(containerEl)
-            .setName('Enable the drawing of edges (lines) between markers (experimental)')
-            .setDesc(
-                'Draw edges (lines) between markers based on the [[links]] between files containing markers. If the map is open when this is toggled on/off, close and reopen the map.'
-            )
-            .addToggle((component) => {
-                component
-                    .setValue(
-                        this.plugin.settings
-                            .drawEdgesBetweenMarkers ??
-                            DEFAULT_SETTINGS.drawEdgesBetweenMarkers
-                    )
-                    .onChange(async (value) => {
-                        this.plugin.settings.drawEdgesBetweenMarkers =
-                            value;
-                        await this.plugin.saveSettings();
-                    });
-            });
+                .setName(
+                    'Enable the drawing of edges (lines) between markers (experimental)'
+                )
+                .setDesc(
+                    'Draw edges (lines) between markers based on the [[links]] between files containing markers. If the map is open when this is toggled on/off, close and reopen the map.'
+                )
+                .addToggle((component) => {
+                    component
+                        .setValue(
+                            this.plugin.settings.drawEdgesBetweenMarkers ??
+                                DEFAULT_SETTINGS.drawEdgesBetweenMarkers
+                        )
+                        .onChange(async (value) => {
+                            this.plugin.settings.drawEdgesBetweenMarkers =
+                                value;
+                            await this.plugin.saveSettings();
+                        });
+                });
 
             new Setting(containerEl)
                 .setName('Enable resizing of circle markers')
@@ -1136,7 +1137,7 @@ export class SettingsTab extends PluginSettingTab {
                             this.plugin.settings.edgeColor = value;
                             await this.plugin.saveSettings();
                         });
-                })
+                });
 
             let multiTagIconElement: HTMLElement = null;
             let testTagsBox: TextComponent = null;

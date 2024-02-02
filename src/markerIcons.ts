@@ -28,7 +28,7 @@ export function getIconFromRules(
 export function getIconFromOptions(
     iconSpec: leaflet.ExtraMarkers.IconOptions,
     iconCache: IconCache,
-    shape: any = null,
+    shape: any = null
 ): leaflet.Icon | leaflet.DivIcon {
     // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
     // @ts-ignore
@@ -36,12 +36,12 @@ export function getIconFromOptions(
     try {
         // If the shape is set to resizable-circle we will draw the circle marker itself. This makes it
         // possible to resize the marker (make it grow or shrink) based on the number of edges (lines)
-        // connected to a given node. Otherwise, we let leaflet.ExtraMarkers handle the drawing of marker 
+        // connected to a given node. Otherwise, we let leaflet.ExtraMarkers handle the drawing of marker
         // icons.
         if (shape === 'resizable-circle') {
             return createCircleMarker(iconSpec.markerColor, [
                 iconSpec.icon,
-                iconSpec.prefix
+                iconSpec.prefix,
             ]);
         } else {
             // @ts-ignore
