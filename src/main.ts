@@ -185,7 +185,7 @@ export default class MapViewPlugin extends Plugin {
                     // Allow templates in the embedded query, e.g. to automatically insert the file name
                     state.query = utils.formatEmbeddedWithTemplates(
                         state.query,
-                        ctx.sourcePath
+                        utils.escapeDoubleQuotes(ctx.sourcePath)
                     );
                     let map = new EmbeddedMap(
                         el,

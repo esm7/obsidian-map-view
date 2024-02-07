@@ -53,6 +53,12 @@ export function formatEmbeddedWithTemplates(s: string, fileName: string) {
     return replaced;
 }
 
+export function escapeDoubleQuotes(s: string) {
+    const escapePattern = /"/g;
+    const replaced = s.replace(escapePattern, '\\$&');
+    return replaced;
+}
+
 type NewNoteType = 'singleLocation' | 'multiLocation';
 
 const CURSOR = '$CURSOR$';
