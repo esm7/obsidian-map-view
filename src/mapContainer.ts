@@ -830,6 +830,7 @@ export class MapContainer {
         const file = source.file;
         const path = file.path;
         if (nodesSeen.has(path)) {
+            // a cycle (loop) has been detected; bail out.
             return;
         }
         nodesSeen.add(path);
