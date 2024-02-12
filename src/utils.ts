@@ -207,6 +207,44 @@ export async function modifyOrAddFrontMatterLocation(
     });
 }
 
+/**
+ * Update the inline geolocation
+ * @param app The Obsidian Editor instance
+ * @param file The TFile containing the location to update
+ * @param newLocation The new location to set
+ * @param geolocationMatch Regex match info related to the inline geolocation
+ * @param newLat The new latitude to set
+ * @param newLng The new longitude to set
+ */
+export async function updateInlineGeolocation(
+    app: App,
+    file: TFile,
+    fileLocation: number,
+    geolocationMatch: RegExpMatchArray,
+    newLat: number,
+    newLng: number
+): Promise<void> {
+    const content = await app.vault.read(file);
+    let groups = geolocationMatch?.groups;
+    if (groups) {
+        let newGeoLocationText = '';
+        if (groups.name) {
+            newGeoLocationText = `[${groups.name}](geo:${newLat},${newLng})`;
+        } else {
+            newGeoLocationText = `\`location: [${newLat},${newLng}]`;
+        }
+        let oldGeolocationText = geolocationMatch[0];
+        let before = content.slice(0, fileLocation);
+        let after = content.slice(
+            fileLocation + oldGeolocationText.length
+        );
+        await app.vault.modify(
+            file,
+            `${before}${newGeoLocationText}${after}`
+        );
+    }
+}
+
 export function replaceFollowActiveNoteQuery(
     file: TFile,
     settings: settings.PluginSettings

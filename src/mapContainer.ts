@@ -973,22 +973,7 @@ export class MapContainer {
                     [newLat, newLng]
                 );
             } else if (marker.geolocationMatch?.groups) {
-                let groups = marker.geolocationMatch?.groups;
-                let newGeoLocationText = '';
-                if (groups.name) {
-                    newGeoLocationText = `[${groups.name}](geo:${newLat},${newLng})`;
-                } else {
-                    newGeoLocationText = `\`location: [${newLat},${newLng}]`;
-                }
-                let oldGeolocationText = marker.geolocationMatch[0];
-                let before = content.slice(0, marker.fileLocation);
-                let after = content.slice(
-                    marker.fileLocation + oldGeolocationText.length
-                );
-                await this.app.vault.modify(
-                    marker.file,
-                    `${before}${newGeoLocationText}${after}`
-                );
+                await utils.updateInlineGeolocation(this.app, marker.file, marker.fileLocation, marker.geolocationMatch, newLat, newLng);
             }
         });
         return newMarker;
