@@ -89,19 +89,13 @@ export function createCircleMarker(
 ): leaflet.DivIcon {
     let circleStyle = `
         background-color: ${color ?? 'red'};
-        border: none;
-        border-radius: 50%;
         width: ${iconSize}px;
         height: ${iconSize}px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: white;
     `;
     let fontSize = Math.ceil(iconSize * 0.66);
     let circleIcon = leaflet.divIcon({
         className: '', // Disable default Leaflet icon styles
-        html: `<div style="${circleStyle}"><i style="font-size: ${fontSize}px;" class="${iconClasses.join(
+        html: `<div class="resizable-circle-marker" style="${circleStyle}"><i style="font-size: ${fontSize}px;" class="${iconClasses.join(
             ' '
         )}"></i></div>`,
         iconSize: [iconSize, iconSize],
