@@ -967,7 +967,11 @@ export class MapContainer {
             let newLat = marker.location.lat;
             let newLng = marker.location.lng;
             if (marker.isFrontmatterMarker) {
-               await utils.modifyOrAddFrontMatterLocation(this.app, marker.file, [newLat, newLng]);
+                await utils.modifyOrAddFrontMatterLocation(
+                    this.app,
+                    marker.file,
+                    [newLat, newLng]
+                );
             } else if (marker.geolocationMatch?.groups) {
                 let groups = marker.geolocationMatch?.groups;
                 let newGeoLocationText = '';
