@@ -191,6 +191,22 @@ export function verifyOrAddFrontMatterForInline(
     return verifyOrAddFrontMatter(editor, 'locations', '');
 }
 
+/**
+ * Update the location in the front matter
+ * @param app The Obsidian Editor instance
+ * @param file The TFile containing the location to update
+ * @param newLocation The new location to set
+ */
+export async function modifyOrAddFrontMatterLocation(
+    app: App,
+    file: TFile,
+    newLocation: any
+): Promise<void> {
+    await app.fileManager.processFrontMatter(file, (frontmatter: any) => {
+        frontmatter['location'] = newLocation;
+    });
+}
+
 export function replaceFollowActiveNoteQuery(
     file: TFile,
     settings: settings.PluginSettings

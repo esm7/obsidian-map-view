@@ -10,7 +10,6 @@ import {
     MenuItem,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
-import frontMatter from 'front-matter';
 import * as yaml from 'js-yaml';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
@@ -968,12 +967,7 @@ export class MapContainer {
             let newLat = marker.location.lat;
             let newLng = marker.location.lng;
             if (marker.isFrontmatterMarker) {
-                let parsed = frontMatter<FrontMatterAttributes>(content);
-                parsed.attributes.location = [newLat, newLng];
-                let updatedContent = `---\n${yaml.dump(
-                    parsed.attributes
-                )}---\n${parsed.body}`;
-                await this.app.vault.modify(marker.file, updatedContent);
+               await utils.modifyOrAddFrontMatterLocation(this.app, marker.file, [newLat, newLng]);
             } else if (marker.geolocationMatch?.groups) {
                 let groups = marker.geolocationMatch?.groups;
                 let newGeoLocationText = '';
