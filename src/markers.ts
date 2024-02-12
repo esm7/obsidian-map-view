@@ -64,6 +64,8 @@ export class FileMarker extends BaseGeoLayer {
     public geoLayer?: leaflet.Marker;
     public location: leaflet.LatLng;
     public icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
+    private _backgroundColor: string;
+    private _iconClasses: string[];
 
     /**
      * Construct a new FileMarker object
@@ -82,14 +84,20 @@ export class FileMarker extends BaseGeoLayer {
     }
 
     get backgroundColor(): string {
-        let htmlElement = this.parseHtml();
-        return htmlElement?.style?.backgroundColor;
+        if (!this._backgroundColor) {
+            let htmlElement = this.parseHtml();
+            this._backgroundColor = htmlElement?.style?.backgroundColor;
+        }
+        return this._backgroundColor;
     }
 
     get iconClasses(): string[] {
-        let htmlElement = this.parseHtml();
-        let firstIconElement = htmlElement?.querySelector('i');
-        return Array.from(firstIconElement?.classList || []);
+        if (!this._iconClasses) {
+            let htmlElement = this.parseHtml();
+            let firstIconElement = htmlElement?.querySelector('i');
+            this._iconClasses = Array.from(firstIconElement?.classList || []);
+        }
+        return this._iconClasses;
     }
 
     isSame(other: BaseGeoLayer): boolean {
