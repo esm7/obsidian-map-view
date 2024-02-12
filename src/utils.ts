@@ -235,13 +235,8 @@ export async function updateInlineGeolocation(
         }
         let oldGeolocationText = geolocationMatch[0];
         let before = content.slice(0, fileLocation);
-        let after = content.slice(
-            fileLocation + oldGeolocationText.length
-        );
-        await app.vault.modify(
-            file,
-            `${before}${newGeoLocationText}${after}`
-        );
+        let after = content.slice(fileLocation + oldGeolocationText.length);
+        await app.vault.modify(file, `${before}${newGeoLocationText}${after}`);
     }
 }
 

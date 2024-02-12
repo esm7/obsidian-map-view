@@ -973,7 +973,14 @@ export class MapContainer {
                     [newLat, newLng]
                 );
             } else if (marker.geolocationMatch?.groups) {
-                await utils.updateInlineGeolocation(this.app, marker.file, marker.fileLocation, marker.geolocationMatch, newLat, newLng);
+                await utils.updateInlineGeolocation(
+                    this.app,
+                    marker.file,
+                    marker.fileLocation,
+                    marker.geolocationMatch,
+                    newLat,
+                    newLng
+                );
             }
         });
         return newMarker;
