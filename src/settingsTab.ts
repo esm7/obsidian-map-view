@@ -1125,7 +1125,7 @@ export class SettingsTab extends PluginSettingTab {
             new Setting(containerEl)
                 .setName('Edge color')
                 .setDesc(
-                    'Set the color of the edges (lines) between nodes. The default color is red. This feature only applies if the experimental drawing of edges is enabled.'
+                    'Set the color of the edges (lines) between nodes. Both color names (ex. "red") and hex codes (ex. "#ff0000") are supported. This feature only applies if the experimental drawing of edges is enabled.'
                 )
                 .addText((component) => {
                     component
