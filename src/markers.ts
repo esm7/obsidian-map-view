@@ -25,7 +25,11 @@ export class Edge {
     /** The leaflet polyline of the edge */
     public polyline: leaflet.Polyline;
 
-    constructor(loc1: leaflet.LatLng, loc2: leaflet.LatLng, polyline: leaflet.Polyline = null) {
+    constructor(
+        loc1: leaflet.LatLng,
+        loc2: leaflet.LatLng,
+        polyline: leaflet.Polyline = null
+    ) {
         this.loc1 = loc1;
         this.loc2 = loc2;
         this.polyline = polyline;
@@ -34,7 +38,7 @@ export class Edge {
     toString() {
         return `${this.loc1.toString()}<<->>${this.loc2.toString()}`;
     }
-};
+}
 
 export abstract class BaseGeoLayer {
     public layerType: 'fileMarker';
@@ -322,7 +326,10 @@ export function finalizeMarkers(
             if (marker instanceof FileMarker) {
                 let path = marker.file.path;
                 if (!filesWithMarkersMap.has(path)) {
-                    filesWithMarkersMap.set(path, { file: marker.file, markers: [] });
+                    filesWithMarkersMap.set(path, {
+                        file: marker.file,
+                        markers: [],
+                    });
                 }
                 marker.removeEdges();
                 filesWithMarkersMap.get(path).markers.push(marker);
@@ -451,7 +458,7 @@ export function getFrontMatterLocation(file: TFile, app: App): leaflet.LatLng {
 function addEdgesToMarkers(
     markers: BaseGeoLayer[],
     filesWithMarkersMap: Map<string, FileWithMarkers>,
-    app: App,
+    app: App
 ) {
     let nodesSeen: Set<string> = new Set();
     for (let fileWithMarkers of filesWithMarkersMap.values()) {

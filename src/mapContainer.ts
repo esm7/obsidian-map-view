@@ -584,7 +584,12 @@ export class MapContainer {
             newMarkers = [];
             state.queryError = true;
         }
-        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache, this.app);
+        finalizeMarkers(
+            newMarkers,
+            this.settings,
+            this.plugin.iconCache,
+            this.app
+        );
         this.state = structuredClone(state);
 
         this.updateMapMarkers(newMarkers);
@@ -658,7 +663,7 @@ export class MapContainer {
             markersToRemove.push(value.geoLayer);
         }
         this.display.clusterGroup.removeLayers(markersToRemove);
-        this.clearPolylines(); 
+        this.clearPolylines();
         this.display.clusterGroup.addLayers(markersToAdd);
         this.display.markers = newMarkersMap;
 
@@ -666,13 +671,18 @@ export class MapContainer {
             let degrees: number[] = [];
             for (let marker of this.display.markers.values()) {
                 if (marker instanceof FileMarker) {
-                    if (marker.hasResizableIcon() && this.settings.resizeResizableCircleMarkersBasedOnDegree) {
+                    if (
+                        marker.hasResizableIcon() &&
+                        this.settings.resizeResizableCircleMarkersBasedOnDegree
+                    ) {
                         if (degrees.length == 0) {
-                            // build a sorted list of degrees. only build it once. 
+                            // build a sorted list of degrees. only build it once.
                             // this will be used to resize circle markers based on degree
                             degrees = [...this.display.markers.values()]
-                            .map((m) => m instanceof FileMarker ? m.degree : 0)
-                            .sort((a, b) => a - b);           
+                                .map((m) =>
+                                    m instanceof FileMarker ? m.degree : 0
+                                )
+                                .sort((a, b) => a - b);
                         }
                         let newIcon = createCircleMarkerBasedOnDegree(
                             marker.backgroundColor,
@@ -684,10 +694,13 @@ export class MapContainer {
                     }
                     // draw edges between markers
                     for (let edge of marker) {
-                        let polyline = leaflet.polyline([edge.loc1, edge.loc2], {
-                            color: this.settings.edgeColor,
-                            weight: 1,
-                        });
+                        let polyline = leaflet.polyline(
+                            [edge.loc1, edge.loc2],
+                            {
+                                color: this.settings.edgeColor,
+                                weight: 1,
+                            }
+                        );
                         edge.polyline = polyline;
                         polyline.addTo(this.display.map);
                         this.display.polylines.push(polyline);
@@ -780,15 +793,19 @@ export class MapContainer {
                             // this edge has been invalidated as a result of the drag operation.
                             // we need to remove it and redraw the leaflet polyline.
                             if (edge.polyline) {
-                                this.display.polylines = this.display.polylines.filter(
-                                    (x) => x !== edge.polyline
-                                );
+                                this.display.polylines =
+                                    this.display.polylines.filter(
+                                        (x) => x !== edge.polyline
+                                    );
                                 edge.polyline.remove();
                             }
-                            let newPolyline = leaflet.polyline([edge.loc1, edge.loc2], {
-                                color: this.settings.edgeColor,
-                                weight: 1,
-                            });
+                            let newPolyline = leaflet.polyline(
+                                [edge.loc1, edge.loc2],
+                                {
+                                    color: this.settings.edgeColor,
+                                    weight: 1,
+                                }
+                            );
                             edge.polyline = newPolyline;
                             newPolyline.addTo(this.display.map);
                             this.display.polylines.push(newPolyline);
@@ -796,10 +813,10 @@ export class MapContainer {
                     }
                 }
             }
-            marker.location = newLatLng;         
+            marker.location = newLatLng;
         });
         newMarker.on('moveend', async (event: leaflet.LeafletEvent) => {
-            const content = await this.app.vault.read(marker.file);  
+            const content = await this.app.vault.read(marker.file);
             let newLat = marker.location.lat;
             // if the user drags the marker to far, the longitude will exceed the threshold
             // if that happens, set the longitude to the max (back in bounds to prevent an exception)
@@ -811,7 +828,7 @@ export class MapContainer {
             if (newLng > consts.LNG_LIMITS[1]) {
                 newLng = consts.LNG_LIMITS[1];
             }
-            
+
             if (marker.isFrontmatterMarker) {
                 await utils.modifyOrAddFrontMatterLocation(
                     this.app,
@@ -1080,7 +1097,12 @@ export class MapContainer {
                 this.settings,
                 this.app
             );
-        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache, this.app);
+        finalizeMarkers(
+            newMarkers,
+            this.settings,
+            this.plugin.iconCache,
+            this.app
+        );
         this.updateMapMarkers(newMarkers);
     }
 
