@@ -667,27 +667,20 @@ export class MapContainer {
         this.display.clusterGroup.addLayers(markersToAdd);
         this.display.markers = newMarkersMap;
 
+        let locationDegreeMap = this.buildLocationDegreeMap();
+        let degrees = [...locationDegreeMap.values()].sort((a, b) => a - b);
         if (this.settings.drawEdgesBetweenMarkers) {
-            let degrees: number[] = [];
             for (let marker of this.display.markers.values()) {
                 if (marker instanceof FileMarker) {
                     if (
                         marker.hasResizableIcon() &&
                         this.settings.resizeResizableCircleMarkersBasedOnDegree
                     ) {
-                        if (degrees.length == 0) {
-                            // build a sorted list of degrees. only build it once.
-                            // this will be used to resize circle markers based on degree
-                            degrees = [...this.display.markers.values()]
-                                .map((m) =>
-                                    m instanceof FileMarker ? m.degree : 0
-                                )
-                                .sort((a, b) => a - b);
-                        }
                         let newIcon = createCircleMarkerBasedOnDegree(
                             marker.backgroundColor,
                             marker.iconClasses,
-                            marker.degree,
+                            locationDegreeMap.get(marker.location.toString()) ??
+                                0,
                             degrees
                         );
                         marker.geoLayer.setIcon(newIcon);
@@ -708,6 +701,34 @@ export class MapContainer {
                 }
             }
         }
+    }
+
+    private buildLocationDegreeMap(): Map<string, number> {
+        let locationDegreeMap: Map<string, number> = new Map();
+        for (let marker of this.display.markers.values()) {
+            if (marker instanceof FileMarker) {
+                for (let edge of marker) {
+                    let loc1 = edge.loc1.toString();
+                    if (!locationDegreeMap.has(loc1)) {
+                        locationDegreeMap.set(loc1, 0);
+                    }
+                    locationDegreeMap.set(
+                        loc1,
+                        locationDegreeMap.get(loc1) + 1
+                    );
+
+                    let loc2 = edge.loc2.toString();
+                    if (!locationDegreeMap.has(loc2)) {
+                        locationDegreeMap.set(loc2, 0);
+                    }
+                    locationDegreeMap.set(
+                        loc2,
+                        locationDegreeMap.get(loc2) + 1
+                    );
+                }
+            }
+        }
+        return locationDegreeMap;
     }
 
     private clearPolylines() {

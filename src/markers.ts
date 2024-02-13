@@ -129,10 +129,6 @@ export class FileMarker extends BaseGeoLayer {
         return this._iconClasses;
     }
 
-    get degree(): number {
-        return this._edges.length;
-    }
-
     [Symbol.iterator]() {
         let index = 0;
         return {
