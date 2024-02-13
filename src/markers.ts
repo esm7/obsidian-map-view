@@ -12,6 +12,30 @@ import wildcard from 'wildcard';
 
 type MarkerId = string;
 
+export type FileWithMarkers = {
+    file: TFile;
+    markers: FileMarker[];
+};
+
+export class Edge {
+    /** The first location of the edge */
+    public loc1: leaflet.LatLng;
+    /** The second location of the edge */
+    public loc2: leaflet.LatLng;
+    /** The leaflet polyline of the edge */
+    public polyline: leaflet.Polyline;
+
+    constructor(loc1: leaflet.LatLng, loc2: leaflet.LatLng, polyline: leaflet.Polyline = null) {
+        this.loc1 = loc1;
+        this.loc2 = loc2;
+        this.polyline = polyline;
+    }
+
+    toString() {
+        return `${this.loc1.toString()}<<->>${this.loc2.toString()}`;
+    }
+};
+
 export abstract class BaseGeoLayer {
     public layerType: 'fileMarker';
     /** The file object on which this location was found */
@@ -64,6 +88,7 @@ export class FileMarker extends BaseGeoLayer {
     public geoLayer?: leaflet.Marker;
     public location: leaflet.LatLng;
     public icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
+    private _edges: Edge[] = [];
     private _backgroundColor: string;
     private _iconClasses: string[];
 
@@ -98,6 +123,34 @@ export class FileMarker extends BaseGeoLayer {
             this._iconClasses = Array.from(firstIconElement?.classList || []);
         }
         return this._iconClasses;
+    }
+
+    get degree(): number {
+        return this._edges.length;
+    }
+
+    [Symbol.iterator]() {
+        let index = 0;
+        return {
+            next: () => {
+                if (index < this._edges.length) {
+                    return { value: this._edges[index++], done: false };
+                } else {
+                    return { done: true };
+                }
+            },
+        };
+    }
+
+    addEdge(edge: Edge) {
+        this._edges.push(edge);
+    }
+
+    removeEdges() {
+        for (let edge of this._edges) {
+            edge.polyline?.remove();
+        }
+        this._edges.length = 0;
     }
 
     isSame(other: BaseGeoLayer): boolean {
@@ -249,9 +302,10 @@ export async function buildMarkers(
 export function finalizeMarkers(
     markers: BaseGeoLayer[],
     settings: PluginSettings,
-    iconCache: IconCache
+    iconCache: IconCache,
+    app: App
 ) {
-    for (const marker of markers)
+    for (const marker of markers) {
         if (marker instanceof FileMarker) {
             marker.icon = getIconFromRules(
                 marker.tags,
@@ -261,11 +315,26 @@ export function finalizeMarkers(
         } else {
             throw 'Unsupported object type ' + marker.constructor.name;
         }
+    }
+    if (settings.drawEdgesBetweenMarkers) {
+        let filesWithMarkersMap: Map<string, FileWithMarkers> = new Map();
+        for (const marker of markers) {
+            if (marker instanceof FileMarker) {
+                let path = marker.file.path;
+                if (!filesWithMarkersMap.has(path)) {
+                    filesWithMarkersMap.set(path, { file: marker.file, markers: [] });
+                }
+                marker.removeEdges();
+                filesWithMarkersMap.get(path).markers.push(marker);
+            }
+        }
+        addEdgesToMarkers(markers, filesWithMarkersMap, app);
+    }
 }
 
 /**
  * Make sure that the coordinates are valid world coordinates
- * -90 <= longitude <= 90 and -180 <= latitude <= 180
+ * -90 <= latitude <= 90 and -180 <= longitude <= 180
  * @param location
  */
 export function verifyLocation(location: leaflet.LatLng) {
@@ -377,4 +446,72 @@ export function getFrontMatterLocation(file: TFile, app: App): leaflet.LatLng {
         }
     }
     return null;
+}
+
+function addEdgesToMarkers(
+    markers: BaseGeoLayer[],
+    filesWithMarkersMap: Map<string, FileWithMarkers>,
+    app: App,
+) {
+    let nodesSeen: Set<string> = new Set();
+    for (let fileWithMarkers of filesWithMarkersMap.values()) {
+        addEdgesFromFileWithMarkers(
+            markers,
+            fileWithMarkers,
+            filesWithMarkersMap,
+            app,
+            nodesSeen
+        );
+    }
+}
+
+function addEdgesFromFileWithMarkers(
+    markers: BaseGeoLayer[],
+    source: FileWithMarkers,
+    filesWithMarkersMap: Map<string, FileWithMarkers>,
+    app: App,
+    nodesSeen: Set<string>
+) {
+    const file = source.file;
+    const path = file.path;
+    if (nodesSeen.has(path)) {
+        // a cycle (loop) has been detected; bail out.
+        return;
+    }
+    nodesSeen.add(path);
+    const fileCache = app.metadataCache.getFileCache(file);
+    for (let link of fileCache?.links || []) {
+        let destination = app.metadataCache.getFirstLinkpathDest(
+            link.link,
+            path
+        );
+        if (destination?.path && filesWithMarkersMap.has(destination.path)) {
+            // both the source file and the destination file have markers;
+            // let's connect them and create edges
+            let destinationFileWithMarkers = filesWithMarkersMap.get(
+                destination.path
+            );
+            for (let sourceMarker of source.markers) {
+                for (let destinationMarker of destinationFileWithMarkers.markers) {
+                    let loc1 = new leaflet.LatLng(
+                        sourceMarker.location.lat,
+                        sourceMarker.location.lng
+                    );
+                    let loc2 = new leaflet.LatLng(
+                        destinationMarker.location.lat,
+                        destinationMarker.location.lng
+                    );
+                    sourceMarker.addEdge(new Edge(loc1, loc2));
+                }
+            }
+            // continue to traverse files and links recursively
+            addEdgesFromFileWithMarkers(
+                markers,
+                destinationFileWithMarkers,
+                filesWithMarkersMap,
+                app,
+                nodesSeen
+            );
+        }
+    }
 }

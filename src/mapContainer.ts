@@ -33,13 +33,14 @@ import {
     MarkersMap,
     BaseGeoLayer,
     FileMarker,
+    Edge,
+    FileWithMarkers,
     buildMarkers,
     buildAndAppendFileMarkers,
     finalizeMarkers,
 } from 'src/markers';
 import {
     getIconFromOptions,
-    createCircleMarker,
     createCircleMarkerBasedOnDegree,
 } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
@@ -80,61 +81,8 @@ export type ViewSettings = {
     skipAnimations?: boolean;
 };
 
-type Edge = {
-    v1: leaflet.LatLng;
-    v2: leaflet.LatLng;
-    polyline?: leaflet.Polyline;
-};
-
-type FileWithMarkers = {
-    file: TFile;
-    markers: FileMarker[];
-};
-
 interface FrontMatterAttributes {
     [key: string]: any; // This allows any property with string keys
-}
-
-class Vertex {
-    public marker: FileMarker;
-    private _edges: Edge[];
-
-    constructor(marker: FileMarker, edges: Edge[] = []) {
-        this.marker = marker;
-        this._edges = edges || [];
-    }
-
-    [Symbol.iterator]() {
-        let index = 0;
-        return {
-            next: () => {
-                if (index < this._edges.length) {
-                    return { value: this._edges[index++], done: false };
-                } else {
-                    return { done: true };
-                }
-            },
-        };
-    }
-
-    get degree(): number {
-        return this._edges.length;
-    }
-
-    get location(): leaflet.LatLng {
-        return this.marker?.location;
-    }
-
-    addEdge(edge: Edge) {
-        this._edges.push(edge);
-    }
-
-    removeEdges() {
-        for (let edge of this._edges) {
-            edge.polyline?.remove();
-        }
-        this._edges.length = 0;
-    }
 }
 
 export class MapContainer {
@@ -158,8 +106,6 @@ export class MapContainer {
         clusterGroup: leaflet.MarkerClusterGroup;
         /** The markers currently on the map */
         markers: MarkersMap = new Map();
-        /** The vertices currently on the map */
-        vertices: Map<string, Vertex> = new Map();
         /** The polylines currently on the map */
         polylines: leaflet.Polyline[] = [];
         /** The view controls */
@@ -638,7 +584,7 @@ export class MapContainer {
             newMarkers = [];
             state.queryError = true;
         }
-        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
+        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache, this.app);
         this.state = structuredClone(state);
 
         this.updateMapMarkers(newMarkers);
@@ -712,86 +658,41 @@ export class MapContainer {
             markersToRemove.push(value.geoLayer);
         }
         this.display.clusterGroup.removeLayers(markersToRemove);
-        this.clearPolylines();
+        this.clearPolylines(); 
         this.display.clusterGroup.addLayers(markersToAdd);
         this.display.markers = newMarkersMap;
 
         if (this.settings.drawEdgesBetweenMarkers) {
-            // create a mapping from file to markers
-            let fileMarkerMap: Map<string, FileWithMarkers> = new Map();
+            let degrees: number[] = [];
             for (let marker of this.display.markers.values()) {
                 if (marker instanceof FileMarker) {
-                    let path = marker.file.path;
-                    let file = marker.file;
-                    if (!fileMarkerMap.has(path)) {
-                        fileMarkerMap.set(path, { file: file, markers: [] });
-                    }
-                    fileMarkerMap.get(path).markers.push(marker);
-                }
-            }
-
-            this.display.vertices = new Map();
-            for (let m of this.display.markers.values()) {
-                if (m instanceof FileMarker) {
-                    this.display.vertices.set(
-                        m.location.toString(),
-                        new Vertex(m)
-                    );
-                }
-            }
-
-            let edges = this.generateEdgesFromFilesWithMarkers(fileMarkerMap);
-            // remove all edges which have lost one or more vertices
-            // but if the edge is still valid, add it to each of its vertices.
-            for (let [k, edge] of edges) {
-                let [v1, v2] = k.split('<<->>');
-                if (
-                    this.display.vertices.has(v1) &&
-                    this.display.vertices.has(v2)
-                ) {
-                    this.display.vertices.get(v1).addEdge(edge);
-                    this.display.vertices.get(v2).addEdge(edge);
-                } else {
-                    // I don't think should ever happen...
-                    edges.delete(k);
-                }
-            }
-
-            let degrees = [...this.display.vertices.values()]
-                .map((v) => v.degree)
-                .sort((a, b) => a - b);
-            // update vertices sizes based on degree percentile
-            for (let v of this.display.vertices.values()) {
-                let m = v.marker;
-                if (m.geoLayer && m.hasResizableIcon()) {
-                    let newIcon: leaflet.DivIcon;
-                    if (
-                        this.settings.resizeResizableCircleMarkersBasedOnDegree
-                    ) {
-                        newIcon = createCircleMarkerBasedOnDegree(
-                            m.backgroundColor,
-                            m.iconClasses,
-                            v.degree,
+                    if (marker.hasResizableIcon() && this.settings.resizeResizableCircleMarkersBasedOnDegree) {
+                        if (degrees.length == 0) {
+                            // build a sorted list of degrees. only build it once. 
+                            // this will be used to resize circle markers based on degree
+                            degrees = [...this.display.markers.values()]
+                            .map((m) => m instanceof FileMarker ? m.degree : 0)
+                            .sort((a, b) => a - b);           
+                        }
+                        let newIcon = createCircleMarkerBasedOnDegree(
+                            marker.backgroundColor,
+                            marker.iconClasses,
+                            marker.degree,
                             degrees
                         );
-                    } else {
-                        newIcon = createCircleMarker(
-                            m.backgroundColor,
-                            m.iconClasses
-                        );
+                        marker.geoLayer.setIcon(newIcon);
                     }
-                    m.geoLayer.setIcon(newIcon);
+                    // draw edges between markers
+                    for (let edge of marker) {
+                        let polyline = leaflet.polyline([edge.loc1, edge.loc2], {
+                            color: this.settings.edgeColor,
+                            weight: 1,
+                        });
+                        edge.polyline = polyline;
+                        polyline.addTo(this.display.map);
+                        this.display.polylines.push(polyline);
+                    }
                 }
-            }
-
-            for (let edge of edges.values()) {
-                let polyline = leaflet.polyline([edge.v1, edge.v2], {
-                    color: this.settings.edgeColor,
-                    weight: 1,
-                });
-                edge.polyline = polyline;
-                polyline.addTo(this.display.map);
-                this.display.polylines.push(polyline);
             }
         }
     }
@@ -802,76 +703,6 @@ export class MapContainer {
             p.remove();
         }
         this.display.polylines.length = 0;
-    }
-
-    private generateEdgesFromFilesWithMarkers(
-        fileMarkerMap: Map<string, FileWithMarkers>
-    ): Map<string, Edge> {
-        let nodesSeen: Set<string> = new Set();
-        let edges: Map<string, Edge> = new Map();
-        for (let [k, fwm] of fileMarkerMap) {
-            this.generateEdgesFromFileWithMarkers(
-                fwm,
-                fileMarkerMap,
-                edges,
-                nodesSeen
-            );
-        }
-        return edges;
-    }
-
-    private generateEdgesFromFileWithMarkers(
-        source: FileWithMarkers,
-        fileMarkerMap: Map<string, FileWithMarkers>,
-        edges: Map<string, Edge>,
-        nodesSeen: Set<string>
-    ) {
-        const file = source.file;
-        const path = file.path;
-        if (nodesSeen.has(path)) {
-            // a cycle (loop) has been detected; bail out.
-            return;
-        }
-        nodesSeen.add(path);
-        const fileCache = this.app.metadataCache.getFileCache(file);
-        for (let link of fileCache?.links || []) {
-            let destination = this.app.metadataCache.getFirstLinkpathDest(
-                link.link,
-                path
-            );
-            if (destination?.path && fileMarkerMap.has(destination.path)) {
-                // both the source file and the destination file have markers;
-                // let's connect them and create edges
-                let destinationFileWithMarkers = fileMarkerMap.get(
-                    destination.path
-                );
-                for (let sourceMarker of source.markers) {
-                    for (let destinationMarker of destinationFileWithMarkers.markers) {
-                        let edge: Edge = {
-                            v1: new leaflet.LatLng(
-                                sourceMarker.location.lat,
-                                sourceMarker.location.lng
-                            ),
-                            v2: new leaflet.LatLng(
-                                destinationMarker.location.lat,
-                                destinationMarker.location.lng
-                            ),
-                        };
-                        edges.set(
-                            `${edge.v1.toString()}<<->>${edge.v2.toString()}`,
-                            edge
-                        );
-                    }
-                }
-                // continue to traverse files and links recursively
-                this.generateEdgesFromFileWithMarkers(
-                    destinationFileWithMarkers,
-                    fileMarkerMap,
-                    edges,
-                    nodesSeen
-                );
-            }
-        }
     }
 
     private newLeafletMarker(marker: FileMarker): leaflet.Marker {
@@ -887,7 +718,7 @@ export class MapContainer {
         let newMarker = leaflet.marker(marker.location, {
             icon: icon,
             draggable: this.settings.drawEdgesBetweenMarkers,
-            autoPan: this.settings.drawEdgesBetweenMarkers,
+            autoPan: false,
         });
         newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app))
@@ -933,39 +764,54 @@ export class MapContainer {
         });
         newMarker.on('move', (event: leaflet.LeafletEvent) => {
             let oldMarkerLocation = marker.location.toString();
-            let vertices = this.display.vertices;
-            if (vertices.has(oldMarkerLocation)) {
-                let vertexToUpdate = vertices.get(oldMarkerLocation);
-                let newLatLng = newMarker.getLatLng().clone();
-                for (let edge of vertexToUpdate) {
-                    if (edge.polyline) {
-                        if (edge.v1.toString() === oldMarkerLocation) {
-                            edge.v1 = newLatLng;
-                        } else if (edge.v2.toString() === oldMarkerLocation) {
-                            edge.v2 = newLatLng;
+            let newLatLng = newMarker.getLatLng().clone();
+            for (let m of this.display.markers.values()) {
+                if (m instanceof FileMarker) {
+                    for (let edge of m) {
+                        let edgeDirty = false;
+                        if (edge.loc1.toString() == oldMarkerLocation) {
+                            edge.loc1 = newLatLng;
+                            edgeDirty = true;
+                        } else if (edge.loc2.toString() == oldMarkerLocation) {
+                            edge.loc2 = newLatLng;
+                            edgeDirty = true;
                         }
-                        edge.polyline.remove();
-                        this.display.polylines = this.display.polylines.filter(
-                            (x) => x !== edge.polyline
-                        );
-                        let polyline = leaflet.polyline([edge.v1, edge.v2], {
-                            color: this.settings.edgeColor,
-                            weight: 1,
-                        });
-                        edge.polyline = polyline;
-                        polyline.addTo(this.display.map);
-                        this.display.polylines.push(polyline);
+                        if (edgeDirty) {
+                            // this edge has been invalidated as a result of the drag operation.
+                            // we need to remove it and redraw the leaflet polyline.
+                            if (edge.polyline) {
+                                this.display.polylines = this.display.polylines.filter(
+                                    (x) => x !== edge.polyline
+                                );
+                                edge.polyline.remove();
+                            }
+                            let newPolyline = leaflet.polyline([edge.loc1, edge.loc2], {
+                                color: this.settings.edgeColor,
+                                weight: 1,
+                            });
+                            edge.polyline = newPolyline;
+                            newPolyline.addTo(this.display.map);
+                            this.display.polylines.push(newPolyline);
+                        }
                     }
                 }
-                marker.location = newLatLng;
-                vertices.delete(oldMarkerLocation);
-                vertices.set(marker.location.toString(), vertexToUpdate);
             }
+            marker.location = newLatLng;         
         });
         newMarker.on('moveend', async (event: leaflet.LeafletEvent) => {
-            const content = await this.app.vault.read(marker.file);
+            const content = await this.app.vault.read(marker.file);  
             let newLat = marker.location.lat;
+            // if the user drags the marker to far, the longitude will exceed the threshold
+            // if that happens, set the longitude to the max (back in bounds to prevent an exception)
+            // leaflet seems to protect against drags beyond the latitude threshold.
             let newLng = marker.location.lng;
+            if (newLng < consts.LNG_LIMITS[0]) {
+                newLng = consts.LNG_LIMITS[0];
+            }
+            if (newLng > consts.LNG_LIMITS[1]) {
+                newLng = consts.LNG_LIMITS[1];
+            }
+            
             if (marker.isFrontmatterMarker) {
                 await utils.modifyOrAddFrontMatterLocation(
                     this.app,
@@ -1234,7 +1080,7 @@ export class MapContainer {
                 this.settings,
                 this.app
             );
-        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
+        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache, this.app);
         this.updateMapMarkers(newMarkers);
     }
 
