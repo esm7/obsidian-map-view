@@ -332,7 +332,12 @@ export function finalizeMarkers(
                 filesWithMarkersMap.get(path).markers.push(marker);
             }
         }
-        addEdgesToMarkers(markers, filesWithMarkersMap, app, settings.linkDepthForEdges);
+        addEdgesToMarkers(
+            markers,
+            filesWithMarkersMap,
+            app,
+            settings.linkDepthForEdges
+        );
     }
 }
 
@@ -500,9 +505,9 @@ function addEdgesFromFileWithMarkers(
             );
             // Only continue building edges if we have not yet reached the configured link depth.
             // If the depth has been reached, we don't want to bail out, however, so that this entire
-            // "connected component" (subgraph) is traversed. That way, all the nodes of this subgraph 
+            // "connected component" (subgraph) is traversed. That way, all the nodes of this subgraph
             // will be logged in the nodesSeen Set, and not visited again as we loop through the overall
-            // (possibly disconnected) graph. The notes and their various links often form a series of 
+            // (possibly disconnected) graph. The notes and their various links often form a series of
             // independent graphs.
             if (linkDepth > 0) {
                 // build edges and store them in the markers...

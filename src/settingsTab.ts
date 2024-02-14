@@ -1101,9 +1101,7 @@ export class SettingsTab extends PluginSettingTab {
                 });
 
             new Setting(containerEl)
-                .setName(
-                    'Depth of links to show'
-                )
+                .setName('Depth of links to show')
                 .setDesc(
                     'Maximum depth for which to draw edges. A value of 1 means that only direct link edges will be drawn.'
                 )
@@ -1122,24 +1120,24 @@ export class SettingsTab extends PluginSettingTab {
                 });
 
             new Setting(containerEl)
-            .setName(
-                'Enable the drawing of edges (lines) between markers (experimental)'
-            )
-            .setDesc(
-                'Draw edges (lines) between markers based on the [[links]] between files containing markers. If the map is open when this is toggled on/off, close and reopen the map.'
-            )
-            .addToggle((component) => {
-                component
-                    .setValue(
-                        this.plugin.settings.drawEdgesBetweenMarkers ??
-                            DEFAULT_SETTINGS.drawEdgesBetweenMarkers
-                    )
-                    .onChange(async (value) => {
-                        this.plugin.settings.drawEdgesBetweenMarkers =
-                            value;
-                        await this.plugin.saveSettings();
-                    });
-            });
+                .setName(
+                    'Enable the drawing of edges (lines) between markers (experimental)'
+                )
+                .setDesc(
+                    'Draw edges (lines) between markers based on the [[links]] between files containing markers. If the map is open when this is toggled on/off, close and reopen the map.'
+                )
+                .addToggle((component) => {
+                    component
+                        .setValue(
+                            this.plugin.settings.drawEdgesBetweenMarkers ??
+                                DEFAULT_SETTINGS.drawEdgesBetweenMarkers
+                        )
+                        .onChange(async (value) => {
+                            this.plugin.settings.drawEdgesBetweenMarkers =
+                                value;
+                            await this.plugin.saveSettings();
+                        });
+                });
 
             new Setting(containerEl)
                 .setName('Enable resizing of circle markers')
