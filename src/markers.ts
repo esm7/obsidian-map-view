@@ -9,6 +9,7 @@ import * as consts from 'src/consts';
 import * as regex from 'src/regex';
 import { djb2Hash } from 'src/utils';
 import wildcard from 'wildcard';
+import { settings } from 'cluster';
 
 type MarkerId = string;
 
@@ -331,7 +332,7 @@ export function finalizeMarkers(
                 filesWithMarkersMap.get(path).markers.push(marker);
             }
         }
-        addEdgesToMarkers(markers, filesWithMarkersMap, app);
+        addEdgesToMarkers(markers, filesWithMarkersMap, app, settings.linkDepthForEdges);
     }
 }
 
@@ -454,7 +455,8 @@ export function getFrontMatterLocation(file: TFile, app: App): leaflet.LatLng {
 function addEdgesToMarkers(
     markers: BaseGeoLayer[],
     filesWithMarkersMap: Map<string, FileWithMarkers>,
-    app: App
+    app: App,
+    linkDepth: number
 ) {
     let nodesSeen: Set<string> = new Set();
     for (let fileWithMarkers of filesWithMarkersMap.values()) {
@@ -463,7 +465,8 @@ function addEdgesToMarkers(
             fileWithMarkers,
             filesWithMarkersMap,
             app,
-            nodesSeen
+            nodesSeen,
+            linkDepth
         );
     }
 }
@@ -473,12 +476,13 @@ function addEdgesFromFileWithMarkers(
     source: FileWithMarkers,
     filesWithMarkersMap: Map<string, FileWithMarkers>,
     app: App,
-    nodesSeen: Set<string>
+    nodesSeen: Set<string>,
+    linkDepth: number
 ) {
     const file = source.file;
     const path = file.path;
     if (nodesSeen.has(path)) {
-        // a cycle (loop) has been detected; bail out.
+        // bail out if a cycle (loop) has been detected
         return;
     }
     nodesSeen.add(path);
@@ -494,17 +498,26 @@ function addEdgesFromFileWithMarkers(
             let destinationFileWithMarkers = filesWithMarkersMap.get(
                 destination.path
             );
-            for (let sourceMarker of source.markers) {
-                for (let destinationMarker of destinationFileWithMarkers.markers) {
-                    let loc1 = new leaflet.LatLng(
-                        sourceMarker.location.lat,
-                        sourceMarker.location.lng
-                    );
-                    let loc2 = new leaflet.LatLng(
-                        destinationMarker.location.lat,
-                        destinationMarker.location.lng
-                    );
-                    sourceMarker.addEdge(new Edge(loc1, loc2));
+            // Only continue building edges if we have not yet reached the configured link depth.
+            // If the depth has been reached, we don't want to bail out, however, so that this entire
+            // "connected component" (subgraph) is traversed. That way, all the nodes of this subgraph 
+            // will be logged in the nodesSeen Set, and not visited again as we loop through the overall
+            // (possibly disconnected) graph. The notes and their various links often form a series of 
+            // independent graphs.
+            if (linkDepth > 0) {
+                // build edges and store them in the markers...
+                for (let sourceMarker of source.markers) {
+                    for (let destinationMarker of destinationFileWithMarkers.markers) {
+                        let loc1 = new leaflet.LatLng(
+                            sourceMarker.location.lat,
+                            sourceMarker.location.lng
+                        );
+                        let loc2 = new leaflet.LatLng(
+                            destinationMarker.location.lat,
+                            destinationMarker.location.lng
+                        );
+                        sourceMarker.addEdge(new Edge(loc1, loc2));
+                    }
                 }
             }
             // continue to traverse files and links recursively
@@ -513,7 +526,8 @@ function addEdgesFromFileWithMarkers(
                 destinationFileWithMarkers,
                 filesWithMarkersMap,
                 app,
-                nodesSeen
+                nodesSeen,
+                linkDepth - 1
             );
         }
     }

@@ -66,6 +66,7 @@ export type PluginSettings = {
     resizeResizableCircleMarkersBasedOnDegree?: boolean;
     drawEdgesBetweenMarkers?: boolean;
     allowMarkerDragging?: boolean;
+    linkDepthForEdges: number;
     fixFrontMatterOnPaste?: boolean;
     geoHelperType?: GeoHelperType;
     geoHelperCommand?: string;
@@ -227,6 +228,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     resizeResizableCircleMarkersBasedOnDegree: false,
     drawEdgesBetweenMarkers: false,
     allowMarkerDragging: false,
+    linkDepthForEdges: 50,
     fixFrontMatterOnPaste: true,
     geoHelperType: 'url',
     geoHelperCommand: 'chrome',

@@ -839,8 +839,9 @@ export class MapContainer {
         newMarker.on('moveend', async (event: leaflet.LeafletEvent) => {
             const content = await this.app.vault.read(marker.file);
             let newLat = marker.location.lat;
-            // if the user drags the marker to far, the longitude will exceed the threshold
-            // if that happens, set the longitude to the max (back in bounds to prevent an exception)
+            // if the user drags the marker too far, the longitude will exceed the threshold, an 
+            // exception will be thrown, and the marker will disappear.
+            // if the threshold is exceeded, set the longitude back to the max (back in bounds).
             // leaflet seems to protect against drags beyond the latitude threshold.
             let newLng = marker.location.lng;
             if (newLng < consts.LNG_LIMITS[0]) {
@@ -849,7 +850,6 @@ export class MapContainer {
             if (newLng > consts.LNG_LIMITS[1]) {
                 newLng = consts.LNG_LIMITS[1];
             }
-
             if (marker.isFrontmatterMarker) {
                 await utils.modifyOrAddFrontMatterLocation(
                     this.app,
