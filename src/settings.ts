@@ -65,6 +65,7 @@ export type PluginSettings = {
     supportRealTimeGeolocation?: boolean;
     resizeResizableCircleMarkersBasedOnDegree?: boolean;
     drawEdgesBetweenMarkers?: boolean;
+    allowMarkerDragging? : boolean;
     fixFrontMatterOnPaste?: boolean;
     geoHelperType?: GeoHelperType;
     geoHelperCommand?: string;
@@ -225,6 +226,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     supportRealTimeGeolocation: false,
     resizeResizableCircleMarkersBasedOnDegree: false,
     drawEdgesBetweenMarkers: false,
+    allowMarkerDragging: false,
     fixFrontMatterOnPaste: true,
     geoHelperType: 'url',
     geoHelperCommand: 'chrome',

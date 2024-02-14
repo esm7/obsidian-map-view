@@ -416,3 +416,26 @@ export function populateRouting(
         }
     }
 }
+
+export function populateDraggingOptions(
+    menu: Menu,
+    fileMarker: FileMarker,
+) {
+    let title = fileMarker.geoLayer?.dragging?.enabled() ? 'Disable dragging': 'Enable dragging';
+    let icon = fileMarker.geoLayer?.dragging?.enabled() ? 'lock': 'unlock';
+    menu.addItem((item: MenuItem) => {
+        item.setTitle(title);
+        item.setSection('mapview');
+        item.setIcon(icon);
+        item.onClick(() => {
+            let leafletMarker = fileMarker.geoLayer;
+            if (leafletMarker?.dragging) {
+                if (leafletMarker.dragging.enabled()) {
+                    leafletMarker.dragging.disable();
+                } else {
+                    leafletMarker.dragging.enable();
+                }
+            }
+        });
+    });  
+}

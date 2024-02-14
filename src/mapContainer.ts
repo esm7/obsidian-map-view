@@ -751,9 +751,9 @@ export class MapContainer {
 
         let newMarker = leaflet.marker(marker.location, {
             icon: icon,
-            draggable: this.settings.drawEdgesBetweenMarkers,
-            autoPan: false,
+            autoPan: true,
         });
+        
         newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app))
                 this.showMarkerPopups(marker, newMarker);
@@ -886,6 +886,9 @@ export class MapContainer {
                 this.settings
             );
             menus.populateOpenInItems(mapPopup, marker.location, this.settings);
+            if (this.settings.allowMarkerDragging) {
+                menus.populateDraggingOptions(mapPopup, marker);
+            }
         }
         if (ev) mapPopup.showAtPosition(ev);
     }
