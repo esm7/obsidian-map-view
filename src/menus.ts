@@ -417,12 +417,11 @@ export function populateRouting(
     }
 }
 
-export function populateDraggingOptions(
-    menu: Menu,
-    fileMarker: FileMarker,
-) {
-    let title = fileMarker.geoLayer?.dragging?.enabled() ? 'Disable dragging': 'Enable dragging';
-    let icon = fileMarker.geoLayer?.dragging?.enabled() ? 'lock': 'unlock';
+export function populateDraggingOptions(menu: Menu, fileMarker: FileMarker) {
+    let title = fileMarker.geoLayer?.dragging?.enabled()
+        ? 'Disable dragging'
+        : 'Enable dragging';
+    let icon = fileMarker.geoLayer?.dragging?.enabled() ? 'lock' : 'unlock';
     menu.addItem((item: MenuItem) => {
         item.setTitle(title);
         item.setSection('mapview');
@@ -437,5 +436,5 @@ export function populateDraggingOptions(
                 }
             }
         });
-    });  
+    });
 }

@@ -1084,24 +1084,21 @@ export class SettingsTab extends PluginSettingTab {
             }
 
             new Setting(containerEl)
-            .setName(
-                'Enable the dragging of markers (experimental)'
-            )
-            .setDesc(
-                'Allow the dragging of markers to new locations on the map. Front matter and inline geolocations will be updated appropriately once the drag operation completes.'
-            )
-            .addToggle((component) => {
-                component
-                    .setValue(
-                        this.plugin.settings.allowMarkerDragging ??
-                            DEFAULT_SETTINGS.allowMarkerDragging
-                    )
-                    .onChange(async (value) => {
-                        this.plugin.settings.allowMarkerDragging =
-                            value;
-                        await this.plugin.saveSettings();
-                    });
-            });
+                .setName('Enable the dragging of markers (experimental)')
+                .setDesc(
+                    'Allow the dragging of markers to new locations on the map. Front matter and inline geolocations will be updated appropriately once the drag operation completes.'
+                )
+                .addToggle((component) => {
+                    component
+                        .setValue(
+                            this.plugin.settings.allowMarkerDragging ??
+                                DEFAULT_SETTINGS.allowMarkerDragging
+                        )
+                        .onChange(async (value) => {
+                            this.plugin.settings.allowMarkerDragging = value;
+                            await this.plugin.saveSettings();
+                        });
+                });
 
             new Setting(containerEl)
                 .setName(

@@ -65,7 +65,7 @@ export type PluginSettings = {
     supportRealTimeGeolocation?: boolean;
     resizeResizableCircleMarkersBasedOnDegree?: boolean;
     drawEdgesBetweenMarkers?: boolean;
-    allowMarkerDragging? : boolean;
+    allowMarkerDragging?: boolean;
     fixFrontMatterOnPaste?: boolean;
     geoHelperType?: GeoHelperType;
     geoHelperCommand?: string;

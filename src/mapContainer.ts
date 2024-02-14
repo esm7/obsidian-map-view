@@ -753,7 +753,7 @@ export class MapContainer {
             icon: icon,
             autoPan: true,
         });
-        
+
         newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app))
                 this.showMarkerPopups(marker, newMarker);
