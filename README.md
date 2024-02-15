@@ -35,6 +35,8 @@
     -   [GPS Location Support](#gps-location-support)
     -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
     -   [Changelog](#changelog)
+        -   [5.0.0](#500)
+        -   [4.0.1](#401)
         -   [4.0.0](#400)
         -   [3.1.1](#311)
         -   [3.0.2](#302)
@@ -49,7 +51,6 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri Jul 28 09:51:19 AM IDT 2023 -->
 
 <!--te-->
 
@@ -206,12 +207,13 @@ First is a location tag in a note's [front matter](https://help.obsidian.md/Adva
 
 ```yaml
 ---
-location: [40.6892494, -74.0466891]
+location: '40.6892494, -74.0466891'
 ---
 ```
 
 This is useful for notes that represent a single specific location.
-It's also compatible with the way other useful plugins like [obsidian-leaflet](https://github.com/valentine195/obsidian-leaflet-plugin) read locations, and allows some interoperability.
+
+There is an alternative syntax used by Map View previously: `location: [40.6892494, -74.0466891]`. While this format is compatible with [obsidian-leaflet](https://github.com/valentine195/obsidian-leaflet-plugin), it doesn't play very well with Obsidian's property editor. Both format are supported by the new one is encouraged for Obsidian version 1.4 and above.
 
 Another way that the plugin parses location data is through **inline location URLs** in the format of `[link-name](geo:40.68,-74.04)`, which allow multiple markers in the same note.
 To prevent the need to scan the full content of all your notes, it requires an empty `locations:` tag in the note front matter ('locations' and not 'location').
@@ -398,7 +400,7 @@ In all cases you can [save presets](#Presets) that include the filter or sub-fil
 Map View allows you to customize notes' map marker icons based on a powerful rules system.
 These rules can be edited using the plugin's settings pane or edited as JSON for some even more fine-grained control.
 
-Icons are based on [Font Awesome](https://fontawesome.com/), so to add a marker icon you'll need to find its name in the Font Awesome catalog.
+Icons are based on either [emojis](https://emojipedia.org) or [Font Awesome](https://fontawesome.com/), so to add a marker icon you'll need to copy the emoji or find the name in the Font Awesome catalog.
 Additionally, there are various marker properties (shape, color and more) that are based on [Leaflet.ExtraMarkers](https://github.com/coryasilva/Leaflet.ExtraMarkers#properties).
 
 To change the map marker icons for your notes, go to the Map View settings and scroll to Marker Icon Rules.
@@ -415,6 +417,7 @@ A single marker is defined in the following JSON structure:
 To add a marker with a bus icon, click New Icon Rule, search Font Awesome (in the link above) for 'bus', choose [this icon](https://fontawesome.com/v5.15/icons/bus?style=solid), then see that its name is `fa-bus`.
 Once you enter `fa-bus` in the icon name, you should immediately see your icon in the preview.
 To make this icon apply for notes with the `#travel` tag, type `#travel` in the Tag Name box.
+Alternatively, just paste an emoji of a bus (e.g. from [Emojipedia](https://emojipedia.org)) into the icon name box.
 
 ### Tag Rules
 
@@ -617,6 +620,22 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 5.0.0
+
+-   New format for front matter location, plays better with Obsidian's property editor in case you want to edit geolocations manually.
+-   The key to use for front matter geolocation is now configurable (https://github.com/esm7/obsidian-map-view/issues/195)
+-   Names containing slashes are now sanitized and handled properly (https://github.com/esm7/obsidian-map-view/issues/207)
+-   Inline tags are now part of filter suggestions (https://github.com/esm7/obsidian-map-view/issues/225)
+-   Emojis for map markers (TODO document and finish)
+-   The actions from a search marker context menu now use the geolocation of the marker rather than the mouse.
+-   Font Awesome 6.5.1 and a revamp to how it is used. POSSIBLE BUGS HERE
+-   Map View now requires Obsidian 1.5.0 or newer.
+
+### 4.0.1
+
+-   Fixed support for innerHTML in icon rules (https://github.com/esm7/obsidian-map-view/issues/183).
+-   Fixed some Android issues
 
 ### 4.0.0
 

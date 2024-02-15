@@ -14,6 +14,7 @@ import * as path from 'path';
 import * as settings from './settings';
 import * as consts from './consts';
 import { BaseMapView } from './baseMapView';
+import MapViewPlugin from 'src/main';
 
 /**
  * An ordered stack (latest first) of the latest used leaves.
@@ -53,12 +54,18 @@ export function formatEmbeddedWithTemplates(s: string, fileName: string) {
     return replaced;
 }
 
+export function escapeDoubleQuotes(s: string) {
+    const escapePattern = /"/g;
+    const replaced = s.replace(escapePattern, '\\$&');
+    return replaced;
+}
+
 type NewNoteType = 'singleLocation' | 'multiLocation';
 
 const CURSOR = '$CURSOR$';
 
 function sanitizeFileName(s: string) {
-    const illegalChars = /[\?<>:\*\|":]/g;
+    const illegalChars = /[\/\?<>:\*\|":]/g;
     return s.replace(illegalChars, '-');
 }
 
@@ -77,12 +84,13 @@ export async function newNote(
     directory: string,
     fileName: string,
     location: string,
+    frontMatterKey: string,
     templatePath?: string
 ): Promise<[TFile, number]> {
     // `$CURSOR$` is used to set the cursor
     let content =
         newNoteType === 'singleLocation'
-            ? `---\nlocation: [${location}]\n---\n\n${CURSOR}`
+            ? `---\n${frontMatterKey}: "${location}"\n---\n\n${CURSOR}`
             : `---\nlocations:\n---\n\n\[${CURSOR}](geo:${location})\n`;
     let templateContent = '';
     if (templatePath && templatePath.length > 0)
@@ -142,43 +150,31 @@ export async function goToEditorLocation(
 
 // Creates or modifies a front matter that has the field `fieldName: fieldValue`.
 // Returns true if a change to the note was made.
-export function verifyOrAddFrontMatter(
+export async function verifyOrAddFrontMatter(
+    app: App,
     editor: Editor,
+    file: TFile,
     fieldName: string,
     fieldValue: string
-): boolean {
-    const content = editor.getValue();
-    const frontMatterRegex = /^---(.*?)^---/ms;
-    const frontMatter = content.match(frontMatterRegex);
-    const existingFieldRegex = new RegExp(`^---.*${fieldName}:.*^---`, 'ms');
-    const existingField = content.match(existingFieldRegex);
-    const cursorLocation = editor.getCursor();
-    // That's not the best usage of the API, and rather be converted to editor transactions or something else
-    // that can preserve the cursor position better
-    if (frontMatter && !existingField) {
-        const replaced = `---${frontMatter[1]}${fieldName}: ${fieldValue}\n---`;
-        editor.setValue(content.replace(frontMatterRegex, replaced));
-        editor.setCursor({
-            line: cursorLocation.line + 1,
-            ch: cursorLocation.ch,
-        });
-        return true;
-    } else if (!frontMatter) {
-        const newFrontMatter = `---\n${fieldName}: ${fieldValue}\n---\n\n`;
-        editor.setValue(newFrontMatter + content);
-        editor.setCursor({
-            line: cursorLocation.line + newFrontMatter.split('\n').length - 1,
-            ch: cursorLocation.ch,
-        });
-        return true;
-    }
-    return false;
+): Promise<boolean> {
+    let locationAdded = false;
+    await app.fileManager.processFrontMatter(file, (frontmatter: any) => {
+        if (fieldName in frontmatter) {
+            locationAdded = false;
+            return;
+        }
+        frontmatter[fieldName] = fieldValue;
+        locationAdded = true;
+    });
+    return locationAdded;
 }
 
-export function verifyOrAddFrontMatterForInline(
+export async function verifyOrAddFrontMatterForInline(
+    app: App,
     editor: Editor,
+    file: TFile,
     settings: settings.PluginSettings
-): boolean {
+): Promise<boolean> {
     // If the user has a custom tag to denote a location, and this tag exists in the note, there's no need to add
     // a front-matter
     const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
@@ -188,7 +184,7 @@ export function verifyOrAddFrontMatterForInline(
     )
         return false;
     // Otherwise, verify this note has a front matter with an empty 'locations' tag
-    return verifyOrAddFrontMatter(editor, 'locations', '');
+    return await verifyOrAddFrontMatter(app, editor, file, 'locations', '');
 }
 
 /**
@@ -255,15 +251,23 @@ export function findOpenMapView(app: App) {
     if (maps && maps.length > 0) return maps[0].view as BaseMapView;
 }
 
-export async function getEditor(
-    app: App,
-    leafToUse?: WorkspaceLeaf
-): Promise<Editor> {
+export function getView(app: App, leafToUse?: WorkspaceLeaf): MarkdownView {
     let view =
         leafToUse && leafToUse.view instanceof MarkdownView
             ? leafToUse.view
             : app.workspace.getActiveViewOfType(MarkdownView);
+    return view;
+}
+
+export function getEditor(app: App, leafToUse?: WorkspaceLeaf): Editor {
+    let view = getView(app, leafToUse);
     if (view) return view.editor;
+    return null;
+}
+
+export function getFile(app: App, leafToUse?: WorkspaceLeaf): TFile {
+    let view = getView(app, leafToUse);
+    if (view) return view.file;
     return null;
 }
 
@@ -274,9 +278,11 @@ export async function getEditor(
  * @param replaceStart The EditorPosition to start the replacement at. If null will replace any text selected
  * @param replaceLength The EditorPosition to stop the replacement at. If null will replace any text selected
  */
-export function insertLocationToEditor(
+export async function insertLocationToEditor(
+    app: App,
     location: leaflet.LatLng,
     editor: Editor,
+    file: TFile,
     settings: settings.PluginSettings,
     replaceStart?: EditorPosition,
     replaceLength?: number
@@ -292,7 +298,7 @@ export function insertLocationToEditor(
     // We want to put the cursor right after the beginning of the newly-inserted link
     const newCursorPos = replaceStart ? replaceStart.ch + 1 : cursor.ch + 1;
     editor.setCursor({ line: cursor.line, ch: newCursorPos });
-    verifyOrAddFrontMatterForInline(editor, settings);
+    await verifyOrAddFrontMatterForInline(app, editor, file, settings);
 }
 
 /**
@@ -318,20 +324,18 @@ export function matchByPosition(
 /**
  * Returns a list of all the Obsidian tags
  */
-export function getAllTagNames(app: App): string[] {
-    let tags: string[] = [];
+export function getAllTagNames(app: App, plugin: MapViewPlugin): string[] {
+    // Start from all the known tags by markers (which may be inline tags or Obsidian tags), and add to that all
+    // the known Obsidian tags, so we can suggest them to the user too
+    let tags = plugin.allTags;
     const allFiles = app.vault.getMarkdownFiles();
     for (const file of allFiles) {
         const fileCache = app.metadataCache.getFileCache(file);
         const fileTagNames = getAllTags(fileCache) || [];
-        if (fileTagNames.length > 0) {
-            tags = tags.concat(
-                fileTagNames.filter((tagName) => tags.indexOf(tagName) < 0)
-            );
-        }
+        fileTagNames.forEach((tag) => tags.add(tag));
     }
-    tags = tags.sort();
-    return tags;
+    const sortedTags = Array.from(tags).sort();
+    return sortedTags;
 }
 
 export function isMobile(app: App): boolean {

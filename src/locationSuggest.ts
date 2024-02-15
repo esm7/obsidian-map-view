@@ -57,7 +57,10 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
         el.setText(value.name);
     }
 
-    selectSuggestion(value: SuggestInfo, evt: MouseEvent | KeyboardEvent) {
+    async selectSuggestion(
+        value: SuggestInfo,
+        evt: MouseEvent | KeyboardEvent
+    ) {
         // Replace the link under the cursor with the retrieved location.
         // We call getGeolinkOfCursor again instead of using the original context because it's possible that
         // the user continued to type text after the suggestion was made
@@ -73,8 +76,10 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
             { line: currentCursor.line, ch: linkOfCursor.linkEnd }
         );
         if (
-            utils.verifyOrAddFrontMatterForInline(
+            await utils.verifyOrAddFrontMatterForInline(
+                this.app,
                 value.context.editor,
+                value.context.file,
                 this.settings
             )
         )
@@ -126,7 +131,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
         return suggestions;
     }
 
-    async selectionToLink(editor: Editor) {
+    async selectionToLink(editor: Editor, file: TFile) {
         const selection = editor.getSelection();
         const results = await this.searcher.search(selection);
         if (results && results.length > 0) {
@@ -136,7 +141,14 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
                 `[${selection}](geo:${location.lat},${location.lng})`
             );
             new Notice(firstResult.name, 10 * 1000);
-            if (utils.verifyOrAddFrontMatterForInline(editor, this.settings))
+            if (
+                await utils.verifyOrAddFrontMatterForInline(
+                    this.app,
+                    editor,
+                    file,
+                    this.settings
+                )
+            )
                 new Notice(
                     "The note's front matter was updated to denote locations are present"
                 );

@@ -27,6 +27,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
 
     private dialogAction: DialogAction;
     private editor: Editor = null;
+    private file: TFile = null;
 
     // If dialogAction is 'custom', this will launch upon selection
     public customOnSelect: (
@@ -44,6 +45,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         dialogAction: DialogAction,
         title: string,
         editor: Editor = null,
+        file: TFile = null,
         includeResults: SuggestInfo[] = null,
         hasIcons: boolean = false,
         moreInstructions: Instruction[] = null
@@ -54,6 +56,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         this.searcher = new GeoSearcher(app, settings);
         this.dialogAction = dialogAction;
         this.editor = editor;
+        this.file = file;
         this.includeResults = includeResults;
         this.hasIcons = hasIcons;
 
@@ -116,7 +119,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
             let iconDiv = el.createDiv('search-icon-div');
             const compiledIcon = getIconFromOptions(
                 value.icon ?? consts.SEARCH_RESULT_MARKER,
-                this.plugin.iconCache
+                this.plugin.iconFactory
             );
             let iconElement: HTMLElement = compiledIcon.createIcon();
             let style = iconElement.style;
@@ -142,8 +145,14 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         ev: MouseEvent | KeyboardEvent,
         query: string
     ) {
-        const locationString = `[${location.lat},${location.lng}]`;
-        utils.verifyOrAddFrontMatter(this.editor, 'location', locationString);
+        const locationString = `${location.lat},${location.lng}`;
+        utils.verifyOrAddFrontMatter(
+            this.app,
+            this.editor,
+            this.file,
+            this.settings.frontMatterKey,
+            locationString
+        );
     }
 
     async getSearchResultsWithDelay(query: string) {

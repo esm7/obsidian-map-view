@@ -6,6 +6,7 @@ import * as regex from 'src/regex';
 import { BaseGeoLayer, FileMarker } from 'src/markers';
 import * as utils from 'src/utils';
 import { checkTagPatternMatch } from 'src/markerIcons';
+import MapViewPlugin from 'src/main';
 
 import * as parser from 'boon-js';
 
@@ -180,15 +181,22 @@ type Suggestion = {
 export class QuerySuggest extends PopoverSuggest<Suggestion> {
     suggestionsDiv: HTMLDivElement;
     app: App;
+    plugin: MapViewPlugin;
     sourceElement: TextComponent;
     selection: Suggestion = null;
     lastSuggestions: Suggestion[];
     // Event handers that were registered, in the format of [name, lambda]
     eventHandlers: [string, any][] = [];
 
-    constructor(app: App, sourceElement: TextComponent, scope?: Scope) {
+    constructor(
+        app: App,
+        plugin: MapViewPlugin,
+        sourceElement: TextComponent,
+        scope?: Scope
+    ) {
         super(app, scope);
         this.app = app;
+        this.plugin = plugin;
         this.sourceElement = sourceElement;
     }
 
@@ -302,7 +310,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
             };
             // Find all tags that include the query, with the pound sign removed, case insensitive
             const allTagNames = utils
-                .getAllTagNames(this.app)
+                .getAllTagNames(this.app, this.plugin)
                 .filter((value) =>
                     value
                         .toLowerCase()
@@ -356,9 +364,10 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
         const allPathNames = this.getAllPathNames(pathQuery);
         let toReturn: Suggestion[] = [{ text: 'PATHS', group: true }];
         for (const pathName of allPathNames) {
+            const escapedPathName = utils.escapeDoubleQuotes(pathName);
             toReturn.push({
                 text: pathName,
-                textToInsert: `${operator}:"${pathName}" `,
+                textToInsert: `${operator}:"${escapedPathName}" `,
                 insertAt: pathMatch.index,
                 insertSkip: pathMatch[0].length,
             });

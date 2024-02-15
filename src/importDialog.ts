@@ -2,6 +2,7 @@ import {
     Modal,
     App,
     Editor,
+    TFile,
     TextAreaComponent,
     ButtonComponent,
 } from 'obsidian';
@@ -21,17 +22,20 @@ import * as regex from 'src/regex';
 
 export class ImportDialog extends Modal {
     private editor: Editor;
+    private file: TFile;
     private plugin: MapViewPlugin;
     private settings: PluginSettings;
 
     constructor(
         editor: Editor,
+        file: TFile,
         app: App,
         plugin: MapViewPlugin,
         settings: PluginSettings
     ) {
         super(app);
         this.editor = editor;
+        this.file = file;
         this.plugin = plugin;
         this.settings = settings;
     }
@@ -79,7 +83,9 @@ export class ImportDialog extends Modal {
                 if (text) {
                     this.editor.replaceSelection(text);
                     utils.verifyOrAddFrontMatterForInline(
+                        this.app,
                         this.editor,
+                        this.file,
                         this.settings
                     );
                 }

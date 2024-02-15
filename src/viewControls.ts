@@ -251,7 +251,11 @@ export class ViewControls {
                 'focus',
                 (ev: FocusEvent) => {
                     if (!suggestor) {
-                        suggestor = new QuerySuggest(this.app, this.queryBox);
+                        suggestor = new QuerySuggest(
+                            this.app,
+                            this.plugin,
+                            this.queryBox
+                        );
                         suggestor.open();
                     }
                 }
@@ -620,6 +624,7 @@ export class SearchControl extends leaflet.Control {
             this.settings,
             'custom',
             'Find in map',
+            null,
             null,
             markersByDistanceToCenter,
             true,

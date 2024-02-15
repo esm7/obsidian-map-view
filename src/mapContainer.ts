@@ -14,7 +14,6 @@ import * as yaml from 'js-yaml';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 import * as leafletFullscreen from 'leaflet-fullscreen';
-import '@fortawesome/fontawesome-free/js/all.min';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -38,6 +37,7 @@ import {
     buildMarkers,
     buildAndAppendFileMarkers,
     finalizeMarkers,
+    cacheTagsFromMarkers,
 } from 'src/markers';
 import {
     getIconFromOptions,
@@ -537,26 +537,18 @@ export class MapContainer {
             this.setHighlight(null);
         });
 
-        // Build the map marker right-click context menu
+        // Build the map right-click context menu
         this.display.map.on(
             'contextmenu',
             async (event: leaflet.LeafletMouseEvent) => {
                 let mapPopup = new Menu();
-                menus.addNewNoteItems(
+                menus.addMapContextMenuItems(
                     mapPopup,
                     event.latlng,
                     this,
                     this.settings,
                     this.app
                 );
-                menus.addCopyGeolocationItems(mapPopup, event.latlng);
-                menus.populateRouting(
-                    this,
-                    event.latlng,
-                    mapPopup,
-                    this.settings
-                );
-                menus.addOpenWith(mapPopup, event.latlng, this.settings);
                 mapPopup.showAtPosition(event.originalEvent);
             }
         );
@@ -577,6 +569,7 @@ export class MapContainer {
         let files = this.app.vault.getMarkdownFiles();
         // Build the markers and filter them according to the query
         let newMarkers = await buildMarkers(files, this.settings, this.app);
+        cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
         try {
             newMarkers = this.filterMarkers(newMarkers, state.query);
             state.queryError = false;
@@ -587,7 +580,7 @@ export class MapContainer {
         finalizeMarkers(
             newMarkers,
             this.settings,
-            this.plugin.iconCache,
+            this.plugin.iconFactory,
             this.app
         );
         this.state = structuredClone(state);
@@ -1069,7 +1062,7 @@ export class MapContainer {
             chosenLeaf = this.app.workspace.getLeaf(true);
         }
         await chosenLeaf.openFile(file);
-        const editor = await utils.getEditor(this.app, chosenLeaf);
+        const editor = utils.getEditor(this.app, chosenLeaf);
         if (editor && editorAction) await editorAction(editor);
     }
 
@@ -1113,7 +1106,7 @@ export class MapContainer {
             if (existingMarker.file.path !== fileRemoved)
                 newMarkers.push(existingMarker);
         }
-        if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
+        if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
             // Add file markers from the added file
             await buildAndAppendFileMarkers(
                 newMarkers,
@@ -1121,10 +1114,12 @@ export class MapContainer {
                 this.settings,
                 this.app
             );
+            cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
+        }
         finalizeMarkers(
             newMarkers,
             this.settings,
-            this.plugin.iconCache,
+            this.plugin.iconFactory,
             this.app
         );
         this.updateMapMarkers(newMarkers);
@@ -1134,7 +1129,7 @@ export class MapContainer {
         this.display.searchResult = leaflet.marker(details.location, {
             icon: getIconFromOptions(
                 consts.SEARCH_RESULT_MARKER,
-                this.plugin.iconCache
+                this.plugin.iconFactory
             ),
         });
         const marker = this.display.searchResult;
@@ -1148,6 +1143,19 @@ export class MapContainer {
         });
         marker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
             marker.closePopup();
+        });
+        marker.on('contextmenu', (event: leaflet.LeafletMouseEvent) => {
+            let mapPopup = new Menu();
+            // This is the same context menu when right-clicking a blank area of the map, but in contrast to a blank
+            // area, in a search result marker we use the location of the marker and not the mouse pointer
+            menus.addMapContextMenuItems(
+                mapPopup,
+                details.location,
+                this,
+                this.settings,
+                this.app
+            );
+            mapPopup.showAtPosition(event.originalEvent);
         });
         marker.addTo(this.display.map);
         this.goToSearchResult(details.location, marker, keepZoom);
@@ -1256,7 +1264,7 @@ export class MapContainer {
             .marker(center, {
                 icon: getIconFromOptions(
                     consts.CURRENT_LOCATION_MARKER,
-                    this.plugin.iconCache
+                    this.plugin.iconFactory
                 ),
             })
             .addTo(this.display.map);
@@ -1314,7 +1322,7 @@ export class MapContainer {
                 .marker(location, {
                     icon: getIconFromOptions(
                         consts.ROUTING_SOURCE_MARKER,
-                        this.plugin.iconCache
+                        this.plugin.iconFactory
                     ),
                 })
                 .addTo(this.display.map);

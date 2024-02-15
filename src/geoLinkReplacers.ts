@@ -103,6 +103,10 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                 }
                 // Now do the same for the document front matter -- convert it into a link
                 let frontMatterMatch = text.match(regex.FRONT_MATTER_LOCATION);
+                if (!frontMatterMatch)
+                    frontMatterMatch = text.match(
+                        regex.FRONT_MATTER_LOCATION_V2
+                    );
                 if (frontMatterMatch) {
                     const lat = frontMatterMatch.groups.lat;
                     const lng = frontMatterMatch.groups.lng;

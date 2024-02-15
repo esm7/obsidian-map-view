@@ -4,7 +4,7 @@ import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 
 import { PluginSettings } from 'src/settings';
-import { getIconFromRules, IconCache } from 'src/markerIcons';
+import { getIconFromRules, IconFactory } from 'src/markerIcons';
 import * as consts from 'src/consts';
 import * as regex from 'src/regex';
 import { djb2Hash } from 'src/utils';
@@ -252,7 +252,7 @@ export async function buildAndAppendFileMarkers(
     const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
     if (frontMatter || tagNameToSearch?.length > 0) {
         if (frontMatter && !skipMetadata) {
-            const location = getFrontMatterLocation(file, app);
+            const location = getFrontMatterLocation(file, app, settings);
             if (location) {
                 verifyLocation(location);
                 let marker = new FileMarker(file, location);
@@ -303,7 +303,7 @@ export async function buildMarkers(
 export function finalizeMarkers(
     markers: BaseGeoLayer[],
     settings: PluginSettings,
-    iconCache: IconCache,
+    iconFactory: IconFactory,
     app: App
 ) {
     for (const marker of markers) {
@@ -311,7 +311,7 @@ export function finalizeMarkers(
             marker.icon = getIconFromRules(
                 marker.tags,
                 settings.markerIconRules,
-                iconCache
+                iconFactory
             );
         } else {
             throw 'Unsupported object type ' + marker.constructor.name;
@@ -431,13 +431,17 @@ export async function getMarkersFromFileContent(
  * @param file The file to load the front matter from
  * @param app The Obsidian App instance
  */
-export function getFrontMatterLocation(file: TFile, app: App): leaflet.LatLng {
+export function getFrontMatterLocation(
+    file: TFile,
+    app: App,
+    settings: PluginSettings
+): leaflet.LatLng {
     const fileCache = app.metadataCache.getFileCache(file);
     const frontMatter = fileCache?.frontmatter;
-    if (frontMatter && frontMatter?.location) {
+    if (frontMatter && settings.frontMatterKey in frontMatter) {
         try {
-            const location = frontMatter.location;
-            // We have a single location at hand
+            const location = frontMatter[settings.frontMatterKey];
+            // V1 format: an array in the format of `location: [lat,lng]`
             if (
                 location.length == 2 &&
                 typeof location[0] === 'number' &&
@@ -449,7 +453,28 @@ export function getFrontMatterLocation(file: TFile, app: App): leaflet.LatLng {
                 );
                 verifyLocation(location);
                 return location;
-            } else console.log(`Unknown: `, location);
+            } else {
+                // V2 format: a string in the format of `location: "lat,lng"` (which is more compatible with
+                // Obsidian's property editor)
+                const locationV2 = location.match(regex.COORDINATES);
+                if (
+                    locationV2 &&
+                    locationV2.groups &&
+                    locationV2.groups.lat &&
+                    locationV2.groups.lng
+                ) {
+                    const location = new leaflet.LatLng(
+                        locationV2.groups.lat,
+                        locationV2.groups.lng
+                    );
+                    verifyLocation(location);
+                    return location;
+                } else
+                    console.log(
+                        `Unknown front matter location format: `,
+                        location
+                    );
+            }
         } catch (e) {
             console.log(`Error converting location in file ${file.name}:`, e);
         }
@@ -535,5 +560,18 @@ function addEdgesFromFileWithMarkers(
                 linkDepth - 1
             );
         }
+
+/**
+ * Maintains a global set of tags.
+ * This is needed on top of Obsidian's own tag system because Map View also has inline tags.
+ * These can be identical to Obsidian tags, but there may be inline tags that are not Obsidian tags, and
+ * we want them to show on suggestions.
+ */
+export function cacheTagsFromMarkers(
+    markers: BaseGeoLayer[],
+    tagsSet: Set<string>
+) {
+    for (const marker of markers) {
+        marker.tags.forEach((tag) => tagsSet.add(tag));
     }
 }

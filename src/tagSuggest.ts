@@ -12,6 +12,7 @@ import { PluginSettings } from 'src/settings';
 import { getTagUnderCursor } from 'src/regex';
 import { matchInlineLocation } from 'src/markers';
 import * as utils from 'src/utils';
+import MapViewPlugin from 'src/main';
 
 class SuggestInfo {
     tagName: string;
@@ -19,11 +20,11 @@ class SuggestInfo {
 }
 
 export class TagSuggest extends EditorSuggest<SuggestInfo> {
-    private app: App;
+    private plugin: MapViewPlugin;
 
-    constructor(app: App, settings: PluginSettings) {
+    constructor(app: App, plugin: MapViewPlugin) {
         super(app);
-        this.app = app;
+        this.plugin = plugin;
     }
 
     onTrigger(
@@ -57,7 +58,7 @@ export class TagSuggest extends EditorSuggest<SuggestInfo> {
         const tagQuery = context.query ?? '';
         // Find all tags that include the query
         const matchingTags = utils
-            .getAllTagNames(this.app)
+            .getAllTagNames(this.app, this.plugin)
             .map((value) => noPound(value))
             .filter((value) =>
                 value.toLowerCase().includes(tagQuery.toLowerCase())

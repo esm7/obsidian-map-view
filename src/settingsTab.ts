@@ -1,6 +1,5 @@
 import {
     App,
-    ButtonComponent,
     TextComponent,
     PluginSettingTab,
     TextAreaComponent,
@@ -259,6 +258,22 @@ export class SettingsTab extends PluginSettingTab {
                     )
                     .onChange(async (value: boolean) => {
                         this.plugin.settings.fixFrontMatterOnPaste = value;
+                        this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Key for front matter location')
+            .setDesc(
+                'The key Map View uses to denote a front matter geolocation. Restart required. Beware: changing this will make your old front matter key not recognized as geolocations by Map View.'
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.frontMatterKey ??
+                            DEFAULT_SETTINGS.frontMatterKey
+                    )
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.frontMatterKey = value;
                         this.plugin.saveSettings();
                     });
             });
@@ -622,7 +637,7 @@ export class SettingsTab extends PluginSettingTab {
             .setHeading()
             .setName('Marker Icon Rules');
         iconRulesHeading.descEl.innerHTML = `Customize map markers by note tags.
-			Refer to <a href="https://fontawesome.com/">Font Awesome</a> for icon names and see <a href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties">here</a> for the other properties.
+			Refer to <a href="https://fontawesome.com/">Font Awesome</a> for icon names or use <a href="https://emojipedia.org">emojis</a>, and see <a href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties">here</a> for the other properties.
 			<br>The rules override each other, starting from the default. Refer to the plugin documentation for more details.
 		`;
 
@@ -1062,7 +1077,7 @@ export class SettingsTab extends PluginSettingTab {
                     );
                     const compiledIcon = getIconFromOptions(
                         options,
-                        this.plugin.iconCache,
+                        this.plugin.iconFactory,
                         options.shape
                     );
                     iconElement = compiledIcon.createIcon();
@@ -1193,7 +1208,7 @@ export class SettingsTab extends PluginSettingTab {
                 const compiledIcon = getIconFromRules(
                     testTagsBox.getValue().split(' '),
                     rules,
-                    this.plugin.iconCache
+                    this.plugin.iconFactory
                 );
                 multiTagIconElement = compiledIcon.createIcon();
                 let style = multiTagIconElement.style;

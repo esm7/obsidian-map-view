@@ -1,4 +1,4 @@
-import { App, Editor, EditorPosition, request } from 'obsidian';
+import { App, Editor, TFile, request } from 'obsidian';
 import * as querystring from 'query-string';
 
 import * as leaflet from 'leaflet';
@@ -16,9 +16,11 @@ export type ParsedLocation = {
 /** A class to convert a string (usually a URL) into geolocation format */
 export class UrlConvertor {
     private settings: PluginSettings;
+    private app: App;
 
     constructor(app: App, settings: PluginSettings) {
         this.settings = settings;
+        this.app = app;
     }
 
     /**
@@ -161,7 +163,7 @@ export class UrlConvertor {
      * Replace the text at the cursor location with a geo link
      * @param editor The Obsidian Editor instance
      */
-    async convertUrlAtCursorToGeolocation(editor: Editor) {
+    async convertUrlAtCursorToGeolocation(editor: Editor, file: TFile) {
         const cursor = editor.getCursor();
         const result = this.parseLocationFromUrl(editor.getLine(cursor.line));
         let geolocation: ParsedLocation;
@@ -169,8 +171,10 @@ export class UrlConvertor {
         else geolocation = result;
         if (geolocation)
             utils.insertLocationToEditor(
+                this.app,
                 geolocation.location,
                 editor,
+                file,
                 this.settings,
                 { line: cursor.line, ch: geolocation.index },
                 geolocation.matchLength
