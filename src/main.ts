@@ -24,7 +24,7 @@ import * as menus from 'src/menus';
 import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
 import { EmbeddedMap } from 'src/embeddedMap';
-import { IconCache } from 'src/markerIcons';
+import { IconFactory } from 'src/markerIcons';
 import { askForLocation, RealTimeLocationSource } from 'src/realTimeLocation';
 import {
     getLinkReplaceEditorPlugin,
@@ -53,7 +53,7 @@ import { MapPreviewPopup } from 'src/mapPreviewPopup';
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
     public highestVersionSeen: number = 0;
-    public iconCache: IconCache;
+    public iconFactory: IconFactory;
     private suggestor: LocationSuggest;
     private tagSuggestor: TagSuggest;
     private urlConvertor: UrlConvertor;
@@ -220,7 +220,7 @@ export default class MapViewPlugin extends Plugin {
 
         await convertLegacySettings(this.settings, this);
 
-        this.iconCache = new IconCache(document.body);
+        this.iconFactory = new IconFactory(document.body);
 
         this.mapPreviewPopup = null;
 

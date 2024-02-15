@@ -92,6 +92,10 @@ a.mv-icon-button.on {
     margin-right: 0;
 }
 
+.setting-item-control .mv-emoji-icon {
+	margin: 12px 0;
+}
+
 .leaflet-container .dark-mode {
     filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg)
         saturate(0.3) brightness(0.7);
@@ -125,6 +129,11 @@ a.mv-icon-button.on {
 
 .clusterPreviewContainer .leaflet-marker-icon {
     background-color: var(--background-primary);
+}
+
+/* Make emoji icons behave in cluster previews */
+.clusterPreviewContainer p {
+	margin: 10px 0 !important;
 }
 
 .graph-control-follow-label {
@@ -165,6 +174,12 @@ a.mv-icon-button.on {
     display: flex;
 }
 
+.suggestion-item .search-icon-div .mv-emoji-icon {
+	position: relative;
+	margin: 0;
+	top: 10px;
+}
+
 .search-text-div {
     display: flex;
     align-items: center;
@@ -187,6 +202,12 @@ div.map-view-highlight.marker-cluster {
     margin: 10px;
     width: 15px;
     height: 15px;
+}
+
+.mv-emoji-icon {
+    text-shadow: 0 0 1px #fff, -1px -1px 1px #fff, 1px -1px 1px #fff, -1px 1px 1px #fff, 0 0 2px #fff;
+    top: -2px;
+    position: relative;
 }
 
 .mv-map-control {

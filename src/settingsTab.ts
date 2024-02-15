@@ -637,7 +637,7 @@ export class SettingsTab extends PluginSettingTab {
             .setHeading()
             .setName('Marker Icon Rules');
         iconRulesHeading.descEl.innerHTML = `Customize map markers by note tags.
-			Refer to <a href="https://fontawesome.com/">Font Awesome</a> for icon names and see <a href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties">here</a> for the other properties.
+			Refer to <a href="https://fontawesome.com/">Font Awesome</a> for icon names or use <a href="https://emojipedia.org">emojis</a>, and see <a href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties">here</a> for the other properties.
 			<br>The rules override each other, starting from the default. Refer to the plugin documentation for more details.
 		`;
 
@@ -1077,7 +1077,7 @@ export class SettingsTab extends PluginSettingTab {
                             ).iconDetails,
                             rule.iconDetails
                         ),
-                        this.plugin.iconCache
+                        this.plugin.iconFactory
                     );
                     iconElement = compiledIcon.createIcon();
                     let style = iconElement.style;
@@ -1114,7 +1114,7 @@ export class SettingsTab extends PluginSettingTab {
                 const compiledIcon = getIconFromRules(
                     testTagsBox.getValue().split(' '),
                     rules,
-                    this.plugin.iconCache
+                    this.plugin.iconFactory
                 );
                 multiTagIconElement = compiledIcon.createIcon();
                 let style = multiTagIconElement.style;

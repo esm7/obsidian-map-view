@@ -13,7 +13,6 @@ import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 import * as leafletFullscreen from 'leaflet-fullscreen';
-import '@fortawesome/fontawesome-free/js/all.min';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -526,26 +525,12 @@ export class MapContainer {
             this.setHighlight(null);
         });
 
-        // Build the map marker right-click context menu
+        // Build the map right-click context menu
         this.display.map.on(
             'contextmenu',
             async (event: leaflet.LeafletMouseEvent) => {
                 let mapPopup = new Menu();
-                menus.addNewNoteItems(
-                    mapPopup,
-                    event.latlng,
-                    this,
-                    this.settings,
-                    this.app
-                );
-                menus.addCopyGeolocationItems(mapPopup, event.latlng);
-                menus.populateRouting(
-                    this,
-                    event.latlng,
-                    mapPopup,
-                    this.settings
-                );
-                menus.addOpenWith(mapPopup, event.latlng, this.settings);
+				menus.addMapContextMenuItems(mapPopup, event.latlng, this, this.settings, this.app);
                 mapPopup.showAtPosition(event.originalEvent);
             }
         );
@@ -574,7 +559,7 @@ export class MapContainer {
             newMarkers = [];
             state.queryError = true;
         }
-        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
+        finalizeMarkers(newMarkers, this.settings, this.plugin.iconFactory);
         this.state = structuredClone(state);
         this.updateMapMarkers(newMarkers);
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
@@ -950,7 +935,7 @@ export class MapContainer {
             );
             cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
         }
-        finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
+        finalizeMarkers(newMarkers, this.settings, this.plugin.iconFactory);
         this.updateMapMarkers(newMarkers);
     }
 
@@ -958,7 +943,7 @@ export class MapContainer {
         this.display.searchResult = leaflet.marker(details.location, {
             icon: getIconFromOptions(
                 consts.SEARCH_RESULT_MARKER,
-                this.plugin.iconCache
+                this.plugin.iconFactory
             ),
         });
         const marker = this.display.searchResult;
@@ -973,6 +958,13 @@ export class MapContainer {
         marker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
             marker.closePopup();
         });
+		marker.on('contextmenu', (event: leaflet.LeafletMouseEvent) => {
+			let mapPopup = new Menu();
+			// This is the same context menu when right-clicking a blank area of the map, but in contrast to a blank
+			// area, in a search result marker we use the location of the marker and not the mouse pointer
+			menus.addMapContextMenuItems(mapPopup, details.location, this, this.settings, this.app);
+			mapPopup.showAtPosition(event.originalEvent);
+		});
         marker.addTo(this.display.map);
         this.goToSearchResult(details.location, marker, keepZoom);
     }
@@ -1080,7 +1072,7 @@ export class MapContainer {
             .marker(center, {
                 icon: getIconFromOptions(
                     consts.CURRENT_LOCATION_MARKER,
-                    this.plugin.iconCache
+                    this.plugin.iconFactory
                 ),
             })
             .addTo(this.display.map);
@@ -1138,7 +1130,7 @@ export class MapContainer {
                 .marker(location, {
                     icon: getIconFromOptions(
                         consts.ROUTING_SOURCE_MARKER,
-                        this.plugin.iconCache
+                        this.plugin.iconFactory
                     ),
                 })
                 .addTo(this.display.map);

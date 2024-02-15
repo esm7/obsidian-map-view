@@ -427,3 +427,32 @@ export function populateRouting(
         }
     }
 }
+
+/**
+ * The context menu on an area of the map where there is no existing marker, showing mostly options to add
+ * a new marker or open this geolocation elsewhere.
+ * This can also be used on a search result.
+ */
+export function addMapContextMenuItems(
+	mapPopup: Menu,
+	geolocation: leaflet.LatLng,
+    mapContainer: MapContainer,
+    settings: settings.PluginSettings,
+    app: App
+) {
+	addNewNoteItems(
+		mapPopup,
+		geolocation,
+		mapContainer,
+		settings,
+		app
+	);
+	addCopyGeolocationItems(mapPopup, geolocation);
+	populateRouting(
+		mapContainer,
+		geolocation,
+		mapPopup,
+		settings
+	);
+	addOpenWith(mapPopup, geolocation, settings);
+}

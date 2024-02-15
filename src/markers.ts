@@ -4,7 +4,7 @@ import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 
 import { PluginSettings } from 'src/settings';
-import { getIconFromRules, IconCache } from 'src/markerIcons';
+import { getIconFromRules, IconFactory } from 'src/markerIcons';
 import * as consts from 'src/consts';
 import * as regex from 'src/regex';
 import { djb2Hash } from 'src/utils';
@@ -205,14 +205,14 @@ export async function buildMarkers(
 export function finalizeMarkers(
     markers: BaseGeoLayer[],
     settings: PluginSettings,
-    iconCache: IconCache
+    iconFactory: IconFactory
 ) {
     for (const marker of markers)
         if (marker instanceof FileMarker) {
             marker.icon = getIconFromRules(
                 marker.tags,
                 settings.markerIconRules,
-                iconCache
+                iconFactory
             );
         } else {
             throw 'Unsupported object type ' + marker.constructor.name;
