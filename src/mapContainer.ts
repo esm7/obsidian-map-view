@@ -10,6 +10,7 @@ import {
     MenuItem,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
+import * as yaml from 'js-yaml';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 import * as leafletFullscreen from 'leaflet-fullscreen';
@@ -31,12 +32,17 @@ import {
     MarkersMap,
     BaseGeoLayer,
     FileMarker,
+    Edge,
+    FileWithMarkers,
     buildMarkers,
     buildAndAppendFileMarkers,
     finalizeMarkers,
     cacheTagsFromMarkers,
 } from 'src/markers';
-import { getIconFromOptions } from 'src/markerIcons';
+import {
+    getIconFromOptions,
+    createCircleMarkerBasedOnDegree,
+} from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import {
@@ -75,6 +81,10 @@ export type ViewSettings = {
     skipAnimations?: boolean;
 };
 
+interface FrontMatterAttributes {
+    [key: string]: any; // This allows any property with string keys
+}
+
 export class MapContainer {
     private app: App;
     public settings: PluginSettings;
@@ -96,6 +106,9 @@ export class MapContainer {
         clusterGroup: leaflet.MarkerClusterGroup;
         /** The markers currently on the map */
         markers: MarkersMap = new Map();
+        /** The polylines currently on the map */
+        polylines: leaflet.Polyline[] = [];
+        /** The view controls */
         controls: ViewControls;
         /** The zoom controls */
         zoomControls: leaflet.Control.Zoom;
@@ -410,7 +423,6 @@ export class MapContainer {
 
     async createMap() {
         // Obsidian Leaflet compatability: disable tree-shaking for the full-screen module
-        var dummy = leafletFullscreen;
         this.display.map = new leaflet.Map(this.display.mapDiv, {
             center: this.defaultState.mapCenter,
             zoom: this.defaultState.mapZoom,
@@ -565,8 +577,14 @@ export class MapContainer {
             newMarkers = [];
             state.queryError = true;
         }
-        finalizeMarkers(newMarkers, this.settings, this.plugin.iconFactory);
+        finalizeMarkers(
+            newMarkers,
+            this.settings,
+            this.plugin.iconFactory,
+            this.app
+        );
         this.state = structuredClone(state);
+
         this.updateMapMarkers(newMarkers);
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
         // of interactions and async updates compete over the map.
@@ -638,14 +656,97 @@ export class MapContainer {
             markersToRemove.push(value.geoLayer);
         }
         this.display.clusterGroup.removeLayers(markersToRemove);
+        this.clearPolylines();
         this.display.clusterGroup.addLayers(markersToAdd);
         this.display.markers = newMarkersMap;
+
+        let locationDegreeMap = this.buildLocationDegreeMap();
+        let degrees = [...locationDegreeMap.values()].sort((a, b) => a - b);
+        if (this.settings.drawEdgesBetweenMarkers) {
+            for (let marker of this.display.markers.values()) {
+                if (marker instanceof FileMarker) {
+                    if (
+                        marker.hasResizableIcon() &&
+                        this.settings.resizeResizableCircleMarkersBasedOnDegree
+                    ) {
+                        let newIcon = createCircleMarkerBasedOnDegree(
+                            marker.backgroundColor,
+                            marker.iconClasses,
+                            locationDegreeMap.get(marker.location.toString()) ??
+                                0,
+                            degrees
+                        );
+                        marker.geoLayer.setIcon(newIcon);
+                    }
+                    // draw edges between markers
+                    for (let edge of marker) {
+                        let polyline = leaflet.polyline(
+                            [edge.loc1, edge.loc2],
+                            {
+                                color: this.settings.edgeColor,
+                                weight: 1,
+                            }
+                        );
+                        edge.polyline = polyline;
+                        polyline.addTo(this.display.map);
+                        this.display.polylines.push(polyline);
+                    }
+                }
+            }
+        }
+    }
+
+    private buildLocationDegreeMap(): Map<string, number> {
+        let locationDegreeMap: Map<string, number> = new Map();
+        for (let marker of this.display.markers.values()) {
+            if (marker instanceof FileMarker) {
+                for (let edge of marker) {
+                    let loc1 = edge.loc1.toString();
+                    if (!locationDegreeMap.has(loc1)) {
+                        locationDegreeMap.set(loc1, 0);
+                    }
+                    locationDegreeMap.set(
+                        loc1,
+                        locationDegreeMap.get(loc1) + 1
+                    );
+
+                    let loc2 = edge.loc2.toString();
+                    if (!locationDegreeMap.has(loc2)) {
+                        locationDegreeMap.set(loc2, 0);
+                    }
+                    locationDegreeMap.set(
+                        loc2,
+                        locationDegreeMap.get(loc2) + 1
+                    );
+                }
+            }
+        }
+        return locationDegreeMap;
+    }
+
+    private clearPolylines() {
+        // clear previous polylines from the map
+        for (const p of this.display.polylines) {
+            p.remove();
+        }
+        this.display.polylines.length = 0;
     }
 
     private newLeafletMarker(marker: FileMarker): leaflet.Marker {
+        let icon:
+            | leaflet.Icon<leaflet.ExtraMarkers.IconOptions>
+            | leaflet.DivIcon;
+        if (marker.icon) {
+            icon = marker.icon;
+        } else {
+            icon = new leaflet.Icon.Default();
+        }
+
         let newMarker = leaflet.marker(marker.location, {
-            icon: marker.icon || new leaflet.Icon.Default(),
+            icon: icon,
+            autoPan: true,
         });
+
         newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app))
                 this.showMarkerPopups(marker, newMarker);
@@ -688,6 +789,77 @@ export class MapContainer {
                     ev.stopPropagation();
                 });
         });
+        newMarker.on('move', (event: leaflet.LeafletEvent) => {
+            let oldMarkerLocation = marker.location.toString();
+            let newLatLng = newMarker.getLatLng().clone();
+            for (let m of this.display.markers.values()) {
+                if (m instanceof FileMarker) {
+                    for (let edge of m) {
+                        let edgeDirty = false;
+                        if (edge.loc1.toString() == oldMarkerLocation) {
+                            edge.loc1 = newLatLng;
+                            edgeDirty = true;
+                        } else if (edge.loc2.toString() == oldMarkerLocation) {
+                            edge.loc2 = newLatLng;
+                            edgeDirty = true;
+                        }
+                        if (edgeDirty) {
+                            // this edge has been invalidated as a result of the drag operation.
+                            // we need to remove it and redraw the leaflet polyline.
+                            if (edge.polyline) {
+                                this.display.polylines =
+                                    this.display.polylines.filter(
+                                        (x) => x !== edge.polyline
+                                    );
+                                edge.polyline.remove();
+                            }
+                            let newPolyline = leaflet.polyline(
+                                [edge.loc1, edge.loc2],
+                                {
+                                    color: this.settings.edgeColor,
+                                    weight: 1,
+                                }
+                            );
+                            edge.polyline = newPolyline;
+                            newPolyline.addTo(this.display.map);
+                            this.display.polylines.push(newPolyline);
+                        }
+                    }
+                }
+            }
+            marker.location = newLatLng;
+        });
+        newMarker.on('moveend', async (event: leaflet.LeafletEvent) => {
+            const content = await this.app.vault.read(marker.file);
+            let newLat = marker.location.lat;
+            // if the user drags the marker too far, the longitude will exceed the threshold, an
+            // exception will be thrown, and the marker will disappear.
+            // if the threshold is exceeded, set the longitude back to the max (back in bounds).
+            // leaflet seems to protect against drags beyond the latitude threshold.
+            let newLng = marker.location.lng;
+            if (newLng < consts.LNG_LIMITS[0]) {
+                newLng = consts.LNG_LIMITS[0];
+            }
+            if (newLng > consts.LNG_LIMITS[1]) {
+                newLng = consts.LNG_LIMITS[1];
+            }
+            if (marker.isFrontmatterMarker) {
+                await utils.modifyOrAddFrontMatterLocation(
+                    this.app,
+                    marker.file,
+                    [newLat, newLng]
+                );
+            } else if (marker.geolocationMatch?.groups) {
+                await utils.updateInlineGeolocation(
+                    this.app,
+                    marker.file,
+                    marker.fileLocation,
+                    marker.geolocationMatch,
+                    newLat,
+                    newLng
+                );
+            }
+        });
         return newMarker;
     }
 
@@ -707,6 +879,9 @@ export class MapContainer {
                 this.settings
             );
             menus.populateOpenInItems(mapPopup, marker.location, this.settings);
+            if (this.settings.allowMarkerDragging) {
+                menus.populateDraggingOptions(mapPopup, marker);
+            }
         }
         if (ev) mapPopup.showAtPosition(ev);
     }
@@ -941,7 +1116,12 @@ export class MapContainer {
             );
             cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
         }
-        finalizeMarkers(newMarkers, this.settings, this.plugin.iconFactory);
+        finalizeMarkers(
+            newMarkers,
+            this.settings,
+            this.plugin.iconFactory,
+            this.app
+        );
         this.updateMapMarkers(newMarkers);
     }
 

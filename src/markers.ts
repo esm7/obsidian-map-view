@@ -9,8 +9,37 @@ import * as consts from 'src/consts';
 import * as regex from 'src/regex';
 import { djb2Hash } from 'src/utils';
 import wildcard from 'wildcard';
+import { settings } from 'cluster';
 
 type MarkerId = string;
+
+export type FileWithMarkers = {
+    file: TFile;
+    markers: FileMarker[];
+};
+
+export class Edge {
+    /** The first location of the edge */
+    public loc1: leaflet.LatLng;
+    /** The second location of the edge */
+    public loc2: leaflet.LatLng;
+    /** The leaflet polyline of the edge */
+    public polyline: leaflet.Polyline;
+
+    constructor(
+        loc1: leaflet.LatLng,
+        loc2: leaflet.LatLng,
+        polyline: leaflet.Polyline = null
+    ) {
+        this.loc1 = loc1;
+        this.loc2 = loc2;
+        this.polyline = polyline;
+    }
+
+    toString() {
+        return `${this.loc1.toString()}<<->>${this.loc2.toString()}`;
+    }
+}
 
 export abstract class BaseGeoLayer {
     public layerType: 'fileMarker';
@@ -24,6 +53,8 @@ export abstract class BaseGeoLayer {
     public geoLayer?: leaflet.Layer;
     /** In case of an inline location, the line within the file where the geolocation was found */
     public fileLine?: number;
+    /** In case of an inline location, geolocation match */
+    public geolocationMatch?: RegExpMatchArray;
     /** Optional extra name that can be set for geolocation links (this is the link name rather than the file name) */
     public extraName?: string;
     /** Tags that this marker includes */
@@ -62,6 +93,9 @@ export class FileMarker extends BaseGeoLayer {
     public geoLayer?: leaflet.Marker;
     public location: leaflet.LatLng;
     public icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
+    private _edges: Edge[] = [];
+    private _backgroundColor: string;
+    private _iconClasses: string[];
 
     /**
      * Construct a new FileMarker object
@@ -73,6 +107,51 @@ export class FileMarker extends BaseGeoLayer {
         this.layerType = 'fileMarker';
         this.location = location;
         this.generateId();
+    }
+
+    get isFrontmatterMarker(): boolean {
+        return !this.fileLine;
+    }
+
+    get backgroundColor(): string {
+        if (!this._backgroundColor) {
+            let htmlElement = this.parseHtml();
+            this._backgroundColor = htmlElement?.style?.backgroundColor;
+        }
+        return this._backgroundColor;
+    }
+
+    get iconClasses(): string[] {
+        if (!this._iconClasses) {
+            let htmlElement = this.parseHtml();
+            let firstIconElement = htmlElement?.querySelector('i');
+            this._iconClasses = Array.from(firstIconElement?.classList || []);
+        }
+        return this._iconClasses;
+    }
+
+    [Symbol.iterator]() {
+        let index = 0;
+        return {
+            next: () => {
+                if (index < this._edges.length) {
+                    return { value: this._edges[index++], done: false };
+                } else {
+                    return { done: true };
+                }
+            },
+        };
+    }
+
+    addEdge(edge: Edge) {
+        this._edges.push(edge);
+    }
+
+    removeEdges() {
+        for (let edge of this._edges) {
+            edge.polyline?.remove();
+        }
+        this._edges.length = 0;
     }
 
     isSame(other: BaseGeoLayer): boolean {
@@ -108,6 +187,25 @@ export class FileMarker extends BaseGeoLayer {
 
     getBounds(): leaflet.LatLng[] {
         return [this.location];
+    }
+
+    hasResizableIcon(): boolean {
+        return this.icon instanceof leaflet.DivIcon;
+    }
+
+    private parseHtml(): HTMLElement {
+        let htmlElement: HTMLElement;
+        if (this.icon instanceof leaflet.DivIcon && this.icon?.options?.html) {
+            let html = this.icon?.options?.html;
+            if (typeof html === 'string') {
+                let parser = new DOMParser();
+                htmlElement = parser.parseFromString(html, 'text/html').body
+                    .firstChild as HTMLElement;
+            } else {
+                htmlElement = html;
+            }
+        }
+        return htmlElement;
     }
 }
 
@@ -205,9 +303,10 @@ export async function buildMarkers(
 export function finalizeMarkers(
     markers: BaseGeoLayer[],
     settings: PluginSettings,
-    iconFactory: IconFactory
+    iconFactory: IconFactory,
+    app: App
 ) {
-    for (const marker of markers)
+    for (const marker of markers) {
         if (marker instanceof FileMarker) {
             marker.icon = getIconFromRules(
                 marker.tags,
@@ -217,11 +316,34 @@ export function finalizeMarkers(
         } else {
             throw 'Unsupported object type ' + marker.constructor.name;
         }
+    }
+    if (settings.drawEdgesBetweenMarkers) {
+        let filesWithMarkersMap: Map<string, FileWithMarkers> = new Map();
+        for (const marker of markers) {
+            if (marker instanceof FileMarker) {
+                let path = marker.file.path;
+                if (!filesWithMarkersMap.has(path)) {
+                    filesWithMarkersMap.set(path, {
+                        file: marker.file,
+                        markers: [],
+                    });
+                }
+                marker.removeEdges();
+                filesWithMarkersMap.get(path).markers.push(marker);
+            }
+        }
+        addEdgesToMarkers(
+            markers,
+            filesWithMarkersMap,
+            app,
+            settings.linkDepthForEdges
+        );
+    }
 }
 
 /**
  * Make sure that the coordinates are valid world coordinates
- * -90 <= longitude <= 90 and -180 <= latitude <= 180
+ * -90 <= latitude <= 90 and -180 <= longitude <= 180
  * @param location
  */
 export function verifyLocation(location: leaflet.LatLng) {
@@ -287,6 +409,7 @@ export async function getMarkersFromFileContent(
             }
             marker.tags = marker.tags.concat(fileTags);
             marker.fileLocation = match.index;
+            marker.geolocationMatch = match;
             marker.fileLine =
                 content.substring(0, marker.fileLocation).split('\n').length -
                 1;
@@ -358,6 +481,85 @@ export function getFrontMatterLocation(
     }
     return null;
 }
+
+function addEdgesToMarkers(
+    markers: BaseGeoLayer[],
+    filesWithMarkersMap: Map<string, FileWithMarkers>,
+    app: App,
+    linkDepth: number
+) {
+    let nodesSeen: Set<string> = new Set();
+    for (let fileWithMarkers of filesWithMarkersMap.values()) {
+        addEdgesFromFileWithMarkers(
+            markers,
+            fileWithMarkers,
+            filesWithMarkersMap,
+            app,
+            nodesSeen,
+            linkDepth
+        );
+    }
+}
+
+function addEdgesFromFileWithMarkers(
+    markers: BaseGeoLayer[],
+    source: FileWithMarkers,
+    filesWithMarkersMap: Map<string, FileWithMarkers>,
+    app: App,
+    nodesSeen: Set<string>,
+    linkDepth: number
+) {
+    const file = source.file;
+    const path = file.path;
+    if (nodesSeen.has(path)) {
+        // bail out if a cycle (loop) has been detected
+        return;
+    }
+    nodesSeen.add(path);
+    const fileCache = app.metadataCache.getFileCache(file);
+    for (let link of fileCache?.links || []) {
+        let destination = app.metadataCache.getFirstLinkpathDest(
+            link.link,
+            path
+        );
+        if (destination?.path && filesWithMarkersMap.has(destination.path)) {
+            // both the source file and the destination file have markers;
+            // let's connect them and create edges
+            let destinationFileWithMarkers = filesWithMarkersMap.get(
+                destination.path
+            );
+            // Only continue building edges if we have not yet reached the configured link depth.
+            // If the depth has been reached, we don't want to bail out, however, so that this entire
+            // "connected component" (subgraph) is traversed. That way, all the nodes of this subgraph
+            // will be logged in the nodesSeen Set, and not visited again as we loop through the overall
+            // (possibly disconnected) graph. The notes and their various links often form a series of
+            // independent graphs.
+            if (linkDepth > 0) {
+                // build edges and store them in the markers...
+                for (let sourceMarker of source.markers) {
+                    for (let destinationMarker of destinationFileWithMarkers.markers) {
+                        let loc1 = new leaflet.LatLng(
+                            sourceMarker.location.lat,
+                            sourceMarker.location.lng
+                        );
+                        let loc2 = new leaflet.LatLng(
+                            destinationMarker.location.lat,
+                            destinationMarker.location.lng
+                        );
+                        sourceMarker.addEdge(new Edge(loc1, loc2));
+                    }
+                }
+            }
+            // continue to traverse files and links recursively
+            addEdgesFromFileWithMarkers(
+                markers,
+                destinationFileWithMarkers,
+                filesWithMarkersMap,
+                app,
+                nodesSeen,
+                linkDepth - 1
+            );
+        }
 
 /**
  * Maintains a global set of tags.
