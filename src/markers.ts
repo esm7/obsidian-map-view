@@ -5,6 +5,7 @@ import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 
 import { PluginSettings } from 'src/settings';
 import { getIconFromRules, IconFactory } from 'src/markerIcons';
+import { MapState } from 'src/mapState';
 import * as consts from 'src/consts';
 import * as regex from 'src/regex';
 import { djb2Hash } from 'src/utils';
@@ -20,24 +21,20 @@ export type FileWithMarkers = {
 
 export class Edge {
     /** The first location of the edge */
-    public loc1: leaflet.LatLng;
+    public marker1: FileMarker;
     /** The second location of the edge */
-    public loc2: leaflet.LatLng;
+    public marker2: FileMarker;
     /** The leaflet polyline of the edge */
     public polyline: leaflet.Polyline;
 
     constructor(
-        loc1: leaflet.LatLng,
-        loc2: leaflet.LatLng,
+        marker1: FileMarker,
+        marker2: FileMarker,
         polyline: leaflet.Polyline = null
     ) {
-        this.loc1 = loc1;
-        this.loc2 = loc2;
+        this.marker1 = marker1;
+        this.marker2 = marker2;
         this.polyline = polyline;
-    }
-
-    toString() {
-        return `${this.loc1.toString()}<<->>${this.loc2.toString()}`;
     }
 }
 
@@ -130,17 +127,9 @@ export class FileMarker extends BaseGeoLayer {
         return this._iconClasses;
     }
 
-    [Symbol.iterator]() {
-        let index = 0;
-        return {
-            next: () => {
-                if (index < this._edges.length) {
-                    return { value: this._edges[index++], done: false };
-                } else {
-                    return { done: true };
-                }
-            },
-        };
+    // Important note: an Edge(u, v) object exists both in the list of u and in the list of v
+    get edges(): Edge[] {
+        return this._edges;
     }
 
     addEdge(edge: Edge) {
@@ -150,8 +139,17 @@ export class FileMarker extends BaseGeoLayer {
     removeEdges() {
         for (let edge of this._edges) {
             edge.polyline?.remove();
+            edge.polyline = null;
         }
         this._edges.length = 0;
+    }
+
+    isLinkedTo(marker: FileMarker) {
+        return (
+            this.edges.find((edge) => {
+                return edge.marker1 == marker || edge.marker2 == marker;
+            }) != undefined
+        );
     }
 
     isSame(other: BaseGeoLayer): boolean {
@@ -162,6 +160,9 @@ export class FileMarker extends BaseGeoLayer {
             this.fileLocation === other.fileLocation &&
             this.fileLine === other.fileLine &&
             this.extraName === other.extraName &&
+            // This comparison is heavy when many edges are present, but I'm not sure there's a reasonable way
+            // around it (maybe just an internal optimization for the comparison)
+            this.edges == other.edges &&
             this.icon?.options?.iconUrl === other.icon?.options?.iconUrl &&
             // @ts-ignore
             this.icon?.options?.icon === other.icon?.options?.icon &&
@@ -302,6 +303,7 @@ export async function buildMarkers(
  */
 export function finalizeMarkers(
     markers: BaseGeoLayer[],
+    state: MapState,
     settings: PluginSettings,
     iconFactory: IconFactory,
     app: App
@@ -317,7 +319,7 @@ export function finalizeMarkers(
             throw 'Unsupported object type ' + marker.constructor.name;
         }
     }
-    if (settings.drawEdgesBetweenMarkers) {
+    if (state.linkDepth && state.linkDepth > 0) {
         let filesWithMarkersMap: Map<string, FileWithMarkers> = new Map();
         for (const marker of markers) {
             if (marker instanceof FileMarker) {
@@ -332,12 +334,7 @@ export function finalizeMarkers(
                 filesWithMarkersMap.get(path).markers.push(marker);
             }
         }
-        addEdgesToMarkers(
-            markers,
-            filesWithMarkersMap,
-            app,
-            settings.linkDepthForEdges
-        );
+        addEdgesToMarkers(markers, filesWithMarkersMap, app, state.linkDepth);
     }
 }
 
@@ -512,54 +509,50 @@ function addEdgesFromFileWithMarkers(
     const file = source.file;
     const path = file.path;
     if (nodesSeen.has(path)) {
-        // bail out if a cycle (loop) has been detected
+        // Bail out if a cycle (loop) has been detected
         return;
     }
     nodesSeen.add(path);
     const fileCache = app.metadataCache.getFileCache(file);
-    for (let link of fileCache?.links || []) {
+    for (const link of fileCache?.links || []) {
         let destination = app.metadataCache.getFirstLinkpathDest(
             link.link,
             path
         );
         if (destination?.path && filesWithMarkersMap.has(destination.path)) {
-            // both the source file and the destination file have markers;
+            // Both the source file and the destination file have markers;
             // let's connect them and create edges
             let destinationFileWithMarkers = filesWithMarkersMap.get(
                 destination.path
             );
-            // Only continue building edges if we have not yet reached the configured link depth.
-            // If the depth has been reached, we don't want to bail out, however, so that this entire
-            // "connected component" (subgraph) is traversed. That way, all the nodes of this subgraph
-            // will be logged in the nodesSeen Set, and not visited again as we loop through the overall
-            // (possibly disconnected) graph. The notes and their various links often form a series of
-            // independent graphs.
             if (linkDepth > 0) {
-                // build edges and store them in the markers...
+                // Build edges and store them in the markers...
                 for (let sourceMarker of source.markers) {
                     for (let destinationMarker of destinationFileWithMarkers.markers) {
-                        let loc1 = new leaflet.LatLng(
-                            sourceMarker.location.lat,
-                            sourceMarker.location.lng
-                        );
-                        let loc2 = new leaflet.LatLng(
-                            destinationMarker.location.lat,
-                            destinationMarker.location.lng
-                        );
-                        sourceMarker.addEdge(new Edge(loc1, loc2));
+                        if (sourceMarker != destinationMarker) {
+                            // The edge should be linked from both sides
+                            const edge = new Edge(
+                                sourceMarker,
+                                destinationMarker
+                            );
+                            sourceMarker.addEdge(edge);
+                            destinationMarker.addEdge(edge);
+                        }
                     }
                 }
+                // Continue to traverse files and links recursively, with the link depth reduced by one
+                addEdgesFromFileWithMarkers(
+                    markers,
+                    destinationFileWithMarkers,
+                    filesWithMarkersMap,
+                    app,
+                    nodesSeen,
+                    linkDepth - 1
+                );
             }
-            // continue to traverse files and links recursively
-            addEdgesFromFileWithMarkers(
-                markers,
-                destinationFileWithMarkers,
-                filesWithMarkersMap,
-                app,
-                nodesSeen,
-                linkDepth - 1
-            );
         }
+    }
+}
 
 /**
  * Maintains a global set of tags.

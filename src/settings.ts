@@ -65,9 +65,7 @@ export type PluginSettings = {
     queryForFollowActiveNote?: string;
     supportRealTimeGeolocation?: boolean;
     resizeResizableCircleMarkersBasedOnDegree?: boolean;
-    drawEdgesBetweenMarkers?: boolean;
     allowMarkerDragging?: boolean;
-    linkDepthForEdges: number;
     fixFrontMatterOnPaste?: boolean;
     geoHelperType?: GeoHelperType;
     geoHelperCommand?: string;
@@ -132,6 +130,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         mapCenter: new LatLng(40.44694705960048, -180.70312500000003),
         query: '',
         chosenMapSource: 0,
+        linkDepth: 0,
+        linkColor: 'red',
     },
     savedStates: [],
     markerIconRules: [
@@ -228,9 +228,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     queryForFollowActiveNote: 'path:"$PATH$"',
     supportRealTimeGeolocation: false,
     resizeResizableCircleMarkersBasedOnDegree: false,
-    drawEdgesBetweenMarkers: false,
     allowMarkerDragging: false,
-    linkDepthForEdges: 50,
     fixFrontMatterOnPaste: true,
     geoHelperType: 'url',
     geoHelperCommand: 'chrome',

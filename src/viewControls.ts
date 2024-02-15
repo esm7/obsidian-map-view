@@ -42,6 +42,8 @@ export class ViewControls {
     private updateFromActiveMapView: ButtonComponent;
     private embeddedHeight: TextComponent;
     private followActiveNoteToggle: ToggleComponent;
+    private linkDepthBox: DropdownComponent;
+    private linkColorBox: TextComponent;
 
     private presetsDiv: HTMLDivElement;
     private presetsDivContent: HTMLDivElement = null;
@@ -113,6 +115,7 @@ export class ViewControls {
         this.updateOngoing = true;
         this.setMapSourceBoxByState();
         this.setQueryBoxByState();
+        this.setLinksByState();
         if (this.followActiveNoteToggle)
             this.followActiveNoteToggle.setValue(
                 this.getCurrentState().followActiveNote == true
@@ -163,6 +166,25 @@ export class ViewControls {
         if (state.queryError)
             this.queryBox.inputEl.addClass('graph-control-error');
         else this.queryBox.inputEl.removeClass('graph-control-error');
+    }
+
+    private setLinksByState() {
+        if (!this.linkColorBox || !this.linkDepthBox) return;
+        const state = this.getCurrentState();
+        this.linkColorBox.setValue(state.linkColor);
+        this.linkDepthBox.setValue(state.linkDepth.toString());
+    }
+
+    private async setStateByLinks() {
+        // Update the state assuming the controls are updated
+        const state = this.getCurrentState();
+        const linkDepth = parseInt(this.linkDepthBox.getValue());
+        const linkColor = this.linkColorBox.getValue();
+        await this.setNewState(
+            { ...state, linkDepth: linkDepth, linkColor: linkColor },
+            false
+        );
+        this.invalidateActivePreset();
     }
 
     public reload() {
@@ -396,6 +418,27 @@ export class ViewControls {
                         this.followActiveNoteToggle.getValue()
                     );
                 });
+                // TODO TEMP add a label here
+                this.linkDepthBox = new DropdownComponent(viewDivContent)
+                    .addOptions({
+                        '0': 'Off',
+                        '1': '1',
+                        '2': '2',
+                        '3': '3',
+                        '4': '4',
+                        '5': '5',
+                        '50': '50',
+                    })
+                    .onChange(async (value: string) => {
+                        this.setStateByLinks();
+                    });
+                this.linkColorBox = new TextComponent(viewDivContent)
+                    .setPlaceholder('color')
+                    .onChange(async (value: string) => {
+                        this.setStateByLinks();
+                    });
+
+                this.setLinksByState();
             }
             this.markStateAsSaved();
             this.updateSaveButtonVisibility();

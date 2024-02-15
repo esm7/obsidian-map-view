@@ -10,7 +10,6 @@ import {
     MenuItem,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
-import * as yaml from 'js-yaml';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 import * as leafletFullscreen from 'leaflet-fullscreen';
@@ -169,8 +168,12 @@ export class MapContainer {
         this.viewSettings = viewSettings;
         this.plugin = plugin;
         this.app = app;
-        // Create the default state by the configuration
-        this.defaultState = this.settings.defaultState;
+        // Create the default state by the configuration. Since state fields can be added on new plugin versions,
+        // we start by applying the state from DEFAULT_SETTINGS, so new fields can get default vaules
+        this.defaultState = mergeStates(
+            DEFAULT_SETTINGS.defaultState,
+            this.settings.defaultState
+        );
         this.parentEl = parentEl;
 
         // Listen to file changes so we can update markers accordingly
@@ -579,6 +582,7 @@ export class MapContainer {
         }
         finalizeMarkers(
             newMarkers,
+            state,
             this.settings,
             this.plugin.iconFactory,
             this.app
@@ -662,8 +666,8 @@ export class MapContainer {
 
         let locationDegreeMap = this.buildLocationDegreeMap();
         let degrees = [...locationDegreeMap.values()].sort((a, b) => a - b);
-        if (this.settings.drawEdgesBetweenMarkers) {
-            for (let marker of this.display.markers.values()) {
+        if (this.state.linkDepth > 0) {
+            for (const marker of this.display.markers.values()) {
                 if (marker instanceof FileMarker) {
                     if (
                         marker.hasResizableIcon() &&
@@ -678,12 +682,15 @@ export class MapContainer {
                         );
                         marker.geoLayer.setIcon(newIcon);
                     }
-                    // draw edges between markers
-                    for (let edge of marker) {
+                    // Draw edges between markers
+                    for (const edge of marker.edges) {
+                        // Since an edge is linked from both of its sides, we want to make sure we create
+                        // the polyline just once
+                        if (edge.polyline) continue;
                         let polyline = leaflet.polyline(
-                            [edge.loc1, edge.loc2],
+                            [edge.marker1.location, edge.marker2.location],
                             {
-                                color: this.settings.edgeColor,
+                                color: this.state.linkColor,
                                 weight: 1,
                             }
                         );
@@ -698,29 +705,30 @@ export class MapContainer {
 
     private buildLocationDegreeMap(): Map<string, number> {
         let locationDegreeMap: Map<string, number> = new Map();
-        for (let marker of this.display.markers.values()) {
-            if (marker instanceof FileMarker) {
-                for (let edge of marker) {
-                    let loc1 = edge.loc1.toString();
-                    if (!locationDegreeMap.has(loc1)) {
-                        locationDegreeMap.set(loc1, 0);
-                    }
-                    locationDegreeMap.set(
-                        loc1,
-                        locationDegreeMap.get(loc1) + 1
-                    );
+        // TODO TEMP FIX
+        // for (let marker of this.display.markers.values()) {
+        //     if (marker instanceof FileMarker) {
+        //         for (let edge of marker.edges) {
+        //             let loc1 = edge.loc1.toString();
+        //             if (!locationDegreeMap.has(loc1)) {
+        //                 locationDegreeMap.set(loc1, 0);
+        //             }
+        //             locationDegreeMap.set(
+        //                 loc1,
+        //                 locationDegreeMap.get(loc1) + 1
+        //             );
 
-                    let loc2 = edge.loc2.toString();
-                    if (!locationDegreeMap.has(loc2)) {
-                        locationDegreeMap.set(loc2, 0);
-                    }
-                    locationDegreeMap.set(
-                        loc2,
-                        locationDegreeMap.get(loc2) + 1
-                    );
-                }
-            }
-        }
+        //             let loc2 = edge.loc2.toString();
+        //             if (!locationDegreeMap.has(loc2)) {
+        //                 locationDegreeMap.set(loc2, 0);
+        //             }
+        //             locationDegreeMap.set(
+        //                 loc2,
+        //                 locationDegreeMap.get(loc2) + 1
+        //             );
+        //         }
+        //     }
+        // }
         return locationDegreeMap;
     }
 
@@ -780,6 +788,7 @@ export class MapContainer {
         });
         newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app)) newMarker.closePopup();
+            this.endHoverHighlight();
         });
         newMarker.on('add', (event: leaflet.LeafletEvent) => {
             newMarker
@@ -789,46 +798,47 @@ export class MapContainer {
                     ev.stopPropagation();
                 });
         });
-        newMarker.on('move', (event: leaflet.LeafletEvent) => {
-            let oldMarkerLocation = marker.location.toString();
-            let newLatLng = newMarker.getLatLng().clone();
-            for (let m of this.display.markers.values()) {
-                if (m instanceof FileMarker) {
-                    for (let edge of m) {
-                        let edgeDirty = false;
-                        if (edge.loc1.toString() == oldMarkerLocation) {
-                            edge.loc1 = newLatLng;
-                            edgeDirty = true;
-                        } else if (edge.loc2.toString() == oldMarkerLocation) {
-                            edge.loc2 = newLatLng;
-                            edgeDirty = true;
-                        }
-                        if (edgeDirty) {
-                            // this edge has been invalidated as a result of the drag operation.
-                            // we need to remove it and redraw the leaflet polyline.
-                            if (edge.polyline) {
-                                this.display.polylines =
-                                    this.display.polylines.filter(
-                                        (x) => x !== edge.polyline
-                                    );
-                                edge.polyline.remove();
-                            }
-                            let newPolyline = leaflet.polyline(
-                                [edge.loc1, edge.loc2],
-                                {
-                                    color: this.settings.edgeColor,
-                                    weight: 1,
-                                }
-                            );
-                            edge.polyline = newPolyline;
-                            newPolyline.addTo(this.display.map);
-                            this.display.polylines.push(newPolyline);
-                        }
-                    }
-                }
-            }
-            marker.location = newLatLng;
-        });
+        // TODO TEMP FIX
+        // newMarker.on('move', (event: leaflet.LeafletEvent) => {
+        //     let oldMarkerLocation = marker.location.toString();
+        //     let newLatLng = newMarker.getLatLng().clone();
+        //     for (let m of this.display.markers.values()) {
+        //         if (m instanceof FileMarker) {
+        //             for (let edge of m.edges) {
+        //                 let edgeDirty = false;
+        //                 if (edge.loc1.toString() == oldMarkerLocation) {
+        //                     edge.loc1 = newLatLng;
+        //                     edgeDirty = true;
+        //                 } else if (edge.loc2.toString() == oldMarkerLocation) {
+        //                     edge.loc2 = newLatLng;
+        //                     edgeDirty = true;
+        //                 }
+        //                 if (edgeDirty) {
+        //                     // this edge has been invalidated as a result of the drag operation.
+        //                     // we need to remove it and redraw the leaflet polyline.
+        //                     if (edge.polyline) {
+        //                         this.display.polylines =
+        //                             this.display.polylines.filter(
+        //                                 (x) => x !== edge.polyline
+        //                             );
+        //                         edge.polyline.remove();
+        //                     }
+        //                     let newPolyline = leaflet.polyline(
+        //                         [edge.loc1, edge.loc2],
+        //                         {
+        //                             color: this.settings.edgeColor,
+        //                             weight: 1,
+        //                         }
+        //                     );
+        //                     edge.polyline = newPolyline;
+        //                     newPolyline.addTo(this.display.map);
+        //                     this.display.polylines.push(newPolyline);
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     marker.location = newLatLng;
+        // });
         newMarker.on('moveend', async (event: leaflet.LeafletEvent) => {
             const content = await this.app.vault.read(marker.file);
             let newLat = marker.location.lat;
@@ -952,8 +962,10 @@ export class MapContainer {
                 .on('popupclose', (event: leaflet.LeafletEvent) => {
                     // For some reason popups don't recycle on mobile if this is not added
                     mapMarker.unbindPopup();
+                    this.endHoverHighlight();
                 });
         }
+        this.startHoverHighlight(fileMarker);
     }
 
     private openClusterPreviewPopup(event: leaflet.LeafletEvent) {
@@ -1118,6 +1130,7 @@ export class MapContainer {
         }
         finalizeMarkers(
             newMarkers,
+            this.state,
             this.settings,
             this.plugin.iconFactory,
             this.app
@@ -1210,7 +1223,7 @@ export class MapContainer {
             if (highlight instanceof leaflet.Marker) {
                 const parent =
                     this.display.clusterGroup.getVisibleParent(highlight);
-                actualHighlight = parent || actualHighlight;
+                actualHighlight = parent || highlight;
             }
         }
         if (
@@ -1388,6 +1401,66 @@ export class MapContainer {
             this.display.map.keyboard.enable();
             if (this.display.map.tap) this.display.map.tap.disable();
             if (!this.display.zoomControls) this.addZoomButtons();
+        }
+    }
+
+    startHoverHighlight(markerToFocus: FileMarker) {
+        if (this.state.linkDepth === 0) return;
+        this.display.mapDiv.addClass('mv-fade-active');
+        for (const marker of this.display.markers.values()) {
+            if (
+                markerToFocus &&
+                marker instanceof FileMarker &&
+                marker.geoLayer
+            ) {
+                const parent = this.display.clusterGroup.getVisibleParent(
+                    marker.geoLayer
+                );
+                const visibleLeafletMarker = parent || marker.geoLayer;
+                const element = visibleLeafletMarker.getElement();
+                const shouldBeVisible =
+                    marker === markerToFocus ||
+                    marker.isLinkedTo(markerToFocus);
+                if (element) {
+                    // We add two classes, one denoting that generally a fade is active and another to denote
+                    // that a specific marker should be shown. It is done this way because of cluster groups.
+                    // We want a cluster group to be shown if *at least one* of its markers should be shown
+                    if (shouldBeVisible)
+                        element.addClass('mv-fade-marker-shown');
+                }
+                if (marker === markerToFocus) {
+                    for (const edge of marker.edges) {
+                        if (edge.polyline) {
+                            edge.polyline
+                                .getElement()
+                                ?.addClass('mv-fade-edge-shown');
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    endHoverHighlight() {
+        this.display.mapDiv.removeClass('mv-fade-active');
+        for (const marker of this.display.markers.values()) {
+            if (marker.geoLayer && marker.geoLayer instanceof leaflet.Marker) {
+                const parent = this.display.clusterGroup.getVisibleParent(
+                    marker.geoLayer
+                );
+                const visibleLeafletMarker = parent || marker.geoLayer;
+                const element = visibleLeafletMarker.getElement();
+                if (element) element.removeClasses(['mv-fade-marker-shown']);
+                if (marker instanceof FileMarker) {
+                    for (const edge of marker.edges) {
+                        if (edge.polyline) {
+                            edge.polyline
+                                .getElement()
+                                ?.removeClass('mv-fade-edge-shown');
+                        }
+                    }
+                }
+            }
         }
     }
 }

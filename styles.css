@@ -194,6 +194,15 @@ a.mv-icon-button.on {
     filter: drop-shadow(0 0 10px blue);
 }
 
+.mv-fade-active .leaflet-marker-icon:not(.mv-fade-marker-shown) {
+    filter: grayscale(100%);
+    opacity: 0.5;
+}
+
+.mv-fade-active path.leaflet-interactive:not(.mv-fade-edge-shown) {
+    opacity: 0.1;
+}
+
 div.map-view-highlight.marker-cluster {
     box-shadow: 0 0 5px blue;
 }

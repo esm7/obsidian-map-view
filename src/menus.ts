@@ -448,7 +448,8 @@ export function populateDraggingOptions(menu: Menu, fileMarker: FileMarker) {
             }
         });
     });
-  
+}
+
 /* The context menu on an area of the map where there is no existing marker, showing mostly options to add
  * a new marker or open this geolocation elsewhere.
  * This can also be used on a search result.
