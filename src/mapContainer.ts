@@ -35,6 +35,7 @@ import {
     buildMarkers,
     buildAndAppendFileMarkers,
     finalizeMarkers,
+    cacheTagsFromMarkers,
 } from 'src/markers';
 import { getIconFromOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
@@ -565,6 +566,7 @@ export class MapContainer {
         let files = this.app.vault.getMarkdownFiles();
         // Build the markers and filter them according to the query
         let newMarkers = await buildMarkers(files, this.settings, this.app);
+        cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
         try {
             newMarkers = this.filterMarkers(newMarkers, state.query);
             state.queryError = false;
@@ -938,7 +940,7 @@ export class MapContainer {
             if (existingMarker.file.path !== fileRemoved)
                 newMarkers.push(existingMarker);
         }
-        if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile)
+        if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
             // Add file markers from the added file
             await buildAndAppendFileMarkers(
                 newMarkers,
@@ -946,6 +948,8 @@ export class MapContainer {
                 this.settings,
                 this.app
             );
+            cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
+        }
         finalizeMarkers(newMarkers, this.settings, this.plugin.iconCache);
         this.updateMapMarkers(newMarkers);
     }

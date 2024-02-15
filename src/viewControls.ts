@@ -251,7 +251,11 @@ export class ViewControls {
                 'focus',
                 (ev: FocusEvent) => {
                     if (!suggestor) {
-                        suggestor = new QuerySuggest(this.app, this.queryBox);
+                        suggestor = new QuerySuggest(
+                            this.app,
+                            this.plugin,
+                            this.queryBox
+                        );
                         suggestor.open();
                     }
                 }

@@ -51,6 +51,10 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
+<<<<<<< HEAD
+=======
+<!-- Added by: erez, at: Sat Feb 10 09:06:30 PM IST 2024 -->
+>>>>>>> ffb46bc (More fixes and improvements)
 
 <!--te-->
 
@@ -625,6 +629,8 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   New format for front matter location, plays better with Obsidian's property editor in case you want to edit geolocations manually.
 -   The key to use for front matter geolocation is now configurable (https://github.com/esm7/obsidian-map-view/issues/195)
 -   Names containing slashes are now sanitized and handled properly (https://github.com/esm7/obsidian-map-view/issues/207)
+-   Inline tags are now part of filter suggestions (https://github.com/esm7/obsidian-map-view/issues/225)
+-   Emojis for map markers (TODO document and finish)
 
 ### 4.0.1
 

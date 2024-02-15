@@ -59,6 +59,9 @@ export default class MapViewPlugin extends Plugin {
     private urlConvertor: UrlConvertor;
     private mapPreviewPopup: MapPreviewPopup;
     public editorLinkReplacePlugin: ViewPlugin<GeoLinkReplacePlugin>;
+    // Includes all the known tags that are within markers, both inline (which are not necessarily known to Obsidian)
+    // and actual Obsidian tags
+    public allTags: Set<string>;
 
     async onload() {
         await this.loadSettings();
@@ -209,7 +212,7 @@ export default class MapViewPlugin extends Plugin {
         this.registerMarkdownPostProcessor(replaceLinksPostProcessor(this));
 
         this.suggestor = new LocationSuggest(this.app, this.settings);
-        this.tagSuggestor = new TagSuggest(this.app, this.settings);
+        this.tagSuggestor = new TagSuggest(this.app, this);
         this.urlConvertor = new UrlConvertor(this.app, this.settings);
 
         this.registerEditorSuggest(this.suggestor);
@@ -220,6 +223,8 @@ export default class MapViewPlugin extends Plugin {
         this.iconCache = new IconCache(document.body);
 
         this.mapPreviewPopup = null;
+
+        this.allTags = new Set();
 
         // Register commands to the command palette
         // Command that opens the map view (same as clicking the map icon)

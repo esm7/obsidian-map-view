@@ -358,3 +358,18 @@ export function getFrontMatterLocation(
     }
     return null;
 }
+
+/**
+ * Maintains a global set of tags.
+ * This is needed on top of Obsidian's own tag system because Map View also has inline tags.
+ * These can be identical to Obsidian tags, but there may be inline tags that are not Obsidian tags, and
+ * we want them to show on suggestions.
+ */
+export function cacheTagsFromMarkers(
+    markers: BaseGeoLayer[],
+    tagsSet: Set<string>
+) {
+    for (const marker of markers) {
+        marker.tags.forEach((tag) => tagsSet.add(tag));
+    }
+}

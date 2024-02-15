@@ -14,6 +14,7 @@ import * as path from 'path';
 import * as settings from './settings';
 import * as consts from './consts';
 import { BaseMapView } from './baseMapView';
+import MapViewPlugin from 'src/main';
 
 /**
  * An ordered stack (latest first) of the latest used leaves.
@@ -274,20 +275,18 @@ export function matchByPosition(
 /**
  * Returns a list of all the Obsidian tags
  */
-export function getAllTagNames(app: App): string[] {
-    let tags: string[] = [];
+export function getAllTagNames(app: App, plugin: MapViewPlugin): string[] {
+    // Start from all the known tags by markers (which may be inline tags or Obsidian tags), and add to that all
+    // the known Obsidian tags, so we can suggest them to the user too
+    let tags = plugin.allTags;
     const allFiles = app.vault.getMarkdownFiles();
     for (const file of allFiles) {
         const fileCache = app.metadataCache.getFileCache(file);
         const fileTagNames = getAllTags(fileCache) || [];
-        if (fileTagNames.length > 0) {
-            tags = tags.concat(
-                fileTagNames.filter((tagName) => tags.indexOf(tagName) < 0)
-            );
-        }
+        fileTagNames.forEach((tag) => tags.add(tag));
     }
-    tags = tags.sort();
-    return tags;
+    const sortedTags = Array.from(tags).sort();
+    return sortedTags;
 }
 
 export function isMobile(app: App): boolean {
