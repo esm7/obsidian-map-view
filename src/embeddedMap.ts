@@ -78,7 +78,7 @@ export class EmbeddedMap {
             new Notice('Unable to find section info');
             return false;
         }
-        const editor = await getEditor(this.app);
+        const editor = getEditor(this.app);
         if (!editor) {
             new Notice('Unable to find the current editor');
             return false;

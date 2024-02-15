@@ -621,6 +621,7 @@ export class SearchControl extends leaflet.Control {
             'custom',
             'Find in map',
             null,
+            null,
             markersByDistanceToCenter,
             true,
             [{ command: 'shift+enter', purpose: 'go without zoom & pan' }]

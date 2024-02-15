@@ -2,6 +2,7 @@ import {
     Editor,
     FileView,
     MarkdownView,
+    MarkdownFileInfo,
     Menu,
     TFile,
     Plugin,
@@ -123,11 +124,14 @@ export default class MapViewPlugin extends Plugin {
                                       parseFloat(params.centerLng)
                                   )
                                 : null;
-                        const editor = await utils.getEditor(this.app);
+                        const editor = utils.getEditor(this.app);
+                        const file = utils.getFile(this.app);
                         if (location && editor) {
-                            const locationString = `[${location.lat},${location.lng}]`;
+                            const locationString = `"${location.lat},${location.lng}"`;
                             utils.verifyOrAddFrontMatter(
+                                this.app,
                                 editor,
+                                file,
                                 'location',
                                 locationString
                             );
@@ -140,10 +144,13 @@ export default class MapViewPlugin extends Plugin {
                                       parseFloat(params.centerLng)
                                   )
                                 : null;
-                        const editor = await utils.getEditor(this.app);
+                        const editor = utils.getEditor(this.app);
+                        const file = utils.getFile(this.app);
                         utils.insertLocationToEditor(
+                            this.app,
                             location,
                             editor,
+                            file,
                             this.settings
                         );
                     } else if (params.mvaction === 'copyinlinelocation') {
@@ -230,9 +237,14 @@ export default class MapViewPlugin extends Plugin {
         this.addCommand({
             id: 'convert-selection-to-location',
             name: 'Convert Selection to Geolocation',
-            editorCheckCallback: (checking, editor, view) => {
+            editorCheckCallback: (
+                checking,
+                editor,
+                view: MarkdownView | MarkdownFileInfo
+            ) => {
                 if (checking) return editor.getSelection().length > 0;
-                this.suggestor.selectionToLink(editor);
+                const file = view.file;
+                if (file) this.suggestor.selectionToLink(editor, file);
             },
         });
 
@@ -453,7 +465,8 @@ export default class MapViewPlugin extends Plugin {
         // Add items to the editor context menu (run when the context menu is built)
         // This is the context menu when right clicking within an editor view.
         this.app.workspace.on('editor-menu', (menu, editor, view) => {
-            this.onEditorMenu(menu, editor, view as MarkdownView);
+            const file = view.file;
+            if (file) this.onEditorMenu(menu, editor, view as MarkdownView);
         });
 
         // Watch for pasted text and add a 'locations:' front matter where applicable if the user pastes
@@ -466,11 +479,14 @@ export default class MapViewPlugin extends Plugin {
                     if (text) {
                         const inlineMatch = matchInlineLocation(text);
                         if (inlineMatch && inlineMatch.length > 0) {
+                            const file = utils.getFile(this.app);
                             // The pasted text contains an inline location, so try to help the user by verifying
                             // a frontmatter exists
                             if (
                                 utils.verifyOrAddFrontMatterForInline(
+                                    this.app,
                                     editor,
+                                    file,
                                     this.settings
                                 )
                             ) {
@@ -625,7 +641,11 @@ export default class MapViewPlugin extends Plugin {
                 parseFloat(match.groups.lng)
             );
         else if (alsoFrontMatter) {
-            const fmLocation = getFrontMatterLocation(view.file, this.app);
+            const fmLocation = getFrontMatterLocation(
+                view.file,
+                this.app,
+                this.settings
+            );
             if (line.indexOf('location') > -1 && fmLocation)
                 selectedLocation = fmLocation;
         }
@@ -668,7 +688,11 @@ export default class MapViewPlugin extends Plugin {
         const editor =
             leaf && leaf.view instanceof MarkdownView ? leaf.view.editor : null;
         if (file instanceof TFile) {
-            const location = getFrontMatterLocation(file, this.app);
+            const location = getFrontMatterLocation(
+                file,
+                this.app,
+                this.settings
+            );
             if (location) {
                 // If there is a geolocation in the front matter of the file
                 // Add an option to open it in the map
@@ -690,6 +714,7 @@ export default class MapViewPlugin extends Plugin {
                         this.app,
                         this,
                         editor,
+                        file,
                         this.settings
                     );
                 }
@@ -700,7 +725,14 @@ export default class MapViewPlugin extends Plugin {
             }
             menus.addFocusNoteInMapView(menu, file, this.settings, this);
             if (this.settings.debug)
-                menus.addImport(menu, editor, this.app, this, this.settings);
+                menus.addImport(
+                    menu,
+                    editor,
+                    file,
+                    this.app,
+                    this,
+                    this.settings
+                );
         }
     }
 
@@ -746,6 +778,7 @@ export default class MapViewPlugin extends Plugin {
             menus.addUrlConversionItems(
                 menu,
                 editor,
+                view.file,
                 this.suggestor,
                 this.urlConvertor,
                 this.settings
@@ -829,6 +862,7 @@ export default class MapViewPlugin extends Plugin {
             this.settings.newNotePath,
             newFileName,
             locationString,
+            this.settings.frontMatterKey,
             this.settings.newNoteTemplate
         );
         // If there is an open map view, use it to decide how and where to open the file.
@@ -844,7 +878,7 @@ export default class MapViewPlugin extends Plugin {
         } else {
             const leaf = this.app.workspace.activeLeaf;
             await leaf.openFile(file);
-            const editor = await utils.getEditor(this.app);
+            const editor = utils.getEditor(this.app);
             if (editor)
                 await utils.goToEditorLocation(editor, cursorPos, false);
         }

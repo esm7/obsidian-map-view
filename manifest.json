@@ -1,7 +1,7 @@
 {
     "id": "obsidian-map-view",
     "name": "Map View",
-    "version": "4.0.0",
+    "version": "4.1.0",
     "minAppVersion": "0.15.3",
     "description": "An interactive map view.",
     "isDesktopOnly": false

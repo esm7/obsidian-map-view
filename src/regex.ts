@@ -28,6 +28,8 @@ export const INLINE_LOCATION_OLD_SYNTAX =
 // of the link name
 export const INLINE_LOCATION_WITH_TAGS =
     /(?<link>\[(?<name>[^\]]*?)\]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\))[ \t]*(?<tags>(tag:[\p{L}\p{N}_\/\-]+[\s,.]+)*)/gu;
+export const FRONT_MATTER_LOCATION_V2 =
+    /(?<header>^---.*)(?<loc>location:[ \t]*\"(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\").*^---/ms;
 export const FRONT_MATTER_LOCATION =
     /(?<header>^---.*)(?<loc>location:[ \t]*\[(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\]).*^---/ms;
 

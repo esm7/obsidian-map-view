@@ -92,6 +92,7 @@ export function addGeolocationToNote(
     app: App,
     plugin: MapViewPlugin,
     editor: Editor,
+    file: TFile,
     settings: settings.PluginSettings
 ) {
     menu.addItem((item: MenuItem) => {
@@ -105,7 +106,8 @@ export function addGeolocationToNote(
                 settings,
                 'addToNote',
                 'Add geolocation to note',
-                editor
+                editor,
+                file
             );
             dialog.open();
         });
@@ -139,6 +141,7 @@ export function addFocusNoteInMapView(
 export function addUrlConversionItems(
     menu: Menu,
     editor: Editor,
+    file: TFile,
     suggestor: LocationSuggest,
     urlConvertor: UrlConvertor,
     settings: PluginSettings
@@ -149,7 +152,9 @@ export function addUrlConversionItems(
             item.setTitle('Convert to geolocation (geosearch)');
             item.setIcon('search');
             item.setSection('mapview');
-            item.onClick(async () => await suggestor.selectionToLink(editor));
+            item.onClick(
+                async () => await suggestor.selectionToLink(editor, file)
+            );
         });
     }
 
@@ -160,7 +165,7 @@ export function addUrlConversionItems(
             item.setIcon('search');
             item.setSection('mapview');
             item.onClick(async () => {
-                urlConvertor.convertUrlAtCursorToGeolocation(editor);
+                urlConvertor.convertUrlAtCursorToGeolocation(editor, file);
             });
         });
 
@@ -176,8 +181,10 @@ export function addUrlConversionItems(
                 clipboardLocation = await clipboardLocation;
             if (clipboardLocation)
                 utils.insertLocationToEditor(
+                    this.app,
                     clipboardLocation.location,
                     editor,
+                    file,
                     settings
                 );
         });
@@ -217,6 +224,7 @@ export function addNewNoteItems(
                 settings.newNotePath,
                 newFileName,
                 locationString,
+                settings.frontMatterKey,
                 settings.newNoteTemplate
             );
             mapContainer.goToFile(
@@ -243,6 +251,7 @@ export function addNewNoteItems(
                 settings.newNotePath,
                 newFileName,
                 locationString,
+                settings.frontMatterKey,
                 settings.newNoteTemplate
             );
             mapContainer.goToFile(
@@ -315,6 +324,7 @@ export function addFocusLinesInMapView(
 export function addImport(
     menu: Menu,
     editor: Editor,
+    file: TFile,
     app: App,
     plugin: MapViewPlugin,
     settings: settings.PluginSettings
@@ -327,6 +337,7 @@ export function addImport(
         item.onClick(async (evt: MouseEvent) => {
             const importDialog = new ImportDialog(
                 editor,
+                file,
                 app,
                 plugin,
                 settings

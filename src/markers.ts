@@ -154,7 +154,7 @@ export async function buildAndAppendFileMarkers(
     const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
     if (frontMatter || tagNameToSearch?.length > 0) {
         if (frontMatter && !skipMetadata) {
-            const location = getFrontMatterLocation(file, app);
+            const location = getFrontMatterLocation(file, app, settings);
             if (location) {
                 verifyLocation(location);
                 let marker = new FileMarker(file, location);
@@ -308,13 +308,17 @@ export async function getMarkersFromFileContent(
  * @param file The file to load the front matter from
  * @param app The Obsidian App instance
  */
-export function getFrontMatterLocation(file: TFile, app: App): leaflet.LatLng {
+export function getFrontMatterLocation(
+    file: TFile,
+    app: App,
+    settings: PluginSettings
+): leaflet.LatLng {
     const fileCache = app.metadataCache.getFileCache(file);
     const frontMatter = fileCache?.frontmatter;
-    if (frontMatter && frontMatter?.location) {
+    if (frontMatter && settings.frontMatterKey in frontMatter) {
         try {
-            const location = frontMatter.location;
-            // We have a single location at hand
+            const location = frontMatter[settings.frontMatterKey];
+            // V1 format: an array in the format of `location: [lat,lng]`
             if (
                 location.length == 2 &&
                 typeof location[0] === 'number' &&
@@ -326,7 +330,28 @@ export function getFrontMatterLocation(file: TFile, app: App): leaflet.LatLng {
                 );
                 verifyLocation(location);
                 return location;
-            } else console.log(`Unknown: `, location);
+            } else {
+                // V2 format: a string in the format of `location: "lat,lng"` (which is more compatible with
+                // Obsidian's property editor)
+                const locationV2 = location.match(regex.COORDINATES);
+                if (
+                    locationV2 &&
+                    locationV2.groups &&
+                    locationV2.groups.lat &&
+                    locationV2.groups.lng
+                ) {
+                    const location = new leaflet.LatLng(
+                        locationV2.groups.lat,
+                        locationV2.groups.lng
+                    );
+                    verifyLocation(location);
+                    return location;
+                } else
+                    console.log(
+                        `Unknown front matter location format: `,
+                        location
+                    );
+            }
         } catch (e) {
             console.log(`Error converting location in file ${file.name}:`, e);
         }

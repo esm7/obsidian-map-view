@@ -35,6 +35,8 @@
     -   [GPS Location Support](#gps-location-support)
     -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
     -   [Changelog](#changelog)
+        -   [4.1.0](#410)
+        -   [4.0.1](#401)
         -   [4.0.0](#400)
         -   [3.1.1](#311)
         -   [3.0.2](#302)
@@ -49,7 +51,6 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri Jul 28 09:51:19 AM IDT 2023 -->
 
 <!--te-->
 
@@ -206,12 +207,13 @@ First is a location tag in a note's [front matter](https://help.obsidian.md/Adva
 
 ```yaml
 ---
-location: [40.6892494, -74.0466891]
+location: '40.6892494, -74.0466891'
 ---
 ```
 
 This is useful for notes that represent a single specific location.
-It's also compatible with the way other useful plugins like [obsidian-leaflet](https://github.com/valentine195/obsidian-leaflet-plugin) read locations, and allows some interoperability.
+
+There is an alternative syntax used by Map View previously: `location: [40.6892494, -74.0466891]`. While this format is compatible with [obsidian-leaflet](https://github.com/valentine195/obsidian-leaflet-plugin), it doesn't play very well with Obsidian's property editor. Both format are supported by the new one is encouraged for Obsidian version 1.4 and above.
 
 Another way that the plugin parses location data is through **inline location URLs** in the format of `[link-name](geo:40.68,-74.04)`, which allow multiple markers in the same note.
 To prevent the need to scan the full content of all your notes, it requires an empty `locations:` tag in the note front matter ('locations' and not 'location').
@@ -617,6 +619,17 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 4.1.0
+
+-   New format for front matter location, plays better with Obsidian's property editor in case you want to edit geolocations manually.
+-   The key to use for front matter geolocation is now configurable (https://github.com/esm7/obsidian-map-view/issues/195)
+-   Names containing slashes are now sanitized and handled properly (https://github.com/esm7/obsidian-map-view/issues/207)
+
+### 4.0.1
+
+-   Fixed support for innerHTML in icon rules (https://github.com/esm7/obsidian-map-view/issues/183).
+-   Fixed some Android issues
 
 ### 4.0.0
 

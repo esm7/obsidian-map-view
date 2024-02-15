@@ -19,11 +19,8 @@ class SuggestInfo {
 }
 
 export class TagSuggest extends EditorSuggest<SuggestInfo> {
-    private app: App;
-
     constructor(app: App, settings: PluginSettings) {
         super(app);
-        this.app = app;
     }
 
     onTrigger(

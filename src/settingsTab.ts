@@ -1,6 +1,5 @@
 import {
     App,
-    ButtonComponent,
     TextComponent,
     PluginSettingTab,
     TextAreaComponent,
@@ -259,6 +258,22 @@ export class SettingsTab extends PluginSettingTab {
                     )
                     .onChange(async (value: boolean) => {
                         this.plugin.settings.fixFrontMatterOnPaste = value;
+                        this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Key for front matter location')
+            .setDesc(
+                'The key Map View uses to denote a front matter geolocation. Restart required. Beware: changing this will make your old front matter key not recognized as geolocations by Map View.'
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.frontMatterKey ??
+                            DEFAULT_SETTINGS.frontMatterKey
+                    )
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.frontMatterKey = value;
                         this.plugin.saveSettings();
                     });
             });

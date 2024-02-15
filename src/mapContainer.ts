@@ -894,7 +894,7 @@ export class MapContainer {
             chosenLeaf = this.app.workspace.getLeaf(true);
         }
         await chosenLeaf.openFile(file);
-        const editor = await utils.getEditor(this.app, chosenLeaf);
+        const editor = utils.getEditor(this.app, chosenLeaf);
         if (editor && editorAction) await editorAction(editor);
     }
 
