@@ -434,25 +434,14 @@ export function populateRouting(
  * This can also be used on a search result.
  */
 export function addMapContextMenuItems(
-	mapPopup: Menu,
-	geolocation: leaflet.LatLng,
+    mapPopup: Menu,
+    geolocation: leaflet.LatLng,
     mapContainer: MapContainer,
     settings: settings.PluginSettings,
     app: App
 ) {
-	addNewNoteItems(
-		mapPopup,
-		geolocation,
-		mapContainer,
-		settings,
-		app
-	);
-	addCopyGeolocationItems(mapPopup, geolocation);
-	populateRouting(
-		mapContainer,
-		geolocation,
-		mapPopup,
-		settings
-	);
-	addOpenWith(mapPopup, geolocation, settings);
+    addNewNoteItems(mapPopup, geolocation, mapContainer, settings, app);
+    addCopyGeolocationItems(mapPopup, geolocation);
+    populateRouting(mapContainer, geolocation, mapPopup, settings);
+    addOpenWith(mapPopup, geolocation, settings);
 }

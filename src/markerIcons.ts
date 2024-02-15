@@ -1,10 +1,17 @@
 import * as leaflet from 'leaflet';
 
 // import '@fortawesome/fontawesome-free/js/all.min';
-import { fas } from '@fortawesome/free-solid-svg-icons'
-import { far } from '@fortawesome/free-regular-svg-icons'
-import { fab } from '@fortawesome/free-brands-svg-icons'
-import { library, IconPrefix, IconName, config as faConfig, findIconDefinition, icon as faIcon } from '@fortawesome/fontawesome-svg-core';
+import { fas } from '@fortawesome/free-solid-svg-icons';
+import { far } from '@fortawesome/free-regular-svg-icons';
+import { fab } from '@fortawesome/free-brands-svg-icons';
+import {
+    library,
+    IconPrefix,
+    IconName,
+    config as faConfig,
+    findIconDefinition,
+    icon as faIcon,
+} from '@fortawesome/fontawesome-svg-core';
 
 import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
@@ -76,21 +83,24 @@ function isText(iconName: string) {
 // Font Awesome MutationObserver, see the issue here: https://github.com/esm7/obsidian-map-view/issues/216
 export class IconFactory {
     constructor(containerEl: HTMLElement) {
-		faConfig.observeMutations = false;
-		faConfig.autoReplaceSvg = false;
-		library.add(fas, far, fab);
+        faConfig.observeMutations = false;
+        faConfig.autoReplaceSvg = false;
+        library.add(fas, far, fab);
     }
 
-	getIcon(iconSpec: leaflet.ExtraMarkers.IconOptions): SVGElement {
-		const iconName = iconSpec.icon.replace('fa-', '') as IconName;
-		const newIconDef = findIconDefinition({prefix: iconSpec.prefix as IconPrefix, iconName: iconName});
-		if (!newIconDef) return null;
-		const newIcon = faIcon(newIconDef);
-		if (!newIcon) return null;
-		const iconNode = newIcon.node[0] as SVGElement;
-		iconNode.style.color = iconSpec.iconColor ?? 'white';
-		return iconNode;
-	}
+    getIcon(iconSpec: leaflet.ExtraMarkers.IconOptions): SVGElement {
+        const iconName = iconSpec.icon.replace('fa-', '') as IconName;
+        const newIconDef = findIconDefinition({
+            prefix: iconSpec.prefix as IconPrefix,
+            iconName: iconName,
+        });
+        if (!newIconDef) return null;
+        const newIcon = faIcon(newIconDef);
+        if (!newIcon) return null;
+        const iconNode = newIcon.node[0] as SVGElement;
+        iconNode.style.color = iconSpec.iconColor ?? 'white';
+        return iconNode;
+    }
 }
 
 export function checkTagPatternMatch(tagPattern: string, tags: string[]) {

@@ -93,7 +93,7 @@ a.mv-icon-button.on {
 }
 
 .setting-item-control .mv-emoji-icon {
-	margin: 12px 0;
+    margin: 12px 0;
 }
 
 .leaflet-container .dark-mode {
@@ -133,7 +133,7 @@ a.mv-icon-button.on {
 
 /* Make emoji icons behave in cluster previews */
 .clusterPreviewContainer p {
-	margin: 10px 0 !important;
+    margin: 10px 0 !important;
 }
 
 .graph-control-follow-label {
@@ -175,9 +175,9 @@ a.mv-icon-button.on {
 }
 
 .suggestion-item .search-icon-div .mv-emoji-icon {
-	position: relative;
-	margin: 0;
-	top: 10px;
+    position: relative;
+    margin: 0;
+    top: 10px;
 }
 
 .search-text-div {
@@ -205,7 +205,8 @@ div.map-view-highlight.marker-cluster {
 }
 
 .mv-emoji-icon {
-    text-shadow: 0 0 1px #fff, -1px -1px 1px #fff, 1px -1px 1px #fff, -1px 1px 1px #fff, 0 0 2px #fff;
+    text-shadow: 0 0 1px #fff, -1px -1px 1px #fff, 1px -1px 1px #fff,
+        -1px 1px 1px #fff, 0 0 2px #fff;
     top: -2px;
     position: relative;
 }

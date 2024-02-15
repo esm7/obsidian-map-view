@@ -35,7 +35,7 @@
     -   [GPS Location Support](#gps-location-support)
     -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
     -   [Changelog](#changelog)
-        -   [4.1.0](#410)
+        -   [5.0.0](#500)
         -   [4.0.1](#401)
         -   [4.0.0](#400)
         -   [3.1.1](#311)
@@ -51,7 +51,6 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Sat Feb 10 09:06:30 PM IST 2024 -->
 
 <!--te-->
 

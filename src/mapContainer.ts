@@ -530,7 +530,13 @@ export class MapContainer {
             'contextmenu',
             async (event: leaflet.LeafletMouseEvent) => {
                 let mapPopup = new Menu();
-				menus.addMapContextMenuItems(mapPopup, event.latlng, this, this.settings, this.app);
+                menus.addMapContextMenuItems(
+                    mapPopup,
+                    event.latlng,
+                    this,
+                    this.settings,
+                    this.app
+                );
                 mapPopup.showAtPosition(event.originalEvent);
             }
         );
@@ -958,13 +964,19 @@ export class MapContainer {
         marker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
             marker.closePopup();
         });
-		marker.on('contextmenu', (event: leaflet.LeafletMouseEvent) => {
-			let mapPopup = new Menu();
-			// This is the same context menu when right-clicking a blank area of the map, but in contrast to a blank
-			// area, in a search result marker we use the location of the marker and not the mouse pointer
-			menus.addMapContextMenuItems(mapPopup, details.location, this, this.settings, this.app);
-			mapPopup.showAtPosition(event.originalEvent);
-		});
+        marker.on('contextmenu', (event: leaflet.LeafletMouseEvent) => {
+            let mapPopup = new Menu();
+            // This is the same context menu when right-clicking a blank area of the map, but in contrast to a blank
+            // area, in a search result marker we use the location of the marker and not the mouse pointer
+            menus.addMapContextMenuItems(
+                mapPopup,
+                details.location,
+                this,
+                this.settings,
+                this.app
+            );
+            mapPopup.showAtPosition(event.originalEvent);
+        });
         marker.addTo(this.display.map);
         this.goToSearchResult(details.location, marker, keepZoom);
     }
