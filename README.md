@@ -630,6 +630,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Emojis for map markers (TODO document and finish)
 -   The actions from a search marker context menu now use the geolocation of the marker rather than the mouse.
 -   Font Awesome 6.5.1 and a revamp to how it is used. POSSIBLE BUGS HERE
+-   Map View now requires Obsidian 1.5.0 or newer.
 
 ### 4.0.1
 
