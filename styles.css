@@ -2,12 +2,15 @@
     color: var(--text-normal);
     font-size: var(--font-text-size);
     font-family: var(--font-text);
+    font-weight: bold;
+    margin: 0 !important;
 }
 
 .map-view-marker-sub-name {
     color: var(--text-normal);
     font-size: var(--font-text-size);
     font-family: var(--font-text);
+    margin: 0 !important;
 }
 
 .map-view-main {
@@ -156,6 +159,21 @@ a.mv-icon-button.on {
     box-shadow: none;
     background: none;
     color: none;
+}
+
+.leaflet-popup-content:has(.mv-marker-popup-container) {
+    margin: 0;
+}
+
+.leaflet-popup.marker-popup :has(.mv-marker-popup-container) {
+    /* color: blue; */
+    max-height: 20em;
+    width: 30em !important;
+    overflow: hidden;
+}
+
+.mv-marker-popup-container .markdown-embed {
+    border-left: 0;
 }
 
 .url-rule-dropdown {

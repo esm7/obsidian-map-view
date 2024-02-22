@@ -4,6 +4,7 @@ import * as leaflet from 'leaflet';
 
 import * as settings from 'src/settings';
 import * as utils from 'src/utils';
+import * as consts from 'src/consts';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { UrlConvertor } from 'src/urlConvertor';
 import { LocationSuggest } from 'src/locationSuggest';
@@ -13,6 +14,7 @@ import { MapContainer } from 'src/mapContainer';
 import { ImportDialog } from 'src/importDialog';
 import { PluginSettings } from 'src/settings';
 import { FileMarker } from 'src/markers';
+import { getIconFromOptions } from 'src/markerIcons';
 
 export function addShowOnMap(
     menu: Menu,
@@ -428,10 +430,14 @@ export function populateRouting(
     }
 }
 
-export function populateDraggingOptions(menu: Menu, fileMarker: FileMarker) {
+export function populateMoveMarker(
+    menu: Menu,
+    fileMarker: FileMarker,
+    plugin: MapViewPlugin
+) {
     let title = fileMarker.geoLayer?.dragging?.enabled()
-        ? 'Disable dragging'
-        : 'Enable dragging';
+        ? 'Disable move'
+        : 'Enable move';
     let icon = fileMarker.geoLayer?.dragging?.enabled() ? 'lock' : 'unlock';
     menu.addItem((item: MenuItem) => {
         item.setTitle(title);
@@ -444,6 +450,12 @@ export function populateDraggingOptions(menu: Menu, fileMarker: FileMarker) {
                     leafletMarker.dragging.disable();
                 } else {
                     leafletMarker.dragging.enable();
+                    leafletMarker.setIcon(
+                        getIconFromOptions(
+                            consts.UNLOCKED_MARKER,
+                            plugin.iconFactory
+                        )
+                    );
                 }
             }
         });

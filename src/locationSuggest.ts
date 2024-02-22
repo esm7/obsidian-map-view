@@ -75,6 +75,10 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
             { line: currentCursor.line, ch: linkOfCursor.index },
             { line: currentCursor.line, ch: linkOfCursor.linkEnd }
         );
+        value.context.editor.setCursor({
+            line: currentCursor.line,
+            ch: linkOfCursor.index + finalResult.length,
+        });
         if (
             await utils.verifyOrAddFrontMatterForInline(
                 this.app,

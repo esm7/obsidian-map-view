@@ -48,6 +48,7 @@ export abstract class BaseMapView extends ItemView {
     ) {
         super(leaf);
         this.navigation = true;
+        this.icon = 'map-pin';
         this.mapContainer = new MapContainer(
             this.contentEl,
             settings,

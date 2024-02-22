@@ -52,6 +52,7 @@ export type PluginSettings = {
     showNoteNamePopup?: boolean;
     showLinkNameInPopup?: LinkNamePopupBehavior;
     showNotePreview?: boolean;
+    useObsidianNotePreview?: boolean;
     showClusterPreview?: boolean;
     debug?: boolean;
     openIn?: OpenInSettings[];
@@ -64,8 +65,6 @@ export type PluginSettings = {
     saveHistory?: boolean;
     queryForFollowActiveNote?: string;
     supportRealTimeGeolocation?: boolean;
-    resizeResizableCircleMarkersBasedOnDegree?: boolean;
-    allowMarkerDragging?: boolean;
     fixFrontMatterOnPaste?: boolean;
     geoHelperType?: GeoHelperType;
     geoHelperCommand?: string;
@@ -75,7 +74,6 @@ export type PluginSettings = {
     showGeolinkPreview?: boolean;
     zoomOnGeolinkPreview?: number;
     routingUrl?: string;
-    edgeColor?: string;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -176,6 +174,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     showNoteNamePopup: true,
     showLinkNameInPopup: 'mobileOnly',
     showNotePreview: true,
+    useObsidianNotePreview: true,
     showClusterPreview: false,
     debug: false,
     openIn: [
@@ -227,8 +226,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     letZoomBeyondMax: false,
     queryForFollowActiveNote: 'path:"$PATH$"',
     supportRealTimeGeolocation: false,
-    resizeResizableCircleMarkersBasedOnDegree: false,
-    allowMarkerDragging: false,
     fixFrontMatterOnPaste: true,
     geoHelperType: 'url',
     geoHelperCommand: 'chrome',
@@ -238,7 +235,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     zoomOnGeolinkPreview: 10,
     routingUrl:
         'https://www.google.com/maps/dir/?api=1&origin={x0},{y0}&destination={x1},{y1}',
-    edgeColor: 'red',
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {

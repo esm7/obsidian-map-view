@@ -91,8 +91,6 @@ export class FileMarker extends BaseGeoLayer {
     public location: leaflet.LatLng;
     public icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
     private _edges: Edge[] = [];
-    private _backgroundColor: string;
-    private _iconClasses: string[];
 
     /**
      * Construct a new FileMarker object
@@ -108,23 +106,6 @@ export class FileMarker extends BaseGeoLayer {
 
     get isFrontmatterMarker(): boolean {
         return !this.fileLine;
-    }
-
-    get backgroundColor(): string {
-        if (!this._backgroundColor) {
-            let htmlElement = this.parseHtml();
-            this._backgroundColor = htmlElement?.style?.backgroundColor;
-        }
-        return this._backgroundColor;
-    }
-
-    get iconClasses(): string[] {
-        if (!this._iconClasses) {
-            let htmlElement = this.parseHtml();
-            let firstIconElement = htmlElement?.querySelector('i');
-            this._iconClasses = Array.from(firstIconElement?.classList || []);
-        }
-        return this._iconClasses;
     }
 
     // Important note: an Edge(u, v) object exists both in the list of u and in the list of v
@@ -188,25 +169,6 @@ export class FileMarker extends BaseGeoLayer {
 
     getBounds(): leaflet.LatLng[] {
         return [this.location];
-    }
-
-    hasResizableIcon(): boolean {
-        return this.icon instanceof leaflet.DivIcon;
-    }
-
-    private parseHtml(): HTMLElement {
-        let htmlElement: HTMLElement;
-        if (this.icon instanceof leaflet.DivIcon && this.icon?.options?.html) {
-            let html = this.icon?.options?.html;
-            if (typeof html === 'string') {
-                let parser = new DOMParser();
-                htmlElement = parser.parseFromString(html, 'text/html').body
-                    .firstChild as HTMLElement;
-            } else {
-                htmlElement = html;
-            }
-        }
-        return htmlElement;
     }
 }
 

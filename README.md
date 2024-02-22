@@ -51,7 +51,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Thu Feb 15 10:40:54 PM IST 2024 -->
+<!-- Added by: erez, at: Thu Feb 22 06:22:37 AM IST 2024 -->
 
 <!--te-->
 
@@ -631,7 +631,11 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Emojis for map markers (TODO document and finish)
 -   The actions from a search marker context menu now use the geolocation of the marker rather than the mouse.
 -   Font Awesome 6.5.1 and a revamp to how it is used. POSSIBLE BUGS HERE
--   Map View now requires Obsidian 1.5.0 or newer.
+-   Map View now requires Obsidian 1.5.6 or newer, and uses the formal front matter API.
+-   Tab icons of map views now have the proper map pin icon (https://github.com/esm7/obsidian-map-view/issues/227)
+-   Links and edges
+-   Markers can now be moved (with their corresponding note updated, of course) -- see the "Enable Move" item in the marker's context menu. Thanks!
+-   Fixed a bug of the cursor not jumping forward after an inline location suggestion
 
 ### 4.0.1
 

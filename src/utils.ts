@@ -65,8 +65,18 @@ type NewNoteType = 'singleLocation' | 'multiLocation';
 const CURSOR = '$CURSOR$';
 
 function sanitizeFileName(s: string) {
-    const illegalChars = /[\/\?<>:\*\|":]/g;
+    // Note that the slash character '/' is deliberately not here. It must be considered as a legal part of a file
+    // name so users can specify directories
+    const illegalChars = /[\?<>:\*\|":]/g;
     return s.replace(illegalChars, '-');
+}
+
+export function sanitizePlaceNameForNoteName(s: string) {
+    const initiallySanitized = sanitizeFileName(s);
+    // In addition to the sanitization used for file names, we do additional sanitization that is meant for
+    // *place names*, which are not supposed to include a slash
+    const moreIllegalCars = /\//g;
+    return initiallySanitized.replace(moreIllegalCars, '-');
 }
 
 /**
@@ -155,11 +165,12 @@ export async function verifyOrAddFrontMatter(
     editor: Editor,
     file: TFile,
     fieldName: string,
-    fieldValue: string
+    fieldValue: string,
+    skipIfExists: boolean = true
 ): Promise<boolean> {
     let locationAdded = false;
     await app.fileManager.processFrontMatter(file, (frontmatter: any) => {
-        if (fieldName in frontmatter) {
+        if (fieldName in frontmatter && skipIfExists) {
             locationAdded = false;
             return;
         }
@@ -185,22 +196,6 @@ export async function verifyOrAddFrontMatterForInline(
         return false;
     // Otherwise, verify this note has a front matter with an empty 'locations' tag
     return await verifyOrAddFrontMatter(app, editor, file, 'locations', '');
-}
-
-/**
- * Update the location in the front matter
- * @param app The Obsidian Editor instance
- * @param file The TFile containing the location to update
- * @param newLocation The new location to set
- */
-export async function modifyOrAddFrontMatterLocation(
-    app: App,
-    file: TFile,
-    newLocation: any
-): Promise<void> {
-    await app.fileManager.processFrontMatter(file, (frontmatter: any) => {
-        frontmatter['location'] = newLocation;
-    });
 }
 
 /**

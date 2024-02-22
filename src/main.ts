@@ -135,7 +135,7 @@ export default class MapViewPlugin extends Plugin {
                                 this.app,
                                 editor,
                                 file,
-                                'location',
+                                this.settings.frontMatterKey,
                                 locationString
                             );
                         }

@@ -133,7 +133,11 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
 
     onChooseSuggestion(value: SuggestInfo, evt: MouseEvent | KeyboardEvent) {
         if (this.dialogAction == 'newNote')
-            this.plugin.newFrontMatterNote(value.location, evt, value.name);
+            this.plugin.newFrontMatterNote(
+                value.location,
+                evt,
+                utils.sanitizePlaceNameForNoteName(value.name)
+            );
         else if (this.dialogAction == 'addToNote')
             this.addToNote(value.location, evt, value.name);
         else if (this.dialogAction == 'custom' && this.customOnSelect != null)

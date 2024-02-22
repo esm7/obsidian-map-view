@@ -415,6 +415,21 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
+            .setName(
+                'When showing note preview, use the native Obsidian preview window.'
+            )
+            .setDesc(
+                'The default Map View integrated preview has some rendering limitations. The Obsidian preview window renders notes exactly like Obsidian, but opens in a separate popup which can be obstructive.'
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.useObsidianNotePreview)
+                    .onChange(async (value) => {
+                        this.plugin.settings.useObsidianNotePreview = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
             .setName('Show preview for marker clusters')
             .setDesc(
                 'Show a hover popup summarizing the icons inside a marker cluster.'
@@ -1097,59 +1112,6 @@ export class SettingsTab extends PluginSettingTab {
                 iconUpdateFunctions.push(updateIconAndJson);
                 updateIconAndJson();
             }
-
-            new Setting(containerEl)
-                .setName('Enable the dragging of markers (experimental)')
-                .setDesc(
-                    'Allow the dragging of markers to new locations on the map. Front matter and inline geolocations will be updated appropriately once the drag operation completes.'
-                )
-                .addToggle((component) => {
-                    component
-                        .setValue(
-                            this.plugin.settings.allowMarkerDragging ??
-                                DEFAULT_SETTINGS.allowMarkerDragging
-                        )
-                        .onChange(async (value) => {
-                            this.plugin.settings.allowMarkerDragging = value;
-                            await this.plugin.saveSettings();
-                        });
-                });
-
-            new Setting(containerEl)
-                .setName('Enable resizing of circle markers')
-                .setDesc(
-                    'Size/resize resizable circle markers based on the degree (number of edges) connected to the node. This feature only applies if the experimental drawing of edges is enabled.'
-                )
-                .addToggle((component) => {
-                    component
-                        .setValue(
-                            this.plugin.settings
-                                .resizeResizableCircleMarkersBasedOnDegree ??
-                                DEFAULT_SETTINGS.resizeResizableCircleMarkersBasedOnDegree
-                        )
-                        .onChange(async (value) => {
-                            this.plugin.settings.resizeResizableCircleMarkersBasedOnDegree =
-                                value;
-                            await this.plugin.saveSettings();
-                        });
-                });
-
-            new Setting(containerEl)
-                .setName('Edge color')
-                .setDesc(
-                    'Set the color of the edges (lines) between nodes. Both color names (ex. "red") and hex codes (ex. "#ff0000") are supported. This feature only applies if the experimental drawing of edges is enabled.'
-                )
-                .addText((component) => {
-                    component
-                        .setValue(
-                            this.plugin.settings.edgeColor ??
-                                DEFAULT_SETTINGS.edgeColor
-                        )
-                        .onChange(async (value) => {
-                            this.plugin.settings.edgeColor = value;
-                            await this.plugin.saveSettings();
-                        });
-                });
 
             let multiTagIconElement: HTMLElement = null;
             let testTagsBox: TextComponent = null;

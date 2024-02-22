@@ -20,6 +20,11 @@ export const ROUTING_SOURCE_MARKER = {
     icon: 'fa-flag',
     markerColor: 'red',
 } as leaflet.ExtraMarkers.IconOptions;
+export const UNLOCKED_MARKER = {
+    prefix: 'fas',
+    icon: 'fa-up-down-left-right',
+    markerColor: SEARCH_RESULT_MARKER.markerColor,
+} as leaflet.ExtraMarkers.IconOptions;
 export const MAX_CLUSTER_PREVIEW_ICONS = 4;
 export const HISTORY_SAVE_ZOOM_DIFF = 2;
 

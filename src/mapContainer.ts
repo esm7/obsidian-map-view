@@ -4,7 +4,6 @@ import {
     Editor,
     Menu,
     TFile,
-    Loc,
     WorkspaceLeaf,
     Notice,
     MenuItem,
@@ -31,17 +30,12 @@ import {
     MarkersMap,
     BaseGeoLayer,
     FileMarker,
-    Edge,
-    FileWithMarkers,
     buildMarkers,
     buildAndAppendFileMarkers,
     finalizeMarkers,
     cacheTagsFromMarkers,
 } from 'src/markers';
-import {
-    getIconFromOptions,
-    createCircleMarkerBasedOnDegree,
-} from 'src/markerIcons';
+import { getIconFromOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import {
@@ -58,6 +52,7 @@ import {
     isSame,
 } from 'src/realTimeLocation';
 import * as menus from 'src/menus';
+import * as markerPopups from 'src/markerPopups';
 
 export type ViewSettings = {
     showZoomButtons: boolean;
@@ -98,6 +93,8 @@ export class MapContainer {
         viewDiv: HTMLDivElement;
         /** The HTML element holding the map */
         mapDiv: HTMLDivElement;
+        /** The element holding map marker popups */
+        popupDiv: HTMLDivElement;
         /** The leaflet map instance */
         map: leaflet.Map;
         tileLayer: leaflet.TileLayer;
@@ -125,7 +122,6 @@ export class MapContainer {
         actualHighlight: leaflet.Marker = null;
         /** The marker used to denote a routing source if any */
         routingSource: leaflet.Marker = null;
-        // TODO document
         realTimeLocationMarker: leaflet.Marker = null;
         realTimeLocationRadius: leaflet.Circle = null;
     })();
@@ -664,24 +660,9 @@ export class MapContainer {
         this.display.clusterGroup.addLayers(markersToAdd);
         this.display.markers = newMarkersMap;
 
-        let locationDegreeMap = this.buildLocationDegreeMap();
-        let degrees = [...locationDegreeMap.values()].sort((a, b) => a - b);
         if (this.state.linkDepth > 0) {
             for (const marker of this.display.markers.values()) {
                 if (marker instanceof FileMarker) {
-                    if (
-                        marker.hasResizableIcon() &&
-                        this.settings.resizeResizableCircleMarkersBasedOnDegree
-                    ) {
-                        let newIcon = createCircleMarkerBasedOnDegree(
-                            marker.backgroundColor,
-                            marker.iconClasses,
-                            locationDegreeMap.get(marker.location.toString()) ??
-                                0,
-                            degrees
-                        );
-                        marker.geoLayer.setIcon(newIcon);
-                    }
                     // Draw edges between markers
                     for (const edge of marker.edges) {
                         // Since an edge is linked from both of its sides, we want to make sure we create
@@ -701,35 +682,6 @@ export class MapContainer {
                 }
             }
         }
-    }
-
-    private buildLocationDegreeMap(): Map<string, number> {
-        let locationDegreeMap: Map<string, number> = new Map();
-        // TODO TEMP FIX
-        // for (let marker of this.display.markers.values()) {
-        //     if (marker instanceof FileMarker) {
-        //         for (let edge of marker.edges) {
-        //             let loc1 = edge.loc1.toString();
-        //             if (!locationDegreeMap.has(loc1)) {
-        //                 locationDegreeMap.set(loc1, 0);
-        //             }
-        //             locationDegreeMap.set(
-        //                 loc1,
-        //                 locationDegreeMap.get(loc1) + 1
-        //             );
-
-        //             let loc2 = edge.loc2.toString();
-        //             if (!locationDegreeMap.has(loc2)) {
-        //                 locationDegreeMap.set(loc2, 0);
-        //             }
-        //             locationDegreeMap.set(
-        //                 loc2,
-        //                 locationDegreeMap.get(loc2) + 1
-        //             );
-        //         }
-        //     }
-        // }
-        return locationDegreeMap;
     }
 
     private clearPolylines() {
@@ -755,9 +707,9 @@ export class MapContainer {
             autoPan: true,
         });
 
-        newMarker.on('click', (event: leaflet.LeafletMouseEvent) => {
+        newMarker.on('click', async (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app))
-                this.showMarkerPopups(marker, newMarker);
+                await this.showMarkerPopups(marker, newMarker);
             else
                 this.goToMarker(
                     marker,
@@ -798,53 +750,12 @@ export class MapContainer {
                     ev.stopPropagation();
                 });
         });
-        // TODO TEMP FIX
-        // newMarker.on('move', (event: leaflet.LeafletEvent) => {
-        //     let oldMarkerLocation = marker.location.toString();
-        //     let newLatLng = newMarker.getLatLng().clone();
-        //     for (let m of this.display.markers.values()) {
-        //         if (m instanceof FileMarker) {
-        //             for (let edge of m.edges) {
-        //                 let edgeDirty = false;
-        //                 if (edge.loc1.toString() == oldMarkerLocation) {
-        //                     edge.loc1 = newLatLng;
-        //                     edgeDirty = true;
-        //                 } else if (edge.loc2.toString() == oldMarkerLocation) {
-        //                     edge.loc2 = newLatLng;
-        //                     edgeDirty = true;
-        //                 }
-        //                 if (edgeDirty) {
-        //                     // this edge has been invalidated as a result of the drag operation.
-        //                     // we need to remove it and redraw the leaflet polyline.
-        //                     if (edge.polyline) {
-        //                         this.display.polylines =
-        //                             this.display.polylines.filter(
-        //                                 (x) => x !== edge.polyline
-        //                             );
-        //                         edge.polyline.remove();
-        //                     }
-        //                     let newPolyline = leaflet.polyline(
-        //                         [edge.loc1, edge.loc2],
-        //                         {
-        //                             color: this.settings.edgeColor,
-        //                             weight: 1,
-        //                         }
-        //                     );
-        //                     edge.polyline = newPolyline;
-        //                     newPolyline.addTo(this.display.map);
-        //                     this.display.polylines.push(newPolyline);
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     marker.location = newLatLng;
-        // });
         newMarker.on('moveend', async (event: leaflet.LeafletEvent) => {
-            const content = await this.app.vault.read(marker.file);
+            marker.location = newMarker.getLatLng().clone();
             let newLat = marker.location.lat;
-            // if the user drags the marker too far, the longitude will exceed the threshold, an
+            // If the user drags the marker too far, the longitude will exceed the threshold, an
             // exception will be thrown, and the marker will disappear.
-            // if the threshold is exceeded, set the longitude back to the max (back in bounds).
+            // If the threshold is exceeded, set the longitude back to the max (back in bounds).
             // leaflet seems to protect against drags beyond the latitude threshold.
             let newLng = marker.location.lng;
             if (newLng < consts.LNG_LIMITS[0]) {
@@ -853,11 +764,16 @@ export class MapContainer {
             if (newLng > consts.LNG_LIMITS[1]) {
                 newLng = consts.LNG_LIMITS[1];
             }
+            // We will now change the content of the note containing the marker. This will trigger Map View to rebuild
+            // the marker, causing the actual marker object to be replaced
             if (marker.isFrontmatterMarker) {
-                await utils.modifyOrAddFrontMatterLocation(
+                await utils.verifyOrAddFrontMatter(
                     this.app,
+                    null,
                     marker.file,
-                    [newLat, newLng]
+                    this.settings.frontMatterKey,
+                    `${newLat},${newLng}`,
+                    false
                 );
             } else if (marker.geolocationMatch?.groups) {
                 await utils.updateInlineGeolocation(
@@ -882,6 +798,7 @@ export class MapContainer {
         let mapPopup = new Menu();
         if (marker instanceof FileMarker) {
             menus.populateOpenNote(this, marker, mapPopup, this.settings);
+            menus.populateMoveMarker(mapPopup, marker, this.plugin);
             menus.populateRouting(
                 this,
                 marker.location,
@@ -889,58 +806,46 @@ export class MapContainer {
                 this.settings
             );
             menus.populateOpenInItems(mapPopup, marker.location, this.settings);
-            if (this.settings.allowMarkerDragging) {
-                menus.populateDraggingOptions(mapPopup, marker);
-            }
         }
         if (ev) mapPopup.showAtPosition(ev);
     }
 
-    private showMarkerPopups(
+    private async showMarkerPopups(
         fileMarker: FileMarker,
         mapMarker: leaflet.Marker
     ) {
-        if (this.settings.showNotePreview) {
-            const previewDetails = {
-                scroll: fileMarker.fileLine,
-                line: fileMarker.fileLine,
-                startLoc: {
-                    line: fileMarker.fileLine,
-                    col: 0,
-                    offset: fileMarker.fileLocation,
-                } as Loc,
-                endLoc: {
-                    line: fileMarker.fileLine,
-                    col: 0,
-                    offset: fileMarker.fileLocation,
-                } as Loc,
-            };
-            this.app.workspace.trigger(
-                'link-hover',
-                mapMarker.getElement(),
-                mapMarker.getElement(),
-                fileMarker.file.path,
-                '',
-                previewDetails
+        if (
+            this.settings.showNotePreview &&
+            this.settings.useObsidianNotePreview
+        ) {
+            markerPopups.showObsidianNotePreview(
+                fileMarker,
+                mapMarker,
+                this.app
             );
         }
-        if (this.settings.showNoteNamePopup) {
-            const fileName = fileMarker.file.name;
-            const fileNameWithoutExtension = fileName.endsWith('.md')
-                ? fileName.substring(0, fileName.lastIndexOf('.md'))
-                : fileName;
-            let content = `<p class="map-view-marker-name">${fileNameWithoutExtension}</p>`;
-            const showLinkSetting = this.settings.showLinkNameInPopup;
-            if (
-                (showLinkSetting === 'always' ||
-                    (showLinkSetting === 'mobileOnly' &&
-                        utils.isMobile(this.app))) &&
-                fileMarker.extraName &&
-                fileMarker.extraName.length > 0
-            )
-                content += `<p class="map-view-marker-sub-name">${fileMarker.extraName}</p>`;
+        if (
+            this.settings.showNoteNamePopup ||
+            (this.settings.showNotePreview &&
+                !this.settings.useObsidianNotePreview)
+        ) {
+            if (!this.display.popupDiv) {
+                this.display.popupDiv = this.display.viewDiv.createDiv();
+                this.display.popupDiv.addClasses([
+                    'mv-marker-popup-container',
+                    'popover',
+                    'hover-popup',
+                ]);
+            }
+            await markerPopups.populateMarkerPopup(
+                fileMarker,
+                mapMarker,
+                this.display.popupDiv,
+                this.settings,
+                this.app
+            );
             mapMarker
-                .bindPopup(content, {
+                .bindPopup(this.display.popupDiv, {
                     closeButton: true,
                     autoPan: false,
                     className: 'marker-popup',
