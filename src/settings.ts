@@ -112,6 +112,7 @@ export type LegacyUrlParsingRule = UrlParsingRule & {
 export type MapControls = {
     filtersDisplayed: boolean;
     viewDisplayed: boolean;
+    linksDisplayed: boolean;
     presetsDisplayed: boolean;
 };
 
@@ -207,6 +208,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     mapControls: {
         filtersDisplayed: true,
         viewDisplayed: true,
+        linksDisplayed: true,
         presetsDisplayed: false,
     },
     maxClusterRadiusPixels: 20,

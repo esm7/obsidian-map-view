@@ -3,7 +3,7 @@ import { App, TFile, TextComponent, PopoverSuggest, Scope } from 'obsidian';
 import * as consts from 'src/consts';
 import { matchByPosition } from 'src/utils';
 import * as regex from 'src/regex';
-import { BaseGeoLayer, FileMarker } from 'src/markers';
+import { BaseGeoLayer, FileMarker, isMarkerLinkedFrom } from 'src/markers';
 import * as utils from 'src/utils';
 import { checkTagPatternMatch } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
@@ -128,18 +128,12 @@ export class Query {
             if (fileMatch) {
                 const linksFrom =
                     this.app.metadataCache.getFileCache(fileMatch);
-                // Check if the given marker is linked from 'fileMatch'
-                if (
-                    linksFrom?.links?.some(
-                        (linkCache) =>
-                            linkCache.link.toLowerCase() ===
-                                marker.file.basename.toLowerCase() ||
-                            linkCache.displayText.toLowerCase() ===
-                                marker.file.basename.toLowerCase()
-                    )
-                ) {
-                    return true;
-                }
+                if (linksFrom && linksFrom.links)
+                    // Check if the given marker is linked from 'fileMatch'
+                    for (const link of linksFrom?.links) {
+                        if (isMarkerLinkedFrom(marker, link, this.app))
+                            return true;
+                    }
                 // Also include the 'linked from' file itself
                 if (fileMatch.basename === marker.file.basename) return true;
             }

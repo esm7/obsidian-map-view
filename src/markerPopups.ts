@@ -73,6 +73,7 @@ async function createPreview(
     app: App
 ) {
     const content = await app.vault.read(fileMarker.file);
+    // TODO this should be configurable
     const snippet = extractSnippet(content, 9, fileMarker.fileLine);
     MarkdownRenderer.render(
         app,
@@ -81,8 +82,26 @@ async function createPreview(
         fileMarker.file.path,
         new Component()
     );
-    // TODO TEMP take care of scroll position
     // TODO TEMP use popper for the popup
+}
+
+/**
+ * If the popup has a highlighted line, try to make this line visible and centered.
+ */
+export function scrollPopupToHighlight(popupDiv: HTMLDivElement) {
+    const element = popupDiv.querySelector('.markdown-embed') as HTMLElement;
+    const markedLine = element.querySelector(
+        'mark:first-of-type'
+    ) as HTMLElement;
+    if (markedLine) {
+        const markTop = markedLine.offsetTop;
+        const markHeight = markedLine.offsetHeight;
+        const containerHeight = element.offsetHeight;
+        const scrollTopPosition =
+            markTop + markHeight / 2 - containerHeight / 2;
+        // Scroll the container to the calculated position
+        element.scrollTop = scrollTopPosition;
+    }
 }
 
 /**

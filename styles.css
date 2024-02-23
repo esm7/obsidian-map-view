@@ -161,19 +161,24 @@ a.mv-icon-button.on {
     color: none;
 }
 
-.leaflet-popup-content:has(.mv-marker-popup-container) {
-    margin: 0;
-}
-
 .leaflet-popup.marker-popup :has(.mv-marker-popup-container) {
     /* color: blue; */
-    max-height: 20em;
+    /* max-height: 20em; */
     width: 30em !important;
     overflow: hidden;
 }
-
+.leaflet-popup-content:has(.mv-marker-popup-container) {
+    margin: 0;
+    overflow: hidden;
+}
+.mv-marker-popup-container {
+    max-height: 100%;
+    overflow: hidden;
+}
 .mv-marker-popup-container .markdown-embed {
     border-left: 0;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 .url-rule-dropdown {

@@ -1,4 +1,14 @@
-import { App, TFile, getAllTags } from 'obsidian';
+import {
+    App,
+    TFile,
+    getAllTags,
+    CachedMetadata,
+    HeadingCache,
+    BlockCache,
+    LinkCache,
+    parseLinktext,
+    resolveSubpath,
+} from 'obsidian';
 import * as leaflet from 'leaflet';
 import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
@@ -8,7 +18,7 @@ import { getIconFromRules, IconFactory } from 'src/markerIcons';
 import { MapState } from 'src/mapState';
 import * as consts from 'src/consts';
 import * as regex from 'src/regex';
-import { djb2Hash } from 'src/utils';
+import { djb2Hash, getHeadingAndBlockForFilePosition } from 'src/utils';
 import wildcard from 'wildcard';
 import { settings } from 'cluster';
 
@@ -50,6 +60,10 @@ export abstract class BaseGeoLayer {
     public geoLayer?: leaflet.Layer;
     /** In case of an inline location, the line within the file where the geolocation was found */
     public fileLine?: number;
+    /** In case of an inline location, the file heading where the geolocation was found (if it's within a heading) */
+    public fileHeading?: HeadingCache;
+    /** In case of an inline location, the file block where the geolocation was found (if it's within a block) */
+    public fileBlock?: BlockCache;
     /** In case of an inline location, geolocation match */
     public geolocationMatch?: RegExpMatchArray;
     /** Optional extra name that can be set for geolocation links (this is the link name rather than the file name) */
@@ -346,7 +360,8 @@ export async function getMarkersFromFileContent(
 ): Promise<FileMarker[]> {
     let markers: FileMarker[] = [];
     // Get the tags of the file, to these we will add the tags associated with each individual marker (inline tags)
-    const fileTags = getAllTags(app.metadataCache.getFileCache(file));
+    const metadata = app.metadataCache.getFileCache(file);
+    const fileTags = getAllTags(metadata);
     const content = await app.vault.read(file);
     const matches = matchInlineLocation(content);
     for (const match of matches) {
@@ -372,6 +387,12 @@ export async function getMarkersFromFileContent(
             marker.fileLine =
                 content.substring(0, marker.fileLocation).split('\n').length -
                 1;
+            const [heading, block] = getHeadingAndBlockForFilePosition(
+                metadata,
+                marker.fileLocation
+            );
+            marker.fileHeading = heading;
+            marker.fileBlock = block;
             // Regenerate the ID because the marker details changed since it was generated
             marker.generateId();
             markers.push(marker);
@@ -449,7 +470,7 @@ function addEdgesToMarkers(
 ) {
     let nodesSeen: Set<string> = new Set();
     for (let fileWithMarkers of filesWithMarkersMap.values()) {
-        addEdgesFromFileWithMarkers(
+        addEdgesFromFile(
             markers,
             fileWithMarkers,
             filesWithMarkersMap,
@@ -460,7 +481,10 @@ function addEdgesToMarkers(
     }
 }
 
-function addEdgesFromFileWithMarkers(
+/**
+ * Add all the edges for a given file, i.e. the edges for all the markers that link out from this file.
+ */
+function addEdgesFromFile(
     markers: BaseGeoLayer[],
     source: FileWithMarkers,
     filesWithMarkersMap: Map<string, FileWithMarkers>,
@@ -474,8 +498,16 @@ function addEdgesFromFileWithMarkers(
         // Bail out if a cycle (loop) has been detected
         return;
     }
+    // If we're out of link depth for this recursion path, we won't continue any further, but the same
+    // file might be reached from a different recursion path with a lower link depth
+    if (linkDepth <= 0) return;
     nodesSeen.add(path);
     const fileCache = app.metadataCache.getFileCache(file);
+    // What's done here is as follows.
+    // - For every link in the source file to 'destinationFile'...
+    //   - For every marker X in 'destinationFile'...
+    //     - If the link points to marker X, link *all* of the source file markers to destination marker X.
+    //   - Continue recursively into destinationFile if the link depth > 0
     for (const link of fileCache?.links || []) {
         let destination = app.metadataCache.getFirstLinkpathDest(
             link.link,
@@ -483,16 +515,18 @@ function addEdgesFromFileWithMarkers(
         );
         if (destination?.path && filesWithMarkersMap.has(destination.path)) {
             // Both the source file and the destination file have markers;
-            // let's connect them and create edges
+            // Let's transverse these markers and connect the ones that are actually linked.
+            // It can be all the pairs between the files, but in case of more specialized links (heading or block links),
+            // it can be just some of them.
             let destinationFileWithMarkers = filesWithMarkersMap.get(
                 destination.path
             );
-            if (linkDepth > 0) {
-                // Build edges and store them in the markers...
-                for (let sourceMarker of source.markers) {
-                    for (let destinationMarker of destinationFileWithMarkers.markers) {
+            for (let destinationMarker of destinationFileWithMarkers.markers) {
+                if (isMarkerLinkedFrom(destinationMarker, link, app)) {
+                    // The link really points to destinationMarker, therefore all the markers in the source file
+                    // are to be linked to this destination marker.
+                    for (let sourceMarker of source.markers) {
                         if (sourceMarker != destinationMarker) {
-                            // The edge should be linked from both sides
                             const edge = new Edge(
                                 sourceMarker,
                                 destinationMarker
@@ -502,16 +536,16 @@ function addEdgesFromFileWithMarkers(
                         }
                     }
                 }
-                // Continue to traverse files and links recursively, with the link depth reduced by one
-                addEdgesFromFileWithMarkers(
-                    markers,
-                    destinationFileWithMarkers,
-                    filesWithMarkersMap,
-                    app,
-                    nodesSeen,
-                    linkDepth - 1
-                );
             }
+            // Continue to traverse files and links recursively, with the link depth reduced by one
+            addEdgesFromFile(
+                markers,
+                destinationFileWithMarkers,
+                filesWithMarkersMap,
+                app,
+                nodesSeen,
+                linkDepth - 1
+            );
         }
     }
 }
@@ -529,4 +563,54 @@ export function cacheTagsFromMarkers(
     for (const marker of markers) {
         marker.tags.forEach((tag) => tagsSet.add(tag));
     }
+}
+
+/**
+ * Returns true if the marker is linked from the given link reference.
+ * If the link includes a header or a block reference and the marker is an inline marker, 'true' is returned
+ * only if the marker is in that header/block. A front-matter marker is considered link regardless of the block/header.
+ */
+export function isMarkerLinkedFrom(
+    marker: FileMarker,
+    linkCache: LinkCache,
+    app: App
+) {
+    const parsedLink = parseLinktext(linkCache.link);
+    const fileMatches =
+        parsedLink.path.toLowerCase() === marker.file.basename.toLowerCase() ||
+        linkCache.displayText.toLowerCase() ===
+            marker.file.basename.toLowerCase();
+    // If the link is not pointing at the marker's file at all, there's nothing more to talk about
+    if (!fileMatches) return false;
+
+    // Now if it's a front matter marker, being the right file is all we need
+    if (marker.isFrontmatterMarker) return true;
+    // If the link doesn't have a subpath, being the right file is all we need too
+    if (!parsedLink.subpath) return true;
+
+    // If we get here, the link we received has a subpath (meaning it links to a header/block) and the marker
+    // is an inline one. We will therefore return true only if the marker itself has a header/block and it matches
+    // the link
+    if (!marker.fileBlock && !marker.fileHeading) {
+        return false;
+    }
+
+    const markerFileCache = app.metadataCache.getFileCache(marker.file);
+    const subpath = resolveSubpath(markerFileCache, parsedLink?.subpath);
+    if (subpath) {
+        if (
+            marker.fileBlock &&
+            subpath.type === 'block' &&
+            subpath.block.id == marker.fileBlock.id
+        )
+            return true;
+        if (
+            marker.fileHeading &&
+            subpath.type === 'heading' &&
+            subpath.current.heading == marker.fileHeading.heading &&
+            subpath.current.level == marker.fileHeading.level
+        )
+            return true;
+    }
+    return false;
 }

@@ -33,6 +33,7 @@ export class EmbeddedMap {
             showMapControls: true,
             showFilters: false,
             showView: true,
+            showLinks: false,
             viewTabType: 'mini',
             showEmbeddedControls: true,
             showPresets: false,

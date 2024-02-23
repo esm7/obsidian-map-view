@@ -59,6 +59,7 @@ export type ViewSettings = {
     showMapControls: boolean;
     showFilters: boolean;
     showView: boolean;
+    showLinks: boolean;
     viewTabType: 'regular' | 'mini';
     showEmbeddedControls: boolean;
     showPresets: boolean;
@@ -707,6 +708,13 @@ export class MapContainer {
             autoPan: true,
         });
 
+        if (this.state.markerLabels && this.state.markerLabels != 'off')
+            newMarker.bindTooltip(marker.extraName ?? marker.file.basename, {
+                permanent: true,
+                direction: this.state.markerLabels,
+                className: 'mv-marker-label',
+            });
+
         newMarker.on('click', async (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app))
                 await this.showMarkerPopups(marker, newMarker);
@@ -851,6 +859,7 @@ export class MapContainer {
                     className: 'marker-popup',
                 })
                 .on('popupopen', (event: leaflet.PopupEvent) => {
+                    markerPopups.scrollPopupToHighlight(this.display.popupDiv);
                     event.popup.getElement()?.onClickEvent((ev: MouseEvent) => {
                         this.goToMarker(
                             fileMarker,
@@ -1310,7 +1319,7 @@ export class MapContainer {
     }
 
     startHoverHighlight(markerToFocus: FileMarker) {
-        if (this.state.linkDepth === 0) return;
+        if (!this.state.linkDepth || this.state.linkDepth === 0) return;
         this.display.mapDiv.addClass('mv-fade-active');
         for (const marker of this.display.markers.values()) {
             if (

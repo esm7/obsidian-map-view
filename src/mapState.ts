@@ -23,6 +23,8 @@ export type MapState = {
     linkDepth?: number;
     /** Color to use for edges */
     linkColor?: string;
+    /** Marker labels */
+    markerLabels?: 'off' | 'left' | 'right';
 };
 
 /** Fields that are deprecated */
@@ -70,7 +72,8 @@ export function areStatesEqual(state1: MapState, state2: MapState) {
         state1.autoFit === state2.autoFit &&
         state1.lock === state2.lock &&
         state1.linkColor == state2.linkColor &&
-        state1.linkDepth == state2.linkDepth
+        state1.linkDepth == state2.linkDepth &&
+        state1.markerLabels == state2.markerLabels
     );
 }
 
@@ -86,6 +89,7 @@ export function stateToRawObject(state: MapState) {
         lock: state.lock,
         linkDepth: state.linkDepth,
         linkColor: state.linkColor,
+        markerLabels: state.markerLabels,
         ...(state.embeddedHeight && { embeddedHeight: state.embeddedHeight }),
     };
 }
@@ -112,6 +116,7 @@ export function stateFromParsedUrl(obj: any) {
         lock: obj?.lock,
         linkDepth: obj?.linkDepth,
         linkColor: obj?.linkColor,
+        markerLabels: obj?.markerLabels,
         ...(obj.embeddedHeight && {
             embeddedHeight: parseInt(obj.embeddedHeight),
         }),

@@ -6,6 +6,7 @@ import {
     ToggleComponent,
     Notice,
     getIcon,
+    setTooltip,
 } from 'obsidian';
 import { askForLocation } from 'src/realTimeLocation';
 
@@ -44,6 +45,7 @@ export class ViewControls {
     private followActiveNoteToggle: ToggleComponent;
     private linkDepthBox: DropdownComponent;
     private linkColorBox: TextComponent;
+    private markerLabelBox: DropdownComponent;
 
     private presetsDiv: HTMLDivElement;
     private presetsDivContent: HTMLDivElement = null;
@@ -116,6 +118,9 @@ export class ViewControls {
         this.setMapSourceBoxByState();
         this.setQueryBoxByState();
         this.setLinksByState();
+        this.markerLabelBox.setValue(
+            this.getCurrentState().markerLabels ?? 'off'
+        );
         if (this.followActiveNoteToggle)
             this.followActiveNoteToggle.setValue(
                 this.getCurrentState().followActiveNote == true
@@ -418,30 +423,78 @@ export class ViewControls {
                         this.followActiveNoteToggle.getValue()
                     );
                 });
-                // TODO TEMP add a label here
-                this.linkDepthBox = new DropdownComponent(viewDivContent)
+
+                this.markerLabelBox = new DropdownComponent(viewDivContent)
                     .addOptions({
-                        '0': 'Off',
-                        '1': '1',
-                        '2': '2',
-                        '3': '3',
-                        '4': '4',
-                        '5': '5',
-                        '50': '50',
+                        off: 'No labels',
+                        left: 'Left labels',
+                        right: 'Right labels',
                     })
                     .onChange(async (value: string) => {
-                        this.setStateByLinks();
-                    });
-                this.linkColorBox = new TextComponent(viewDivContent)
-                    .setPlaceholder('color')
-                    .onChange(async (value: string) => {
-                        this.setStateByLinks();
-                    });
-
-                this.setLinksByState();
+                        const state = this.getCurrentState();
+                        const markerLabels = value as 'off' | 'left' | 'right';
+                        await this.setNewState(
+                            { ...state, markerLabels: markerLabels },
+                            false
+                        );
+                        this.invalidateActivePreset();
+                    })
+                    .setValue(this.getCurrentState().markerLabels ?? 'off');
+                this.markerLabelBox.selectEl.addClass('mv-map-control');
             }
             this.markStateAsSaved();
             this.updateSaveButtonVisibility();
+        }
+
+        if (this.viewSettings.showLinks) {
+            let linksDiv = this.controlsDiv.createDiv({
+                cls: 'graph-control-div',
+            });
+            linksDiv.innerHTML = `
+				<input id="linksCollapsible${lastGlobalId}" class="controls-toggle" type="checkbox">
+				<label for="linksCollapsible${lastGlobalId}" class="lbl-triangle">▸</label>
+				<label for="linksCollapsible${lastGlobalId}" class="lbl-toggle">Links</label>
+				`;
+            const linksButton = linksDiv.getElementsByClassName(
+                'controls-toggle'
+            )[0] as HTMLInputElement;
+            linksButton.checked = this.settings.mapControls.linksDisplayed;
+            linksButton.onclick = async () => {
+                this.settings.mapControls.linksDisplayed = linksButton.checked;
+                this.plugin.saveSettings();
+            };
+            let linksContent = linksDiv.createDiv({
+                cls: 'graph-control-content',
+            });
+
+            this.linkDepthBox = new DropdownComponent(linksContent)
+                .addOptions({
+                    '0': 'Off',
+                    '1': 'Depth 1',
+                    '2': 'Depth 2',
+                    '3': 'Depth 3',
+                    '4': 'Depth 4',
+                    '5': 'Depth 5',
+                    '50': 'Depth 50',
+                })
+                .onChange(async (value: string) => {
+                    this.setStateByLinks();
+                });
+            this.linkDepthBox.selectEl.addClass('mv-map-control');
+            this.linkColorBox = new TextComponent(linksContent)
+                .setPlaceholder('color')
+                .onChange(async (value: string) => {
+                    this.setStateByLinks();
+                });
+            this.linkColorBox.inputEl.style.width = '6em';
+            this.linkColorBox.inputEl.addClass('mv-map-control');
+            setTooltip(
+                this.linkColorBox.inputEl,
+                "Color used for link lines (edges). Can be any valid HTML color, e.g. 'red' or '#bc11ff'.",
+                { delay: 0 }
+            );
+
+            this.setLinksByState();
         }
 
         if (this.viewSettings.showPresets) {

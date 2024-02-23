@@ -6,6 +6,10 @@ import {
     App,
     TFile,
     getAllTags,
+    CachedMetadata,
+    Loc,
+    HeadingCache,
+    BlockCache,
 } from 'obsidian';
 
 import * as moment_ from 'moment';
@@ -374,4 +378,35 @@ export function djb2Hash(s: string) {
         hash = (hash << 5) + hash + s.charCodeAt(i); /* hash * 33 + c */
     }
     return hash.toString();
+}
+
+export function getHeadingAndBlockForFilePosition(
+    fileMetadata: CachedMetadata,
+    fileOffset: number
+): [HeadingCache?, BlockCache?] {
+    const headings = fileMetadata.headings;
+    const blocks = fileMetadata.blocks;
+    let foundHeading: HeadingCache = null;
+    let foundBlock: BlockCache = null;
+    if (headings) {
+        // Find the last heading that was before the file offset, if any (this counts as the location's heading)
+        for (
+            let arrayIndex = headings.length - 1;
+            arrayIndex >= 0 && !foundHeading;
+            arrayIndex--
+        ) {
+            if (headings[arrayIndex].position.start.offset <= fileOffset) {
+                foundHeading = headings[arrayIndex];
+            }
+        }
+    }
+    if (blocks) {
+        foundBlock = Object.values(blocks).find((block: BlockCache) => {
+            return (
+                block.position.start.offset <= fileOffset &&
+                fileOffset <= block.position.end.offset
+            );
+        });
+    }
+    return [foundHeading, foundBlock];
 }

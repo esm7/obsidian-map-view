@@ -51,7 +51,7 @@
         -   [2.0.0](#200)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Thu Feb 22 06:22:37 AM IST 2024 -->
+<!-- Added by: erez, at: Fri Feb 23 10:02:39 PM IST 2024 -->
 
 <!--te-->
 
@@ -375,6 +375,8 @@ The query string can contain the following _search operators_:
     -   This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query.
     -   For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
     -   Anything that resolves into a legal Obsidian link will work, e.g. both a note name ('Cave Hikes') or a path will do, but a partial name will not.
+    -   Obsidian heading and block links are supported: if a link in the 'from' file includes a heading or a block link, it will match only front-matter markers or inline markers _within that heading or block_.
+    -   The Obsidian Plugin "Copy Block Link" makes this extra useful.
 -   `lines:x-y` includes only inline markers that are defined in the given line range in their note.
     -   For example, `lines:20-30` includes only inline geolocations that are defined in lines 20 to 30 in the file that contains them.
 
@@ -624,6 +626,8 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ### 5.0.0
 
+Forward compatability warning, front-matter notes you create with this version will not show in previous Map View versions.
+
 -   New format for front matter location, plays better with Obsidian's property editor in case you want to edit geolocations manually.
 -   The key to use for front matter geolocation is now configurable (https://github.com/esm7/obsidian-map-view/issues/195)
 -   Names containing slashes are now sanitized and handled properly (https://github.com/esm7/obsidian-map-view/issues/207)
@@ -633,9 +637,13 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Font Awesome 6.5.1 and a revamp to how it is used. POSSIBLE BUGS HERE
 -   Map View now requires Obsidian 1.5.6 or newer, and uses the formal front matter API.
 -   Tab icons of map views now have the proper map pin icon (https://github.com/esm7/obsidian-map-view/issues/227)
--   Links and edges
+-   Links and edges.
+    -   All the markers of a given file are linked to the markers pointed by the links in that file. Those links may reference the whole destination file, and then all the markers in it are linked, or a heading/block and then only the front-matter marker and specific heading/block locations are linked.
 -   Markers can now be moved (with their corresponding note updated, of course) -- see the "Enable Move" item in the marker's context menu. Thanks!
 -   Fixed a bug of the cursor not jumping forward after an inline location suggestion
+-   Map View now supports heading links and block links in 'linkedfrom:' queries, and also for the new links feature.
+    -   I recommend the "Copy Block Link" plugin that makes this more useful.
+-   Marker labels
 
 ### 4.0.1
 
