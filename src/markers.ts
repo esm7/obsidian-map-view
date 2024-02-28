@@ -423,7 +423,7 @@ export function getFrontMatterLocation(
             const location = frontMatter[settings.frontMatterKey];
             // V1 format: an array in the format of `location: [lat,lng]`
             if (
-                location.length == 2 &&
+                location?.length == 2 &&
                 typeof location[0] === 'number' &&
                 typeof location[1] === 'number'
             ) {
