@@ -52,7 +52,6 @@ export type PluginSettings = {
     showNoteNamePopup?: boolean;
     showLinkNameInPopup?: LinkNamePopupBehavior;
     showNotePreview?: boolean;
-    useObsidianNotePreview?: boolean;
     showClusterPreview?: boolean;
     debug?: boolean;
     openIn?: OpenInSettings[];
@@ -175,7 +174,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     showNoteNamePopup: true,
     showLinkNameInPopup: 'mobileOnly',
     showNotePreview: true,
-    useObsidianNotePreview: true,
     showClusterPreview: false,
     debug: false,
     openIn: [

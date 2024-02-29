@@ -4,35 +4,6 @@ import { FileMarker } from 'src/markers';
 import { PluginSettings } from 'src/settings';
 import * as utils from 'src/utils';
 
-export function showObsidianNotePreview(
-    fileMarker: FileMarker,
-    mapMarker: leaflet.Marker,
-    app: App
-) {
-    const previewDetails = {
-        scroll: fileMarker.fileLine,
-        line: fileMarker.fileLine,
-        startLoc: {
-            line: fileMarker.fileLine,
-            col: 0,
-            offset: fileMarker.fileLocation,
-        } as Loc,
-        endLoc: {
-            line: fileMarker.fileLine,
-            col: 0,
-            offset: fileMarker.fileLocation,
-        } as Loc,
-    };
-    app.workspace.trigger(
-        'link-hover',
-        mapMarker.getElement(),
-        mapMarker.getElement(),
-        fileMarker.file.path,
-        '',
-        previewDetails
-    );
-}
-
 export async function populateMarkerPopup(
     fileMarker: FileMarker,
     mapMarker: leaflet.Marker,
@@ -61,7 +32,7 @@ export async function populateMarkerPopup(
     const previewDiv = element.createDiv(
         'markdown-embed markdown-embed-content markdown-preview-view markdown-rendered allow-fold-headings allow-fold-lists'
     );
-    if (settings.showNotePreview && !settings.useObsidianNotePreview) {
+    if (settings.showNotePreview) {
         await createPreview(fileMarker, previewDiv, settings, app);
     }
 }
@@ -89,10 +60,13 @@ async function createPreview(
 export function scrollPopupToHighlight(popupDiv: HTMLDivElement) {
     const element = popupDiv.querySelector('.markdown-embed') as HTMLElement;
     const markedLine = element.querySelector(
-        'mark:first-of-type'
+        'mark.mv-marked-line'
     ) as HTMLElement;
     if (markedLine) {
-        const markTop = markedLine.offsetTop;
+        // Get the top of the marked line in relation to the scrollable container (element).
+        const containerRect = element.getBoundingClientRect();
+        const markedLineRect = markedLine.getBoundingClientRect();
+        const markTop = markedLineRect.top - containerRect.top;
         const markHeight = markedLine.offsetHeight;
         const containerHeight = element.offsetHeight;
         const scrollTopPosition =
@@ -116,7 +90,9 @@ function extractSnippet(
         const linesBelow = Math.ceil((snippetLines - 1) / 2);
         let start = Math.max(fileLine - linesAbove, 0);
         let end = Math.min(fileLine + linesBelow + 1, lines.length); // +1 because slice end is exclusive
-        lines[fileLine] = `<mark>${lines[fileLine]}</mark>`;
+        lines[
+            fileLine
+        ] = `<mark class="mv-marked-line">${lines[fileLine]}</mark>`;
         return lines.slice(start, end).join('\n');
     } else {
         return lines.slice(0, snippetLines).join('\n');

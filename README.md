@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Thu Feb 29 07:32:58 PM IST 2024 -->
+<!-- Added by: erez, at: Thu Feb 29 07:58:13 PM IST 2024 -->
 
 <!--te-->
 
@@ -614,7 +614,9 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Markers can now be moved on the map: right-click a marker, click "enable move" and drag the marker to its new location. The corresponding note will be updated automatically. Big thanks to @IanLindsley for this too!
 -   You can now set emojis as map markers. In configuring marker icon rules, just enter an emoji instead of a Font Awesome name and it should show up.
 -   Markers can now show optional **labels** showing the marker name. You can turn it on from the View drop-down on the map.
--   The marker popup mechanism was rewritten to enable a much more streamlined experience and less intrusive popups. This will become the default for all users, but you can revert to the native Obsidian preview windows from the "Marker hover & previews" section of the plugin settings.
+-   The marker popup mechanism was rewritten to enable a much more streamlined experience and less intrusive popups.
+    -   I was in a dilemma whether to continue maintaining the old option (the Obsidian native preview), as it still has its upsides (e.g. it allows scrolling and it preserves note formatting better), but decided against it due to the complexity it will introduce in the long run.
+    -   If you have a strong opinion towards using the old Obsidian preview window, please open an issue so it can be discussed.
 -   Map View now supports heading links and block links in 'linkedfrom:' queries, and also for the new Links feature.
     -   I recommend the "Copy Block Link" plugin that makes this more useful.
 -   New format for front matter location, `location: "lat,lng"`, which plays better with Obsidian's property editor. The old format is still supported but new front-matter notes will be created with the new format. Solves https://github.com/esm7/obsidian-map-view/issues/202.

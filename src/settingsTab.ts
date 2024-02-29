@@ -415,21 +415,6 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName(
-                'When showing note preview, use the native Obsidian preview window.'
-            )
-            .setDesc(
-                'The default Map View integrated preview has some rendering limitations. The Obsidian preview window renders notes exactly like Obsidian, but opens in a separate popup which can be obstructive.'
-            )
-            .addToggle((component) => {
-                component
-                    .setValue(this.plugin.settings.useObsidianNotePreview)
-                    .onChange(async (value) => {
-                        this.plugin.settings.useObsidianNotePreview = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-        new Setting(containerEl)
             .setName('Show preview for marker clusters')
             .setDesc(
                 'Show a hover popup summarizing the icons inside a marker cluster.'

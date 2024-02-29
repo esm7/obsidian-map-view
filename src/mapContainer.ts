@@ -859,21 +859,7 @@ export class MapContainer {
         // Popups based on the markers below the cursor shouldn't be opened while animations
         // are occuring
         if (this.ongoingChanges > 0) return;
-        if (
-            this.settings.showNotePreview &&
-            this.settings.useObsidianNotePreview
-        ) {
-            markerPopups.showObsidianNotePreview(
-                fileMarker,
-                mapMarker,
-                this.app
-            );
-        }
-        if (
-            this.settings.showNoteNamePopup ||
-            (this.settings.showNotePreview &&
-                !this.settings.useObsidianNotePreview)
-        ) {
+        if (this.settings.showNoteNamePopup || this.settings.showNotePreview) {
             await markerPopups.populateMarkerPopup(
                 fileMarker,
                 mapMarker,
