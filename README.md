@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Thu Feb 29 07:58:13 PM IST 2024 -->
+<!-- Added by: erez, at: Thu Feb 29 07:58:29 PM IST 2024 -->
 
 <!--te-->
 
@@ -330,7 +330,7 @@ The query string can contain the following _search operators_:
     -   For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
     -   Anything that resolves into a legal Obsidian link will work, e.g. both a note name ('Cave Hikes') or a path will do, but a partial name will not.
     -   Obsidian heading and block links are supported: if a link in the 'from' file includes a heading or a block link, it will match only front-matter markers or inline markers _within that heading or block_.
-    -   The Obsidian Plugin "Copy Block Link" makes this extra useful.
+    -   The Obsidian Plugin ["Copy Block Link"](https://github.com/mgmeyers/obsidian-copy-block-link) makes this extra useful.
 -   `lines:x-y` includes only inline markers that are defined in the given line range in their note.
     -   For example, `lines:20-30` includes only inline geolocations that are defined in lines 20 to 30 in the file that contains them.
 
@@ -610,7 +610,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 -   Map View can now show **note links** as edges in the map. Open the Links drop-down in the map controls to turn it on and configure how it looks (big thanks to @IanLindsley!)
     -   All the markers of a given file are linked to the markers pointed by the links in that file. Those links may reference the whole destination file, and then all the markers in it are linked, or a heading/block and then only the front-matter marker and specific heading/block locations are linked.
-    -   See more details [above](#links-view);
+    -   See more details [above](#links-view).
 -   Markers can now be moved on the map: right-click a marker, click "enable move" and drag the marker to its new location. The corresponding note will be updated automatically. Big thanks to @IanLindsley for this too!
 -   You can now set emojis as map markers. In configuring marker icon rules, just enter an emoji instead of a Font Awesome name and it should show up.
 -   Markers can now show optional **labels** showing the marker name. You can turn it on from the View drop-down on the map.
