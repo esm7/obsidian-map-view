@@ -4,6 +4,8 @@
     font-family: var(--font-text);
     font-weight: bold;
     margin: 0 !important;
+    /* Make sure the marker name doesn't cover up the close button */
+    margin-right: 18px !important;
 }
 
 .map-view-marker-sub-name {
@@ -154,6 +156,10 @@ a.mv-icon-button.on {
     box-shadow: 0 2px 8px var(--background-modifier-box-shadow);
 }
 
+.mv-marker-label {
+    padding: 2px 6px;
+}
+
 /* Disable the default Leaflet shadow because we use the Obsidian theme above */
 .marker-popup .leaflet-popup-content-wrapper {
     box-shadow: none;
@@ -161,24 +167,27 @@ a.mv-icon-button.on {
     color: none;
 }
 
-.leaflet-popup.marker-popup :has(.mv-marker-popup-container) {
-    /* color: blue; */
-    /* max-height: 20em; */
-    width: 30em !important;
-    overflow: hidden;
-}
-.leaflet-popup-content:has(.mv-marker-popup-container) {
-    margin: 0;
-    overflow: hidden;
-}
 .mv-marker-popup-container {
-    max-height: 100%;
+    max-height: 20em;
+    width: 30em;
     overflow: hidden;
+    /* Initially this isn't displayed */
+    display: none;
+    z-index: 2;
+    box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.5);
 }
 .mv-marker-popup-container .markdown-embed {
     border-left: 0;
     max-height: 200px;
     overflow-y: auto;
+}
+
+.mv-marker-popup-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+    background: transparent !important;
 }
 
 .url-rule-dropdown {

@@ -4,54 +4,8 @@
 
 <!--ts-->
 
--   [Obsidian.md Map View](#obsidianmd-map-view)
-    -   [Intro](#intro)
-    -   [With Obsidian Mobile](#with-obsidian-mobile)
-    -   [Support the Development](#support-the-development)
-    -   [Quick How To](#quick-how-to)
-        -   [Log a Geolocation](#log-a-geolocation)
-        -   [Create a Trip Plan Map](#create-a-trip-plan-map)
-        -   [Build Your Personal Geographic Information System (GIS)](#build-your-personal-geographic-information-system-gis)
-    -   [Understanding Map View: Parsing Location Data](#understanding-map-view-parsing-location-data)
-    -   [Adding a Location to a Note](#adding-a-location-to-a-note)
-        -   [Anywhere in Obsidian](#anywhere-in-obsidian)
-        -   [In an Existing Note](#in-an-existing-note)
-        -   [From the Map](#from-the-map)
-        -   [Paste as Geolocation](#paste-as-geolocation)
-        -   [Tip: Copying from Google Maps](#tip-copying-from-google-maps)
-    -   [Embedding Maps in Notes](#embedding-maps-in-notes)
-        -   [Advanced Additional Options](#advanced-additional-options)
-    -   [Queries](#queries)
-    -   [Marker Icons](#marker-icons)
-        -   [Tag Rules](#tag-rules)
-    -   [In-Note Location Search &amp; Auto-Complete](#in-note-location-search--auto-complete)
-        -   [Changing a Geocoding Provider](#changing-a-geocoding-provider)
-    -   [Map Sources](#map-sources)
-    -   [Presets](#presets)
-    -   [Open In](#open-in)
-    -   [URL Parsing Rules](#url-parsing-rules)
-    -   [View URLs](#view-urls)
-    -   [Follow Active Note](#follow-active-note)
-    -   [GPS Location Support](#gps-location-support)
-    -   [Relation to Obsidian Leaflet](#relation-to-obsidian-leaflet)
-    -   [Changelog](#changelog)
-        -   [5.0.0](#500)
-        -   [4.0.1](#401)
-        -   [4.0.0](#400)
-        -   [3.1.1](#311)
-        -   [3.0.2](#302)
-        -   [3.0.1](#301)
-        -   [3.0.0](#300)
-        -   [2.2.0](#220)
-        -   [2.1.1](#211)
-        -   [2.1.0](#210)
-        -   [2.0.5](#205)
-        -   [2.0.4](#204)
-        -   [2.0.3](#203)
-        -   [2.0.0](#200)
-
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri Feb 23 10:02:55 PM IST 2024 -->
+<!-- Added by: erez, at: Thu Feb 29 07:32:58 PM IST 2024 -->
 
 <!--te-->
 
@@ -602,6 +556,28 @@ Many of these can also be launched directly from the geo helper after it finds y
 
 **Help needed:** the geo helper mobile app is currently only available for Android. If you are an iOS developer who wishes to build and maintain the corresponding app, please reach out.
 
+## Links View
+
+Map View can optionally draw edges between markers of linked notes.
+
+To turn this on, open the "Links" drop-down on the map controls and choose the link depth you want to be represented on the map.
+
+The way it works is that all the markers of a given file (sources) are shown as linked to the markers pointed by the links in that file (destinations).
+A destination can be:
+
+-   A whole file -- then all the markers in the source file are linked to all the markers in the destination file.
+-   A heading/block -- then all the markers in the source file are linked to:
+    -   The front-matter marker of the destination file, if any.
+    -   Only inline locations in the referenced heading/block.
+
+You can also set up the _depth_ for which a link is shown. Depth 1 means a direct link -- an edge is shown on the map if the source is linked to the destination exactly as stated above. Depth 2 means that the source is linked to the destination in a _path of up to 2 hops_, meaning there can be an intermediate file that links them, and so on.
+
+Finally, you can configure the color used for the edges on the map using any valid [HTML color name](https://www.w3schools.com/tags/ref_colornames.asp) or a hex value like `#faebd7`.
+
+**Note:** heavily-linked maps are resource-intensive, so it's advisable to turn on links display only when your markers are reasonably filtered.
+
+![](img/links.png)
+
 ## Relation to Obsidian Leaflet
 
 Users who are looking to add mapping capabilities to Obsidian may want to also look at the great [Obsidian Leaflet plugin](https://github.com/valentine195/obsidian-leaflet-plugin).
@@ -626,24 +602,34 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ### 5.0.0
 
-Forward compatability warning, front-matter notes you create with this version will not show in previous Map View versions.
+**This is a major Map View release with tons of new features and fixes.**
 
--   New format for front matter location, plays better with Obsidian's property editor in case you want to edit geolocations manually.
--   The key to use for front matter geolocation is now configurable (https://github.com/esm7/obsidian-map-view/issues/195)
--   Names containing slashes are now sanitized and handled properly (https://github.com/esm7/obsidian-map-view/issues/207)
--   Inline tags are now part of filter suggestions (https://github.com/esm7/obsidian-map-view/issues/225)
--   Emojis for map markers (TODO document and finish)
--   The actions from a search marker context menu now use the geolocation of the marker rather than the mouse.
--   Font Awesome 6.5.1 and a revamp to how it is used. POSSIBLE BUGS HERE
--   Map View now requires Obsidian 1.5.6 or newer, and uses the formal front matter API.
--   Tab icons of map views now have the proper map pin icon (https://github.com/esm7/obsidian-map-view/issues/227)
--   Links and edges.
+**Forward compatibility warning:** front-matter notes you create with this version will not show in previous Map View versions.
+
+**The Big Changes:**
+
+-   Map View can now show **note links** as edges in the map. Open the Links drop-down in the map controls to turn it on and configure how it looks (big thanks to @IanLindsley!)
     -   All the markers of a given file are linked to the markers pointed by the links in that file. Those links may reference the whole destination file, and then all the markers in it are linked, or a heading/block and then only the front-matter marker and specific heading/block locations are linked.
--   Markers can now be moved (with their corresponding note updated, of course) -- see the "Enable Move" item in the marker's context menu. Thanks!
--   Fixed a bug of the cursor not jumping forward after an inline location suggestion
--   Map View now supports heading links and block links in 'linkedfrom:' queries, and also for the new links feature.
+    -   See more details [above](#links-view);
+-   Markers can now be moved on the map: right-click a marker, click "enable move" and drag the marker to its new location. The corresponding note will be updated automatically. Big thanks to @IanLindsley for this too!
+-   You can now set emojis as map markers. In configuring marker icon rules, just enter an emoji instead of a Font Awesome name and it should show up.
+-   Markers can now show optional **labels** showing the marker name. You can turn it on from the View drop-down on the map.
+-   The marker popup mechanism was rewritten to enable a much more streamlined experience and less intrusive popups. This will become the default for all users, but you can revert to the native Obsidian preview windows from the "Marker hover & previews" section of the plugin settings.
+-   Map View now supports heading links and block links in 'linkedfrom:' queries, and also for the new Links feature.
     -   I recommend the "Copy Block Link" plugin that makes this more useful.
--   Marker labels
+-   New format for front matter location, `location: "lat,lng"`, which plays better with Obsidian's property editor. The old format is still supported but new front-matter notes will be created with the new format. Solves https://github.com/esm7/obsidian-map-view/issues/202.
+
+**Smaller Improvements:**
+
+-   The key to use for front matter geolocation is now configurable (https://github.com/esm7/obsidian-map-view/issues/195)
+-   Search names containing slashes are now sanitized and handled properly (https://github.com/esm7/obsidian-map-view/issues/207)
+-   Inline tags are now part of filter suggestions (https://github.com/esm7/obsidian-map-view/issues/225)
+-   The actions from a search marker context menu now use the geolocation of the marker rather than the mouse location.
+-   The way Font Awesome is used was changed to mitigate a performance issue that Map View caused (https://github.com/esm7/obsidian-map-view/issues/216).
+-   Font Awesome upgraded to 6.5.1.
+-   Map View now requires Obsidian 1.5.6 or newer, and uses the formal front matter API.
+-   Tab icons of map views now have the proper map pin icon (https://github.com/esm7/obsidian-map-view/issues/227).
+-   Fixed a bug of the cursor not jumping forward after an inline location suggestion.
 
 ### 4.0.1
 

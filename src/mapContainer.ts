@@ -53,6 +53,7 @@ import {
 } from 'src/realTimeLocation';
 import * as menus from 'src/menus';
 import * as markerPopups from 'src/markerPopups';
+import { createPopper, Instance as PopperInstance } from '@popperjs/core';
 
 export type ViewSettings = {
     showZoomButtons: boolean;
@@ -96,6 +97,7 @@ export class MapContainer {
         mapDiv: HTMLDivElement;
         /** The element holding map marker popups */
         popupDiv: HTMLDivElement;
+        popperInstance: PopperInstance;
         /** The leaflet map instance */
         map: leaflet.Map;
         tileLayer: leaflet.TileLayer;
@@ -250,6 +252,36 @@ export class MapContainer {
             ev.stopPropagation();
         });
         await this.createMap();
+
+        // Prepare marker popups
+        this.display.popupDiv = this.display.viewDiv.createDiv();
+        this.display.popupDiv.addClasses([
+            'mv-marker-popup-container',
+            'popover',
+            'hover-popup',
+        ]);
+        const dummyPopperElement = this.display.viewDiv.createDiv();
+        this.display.popperInstance = createPopper(
+            dummyPopperElement,
+            this.display.popupDiv,
+            {
+                placement: 'top', // Initial preferred placement
+                modifiers: [
+                    {
+                        name: 'flip',
+                        options: {
+                            fallbackPlacements: ['bottom', 'right', 'left'], // Other placements to consider if 'top' is not suitable
+                        },
+                    },
+                    {
+                        name: 'offset',
+                        options: {
+                            offset: [0, 8],
+                        },
+                    },
+                ],
+            }
+        );
     }
 
     onClose() {
@@ -717,7 +749,7 @@ export class MapContainer {
 
         newMarker.on('click', async (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app))
-                await this.showMarkerPopups(marker, newMarker);
+                await this.showMarkerPopups(marker, newMarker, event);
             else
                 this.goToMarker(
                     marker,
@@ -744,11 +776,12 @@ export class MapContainer {
         });
         newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app))
-                this.showMarkerPopups(marker, newMarker);
+                this.showMarkerPopups(marker, newMarker, event);
         });
         newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
-            if (!utils.isMobile(this.app)) newMarker.closePopup();
-            this.endHoverHighlight();
+            if (!utils.isMobile(this.app)) {
+                this.closeMarkerPopup();
+            }
         });
         newMarker.on('add', (event: leaflet.LeafletEvent) => {
             newMarker
@@ -820,8 +853,12 @@ export class MapContainer {
 
     private async showMarkerPopups(
         fileMarker: FileMarker,
-        mapMarker: leaflet.Marker
+        mapMarker: leaflet.Marker,
+        event: leaflet.LeafletMouseEvent
     ) {
+        // Popups based on the markers below the cursor shouldn't be opened while animations
+        // are occuring
+        if (this.ongoingChanges > 0) return;
         if (
             this.settings.showNotePreview &&
             this.settings.useObsidianNotePreview
@@ -837,14 +874,6 @@ export class MapContainer {
             (this.settings.showNotePreview &&
                 !this.settings.useObsidianNotePreview)
         ) {
-            if (!this.display.popupDiv) {
-                this.display.popupDiv = this.display.viewDiv.createDiv();
-                this.display.popupDiv.addClasses([
-                    'mv-marker-popup-container',
-                    'popover',
-                    'hover-popup',
-                ]);
-            }
             await markerPopups.populateMarkerPopup(
                 fileMarker,
                 mapMarker,
@@ -852,34 +881,37 @@ export class MapContainer {
                 this.settings,
                 this.app
             );
-            mapMarker
-                .bindPopup(this.display.popupDiv, {
-                    closeButton: true,
-                    autoPan: false,
-                    className: 'marker-popup',
-                })
-                .on('popupopen', (event: leaflet.PopupEvent) => {
-                    markerPopups.scrollPopupToHighlight(this.display.popupDiv);
-                    event.popup.getElement()?.onClickEvent((ev: MouseEvent) => {
-                        this.goToMarker(
-                            fileMarker,
-                            utils.mouseEventToOpenMode(
-                                this.settings,
-                                ev,
-                                'openNote'
-                            ),
-                            true
-                        );
-                    });
-                })
-                .openPopup()
-                .on('popupclose', (event: leaflet.LeafletEvent) => {
-                    // For some reason popups don't recycle on mobile if this is not added
-                    mapMarker.unbindPopup();
-                    this.endHoverHighlight();
-                });
+            const closeButton = this.display.popupDiv.createEl(
+                'button',
+                'mv-marker-popup-close'
+            );
+            closeButton.onClickEvent((ev: MouseEvent) => {
+                this.closeMarkerPopup();
+                ev.stopPropagation();
+            });
+            closeButton.innerText = 'X';
+            const markerElement = event.target.getElement();
+            // Make the popup visible
+            this.display.popupDiv.style.display = 'block';
+            // Update the Popper instance about which marker it should follow
+            this.display.popperInstance.state.elements.reference =
+                markerElement;
+            this.display.popperInstance.update();
+            markerPopups.scrollPopupToHighlight(this.display.popupDiv);
+            this.display.popupDiv.onClickEvent((ev: MouseEvent) => {
+                this.goToMarker(
+                    fileMarker,
+                    utils.mouseEventToOpenMode(this.settings, ev, 'openNote'),
+                    true
+                );
+            });
         }
         this.startHoverHighlight(fileMarker);
+    }
+
+    private closeMarkerPopup() {
+        this.endHoverHighlight();
+        this.display.popupDiv.style.display = 'none';
     }
 
     private openClusterPreviewPopup(event: leaflet.LeafletEvent) {
@@ -1026,12 +1058,13 @@ export class MapContainer {
         if (!this.display.map || !this.isOpen)
             // If the map has not been set up yet then do nothing
             return;
-        let newMarkers: BaseGeoLayer[] = [];
+        let markers: BaseGeoLayer[] = [];
         // Create an array of all file markers not in the removed file
         for (let [_markerId, existingMarker] of this.display.markers) {
             if (existingMarker.file.path !== fileRemoved)
-                newMarkers.push(existingMarker);
+                markers.push(existingMarker);
         }
+        let newMarkers: BaseGeoLayer[] = [];
         if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
             // Add file markers from the added file
             await buildAndAppendFileMarkers(
@@ -1041,15 +1074,15 @@ export class MapContainer {
                 this.app
             );
             cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
+            finalizeMarkers(
+                newMarkers,
+                this.state,
+                this.settings,
+                this.plugin.iconFactory,
+                this.app
+            );
         }
-        finalizeMarkers(
-            newMarkers,
-            this.state,
-            this.settings,
-            this.plugin.iconFactory,
-            this.app
-        );
-        this.updateMapMarkers(newMarkers);
+        this.updateMapMarkers(Array.combine([markers, newMarkers]));
     }
 
     addSearchResultMarker(details: GeoSearchResult, keepZoom: boolean) {

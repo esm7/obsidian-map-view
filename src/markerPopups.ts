@@ -73,8 +73,7 @@ async function createPreview(
     app: App
 ) {
     const content = await app.vault.read(fileMarker.file);
-    // TODO this should be configurable
-    const snippet = extractSnippet(content, 9, fileMarker.fileLine);
+    const snippet = extractSnippet(content, 15, fileMarker.fileLine);
     MarkdownRenderer.render(
         app,
         snippet,
@@ -82,7 +81,6 @@ async function createPreview(
         fileMarker.file.path,
         new Component()
     );
-    // TODO TEMP use popper for the popup
 }
 
 /**
