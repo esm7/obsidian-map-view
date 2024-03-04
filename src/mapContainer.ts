@@ -35,7 +35,7 @@ import {
     finalizeMarkers,
     cacheTagsFromMarkers,
 } from 'src/markers';
-import { getIconFromOptions } from 'src/markerIcons';
+import { getIconFromOptions, IconOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import {
@@ -726,9 +726,7 @@ export class MapContainer {
     }
 
     private newLeafletMarker(marker: FileMarker): leaflet.Marker {
-        let icon:
-            | leaflet.Icon<leaflet.ExtraMarkers.IconOptions>
-            | leaflet.DivIcon;
+        let icon: leaflet.Icon<IconOptions> | leaflet.DivIcon;
         if (marker.icon) {
             icon = marker.icon;
         } else {
@@ -1277,7 +1275,7 @@ export class MapContainer {
                 (ev: leaflet.LeafletMouseEvent) => {
                     let routingSourcePopup = new Menu();
                     routingSourcePopup.addItem((item: MenuItem) => {
-                        item.setTitle('Remove');
+                        item.setTitle('Remove routing source');
                         item.setIcon('trash');
                         item.onClick(() => {
                             this.setRoutingSource(null);

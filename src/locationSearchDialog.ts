@@ -4,12 +4,16 @@ import * as leaflet from 'leaflet';
 import MapViewPlugin from 'src/main';
 import { PluginSettings } from 'src/settings';
 import { GeoSearcher, GeoSearchResult } from 'src/geosearch';
-import { getIconFromOptions } from 'src/markerIcons';
+import {
+    getIconFromOptions,
+    createIconElement,
+    IconOptions,
+} from 'src/markerIcons';
 import * as utils from 'src/utils';
 import * as consts from 'src/consts';
 
 export class SuggestInfo extends GeoSearchResult {
-    icon?: leaflet.ExtraMarkers.IconOptions;
+    icon?: IconOptions;
 }
 
 type DialogAction = 'newNote' | 'addToNote' | 'custom';
@@ -121,7 +125,10 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
                 value.icon ?? consts.SEARCH_RESULT_MARKER,
                 this.plugin.iconFactory
             );
-            let iconElement: HTMLElement = compiledIcon.createIcon();
+            let iconElement: HTMLElement = createIconElement(
+                iconDiv,
+                compiledIcon
+            );
             let style = iconElement.style;
             style.marginLeft = style.marginTop = '0';
             style.position = 'relative';

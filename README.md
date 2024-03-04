@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Thu Feb 29 07:58:29 PM IST 2024 -->
+<!-- Added by: erez, at: Mon Mar  4 06:17:36 AM IST 2024 -->
 
 <!--te-->
 
@@ -359,6 +359,7 @@ These rules can be edited using the plugin's settings pane or edited as JSON for
 
 Icons are based on either [emojis](https://emojipedia.org) or [Font Awesome](https://fontawesome.com/), so to add a marker icon you'll need to copy the emoji or find the name in the Font Awesome catalog.
 Additionally, there are various marker properties (shape, color and more) that are based on [Leaflet.ExtraMarkers](https://github.com/coryasilva/Leaflet.ExtraMarkers#properties).
+An additional shape of `simple-circle`, that draws a circle at the given color without a pin shape, is supported on top of these.
 
 To change the map marker icons for your notes, go to the Map View settings and scroll to Marker Icon Rules.
 
@@ -620,6 +621,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Map View now supports heading links and block links in 'linkedfrom:' queries, and also for the new Links feature.
     -   I recommend the "Copy Block Link" plugin that makes this more useful.
 -   New format for front matter location, `location: "lat,lng"`, which plays better with Obsidian's property editor. The old format is still supported but new front-matter notes will be created with the new format. Solves https://github.com/esm7/obsidian-map-view/issues/202.
+-   A new marker shape `simple-circle` is now supported, drawing a simple circle at the given color without a pin shape.
 
 **Smaller Improvements:**
 

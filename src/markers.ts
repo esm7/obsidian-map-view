@@ -14,7 +14,7 @@ import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 
 import { PluginSettings } from 'src/settings';
-import { getIconFromRules, IconFactory } from 'src/markerIcons';
+import { getIconFromRules, IconFactory, IconOptions } from 'src/markerIcons';
 import { MapState } from 'src/mapState';
 import * as consts from 'src/consts';
 import * as regex from 'src/regex';
@@ -103,7 +103,7 @@ export abstract class BaseGeoLayer {
 export class FileMarker extends BaseGeoLayer {
     public geoLayer?: leaflet.Marker;
     public location: leaflet.LatLng;
-    public icon?: leaflet.Icon<leaflet.ExtraMarkers.IconOptions>;
+    public icon?: leaflet.Icon<IconOptions>;
     private _edges: Edge[] = [];
 
     /**
@@ -164,10 +164,7 @@ export class FileMarker extends BaseGeoLayer {
             // @ts-ignore
             this.icon?.options?.iconColor === other.icon?.options?.iconColor &&
             // @ts-ignore
-            this.icon?.options?.markerColor ===
-                other.icon?.options?.markerColor &&
-            // @ts-ignore
-            this.icon?.options?.shape === other.icon?.options?.shape
+            this.icon?.options?.markerColor === other.icon?.options?.markerColor
         );
     }
 

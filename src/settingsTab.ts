@@ -1077,8 +1077,7 @@ export class SettingsTab extends PluginSettingTab {
                     );
                     const compiledIcon = getIconFromOptions(
                         options,
-                        this.plugin.iconFactory,
-                        options.shape
+                        this.plugin.iconFactory
                     );
                     iconElement = compiledIcon.createIcon();
                     let style = iconElement.style;

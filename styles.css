@@ -130,6 +130,7 @@ a.mv-icon-button.on {
     border-radius: 6px;
     line-height: 1.5;
     background-color: var(--background-primary);
+    align-items: center;
 }
 
 .clusterPreviewContainer .leaflet-marker-icon {
@@ -206,7 +207,7 @@ a.mv-icon-button.on {
     display: flex;
 }
 
-.suggestion-item .search-icon-div .mv-emoji-icon {
+.suggestion-item .search-icon-div .leaflet-marker-icon .mv-emoji-icon {
     position: relative;
     margin: 0;
     top: 10px;
@@ -297,11 +298,21 @@ div.map-view-highlight.marker-cluster {
     height: 100%;
 }
 
-.resizable-circle-marker {
+.mv-simple-circle-marker {
     color: white;
     border: none;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 30px;
+    height: 30px;
+}
+
+.mv-simple-circle-marker i {
+    font-size: 20px;
+}
+
+.mv-simple-circle-marker .mv-emoji-icon {
+    top: 0;
 }
