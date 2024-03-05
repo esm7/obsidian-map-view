@@ -34,8 +34,9 @@ export class Edge {
     public marker1: FileMarker;
     /** The second location of the edge */
     public marker2: FileMarker;
-    /** The leaflet polyline of the edge */
-    public polyline: leaflet.Polyline;
+    /** The leaflet polyline of the edge. An edge may exist only logically without a polyline (after being generated
+     * from the map markers) */
+    public polyline?: leaflet.Polyline;
 
     constructor(
         marker1: FileMarker,
@@ -131,14 +132,31 @@ export class FileMarker extends BaseGeoLayer {
         this._edges.push(edge);
     }
 
-    removeEdges() {
-        for (let edge of this._edges) {
+    // Remove the polylines, which are the physical representation of the edges on the map, without removing
+    // the logical edges
+    removePolylines() {
+        for (const edge of this._edges) {
+            edge.polyline?.remove();
+            edge.polyline = null;
+        }
+    }
+
+    // Removes the edges that belong to this marker. This requires removing both sides of the edge
+    removeEdges(listToRemoveFrom: leaflet.Polyline[]) {
+        for (const edge of this._edges) {
+            // Make sure the 2nd marker of the edge doesn't keep holding the edge
+            if (edge.marker1 != this) edge.marker1._edges.remove(edge);
+            if (edge.marker2 != this) edge.marker2._edges.remove(edge);
+            // Remove the polyline from the container's polylines map
+            if (edge.polyline) listToRemoveFrom.remove(edge.polyline);
+            // Remove the polyline of the edge
             edge.polyline?.remove();
             edge.polyline = null;
         }
         this._edges.length = 0;
     }
 
+    // Returns true if the two markers are linked by an existing edge
     isLinkedTo(marker: FileMarker) {
         return (
             this.edges.find((edge) => {
@@ -271,7 +289,7 @@ export async function buildMarkers(
 
 /**
  * Add more data to the markers, e.g. icons and other items that were not needed for the stage of filtering
- * them.
+ * them. This includes edges based on links, if active.
  * Modifies the markers in-place.
  */
 export function finalizeMarkers(
@@ -291,23 +309,6 @@ export function finalizeMarkers(
         } else {
             throw 'Unsupported object type ' + marker.constructor.name;
         }
-    }
-    if (state.linkDepth && state.linkDepth > 0) {
-        let filesWithMarkersMap: Map<string, FileWithMarkers> = new Map();
-        for (const marker of markers) {
-            if (marker instanceof FileMarker) {
-                let path = marker.file.path;
-                if (!filesWithMarkersMap.has(path)) {
-                    filesWithMarkersMap.set(path, {
-                        file: marker.file,
-                        markers: [],
-                    });
-                }
-                marker.removeEdges();
-                filesWithMarkersMap.get(path).markers.push(marker);
-            }
-        }
-        addEdgesToMarkers(markers, filesWithMarkersMap, app, state.linkDepth);
     }
 }
 
@@ -459,12 +460,28 @@ export function getFrontMatterLocation(
     return null;
 }
 
-function addEdgesToMarkers(
+export function addEdgesToMarkers(
     markers: BaseGeoLayer[],
-    filesWithMarkersMap: Map<string, FileWithMarkers>,
     app: App,
-    linkDepth: number
+    linkDepth: number,
+    allPolylines: leaflet.Polyline[]
 ) {
+    if (!linkDepth || linkDepth == 0) return;
+
+    let filesWithMarkersMap: Map<string, FileWithMarkers> = new Map();
+    for (const marker of markers) {
+        if (marker instanceof FileMarker) {
+            let path = marker.file.path;
+            if (!filesWithMarkersMap.has(path)) {
+                filesWithMarkersMap.set(path, {
+                    file: marker.file,
+                    markers: [],
+                });
+            }
+            marker.removeEdges(allPolylines);
+            filesWithMarkersMap.get(path).markers.push(marker);
+        }
+    }
     let nodesSeen: Set<string> = new Set();
     for (let fileWithMarkers of filesWithMarkersMap.values()) {
         addEdgesFromFile(

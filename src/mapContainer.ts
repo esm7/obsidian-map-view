@@ -33,6 +33,7 @@ import {
     buildMarkers,
     buildAndAppendFileMarkers,
     finalizeMarkers,
+    addEdgesToMarkers,
     cacheTagsFromMarkers,
 } from 'src/markers';
 import { getIconFromOptions, IconOptions } from 'src/markerIcons';
@@ -98,6 +99,7 @@ export class MapContainer {
         /** The element holding map marker popups */
         popupDiv: HTMLDivElement;
         popperInstance: PopperInstance;
+        popupElement: leaflet.Marker;
         /** The leaflet map instance */
         map: leaflet.Map;
         tileLayer: leaflet.TileLayer;
@@ -584,6 +586,41 @@ export class MapContainer {
                 mapPopup.showAtPosition(event.originalEvent);
             }
         );
+
+        // This is an ugly work-around for an issue of marker popups sometimes not closing when they should,
+        // seemingly due to a race condition of closing and opening the popup from multiple markers upon
+        // rapid mouse movements.
+        // I couldn't find a better solution to this edge case rather than check once in a while if a popup
+        // happens to be open when it shouldn't.
+        setInterval(async () => {
+            if (
+                this.display.popupDiv &&
+                this.display.popupDiv.style.display != 'none'
+            ) {
+                // If the popup is displayed, we're not on mobile (so it should be only displayed on hover) but
+                // there's no popup element, close the popup
+                if (!this.display.popupElement && !utils.isMobile(this.app))
+                    this.closeMarkerPopup();
+                if (this.display.popupElement) {
+                    const mousePosition = await utils.getMousePosition();
+                    const element = this.display.popupElement?.getElement();
+                    const rect = element?.getBoundingClientRect();
+                    if (
+                        rect &&
+                        !(
+                            mousePosition.x >= rect.left &&
+                            mousePosition.x <= rect.right &&
+                            mousePosition.y >= rect.top &&
+                            mousePosition.y <= rect.bottom
+                        )
+                    ) {
+                        // The mouse position is not inside the marker the popup belongs to, seems like we missed
+                        // an event to close the popup
+                        this.closeMarkerPopup();
+                    }
+                }
+            }
+        }, 500);
     }
 
     /**
@@ -615,6 +652,12 @@ export class MapContainer {
             this.settings,
             this.plugin.iconFactory,
             this.app
+        );
+        addEdgesToMarkers(
+            newMarkers,
+            this.app,
+            state.linkDepth,
+            this.display.polylines
         );
         this.state = structuredClone(state);
 
@@ -655,6 +698,8 @@ export class MapContainer {
     /**
      * Update the actual Leaflet markers of the map according to a new list of logical markers.
      * Unchanged markers are not touched, new markers are created and old markers that are not in the updated list are removed.
+     * Also, all the polylines (edge lines representing links) are cleared and redrawn, which is inefficient and can
+     * be optimized in the future.
      * @param newMarkers The new array of FileMarkers
      */
     updateMapMarkers(newMarkers: BaseGeoLayer[]) {
@@ -687,12 +732,20 @@ export class MapContainer {
         }
         for (let [key, value] of this.display.markers) {
             markersToRemove.push(value.geoLayer);
+            // Remove the edges that connect the markers we are removing, together with their polylines
+            if (value instanceof FileMarker)
+                value.removeEdges(this.display.polylines);
         }
         this.display.clusterGroup.removeLayers(markersToRemove);
-        this.clearPolylines();
         this.display.clusterGroup.addLayers(markersToAdd);
         this.display.markers = newMarkersMap;
+        this.buildPolylines();
+    }
 
+    /**
+     * Builds all the non-existing polylines according to the edges stored in the markers, and adds them to the map.
+     */
+    private buildPolylines() {
         if (this.state.linkDepth > 0) {
             for (const marker of this.display.markers.values()) {
                 if (marker instanceof FileMarker) {
@@ -700,7 +753,9 @@ export class MapContainer {
                     for (const edge of marker.edges) {
                         // Since an edge is linked from both of its sides, we want to make sure we create
                         // the polyline just once
-                        if (edge.polyline) continue;
+                        if (edge.polyline) {
+                            continue;
+                        }
                         let polyline = leaflet.polyline(
                             [edge.marker1.location, edge.marker2.location],
                             {
@@ -715,14 +770,6 @@ export class MapContainer {
                 }
             }
         }
-    }
-
-    private clearPolylines() {
-        // clear previous polylines from the map
-        for (const p of this.display.polylines) {
-            p.remove();
-        }
-        this.display.polylines.length = 0;
     }
 
     private newLeafletMarker(marker: FileMarker): leaflet.Marker {
@@ -773,13 +820,18 @@ export class MapContainer {
                 );
         });
         newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
-            if (!utils.isMobile(this.app))
+            if (!utils.isMobile(this.app)) {
                 this.showMarkerPopups(marker, newMarker, event);
+                this.display.popupElement = newMarker;
+            }
         });
         newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app)) {
                 this.closeMarkerPopup();
             }
+        });
+        newMarker.on('remove', (event: leaflet.LeafletMouseEvent) => {
+            this.closeMarkerPopup();
         });
         newMarker.on('add', (event: leaflet.LeafletEvent) => {
             newMarker
@@ -896,6 +948,7 @@ export class MapContainer {
     private closeMarkerPopup() {
         this.endHoverHighlight();
         this.display.popupDiv.style.display = 'none';
+        this.display.popupElement = null;
     }
 
     private openClusterPreviewPopup(event: leaflet.LeafletEvent) {
@@ -1030,7 +1083,10 @@ export class MapContainer {
 
     /**
      * Update the map markers with a list of markers not from the removed file plus the markers from the new file.
-     * Run when a file is deleted, renamed or changed.
+     * Run when a file is deleted, renamed or *changed*.
+     * WARNING: THIS METHOD RUNS A LOT. When a Map View is open and a note is edited anywhere in Obsidian,
+     * this method can be called repeatedly during typing, and thus must be very efficient to not cause
+     * delays for the user.
      * @param fileRemoved The old file path
      * @param fileAddedOrChanged The new file data
      */
@@ -1050,7 +1106,8 @@ export class MapContainer {
         }
         let newMarkers: BaseGeoLayer[] = [];
         if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
-            // Add file markers from the added file
+            // Add file markers from the added/modified file. These markers may be (and usually are) identical
+            // to the ones already on the map
             await buildAndAppendFileMarkers(
                 newMarkers,
                 fileAddedOrChanged,
@@ -1065,6 +1122,15 @@ export class MapContainer {
                 this.plugin.iconFactory,
                 this.app
             );
+            if (this.state.linkDepth > 0) {
+                // TODO document
+                addEdgesToMarkers(
+                    Array.combine([markers, newMarkers]),
+                    this.app,
+                    this.state.linkDepth,
+                    this.display.polylines
+                );
+            }
         }
         this.updateMapMarkers(Array.combine([markers, newMarkers]));
     }

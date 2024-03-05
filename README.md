@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Mon Mar  4 06:17:36 AM IST 2024 -->
+<!-- Added by: erez, at: Tue Mar  5 06:53:52 PM IST 2024 -->
 
 <!--te-->
 
@@ -575,7 +575,7 @@ You can also set up the _depth_ for which a link is shown. Depth 1 means a direc
 
 Finally, you can configure the color used for the edges on the map using any valid [HTML color name](https://www.w3schools.com/tags/ref_colornames.asp) or a hex value like `#faebd7`.
 
-**Note:** heavily-linked maps are resource-intensive, so it's advisable to turn on links display only when your markers are reasonably filtered.
+**Warning!** heavily-linked maps are resource-intensive, so it's advisable to turn on links display only when your markers are reasonably filtered. Due to the way they work, links may need to be recalculated every time notes with geolocations are changed. Open Map Views (even background ones) with thousands of visible links may cause hiccups when typing inside geolocation notes that are included in these views' filters.
 
 ![](img/links.png)
 

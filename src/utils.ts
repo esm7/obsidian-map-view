@@ -410,3 +410,18 @@ export function getHeadingAndBlockForFilePosition(
     }
     return [foundHeading, foundBlock];
 }
+
+/**
+ * Momentarily receive the mouse position without the need to continuously track it.
+ */
+export async function getMousePosition(): Promise<{ x: number; y: number }> {
+    return new Promise((resolve) => {
+        document.addEventListener(
+            'mousemove',
+            function handler(ev: MouseEvent) {
+                document.removeEventListener('mousemove', handler);
+                resolve({ x: ev.clientX, y: ev.clientY });
+            }
+        );
+    });
+}
