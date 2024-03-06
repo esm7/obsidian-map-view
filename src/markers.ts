@@ -551,15 +551,6 @@ function addEdgesFromFile(
                     }
                 }
             }
-            // Continue to traverse files and links recursively, with the link depth reduced by one
-            addEdgesFromFile(
-                markers,
-                destinationFileWithMarkers,
-                filesWithMarkersMap,
-                app,
-                nodesSeen,
-                linkDepth - 1
-            );
         }
     }
 }

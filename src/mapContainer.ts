@@ -1123,7 +1123,10 @@ export class MapContainer {
                 this.app
             );
             if (this.state.linkDepth > 0) {
-                // TODO document
+                // At the current state of affairs, if links are displayed and even a single marker is changed, there's
+                // no choice but to recalculate the links for *all* the markers.
+                // I don't see a reasonable (=not extremely cumbersome and complex) way around it, given the fact links
+                // are resolved in recursion with an arbitrary link depth level.
                 addEdgesToMarkers(
                     Array.combine([markers, newMarkers]),
                     this.app,

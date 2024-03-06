@@ -470,12 +470,7 @@ export class ViewControls {
             this.linkDepthBox = new DropdownComponent(linksContent)
                 .addOptions({
                     '0': 'Off',
-                    '1': 'Depth 1',
-                    '2': 'Depth 2',
-                    '3': 'Depth 3',
-                    '4': 'Depth 4',
-                    '5': 'Depth 5',
-                    '50': 'Depth 50',
+                    '1': 'Show links',
                 })
                 .onChange(async (value: string) => {
                     this.setStateByLinks();
