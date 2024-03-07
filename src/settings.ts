@@ -128,7 +128,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         mapCenter: new LatLng(40.44694705960048, -180.70312500000003),
         query: '',
         chosenMapSource: 0,
-        linkDepth: 0,
+        showLinks: false,
         linkColor: 'red',
     },
     savedStates: [],
@@ -172,9 +172,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     openMapMiddleClickBehavior: 'dedicatedTab',
     newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
     showNoteNamePopup: true,
-    showLinkNameInPopup: 'mobileOnly',
+    showLinkNameInPopup: 'always',
     showNotePreview: true,
-    showClusterPreview: false,
+    showClusterPreview: true,
     debug: false,
     openIn: [
         {

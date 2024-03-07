@@ -42,3 +42,5 @@ export const HIGHLIGHT_CLASS_NAME = 'map-view-highlight';
 
 export const DEFAULT_EMBEDDED_HEIGHT = 300;
 export const MIN_QUICK_EMBED_ZOOM = 8;
+
+export const MIN_HEIGHT_TO_SHOW_MARKER_POPUP = 400;

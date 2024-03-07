@@ -463,10 +463,10 @@ export function getFrontMatterLocation(
 export function addEdgesToMarkers(
     markers: BaseGeoLayer[],
     app: App,
-    linkDepth: number,
+    showLinks: boolean,
     allPolylines: leaflet.Polyline[]
 ) {
-    if (!linkDepth || linkDepth == 0) return;
+    if (!showLinks) return;
 
     let filesWithMarkersMap: Map<string, FileWithMarkers> = new Map();
     for (const marker of markers) {
@@ -489,8 +489,7 @@ export function addEdgesToMarkers(
             fileWithMarkers,
             filesWithMarkersMap,
             app,
-            nodesSeen,
-            linkDepth
+            nodesSeen
         );
     }
 }
@@ -503,8 +502,7 @@ function addEdgesFromFile(
     source: FileWithMarkers,
     filesWithMarkersMap: Map<string, FileWithMarkers>,
     app: App,
-    nodesSeen: Set<string>,
-    linkDepth: number
+    nodesSeen: Set<string>
 ) {
     const file = source.file;
     const path = file.path;
@@ -512,16 +510,12 @@ function addEdgesFromFile(
         // Bail out if a cycle (loop) has been detected
         return;
     }
-    // If we're out of link depth for this recursion path, we won't continue any further, but the same
-    // file might be reached from a different recursion path with a lower link depth
-    if (linkDepth <= 0) return;
     nodesSeen.add(path);
     const fileCache = app.metadataCache.getFileCache(file);
     // What's done here is as follows.
     // - For every link in the source file to 'destinationFile'...
     //   - For every marker X in 'destinationFile'...
     //     - If the link points to marker X, link *all* of the source file markers to destination marker X.
-    //   - Continue recursively into destinationFile if the link depth > 0
     for (const link of fileCache?.links || []) {
         let destination = app.metadataCache.getFirstLinkpathDest(
             link.link,

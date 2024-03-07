@@ -19,8 +19,8 @@ export type MapState = {
     autoFit?: boolean;
     /** Do not allow panning & zooming the map */
     lock?: boolean;
-    /** Depth of links to show as edges, 0 for none */
-    linkDepth?: number;
+    /** Whether to show links as edges on the map */
+    showLinks?: boolean;
     /** Color to use for edges */
     linkColor?: string;
     /** Marker labels */
@@ -72,7 +72,7 @@ export function areStatesEqual(state1: MapState, state2: MapState) {
         state1.autoFit === state2.autoFit &&
         state1.lock === state2.lock &&
         state1.linkColor == state2.linkColor &&
-        state1.linkDepth == state2.linkDepth &&
+        state1.showLinks == state2.showLinks &&
         state1.markerLabels == state2.markerLabels
     );
 }
@@ -87,7 +87,7 @@ export function stateToRawObject(state: MapState) {
         chosenMapSource: state.chosenMapSource,
         autoFit: state.autoFit,
         lock: state.lock,
-        linkDepth: state.linkDepth,
+        showLinks: state.showLinks,
         linkColor: state.linkColor,
         markerLabels: state.markerLabels,
         ...(state.embeddedHeight && { embeddedHeight: state.embeddedHeight }),
@@ -114,7 +114,7 @@ export function stateFromParsedUrl(obj: any) {
             obj.chosenMapSource != null ? parseInt(obj.chosenMapSource) : null,
         autoFit: obj?.autoFit,
         lock: obj?.lock,
-        linkDepth: obj.linkedDepth != null ? parseInt(obj?.linkDepth) : 0,
+        showLinks: obj.showLinks != null ? obj.showLinks : false,
         linkColor: obj?.linkColor,
         markerLabels: obj?.markerLabels,
         ...(obj.embeddedHeight && {

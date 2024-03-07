@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Wed Mar  6 11:26:25 AM IST 2024 -->
+<!-- Added by: erez, at: Thu Mar  7 04:35:20 PM IST 2024 -->
 
 <!--te-->
 
@@ -561,7 +561,7 @@ Many of these can also be launched directly from the geo helper after it finds y
 
 Map View can optionally draw edges between markers of linked notes.
 
-To turn this on, open the "Links" drop-down on the map controls and choose the link depth you want to be represented on the map.
+To turn this on, open the "Links" drop-down on the map controls and choose "show links".
 
 The way it works is that all the markers of a given file (sources) are shown as linked to the markers pointed by the links in that file (destinations).
 A destination can be:
@@ -570,8 +570,6 @@ A destination can be:
 -   A heading/block -- then all the markers in the source file are linked to:
     -   The front-matter marker of the destination file, if any.
     -   Only inline locations in the referenced heading/block.
-
-You can also set up the _depth_ for which a link is shown. Depth 1 means a direct link -- an edge is shown on the map if the source is linked to the destination exactly as stated above. Depth 2 means that the source is linked to the destination in a _path of up to 2 hops_, meaning there can be an intermediate file that links them, and so on.
 
 Finally, you can configure the color used for the edges on the map using any valid [HTML color name](https://www.w3schools.com/tags/ref_colornames.asp) or a hex value like `#faebd7`.
 

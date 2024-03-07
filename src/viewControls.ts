@@ -43,7 +43,7 @@ export class ViewControls {
     private updateFromActiveMapView: ButtonComponent;
     private embeddedHeight: TextComponent;
     private followActiveNoteToggle: ToggleComponent;
-    private linkDepthBox: DropdownComponent;
+    private linkBox: DropdownComponent;
     private linkColorBox: TextComponent;
     private markerLabelBox: DropdownComponent;
 
@@ -174,19 +174,19 @@ export class ViewControls {
     }
 
     private setLinksByState() {
-        if (!this.linkColorBox || !this.linkDepthBox) return;
+        if (!this.linkColorBox || !this.linkBox) return;
         const state = this.getCurrentState();
         this.linkColorBox.setValue(state.linkColor);
-        this.linkDepthBox.setValue(state.linkDepth.toString());
+        this.linkBox.setValue(state.showLinks.toString());
     }
 
     private async setStateByLinks() {
         // Update the state assuming the controls are updated
         const state = this.getCurrentState();
-        const linkDepth = parseInt(this.linkDepthBox.getValue());
+        const showLinks = this.linkBox.getValue() === 'true';
         const linkColor = this.linkColorBox.getValue();
         await this.setNewState(
-            { ...state, linkDepth: linkDepth, linkColor: linkColor },
+            { ...state, showLinks: showLinks, linkColor: linkColor },
             false
         );
         this.invalidateActivePreset();
@@ -467,15 +467,15 @@ export class ViewControls {
                 cls: 'graph-control-content',
             });
 
-            this.linkDepthBox = new DropdownComponent(linksContent)
+            this.linkBox = new DropdownComponent(linksContent)
                 .addOptions({
-                    '0': 'Off',
-                    '1': 'Show links',
+                    false: 'Off',
+                    true: 'Show links',
                 })
                 .onChange(async (value: string) => {
                     this.setStateByLinks();
                 });
-            this.linkDepthBox.selectEl.addClass('mv-map-control');
+            this.linkBox.selectEl.addClass('mv-map-control');
             this.linkColorBox = new TextComponent(linksContent)
                 .setPlaceholder('color')
                 .onChange(async (value: string) => {

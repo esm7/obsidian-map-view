@@ -182,6 +182,12 @@ a.mv-icon-button.on {
     max-height: 200px;
     overflow-y: auto;
 }
+/* Simple placement mode is used on mobile, where the screen is too small and Popper is unavailable anyway */
+.mv-marker-popup-container.simple-placement {
+    bottom: 32px;
+    position: absolute;
+    width: 100%;
+}
 
 .mv-marker-popup-close {
     position: absolute;

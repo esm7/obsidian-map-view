@@ -100,6 +100,7 @@ export class MapContainer {
         popupDiv: HTMLDivElement;
         popperInstance: PopperInstance;
         popupElement: leaflet.Marker;
+        popupClickEventListener: (ev: MouseEvent) => void;
         /** The leaflet map instance */
         map: leaflet.Map;
         tileLayer: leaflet.TileLayer;
@@ -263,27 +264,30 @@ export class MapContainer {
             'hover-popup',
         ]);
         const dummyPopperElement = this.display.viewDiv.createDiv();
-        this.display.popperInstance = createPopper(
-            dummyPopperElement,
-            this.display.popupDiv,
-            {
-                placement: 'top', // Initial preferred placement
-                modifiers: [
-                    {
-                        name: 'flip',
-                        options: {
-                            fallbackPlacements: ['bottom', 'right', 'left'], // Other placements to consider if 'top' is not suitable
+        // Popper doesn't work well under mobile
+        if (!utils.isMobile(this.app)) {
+            this.display.popperInstance = createPopper(
+                dummyPopperElement,
+                this.display.popupDiv,
+                {
+                    placement: 'top', // Initial preferred placement
+                    modifiers: [
+                        {
+                            name: 'flip',
+                            options: {
+                                fallbackPlacements: ['bottom', 'right', 'left'], // Other placements to consider if 'top' is not suitable
+                            },
                         },
-                    },
-                    {
-                        name: 'offset',
-                        options: {
-                            offset: [0, 8],
+                        {
+                            name: 'offset',
+                            options: {
+                                offset: [0, 8],
+                            },
                         },
-                    },
-                ],
-            }
-        );
+                    ],
+                }
+            );
+        }
     }
 
     onClose() {
@@ -569,6 +573,7 @@ export class MapContainer {
 
         this.display.map.on('click', (event: leaflet.LeafletMouseEvent) => {
             this.setHighlight(null);
+            this.closeMarkerPopup();
         });
 
         // Build the map right-click context menu
@@ -597,10 +602,10 @@ export class MapContainer {
                 this.display.popupDiv &&
                 this.display.popupDiv.style.display != 'none'
             ) {
+                if (utils.isMobile(this.app)) return;
                 // If the popup is displayed, we're not on mobile (so it should be only displayed on hover) but
                 // there's no popup element, close the popup
-                if (!this.display.popupElement && !utils.isMobile(this.app))
-                    this.closeMarkerPopup();
+                if (!this.display.popupElement) this.closeMarkerPopup();
                 if (this.display.popupElement) {
                     const mousePosition = await utils.getMousePosition();
                     const element = this.display.popupElement?.getElement();
@@ -656,7 +661,7 @@ export class MapContainer {
         addEdgesToMarkers(
             newMarkers,
             this.app,
-            state.linkDepth,
+            state.showLinks,
             this.display.polylines
         );
         this.state = structuredClone(state);
@@ -746,7 +751,7 @@ export class MapContainer {
      * Builds all the non-existing polylines according to the edges stored in the markers, and adds them to the map.
      */
     private buildPolylines() {
-        if (this.state.linkDepth > 0) {
+        if (this.state.showLinks) {
             for (const marker of this.display.markers.values()) {
                 if (marker instanceof FileMarker) {
                     // Draw edges between markers
@@ -793,9 +798,10 @@ export class MapContainer {
             });
 
         newMarker.on('click', async (event: leaflet.LeafletMouseEvent) => {
-            if (utils.isMobile(this.app))
+            if (utils.isMobile(this.app)) {
+                this.setHighlight(marker);
                 await this.showMarkerPopups(marker, newMarker, event);
-            else
+            } else
                 this.goToMarker(
                     marker,
                     utils.mouseEventToOpenMode(
@@ -819,6 +825,7 @@ export class MapContainer {
                     true
                 );
         });
+
         newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app)) {
                 this.showMarkerPopups(marker, newMarker, event);
@@ -839,6 +846,26 @@ export class MapContainer {
                 .addEventListener('contextmenu', (ev: MouseEvent) => {
                     this.openMarkerContextMenu(marker, newMarker, ev);
                     ev.stopPropagation();
+                });
+            newMarker
+                .getElement()
+                .addEventListener('touchstart', (ev: MouseEvent) => {
+                    // For non-mobile devices, don't let the touch events trigger a 'click' event.
+                    // This way a popup is displayed as part of a "mouse hover", but stays on.
+                    if (!utils.isMobile(this.app)) {
+                        ev.stopPropagation();
+                        ev.preventDefault();
+                    }
+                });
+            newMarker
+                .getElement()
+                .addEventListener('touchend', (ev: MouseEvent) => {
+                    // For non-mobile devices, don't let the touch events trigger a 'click' event.
+                    // This way a popup is displayed as part of a "mouse hover", but stays on.
+                    if (!utils.isMobile(this.app)) {
+                        ev.stopPropagation();
+                        ev.preventDefault();
+                    }
                 });
         });
         newMarker.on('moveend', async (event: leaflet.LeafletEvent) => {
@@ -910,10 +937,12 @@ export class MapContainer {
         // are occuring
         if (this.ongoingChanges > 0) return;
         if (this.settings.showNoteNamePopup || this.settings.showNotePreview) {
+            this.closeMarkerPopup();
             await markerPopups.populateMarkerPopup(
                 fileMarker,
                 mapMarker,
                 this.display.popupDiv,
+                this.display.mapDiv,
                 this.settings,
                 this.app
             );
@@ -929,18 +958,27 @@ export class MapContainer {
             const markerElement = event.target.getElement();
             // Make the popup visible
             this.display.popupDiv.style.display = 'block';
-            // Update the Popper instance about which marker it should follow
-            this.display.popperInstance.state.elements.reference =
-                markerElement;
-            this.display.popperInstance.update();
+            // If we're using Popper (non-mobile), update the Popper instance about which marker it should follow.
+            // Otherwise, use a more naive placement
+            if (this.display.popperInstance) {
+                this.display.popperInstance.state.elements.reference =
+                    markerElement;
+                this.display.popperInstance.update();
+            } else {
+                this.display.popupDiv.addClass('simple-placement');
+            }
             markerPopups.scrollPopupToHighlight(this.display.popupDiv);
-            this.display.popupDiv.onClickEvent((ev: MouseEvent) => {
+            this.display.popupClickEventListener = (ev: MouseEvent) => {
                 this.goToMarker(
                     fileMarker,
                     utils.mouseEventToOpenMode(this.settings, ev, 'openNote'),
                     true
                 );
-            });
+            };
+            this.display.popupDiv.addEventListener(
+                'click',
+                this.display.popupClickEventListener
+            );
         }
         this.startHoverHighlight(fileMarker);
     }
@@ -949,6 +987,10 @@ export class MapContainer {
         this.endHoverHighlight();
         this.display.popupDiv.style.display = 'none';
         this.display.popupElement = null;
+        this.display.popupDiv.removeEventListener(
+            'click',
+            this.display.popupClickEventListener
+        );
     }
 
     private openClusterPreviewPopup(event: leaflet.LeafletEvent) {
@@ -1122,15 +1164,13 @@ export class MapContainer {
                 this.plugin.iconFactory,
                 this.app
             );
-            if (this.state.linkDepth > 0) {
+            if (this.state.showLinks) {
                 // At the current state of affairs, if links are displayed and even a single marker is changed, there's
                 // no choice but to recalculate the links for *all* the markers.
-                // I don't see a reasonable (=not extremely cumbersome and complex) way around it, given the fact links
-                // are resolved in recursion with an arbitrary link depth level.
                 addEdgesToMarkers(
                     Array.combine([markers, newMarkers]),
                     this.app,
-                    this.state.linkDepth,
+                    this.state.showLinks,
                     this.display.polylines
                 );
             }
@@ -1281,6 +1321,22 @@ export class MapContainer {
                 ),
             })
             .addTo(this.display.map);
+        this.display.realTimeLocationMarker.on(
+            'contextmenu',
+            (event: leaflet.LeafletMouseEvent) => {
+                let mapPopup = new Menu();
+                // This is the same context menu when right-clicking a blank area of the map, but in contrast to a blank
+                // area, we use the location of the marker and not the mouse pointer
+                menus.addMapContextMenuItems(
+                    mapPopup,
+                    this.lastRealTimeLocation.center,
+                    this,
+                    this.settings,
+                    this.app
+                );
+                mapPopup.showAtPosition(event.originalEvent);
+            }
+        );
         this.display.realTimeLocationRadius = leaflet
             .circle(center, { radius: accuracy })
             .addTo(this.display.map);
@@ -1405,7 +1461,7 @@ export class MapContainer {
     }
 
     startHoverHighlight(markerToFocus: FileMarker) {
-        if (!this.state.linkDepth || this.state.linkDepth === 0) return;
+        if (!this.state.showLinks) return;
         this.display.mapDiv.addClass('mv-fade-active');
         for (const marker of this.display.markers.values()) {
             if (

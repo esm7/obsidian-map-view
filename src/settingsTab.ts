@@ -404,7 +404,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Show note preview on map marker hover')
             .setDesc(
-                'In addition to the note name, show the native Obsidian note preview.'
+                'In addition to the note name, show a preview if the note contents. Either way, it will be displayed only if the map is large enough to contain it.'
             )
             .addToggle((component) => {
                 component

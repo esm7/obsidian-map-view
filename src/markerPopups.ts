@@ -3,15 +3,17 @@ import * as leaflet from 'leaflet';
 import { FileMarker } from 'src/markers';
 import { PluginSettings } from 'src/settings';
 import * as utils from 'src/utils';
+import * as consts from 'src/consts';
 
 export async function populateMarkerPopup(
     fileMarker: FileMarker,
     mapMarker: leaflet.Marker,
-    element: HTMLDivElement,
+    popupDiv: HTMLDivElement,
+    mapDiv: HTMLDivElement,
     settings: PluginSettings,
     app: App
 ) {
-    element.innerHTML = '';
+    popupDiv.innerHTML = '';
     const fileName = fileMarker.file.name;
     const fileNameWithoutExtension = fileName.endsWith('.md')
         ? fileName.substring(0, fileName.lastIndexOf('.md'))
@@ -26,13 +28,18 @@ export async function populateMarkerPopup(
     )
         content += `<p class="map-view-marker-sub-name">${fileMarker.extraName}</p>`;
 
-    element.innerHTML = content;
+    popupDiv.innerHTML = content;
 
     // Adding all these classes to get the preview as closest to Obsidian's preview as possible
-    const previewDiv = element.createDiv(
-        'markdown-embed markdown-embed-content markdown-preview-view markdown-rendered allow-fold-headings allow-fold-lists'
-    );
-    if (settings.showNotePreview) {
+    const mapWidth = mapDiv.clientWidth;
+    const mapHeight = mapDiv.clientHeight;
+    if (
+        settings.showNotePreview &&
+        mapHeight >= consts.MIN_HEIGHT_TO_SHOW_MARKER_POPUP
+    ) {
+        const previewDiv = popupDiv.createDiv(
+            'markdown-embed markdown-embed-content markdown-preview-view markdown-rendered allow-fold-headings allow-fold-lists'
+        );
         await createPreview(fileMarker, previewDiv, settings, app);
     }
 }
@@ -59,10 +66,10 @@ async function createPreview(
  */
 export function scrollPopupToHighlight(popupDiv: HTMLDivElement) {
     const element = popupDiv.querySelector('.markdown-embed') as HTMLElement;
-    const markedLine = element.querySelector(
+    const markedLine = element?.querySelector(
         'mark.mv-marked-line'
     ) as HTMLElement;
-    if (markedLine) {
+    if (element && markedLine) {
         // Get the top of the marked line in relation to the scrollable container (element).
         const containerRect = element.getBoundingClientRect();
         const markedLineRect = markedLine.getBoundingClientRect();
