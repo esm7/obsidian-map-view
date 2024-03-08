@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Thu Mar  7 04:35:58 PM IST 2024 -->
+<!-- Added by: erez, at: Fri Mar  8 06:24:42 AM IST 2024 -->
 
 <!--te-->
 
@@ -160,11 +160,13 @@ So, the plugin works by scanning your notes and parsing two types of location da
 
 First is a location tag in a note's [front matter](https://help.obsidian.md/Advanced+topics/YAML+front+matter):
 
+<!-- prettier-ignore-start -->
 ```yaml
 ---
 location: "40.6892494,-74.0466891"
 ---
 ```
+<!-- prettier-ignore-end -->
 
 This is useful for notes that represent a single specific location.
 
