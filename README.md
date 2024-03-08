@@ -162,7 +162,7 @@ First is a location tag in a note's [front matter](https://help.obsidian.md/Adva
 
 ```yaml
 ---
-location: '40.6892494, -74.0466891'
+location: "40.6892494,-74.0466891"
 ---
 ```
 
