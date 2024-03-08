@@ -294,7 +294,8 @@ export default class MapViewPlugin extends Plugin {
                     this.settings,
                     'addToNote',
                     'Add geolocation to note',
-                    editor
+                    editor,
+                    view.file
                 );
                 dialog.open();
             },

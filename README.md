@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri Mar  8 06:24:42 AM IST 2024 -->
+<!-- Added by: erez, at: Fri Mar  8 11:24:17 AM IST 2024 -->
 
 <!--te-->
 
@@ -600,6 +600,10 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 5.0.1
+
+-   Fixed a bug in "add geolocation (front matter) to current note".
 
 ### 5.0.0
 
