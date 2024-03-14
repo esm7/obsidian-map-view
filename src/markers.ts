@@ -418,13 +418,19 @@ export function getFrontMatterLocation(
     const frontMatter = fileCache?.frontmatter;
     if (frontMatter && settings.frontMatterKey in frontMatter) {
         try {
-            const location = frontMatter[settings.frontMatterKey];
+            const frontMatterLocation = frontMatter[settings.frontMatterKey];
             // V1 format: an array in the format of `location: [lat,lng]`
-            if (
-                location?.length == 2 &&
-                typeof location[0] === 'number' &&
-                typeof location[1] === 'number'
-            ) {
+            if (frontMatterLocation?.length == 2) {
+                // Allow arrays of either strings or numbers
+                const lat = parseFloat(frontMatterLocation[0]);
+                const lng = parseFloat(frontMatterLocation[1]);
+                if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                    console.log(
+                        'Unknown location format:',
+                        frontMatterLocation
+                    );
+                    return null;
+                }
                 const location = new leaflet.LatLng(
                     frontMatter.location[0],
                     frontMatter.location[1]
@@ -434,7 +440,7 @@ export function getFrontMatterLocation(
             } else {
                 // V2 format: a string in the format of `location: "lat,lng"` (which is more compatible with
                 // Obsidian's property editor)
-                const locationV2 = location.match(regex.COORDINATES);
+                const locationV2 = frontMatterLocation.match(regex.COORDINATES);
                 if (
                     locationV2 &&
                     locationV2.groups &&

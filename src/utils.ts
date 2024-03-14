@@ -17,6 +17,7 @@ import * as leaflet from 'leaflet';
 import * as path from 'path';
 import * as settings from './settings';
 import * as consts from './consts';
+import * as regex from './regex';
 import { BaseMapView } from './baseMapView';
 import MapViewPlugin from 'src/main';
 
@@ -222,13 +223,22 @@ export async function updateInlineGeolocation(
     const content = await app.vault.read(file);
     let groups = geolocationMatch?.groups;
     if (groups) {
-        let newGeoLocationText = '';
-        if (groups.name) {
-            newGeoLocationText = `[${groups.name}](geo:${newLat},${newLng})`;
-        } else {
-            newGeoLocationText = `\`location: [${newLat},${newLng}]`;
+        const newGeoLocationText = `[${groups.name}](geo:${newLat},${newLng})`;
+        // We want to replace just the part containing the coordinates, not optional tags that follow and are
+        // included in geolocationMatch. So we do a re-match without any tags, to know the length of the part
+        // we want to replace.
+        // The "old" inline syntax isn't supported here, but it's so antique I think it's fine.
+        const matchWithoutTags = geolocationMatch[0].match(
+            regex.INLINE_LOCATION_WITHOUT_TAGS
+        );
+        if (!matchWithoutTags) {
+            console.error(
+                'Cannot update inline geolocation:',
+                geolocationMatch[0]
+            );
+            return;
         }
-        let oldGeolocationText = geolocationMatch[0];
+        let oldGeolocationText = matchWithoutTags[0];
         let before = content.slice(0, fileLocation);
         let after = content.slice(fileLocation + oldGeolocationText.length);
         await app.vault.modify(file, `${before}${newGeoLocationText}${after}`);

@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri Mar  8 11:24:17 AM IST 2024 -->
+<!-- Added by: erez, at: Thu Mar 14 05:43:27 PM IST 2024 -->
 
 <!--te-->
 
@@ -213,6 +213,14 @@ Multiple inline locations can be added in the same line, and the tags that follo
 Instead of using a `locations:` YAML tag, you can use a custom note tag. See "tag name to denote inline geolocations" in the settings. (This also works with wildcards.)
 It will not be automatically added when you need it like the `locations:` YAML tag, however if you add an inline geolocation to an existing note where your custom tag is found, Map View will not add a `locations:` YAML tag.
 **IMPORTANT NOTE:** for the time being, using this feature (i.e. having a non-empty "tag name to denote inline geolocations") slows down Map View by an order of magnitude. I'm looking into speeding it up in future releases.
+
+For interoperability with Obsidian's property editor and possibly other plugins, Map View will also parse the syntax of:
+
+```yaml
+location:
+    - '39.100105'
+    - '-94.5781416'
+```
 
 ## Adding a Location to a Note
 
@@ -600,6 +608,12 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 5.0.2
+
+-   Fixed moving inline markers followed by tags (https://github.com/esm7/obsidian-map-view/issues/234).
+-   Fixed certain emojis not being correctly recognized as such for map markers (https://github.com/esm7/obsidian-map-view/issues/233).
+-   Added support for string arrays as front matter locations (https://github.com/esm7/obsidian-map-view/issues/229).
 
 ### 5.0.1
 
