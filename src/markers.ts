@@ -8,6 +8,7 @@ import {
     LinkCache,
     parseLinktext,
     resolveSubpath,
+    FrontmatterLinkCache,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 import 'leaflet-extra-markers';
@@ -518,11 +519,15 @@ function addEdgesFromFile(
     }
     nodesSeen.add(path);
     const fileCache = app.metadataCache.getFileCache(file);
+    const allLinks = [
+        ...(fileCache?.links ?? []),
+        ...(fileCache?.frontmatterLinks ?? []),
+    ];
     // What's done here is as follows.
     // - For every link in the source file to 'destinationFile'...
     //   - For every marker X in 'destinationFile'...
     //     - If the link points to marker X, link *all* of the source file markers to destination marker X.
-    for (const link of fileCache?.links || []) {
+    for (const link of allLinks) {
         let destination = app.metadataCache.getFirstLinkpathDest(
             link.link,
             path
@@ -577,7 +582,7 @@ export function cacheTagsFromMarkers(
  */
 export function isMarkerLinkedFrom(
     marker: FileMarker,
-    linkCache: LinkCache,
+    linkCache: LinkCache | FrontmatterLinkCache,
     app: App
 ) {
     const parsedLink = parseLinktext(linkCache.link);
