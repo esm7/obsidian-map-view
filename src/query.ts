@@ -109,8 +109,12 @@ export class Query {
             );
             if (!linkedToDest) return false;
             const fileCache = this.app.metadataCache.getFileCache(marker.file);
+            const allLinks = [
+                ...(fileCache?.links ?? []),
+                ...(fileCache?.frontmatterLinks ?? []),
+            ];
             if (
-                fileCache?.links?.some(
+                allLinks.some(
                     (linkCache) =>
                         this.app.metadataCache.getFirstLinkpathDest(
                             linkCache.link,
@@ -128,12 +132,14 @@ export class Query {
             if (fileMatch) {
                 const linksFrom =
                     this.app.metadataCache.getFileCache(fileMatch);
-                if (linksFrom && linksFrom.links)
-                    // Check if the given marker is linked from 'fileMatch'
-                    for (const link of linksFrom?.links) {
-                        if (isMarkerLinkedFrom(marker, link, this.app))
-                            return true;
-                    }
+                const allLinks = [
+                    ...(linksFrom?.links ?? []),
+                    ...(linksFrom?.frontmatterLinks ?? []),
+                ];
+                // Check if the given marker is linked from 'fileMatch'
+                for (const link of allLinks) {
+                    if (isMarkerLinkedFrom(marker, link, this.app)) return true;
+                }
                 // Also include the 'linked from' file itself
                 if (fileMatch.basename === marker.file.basename) return true;
             }

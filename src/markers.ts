@@ -8,6 +8,7 @@ import {
     LinkCache,
     parseLinktext,
     resolveSubpath,
+    FrontmatterLinkCache,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 import 'leaflet-extra-markers';
@@ -577,7 +578,7 @@ export function cacheTagsFromMarkers(
  */
 export function isMarkerLinkedFrom(
     marker: FileMarker,
-    linkCache: LinkCache,
+    linkCache: LinkCache | FrontmatterLinkCache,
     app: App
 ) {
     const parsedLink = parseLinktext(linkCache.link);
