@@ -782,6 +782,7 @@ export default class MapViewPlugin extends Plugin {
                 }
             }
             menus.addUrlConversionItems(
+                this.app,
                 menu,
                 editor,
                 view.file,

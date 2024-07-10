@@ -141,6 +141,7 @@ export function addFocusNoteInMapView(
 }
 
 export function addUrlConversionItems(
+    app: App,
     menu: Menu,
     editor: Editor,
     file: TFile,
@@ -183,7 +184,7 @@ export function addUrlConversionItems(
                 clipboardLocation = await clipboardLocation;
             if (clipboardLocation)
                 utils.insertLocationToEditor(
-                    this.app,
+                    app,
                     clipboardLocation.location,
                     editor,
                     file,
