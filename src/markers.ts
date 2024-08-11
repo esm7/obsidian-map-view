@@ -433,8 +433,8 @@ export function getFrontMatterLocation(
                     return null;
                 }
                 const location = new leaflet.LatLng(
-                    frontMatter.location[0],
-                    frontMatter.location[1]
+                    frontMatterLocation[0],
+                    frontMatterLocation[1]
                 );
                 verifyLocation(location);
                 return location;

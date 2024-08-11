@@ -609,6 +609,14 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
+### 5.0.3
+
+Many important bug fixes are waiting for me to have a little spare time, in the meantime had to settle for smaller release.
+
+- Fixed "Paste as geolocation" issue (https://github.com/esm7/obsidian-map-view/issues/253), thanks 
+@frees0l0!
+- Fixed "Using custom property instead default location does not work" (https://github.com/esm7/obsidian-map-view/issues/251).
+
 ### 5.0.2
 
 -   Fixed moving inline markers followed by tags (https://github.com/esm7/obsidian-map-view/issues/234).
