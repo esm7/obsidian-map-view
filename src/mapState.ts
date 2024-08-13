@@ -1,6 +1,7 @@
 import { WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
 import * as querystring from 'query-string';
+import { ViewSettings } from './mapContainer';
 
 /** Represents a logical state of the map, in separation from the map display */
 export type MapState = {
@@ -123,8 +124,14 @@ export function stateFromParsedUrl(obj: any) {
     } as MapState;
 }
 
-export function getCodeBlock(state: MapState) {
-    const params = JSON.stringify(stateToRawObject(state));
+export function getCodeBlock(
+    state: MapState,
+    customViewSettings?: Partial<ViewSettings>
+) {
+    const params = JSON.stringify({
+        ...stateToRawObject(state),
+        ...(customViewSettings ? { customViewSettings } : {}),
+    });
     const block = `\`\`\`mapview
 ${params}
 \`\`\``;
