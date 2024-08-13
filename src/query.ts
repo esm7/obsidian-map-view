@@ -36,12 +36,15 @@ export class Query {
         // 1. Replace tag:#abc by "tag:#abc" because this parser doesn't like the '#' symbol
         // 2. Replace path:"abc def/ghi" by "path:abc def/dhi" because the parser doesn't like quotes as part of the words
         // 3. Same goes for linkedto:"", linkedfrom:"" and name:""
+        // 4. Replace ["property":"value"] with single quotes to avoid parser complaints.
         let newString = queryString
             .replace(regex.TAG_NAME_WITH_HEADER_AND_WILDCARD, '"tag:$1"')
             .replace(regex.PATH_QUERY_WITH_HEADER, '"path:$1"')
             .replace(regex.LINKEDTO_QUERY_WITH_HEADER, '"linkedto:$1"')
             .replace(regex.LINKEDFROM_QUERY_WITH_HEADER, '"linkedfrom:$1"')
-            .replace(regex.NAME_QUERY_WITH_HEADER, '"name:$1"');
+            .replace(regex.NAME_QUERY_WITH_HEADER, '"name:$1"')
+            .replace(/^\[(")(.+?)\1:/, "['$2':")
+            .replace(/:(")(.+)?\1\]/, ":'$2']");
         return newString;
     }
 
@@ -154,8 +157,56 @@ export class Query {
                     marker.fileLine <= toLine
                 );
             }
-        } else throw new Error('Unsupported query format' + value);
+        } else if (value.startsWith('[')) {
+            const propertyQueryMatch = value.match(/\[(.+?):(.*?)\]/);
+            if (!propertyQueryMatch) return false;
+
+            // Quoted property name or value imply exact match; otherwise substring match.
+            const [, propertyNameRaw, propertyQueryRaw] = propertyQueryMatch;
+            const [isExactName, propertyName] = unquote(propertyNameRaw);
+            const [isExactQuery, propertyQuery] = unquote(propertyQueryRaw);
+
+            const fileCache = this.app.metadataCache.getFileCache(marker.file);
+            let propertyValues: string[] = [];
+            if (isExactName) {
+                const property = fileCache.frontmatter?.[propertyName];
+                if (typeof property === 'undefined') propertyValues = property;
+            } else {
+                propertyValues = Object.keys(fileCache.frontmatter)
+                    .filter((k) => k.includes(propertyName))
+                    .map((k) => fileCache.frontmatter[k]);
+            }
+
+            // Allow searching for the existence of a property via a blank value.
+            if (propertyQuery.length === 0) return propertyValues.length > 0;
+
+            const propertyQueryLower = propertyQuery.toLowerCase();
+            return normalizePropertyValues(propertyValues).some((p) =>
+                isExactQuery
+                    ? p === propertyQueryLower
+                    : p.includes(propertyQueryLower)
+            );
+        } else throw new Error('Unsupported query format ' + value);
     }
+}
+
+function normalizePropertyValues(value: unknown): string[] {
+    if (Array.isArray(value)) return value.flatMap(normalizePropertyValues);
+    if (value === null) return ['null'];
+    if (typeof value === 'string') return [value.toLowerCase()];
+    if (['boolean', 'number'].includes(typeof value))
+        return [value.toString().toLowerCase()];
+    throw new Error('Cannot coerce property: ' + value);
+}
+
+// Return whether the given string was quoted, and the unquoted value.
+function unquote(s: string): [boolean, string] {
+    // Match any string, but only capture the first group on balanced quotes.
+    const match = s.match(/^(['"])?(.*)\1$/);
+    if (!match) {
+        throw new Error('Unexpected regex failure when unquoting: ' + s);
+    }
+    return [Boolean(match[1]), match[2]];
 }
 
 type Suggestion = {
@@ -347,6 +398,11 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
                     text: 'linkedfrom:',
                     textToInsert: 'linkedfrom:""',
                     cursorOffset: -1,
+                },
+                {
+                    text: '[property:value]',
+                    textToInsert: '[:]',
+                    cursorOffset: -2,
                 },
                 { text: 'LOGICAL OPERATORS', group: true },
                 { text: 'AND', append: ' ' },
