@@ -182,8 +182,11 @@ export default class MapViewPlugin extends Plugin {
                 ctx: MarkdownPostProcessorContext
             ) => {
                 let state = null;
+                let customViewSettings = null;
                 try {
-                    const rawStateObj = JSON.parse(source);
+                    let rawStateObj = null;
+                    ({ customViewSettings, ...rawStateObj } =
+                        JSON.parse(source));
                     state = stateFromParsedUrl(rawStateObj);
                 } catch (e) {
                     el.setText(
@@ -202,7 +205,8 @@ export default class MapViewPlugin extends Plugin {
                         ctx,
                         this.app,
                         this.settings,
-                        this
+                        this,
+                        customViewSettings
                     );
                     await map.open(state);
                 }

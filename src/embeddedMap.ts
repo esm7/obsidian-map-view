@@ -14,6 +14,7 @@ export class EmbeddedMap {
     private app: App;
     private markdownContext: MarkdownPostProcessorContext;
     private parentEl: HTMLElement;
+    private customViewSettings: Partial<ViewSettings>;
 
     constructor(
         parentEl: HTMLElement,
@@ -27,6 +28,7 @@ export class EmbeddedMap {
         this.settings = settings;
         this.markdownContext = ctx;
         this.parentEl = parentEl;
+        this.customViewSettings = customViewSettings;
 
         const viewSettings: ViewSettings = {
             showZoomButtons: true,
@@ -85,7 +87,7 @@ export class EmbeddedMap {
             return false;
         } else {
             const lastLineLength = editor.getLine(sectionInfo.lineEnd).length;
-            const newBlock = getCodeBlock(state);
+            const newBlock = getCodeBlock(state, this.customViewSettings);
             editor.replaceRange(
                 newBlock,
                 { line: sectionInfo.lineStart, ch: 0 },
