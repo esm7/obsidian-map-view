@@ -170,7 +170,8 @@ export class Query {
             let propertyValues: string[] = [];
             if (isExactName) {
                 const property = fileCache.frontmatter?.[propertyName];
-                if (typeof property === 'undefined') propertyValues = property;
+                if (typeof property !== 'undefined')
+                    propertyValues = [property];
             } else {
                 propertyValues = Object.keys(fileCache.frontmatter)
                     .filter((k) => k.includes(propertyName))
