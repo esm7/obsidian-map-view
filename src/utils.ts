@@ -175,7 +175,11 @@ export async function verifyOrAddFrontMatter(
 ): Promise<boolean> {
     let locationAdded = false;
     await app.fileManager.processFrontMatter(file, (frontmatter: any) => {
-        if (fieldName in frontmatter && skipIfExists) {
+        if (
+            fieldName in frontmatter &&
+            frontmatter[fieldName] !== null &&
+            skipIfExists
+        ) {
             locationAdded = false;
             return;
         }
