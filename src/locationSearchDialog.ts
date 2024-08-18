@@ -162,7 +162,8 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
             this.editor,
             this.file,
             this.settings.frontMatterKey,
-            locationString
+            locationString,
+            false
         );
     }
 

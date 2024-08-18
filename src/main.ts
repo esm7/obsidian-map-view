@@ -136,7 +136,8 @@ export default class MapViewPlugin extends Plugin {
                                 editor,
                                 file,
                                 this.settings.frontMatterKey,
-                                locationString
+                                locationString,
+                                false
                             );
                         }
                     } else if (params.mvaction === 'addtocurrentnoteinline') {

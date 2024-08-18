@@ -438,10 +438,19 @@ export function getFrontMatterLocation(
                 );
                 verifyLocation(location);
                 return location;
-            } else {
-                // V2 format: a string in the format of `location: "lat,lng"` (which is more compatible with
-                // Obsidian's property editor)
-                const locationV2 = frontMatterLocation.match(regex.COORDINATES);
+            } else if (frontMatterLocation && frontMatterLocation?.length > 0) {
+                // V2 format: a string in the format of `location: "lat,lng"` or `location: ["lat,lng"]`
+                // (which is more compatible with Obsidian's property editor)
+                let locationToUse = frontMatterLocation;
+                if (
+                    locationToUse.length === 1 &&
+                    typeof locationToUse === 'object' &&
+                    locationToUse[0].length > 0
+                ) {
+                    // What we have seems like the case of `location: ["lat,lng"]`
+                    locationToUse = frontMatterLocation[0];
+                }
+                const locationV2 = locationToUse.match(regex.COORDINATES);
                 if (
                     locationV2 &&
                     locationV2.groups &&
@@ -457,7 +466,7 @@ export function getFrontMatterLocation(
                 } else
                     console.log(
                         `Unknown front matter location format: `,
-                        location
+                        frontMatterLocation
                     );
             }
         } catch (e) {

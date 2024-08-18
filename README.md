@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Thu Mar 14 05:43:27 PM IST 2024 -->
+<!-- Added by: erez, at: Sun 18 Aug 2024 21:24:47 IDT -->
 
 <!--te-->
 
@@ -610,6 +610,12 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 5.1.0
+
+-   Allow filtering by front matter properties - thanks @zakj! (Fixes https://github.com/esm7/obsidian-map-view/issues/257)
+-   When adding a front-matter geolocation to a note, Map View will now overwrite a previous front-matter geolocation if such existed. Fixes https://github.com/esm7/obsidian-map-view/issues/248 and generally improves the behavior with Obsidian properties.
+-   Didn't give proper credit to @The-Noah for a change actually included in 5.0.3: support for front-matter links in 'linkedto' and 'linkedfrom'.
 
 ### 5.0.3
 
