@@ -420,6 +420,8 @@ export function getFrontMatterLocation(
     if (frontMatter && settings.frontMatterKey in frontMatter) {
         try {
             const frontMatterLocation = frontMatter[settings.frontMatterKey];
+            // Don't try to parse null locations.
+            if (frontMatterLocation === null) return null;
             // V1 format: an array in the format of `location: [lat,lng]`
             if (frontMatterLocation?.length == 2) {
                 // Allow arrays of either strings or numbers
