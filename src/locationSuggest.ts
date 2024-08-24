@@ -24,18 +24,28 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
     private delayInMs = 250;
     private settings: PluginSettings;
     private searcher: GeoSearcher;
+	private initialized: boolean = false;
 
     constructor(app: App, settings: PluginSettings) {
         super(app);
-        this.settings = settings;
-        this.searcher = new GeoSearcher(app, settings);
+		this.settings = settings;
     }
+
+	init() {
+		// Lazy initialization to not hurt Obsidian's startup time
+		if (!this.initialized) {
+			this.searcher = new GeoSearcher(this.app, this.settings);
+			this.initialized = true;
+		}
+	}
 
     onTrigger(
         cursor: EditorPosition,
         editor: Editor,
         file: TFile
     ): EditorSuggestTriggerInfo | null {
+		if (!this.initialized)
+			this.init();
         const currentLink = this.getGeolinkOfCursor(cursor, editor);
         if (currentLink)
             return {
@@ -93,6 +103,8 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
     }
 
     getGeolinkOfCursor(cursor: EditorPosition, editor: Editor) {
+		if (!this.initialized)
+			this.init();
         const results = editor
             .getLine(cursor.line)
             .matchAll(this.cursorInsideGeolinkFinder);
@@ -115,6 +127,8 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
     async getSearchResultsWithDelay(
         context: EditorSuggestContext
     ): Promise<SuggestInfo[] | null> {
+		if (!this.initialized)
+			this.init();
         const timestamp = Date.now();
         this.lastSearchTime = timestamp;
         const Sleep = (ms: number) =>
@@ -136,6 +150,8 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
     }
 
     async selectionToLink(editor: Editor, file: TFile) {
+		if (!this.initialized)
+			this.init();
         const selection = editor.getSelection();
         const results = await this.searcher.search(selection);
         if (results && results.length > 0) {

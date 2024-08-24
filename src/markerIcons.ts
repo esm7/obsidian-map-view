@@ -120,13 +120,24 @@ function isText(iconName: string) {
 // Since we create the SVGs directly where they are needed, we can affort to turn off the slow
 // Font Awesome MutationObserver, see the issue here: https://github.com/esm7/obsidian-map-view/issues/216
 export class IconFactory {
+	initialized: boolean = false;
+
     constructor(containerEl: HTMLElement) {
         faConfig.observeMutations = false;
         faConfig.autoReplaceSvg = false;
-        library.add(fas, far, fab);
     }
 
+	init() {
+		// Lazy initialization to not hurt Obsidian's startup time
+		if (!this.initialized) {
+			this.initialized = true;
+			library.add(fas, far, fab);
+		}
+	}
+
     getIcon(iconSpec: IconOptions): SVGElement {
+		if (!this.initialized)
+			this.init();
         const iconName = iconSpec.icon.replace('fa-', '') as IconName;
         const newIconDef = findIconDefinition({
             prefix: iconSpec.prefix as IconPrefix,
