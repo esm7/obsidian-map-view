@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Sat 24 Aug 2024 07:16:15 IDT -->
+<!-- Added by: erez, at: Sat 24 Aug 2024 07:17:35 IDT -->
 
 <!--te-->
 
@@ -616,6 +616,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Allow filtering by front matter properties - thanks @zakj! (Fixes https://github.com/esm7/obsidian-map-view/issues/257)
 -   When adding a front-matter geolocation to a note, Map View will now overwrite a previous front-matter geolocation if such existed. Fixes https://github.com/esm7/obsidian-map-view/issues/248 and generally improves the behavior with Obsidian properties.
 -   Didn't give proper credit to @The-Noah for a change actually included in 5.0.3: support for front-matter links in 'linkedto' and 'linkedfrom'.
+-   Improvements to plugin startup time.
 
 ### 5.0.3
 
