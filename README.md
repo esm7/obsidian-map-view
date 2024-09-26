@@ -18,9 +18,9 @@ It effectively turns your Obsidian vault into a **personal GIS system** that add
 
 You can set different icons for different note types according to custom rules, save geolocations from a variety of sources (Google Maps and many others), save custom views, embed maps in notes, switch between map layers, run powerful queries and so much more.
 
-![](img/sample.png)
+![Sample Image that shows a map.](https://github.com/esm7/obsidian-map-view/blob/master/img/sample.png?raw=true)
 
-![](img/intro.gif)
+![GIF that explains how the plugin is used.](https://github.com/esm7/obsidian-map-view/blob/master/img/intro.gif?raw=true)
 
 ![](img/quick-embed.gif)
 
@@ -232,7 +232,7 @@ Map View adds an Obsidian command named "New geolocation note", which you can ma
 
 This opens a dialog on which you can search (address or location based on your [configured geocoding provider](#changing-a-geocoding-provider)) or paste a URL using the built-in or custom [URL parsing rules](#url-parsing-rules).
 
-![](img/new-note-popup.gif)
+![How to create a new note.](https://github.com/esm7/obsidian-map-view/blob/master/img/new-note-popup.gif?raw=true)
 
 ### In an Existing Note
 
@@ -252,16 +252,16 @@ The map offers several tools to create notes.
 
 1. Use "new note here" when right-clicking the map. This will create a new note (based on the template you can change in the settings) with the location that you clicked. You can create either an empty note with a front matter (single geolocation) or an empty note with an inline geolocation.
 
-![](img/new-note.png)
+![New note in contect menu.](https://github.com/esm7/obsidian-map-view/blob/master/img/new-note.png?raw=true)
 
 The map can be searched using the tool on the upper-right side, so you can quickly jump to the place you want to mark.
 [URL parsing rules](#url-parsing-rules) also work here, so you can [copy a geolocation from Google Maps](#tip-copying-from-google-maps) (or any other service) and jump to it.
 
-![](img/search.gif)
+![Searching on map.](https://github.com/esm7/obsidian-map-view/blob/master/img/search.gif?raw=true)
 
 2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map and paste them in a note.
 
-![](img/copy.png)
+![Copy geolocation.](https://github.com/esm7/obsidian-map-view/blob/master/img/copy.png?raw=true)
 
 ### Paste as Geolocation
 
@@ -280,7 +280,7 @@ Google Maps on desktop web offers a very easy shortcut for copying universal `la
 2. The first menu item should be the universal coordinates. By clicking it, the coordinates are copied to the clipboard.
 3. In any Obsidian note, right click and choose "paste as geolocation", or paste the coordinates into any Map View search box.
 
-![](img/google-copy.png)
+![Copy from google maps.](https://github.com/esm7/obsidian-map-view/blob/master/img/google-copy.png?raw=true)
 
 ## Embedding Maps in Notes
 
@@ -321,7 +321,7 @@ Embeds also work really nicely in Canvas including live updates.
 
 Map View supports powerful queries that are roughly similar to Obsidian's query format.
 
-![](img/query.gif)
+![Using queries.](https://github.com/esm7/obsidian-map-view/blob/master/img/query.gif?raw=true)
 
 The query string can contain the following _search operators_:
 
@@ -379,7 +379,7 @@ A single marker is defined with a _tag pattern_ and _icon details_.
 The tag pattern is usually a tag name (e.g. `#dogs`), but it can also be with a wildcard (e.g. `#trips/*`).
 Icon details are a few properties: icon name (taken from the Font Awesome catalog), color and shape.
 
-![](img/marker-rules.png)
+![Marker Icons.](https://github.com/esm7/obsidian-map-view/blob/master/img/marker-rules.png?raw=true)
 
 A single marker is defined in the following JSON structure:
 `{"prefix": "fas", "icon": "fa-bus", "shape": "circle", "color": "red"}`
@@ -420,7 +420,7 @@ This command inserts an empty inline location template: `[](geo:)`.
 When editing an inline location in this format, whether if you added it manually or using the command, if you start entering a link name, Map View will start offering locations based on a geocoding service.
 Selecting one of the suggestions will fill-in the coordinates of the chosen locations and _not_ change your link name (assuming you prefer your own name rather than the formal one offered by the geocoding service).
 
-![](img/geosearch-suggest.gif)
+![Location Suggestions in a note.](https://github.com/esm7/obsidian-map-view/blob/master/img/geosearch-suggest.gif?raw=true)
 
 If your note is not yet marked as one including locations (by a `locations:`) tag in the front matter, this is added automatically.
 
@@ -475,7 +475,7 @@ The Default preset is special; you can save it using the 'Save as Default' butto
 Many context menus of Map View display a customizable Open In list, which can open a given location in external sources.
 These sources can be Google Maps, OpenStreetMap, specialized mapping tools or pretty much anything you use for viewing locations.
 
-![](img/open-in.png)
+![Opening the location in another application.](https://github.com/esm7/obsidian-map-view/blob/master/img/open-in.png?raw=true)
 
 The Open In list is shown:
 
@@ -486,7 +486,7 @@ The Open In list is shown:
 
 This list can be edited through the plugin's settings menu, with a name that will be displayed in the context menus and a URL pattern. The URL pattern has two parameters -- `{x}` and `{y}` -- that will be replaced by the latitude and longitude of the clicked location.
 
-![](img/custom-open-in.png)
+![Adding custom application to open in.](https://github.com/esm7/obsidian-map-view/blob/master/img/custom-open-in.png?raw=true)
 
 Popular choices may be:
 
@@ -510,7 +510,7 @@ The syntax expects two captures group and you can configure if they are parsed a
 
 And if you think your added regular expressions are solid enough, please add them to the plugin using a PR so others can benefit!
 
-![](img/url-parsing.png)
+![Rules to parse urls.](https://github.com/esm7/obsidian-map-view/blob/master/img/url-parsing.png?raw=true)
 
 ## View URLs
 
