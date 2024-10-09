@@ -611,12 +611,19 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
-### 5.1.0 (not released yet)
+### 6.0.0
 
 -   Allow filtering by front matter properties - thanks @zakj! (Fixes https://github.com/esm7/obsidian-map-view/issues/257)
 -   When adding a front-matter geolocation to a note, Map View will now overwrite a previous front-matter geolocation if such existed. Fixes https://github.com/esm7/obsidian-map-view/issues/248 and generally improves the behavior with Obsidian properties.
 -   Didn't give proper credit to @The-Noah for a change actually included in 5.0.3: support for front-matter links in 'linkedto' and 'linkedfrom'.
 -   Improvements to plugin startup time.
+-   Optional location label (requires Geo Helper 0.0.2)
+-   Geo helper settings changes (the settings are not backwards-compatible, you may need to revalidate them for Geo Helper to work)
+-   Fixed a bug of links showing unexpectedly when opening Map View from a saved URL.
+-   Added support for country flags emojis (https://github.com/esm7/obsidian-map-view/issues/183).
+-   Upgraded to Leaflet 1.9.4, thanks to @Falke-Design who helped me figure out how to make this play nicely inside Obsidian.
+-   No longer using filters or other state when asking for an external GPS location.
+-   Added a delicate indication (orange dot) that filters are on.
 
 ### 5.0.3
 

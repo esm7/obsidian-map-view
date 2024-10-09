@@ -113,7 +113,7 @@ function isFontAwesome(iconName: string) {
 
 function isText(iconName: string) {
     // Some emojis have a longer length so just checking for the string length isn't enough
-    return iconName.length <= 2 || /\p{Extended_Pictographic}/u.test(iconName);
+    return iconName.length <= 2 || /\p{Extended_Pictographic}/u.test(iconName) || /\p{Regional_Indicator}/u.test(iconName);
 }
 
 // Utilizes the SVG capabilities of Font Awesome to generate icons, instead of using Web Fonts.

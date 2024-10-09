@@ -1,6 +1,7 @@
 import * as leaflet from 'leaflet';
 import { PluginSettings } from 'src/settings';
-import { Notice } from 'obsidian';
+import { isMobile } from 'src/utils';
+import { App, Notice } from 'obsidian';
 import { exec } from 'child_process';
 
 export type RealTimeLocationSource =
@@ -45,12 +46,21 @@ type Params = {
 };
 
 export function askForLocation(
+    app: App,
     settings: PluginSettings,
     geoaction: GeoHelperAction = 'locate',
     mvaction: MapViewGpsAction = 'showonmap',
     mvcontext = ''
 ): boolean {
     if (!settings.supportRealTimeGeolocation) return false;
+	if (isMobile(app) && settings.geoHelperPreferApp) {
+		open(
+			'geohelper://locate' +
+			`?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`
+		);
+		new Notice('Asking GeoHelper App for location');
+		return true;
+	}
     const geoHelperType = settings.geoHelperType;
     switch (geoHelperType) {
         case 'url': {
@@ -59,14 +69,6 @@ export function askForLocation(
                 `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`;
             new Notice('Asking GeoHelper URL for location');
             open(url);
-            return true;
-        }
-        case 'app': {
-            open(
-                'geohelper://locate' +
-                    `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`
-            );
-            new Notice('Asking GeoHelper App for location');
             return true;
         }
         case 'commandline': {

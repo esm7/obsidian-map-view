@@ -250,9 +250,15 @@ export class MapContainer {
                 el.style.height = '100%';
             }
         );
-        // Make touch move nicer on mobile
-        this.display.viewDiv.addEventListener('touchmove', (ev) => {
-            ev.stopPropagation();
+        // Make touch move nicer on mobile.
+		// See here a discussion of why this was done the way it was:
+		// https://github.com/Leaflet/Leaflet/discussions/8972
+        document.addEventListener('touchmove', (ev: TouchEvent) => {
+			const mapDiv = this.display.mapDiv;
+			const targetNode = ev.target as Node;
+			const isEventOnMap = ev.target === mapDiv || mapDiv.contains(targetNode);
+			if (isEventOnMap)
+				ev.stopPropagation();
         });
         await this.createMap();
 

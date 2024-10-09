@@ -155,6 +155,7 @@ export class ViewControls {
             { ...state, query: newQuery },
             newQuery.length > 0
         );
+		this.showHideFiltersOn(newQuery);
     }
 
     private setQueryBoxByState() {
@@ -163,6 +164,7 @@ export class ViewControls {
         const state = this.getCurrentState();
         this.queryBox.setValue(state.query);
         this.setQueryBoxErrorByState();
+		this.showHideFiltersOn(state.query);
     }
 
     setQueryBoxErrorByState() {
@@ -196,6 +198,15 @@ export class ViewControls {
         if (this.controlsDiv) this.controlsDiv.remove();
         this.createControls();
     }
+
+	showHideFiltersOn(query: string) {
+		// Get the filters 'on' span and show/hide it based on whether we have a query.
+		// This is really just one proof too much that this whole file needs to be rewritten with Svelte...
+		const label = this.controlsDiv.getElementsByClassName(
+			'mv-filters-on'
+		)[0] as HTMLSpanElement;
+		label.style.display = query?.length > 0 ? 'inline' : 'none';
+	}
 
     createControls() {
         lastGlobalId += 1;
@@ -249,7 +260,11 @@ export class ViewControls {
             filtersDiv.innerHTML = `
 				<input id="filtersCollapsible${lastGlobalId}" class="controls-toggle" type="checkbox">
 				<label for="filtersCollapsible${lastGlobalId}" class="lbl-triangle">▸</label>
-				<label for="filtersCollapsible${lastGlobalId}" class="lbl-toggle">Filters</label>
+				<label for="filtersCollapsible${lastGlobalId}" class="lbl-toggle">
+					Filters
+					<span class="mv-filters-on">🟠</span>
+				</label>
+				
 				`;
             const filtersButton = filtersDiv.getElementsByClassName(
                 'controls-toggle'
@@ -771,7 +786,7 @@ export class RealTimeControl extends leaflet.Control {
         this.locateButton.innerHTML = '⌖';
         this.locateButton.style.fontSize = '25px';
         this.locateButton.addEventListener('click', (ev: MouseEvent) => {
-            askForLocation(this.settings, 'locate', 'showonmap');
+            askForLocation(this.app, this.settings, 'locate', 'showonmap');
         });
         this.clearButton = div.createEl('a');
         this.clearButton.innerHTML = 'X';

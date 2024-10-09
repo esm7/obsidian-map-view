@@ -322,3 +322,9 @@ div.map-view-highlight.marker-cluster {
 .mv-simple-circle-marker .mv-emoji-icon {
     top: 0;
 }
+
+span.mv-filters-on {
+	font-size: 0.3em;
+	vertical-align: middle;
+	display: none;
+}

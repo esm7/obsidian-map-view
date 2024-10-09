@@ -674,12 +674,27 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
+		new Setting(containerEl)
+			.setName('Use native app on mobile')
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.geoHelperPreferApp ??
+                            DEFAULT_SETTINGS.geoHelperPreferApp
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.geoHelperPreferApp = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
         new Setting(containerEl)
             .setName('Geo helper type')
+            .setDesc(
+                'If the native app is not used, determines how to launch the geo helper.'
+            )
             .addDropdown((component) => {
                 component
                     .addOption('url', 'External URL')
-                    .addOption('app', 'Installed app')
                     .addOption('commandline', 'Command line')
                     .setValue(
                         this.plugin.settings.geoHelperType ??

@@ -109,6 +109,7 @@ export default class MapViewPlugin extends Plugin {
                             );
                         }
                     } else if (params.mvaction === 'newnotehere') {
+						const label = params?.label ?? '';
                         const location =
                             params.centerLat && params.centerLng
                                 ? new leaflet.LatLng(
@@ -117,7 +118,7 @@ export default class MapViewPlugin extends Plugin {
                                   )
                                 : null;
                         if (location) {
-                            this.newFrontMatterNote(location, null, '');
+                            this.newFrontMatterNote(location, null, label);
                         }
                     } else if (params.mvaction === 'addtocurrentnotefm') {
                         const location =
@@ -140,7 +141,9 @@ export default class MapViewPlugin extends Plugin {
                                 false
                             );
                         }
+						else new Notice('Error: "Add to current note" requires an active note.', 30000);
                     } else if (params.mvaction === 'addtocurrentnoteinline') {
+						const label = params?.label ?? '';
                         const location =
                             params.centerLat && params.centerLng
                                 ? new leaflet.LatLng(
@@ -150,13 +153,18 @@ export default class MapViewPlugin extends Plugin {
                                 : null;
                         const editor = utils.getEditor(this.app);
                         const file = utils.getFile(this.app);
-                        utils.insertLocationToEditor(
-                            this.app,
-                            location,
-                            editor,
-                            file,
-                            this.settings
-                        );
+						if (editor && file)
+							utils.insertLocationToEditor(
+								this.app,
+								location,
+								editor,
+								file,
+								this.settings,
+								null,
+								null,
+								label
+							);
+						else new Notice('Error: "Add to current note" requires an active note.', 30000);
                     } else if (params.mvaction === 'copyinlinelocation') {
                         new Notice('Inline location copied to clipboard');
                     } else {
@@ -335,7 +343,7 @@ export default class MapViewPlugin extends Plugin {
                 id: 'gps-focus-in-map-view',
                 name: 'GPS: find location and focus',
                 callback: () => {
-                    askForLocation(this.settings, 'locate', 'showonmap');
+                    askForLocation(this.app, this.settings, 'locate', 'showonmap');
                 },
             });
 
@@ -344,6 +352,7 @@ export default class MapViewPlugin extends Plugin {
                 name: 'GPS: copy inline location',
                 callback: () => {
                     askForLocation(
+						this.app,
                         this.settings,
                         'locate',
                         'copyinlinelocation'
@@ -355,7 +364,7 @@ export default class MapViewPlugin extends Plugin {
                 id: 'gps-new-note-here',
                 name: 'GPS: new geolocation note',
                 callback: () => {
-                    askForLocation(this.settings, 'locate', 'newnotehere');
+                    askForLocation(this.app, this.settings, 'locate', 'newnotehere');
                 },
             });
 
@@ -364,6 +373,7 @@ export default class MapViewPlugin extends Plugin {
                 name: 'GPS: add geolocation (front matter) to current note',
                 editorCallback: () => {
                     askForLocation(
+						this.app,
                         this.settings,
                         'locate',
                         'addtocurrentnotefm'
@@ -376,6 +386,7 @@ export default class MapViewPlugin extends Plugin {
                 name: 'GPS: add geolocation (inline) at current position',
                 editorCallback: () => {
                     askForLocation(
+						this.app,
                         this.settings,
                         'locate',
                         'addtocurrentnoteinline'
@@ -563,10 +574,15 @@ export default class MapViewPlugin extends Plugin {
             chosenLeaf = this.app.workspace.getLeaf(true);
         }
         this.app.workspace.setActiveLeaf(chosenLeaf);
-        await chosenLeaf.setViewState({
-            type: consts.MAP_VIEW_NAME,
-            state: state ?? this.settings.defaultState,
-        });
+		// The chosen leaf may or may not already be a Map View leaf.
+		// If it's a Map View leaf, and we were not asked to set a specific state, we don't change anything,
+		// because the user won't appreciate the state reset.
+		// If it's not a Map View leaf, or if we were asked to use a specific state, we set it.
+		if (state || chosenLeaf.getViewState()?.type !== consts.MAP_VIEW_NAME)
+			await chosenLeaf.setViewState({
+				type: consts.MAP_VIEW_NAME,
+				state: state ?? this.settings.defaultState,
+			});
         if (chosenLeaf.view instanceof MainMapView) return chosenLeaf.view;
         return null;
     }
