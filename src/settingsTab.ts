@@ -674,8 +674,8 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
-		new Setting(containerEl)
-			.setName('Use native app on mobile')
+        new Setting(containerEl)
+            .setName('Use native app on mobile')
             .addToggle((component) => {
                 component
                     .setValue(

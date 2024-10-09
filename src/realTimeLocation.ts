@@ -53,14 +53,14 @@ export function askForLocation(
     mvcontext = ''
 ): boolean {
     if (!settings.supportRealTimeGeolocation) return false;
-	if (isMobile(app) && settings.geoHelperPreferApp) {
-		open(
-			'geohelper://locate' +
-			`?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`
-		);
-		new Notice('Asking GeoHelper App for location');
-		return true;
-	}
+    if (isMobile(app) && settings.geoHelperPreferApp) {
+        open(
+            'geohelper://locate' +
+                `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`
+        );
+        new Notice('Asking GeoHelper App for location');
+        return true;
+    }
     const geoHelperType = settings.geoHelperType;
     switch (geoHelperType) {
         case 'url': {

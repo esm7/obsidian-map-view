@@ -65,7 +65,7 @@ export type PluginSettings = {
     queryForFollowActiveNote?: string;
     supportRealTimeGeolocation?: boolean;
     fixFrontMatterOnPaste?: boolean;
-	geoHelperPreferApp?: boolean;
+    geoHelperPreferApp?: boolean;
     geoHelperType?: GeoHelperType;
     geoHelperCommand?: string;
     geoHelperUrl?: string;
@@ -228,7 +228,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     queryForFollowActiveNote: 'path:"$PATH$"',
     supportRealTimeGeolocation: false,
     fixFrontMatterOnPaste: true,
-	geoHelperPreferApp: false,
+    geoHelperPreferApp: false,
     geoHelperType: 'url',
     geoHelperCommand: 'chrome',
     geoHelperUrl: 'https://esm7.github.io/obsidian-geo-helper/',

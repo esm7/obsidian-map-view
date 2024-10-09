@@ -299,9 +299,11 @@ export async function insertLocationToEditor(
     settings: settings.PluginSettings,
     replaceStart?: EditorPosition,
     replaceLength?: number,
-	label?: string
+    label?: string
 ) {
-    const locationString = `[${label ?? ''}](geo:${location.lat},${location.lng})`;
+    const locationString = `[${label ?? ''}](geo:${location.lat},${
+        location.lng
+    })`;
     const cursor = editor.getCursor();
     if (replaceStart && replaceLength) {
         editor.replaceRange(locationString, replaceStart, {

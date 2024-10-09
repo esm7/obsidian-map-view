@@ -251,14 +251,14 @@ export class MapContainer {
             }
         );
         // Make touch move nicer on mobile.
-		// See here a discussion of why this was done the way it was:
-		// https://github.com/Leaflet/Leaflet/discussions/8972
+        // See here a discussion of why this was done the way it was:
+        // https://github.com/Leaflet/Leaflet/discussions/8972
         document.addEventListener('touchmove', (ev: TouchEvent) => {
-			const mapDiv = this.display.mapDiv;
-			const targetNode = ev.target as Node;
-			const isEventOnMap = ev.target === mapDiv || mapDiv.contains(targetNode);
-			if (isEventOnMap)
-				ev.stopPropagation();
+            const mapDiv = this.display.mapDiv;
+            const targetNode = ev.target as Node;
+            const isEventOnMap =
+                ev.target === mapDiv || mapDiv.contains(targetNode);
+            if (isEventOnMap) ev.stopPropagation();
         });
         await this.createMap();
 

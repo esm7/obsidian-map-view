@@ -155,7 +155,7 @@ export class ViewControls {
             { ...state, query: newQuery },
             newQuery.length > 0
         );
-		this.showHideFiltersOn(newQuery);
+        this.showHideFiltersOn(newQuery);
     }
 
     private setQueryBoxByState() {
@@ -164,7 +164,7 @@ export class ViewControls {
         const state = this.getCurrentState();
         this.queryBox.setValue(state.query);
         this.setQueryBoxErrorByState();
-		this.showHideFiltersOn(state.query);
+        this.showHideFiltersOn(state.query);
     }
 
     setQueryBoxErrorByState() {
@@ -199,14 +199,14 @@ export class ViewControls {
         this.createControls();
     }
 
-	showHideFiltersOn(query: string) {
-		// Get the filters 'on' span and show/hide it based on whether we have a query.
-		// This is really just one proof too much that this whole file needs to be rewritten with Svelte...
-		const label = this.controlsDiv.getElementsByClassName(
-			'mv-filters-on'
-		)[0] as HTMLSpanElement;
-		label.style.display = query?.length > 0 ? 'inline' : 'none';
-	}
+    showHideFiltersOn(query: string) {
+        // Get the filters 'on' span and show/hide it based on whether we have a query.
+        // This is really just one proof too much that this whole file needs to be rewritten with Svelte...
+        const label = this.controlsDiv.getElementsByClassName(
+            'mv-filters-on'
+        )[0] as HTMLSpanElement;
+        label.style.display = query?.length > 0 ? 'inline' : 'none';
+    }
 
     createControls() {
         lastGlobalId += 1;

@@ -324,7 +324,7 @@ div.map-view-highlight.marker-cluster {
 }
 
 span.mv-filters-on {
-	font-size: 0.3em;
-	vertical-align: middle;
-	display: none;
+    font-size: 0.3em;
+    vertical-align: middle;
+    display: none;
 }
