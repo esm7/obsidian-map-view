@@ -216,7 +216,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         {
             name: 'CartoDB',
             urlLight:
-                'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+                'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
             preset: true,
         },
     ],
