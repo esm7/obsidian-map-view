@@ -427,7 +427,7 @@ export default class MapViewPlugin extends Plugin {
             lng: string
         ) => {
             event.preventDefault();
-			event.stopImmediatePropagation();
+            event.stopImmediatePropagation();
             const location = new leaflet.LatLng(
                 parseFloat(lat),
                 parseFloat(lng)
@@ -449,10 +449,10 @@ export default class MapViewPlugin extends Plugin {
             markerId: string,
             lat: string,
             lng: string
-		) => {
-			event.preventDefault();
-			event.stopImmediatePropagation();
-		}
+        ) => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        };
 
         (window as any).handlePointerDown = (
             event: PointerEvent,
@@ -460,11 +460,11 @@ export default class MapViewPlugin extends Plugin {
             markerId: string,
             lat: string,
             lng: string
-		) => {
-			event.preventDefault();
-			event.stopImmediatePropagation();
+        ) => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
             this.mapPreviewPopup?.close(event);
-		}
+        };
 
         // As part of geoLinkReplacers.ts, geolinks in notes are embedded with mouse events that
         // override the default Obsidian behavior.

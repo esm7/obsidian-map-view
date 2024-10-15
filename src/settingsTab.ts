@@ -574,8 +574,7 @@ export class SettingsTab extends PluginSettingTab {
         const mapSources = new Setting(containerEl)
             .setHeading()
             .setName('Map Sources');
-        mapSources.descEl.innerHTML = 
-                `Change and switch between sources for map tiles. An optional dark mode URL can be defined for each source. If no such URL is defined and dark mode is used, the map colors are reverted. See <a href="https://github.com/esm7/obsidian-map-view?tab=readme-ov-file#map-sources">the documentation</a> for more details.`;
+        mapSources.descEl.innerHTML = `Change and switch between sources for map tiles. An optional dark mode URL can be defined for each source. If no such URL is defined and dark mode is used, the map colors are reverted. See <a href="https://github.com/esm7/obsidian-map-view?tab=readme-ov-file#map-sources">the documentation</a> for more details.`;
 
         let mapSourcesDiv: HTMLDivElement = null;
         new Setting(containerEl).addButton((component) =>
