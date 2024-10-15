@@ -1,4 +1,3 @@
-import { WorkspaceLeaf } from 'obsidian';
 import * as leaflet from 'leaflet';
 import * as querystring from 'query-string';
 import { ViewSettings } from './mapContainer';

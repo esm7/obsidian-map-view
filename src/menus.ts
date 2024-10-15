@@ -75,9 +75,9 @@ export function populateOpenInItems(
 ) {
     for (let setting of settings.openIn) {
         if (!setting.name || !setting.urlPattern) continue;
-        const fullUrl = setting.urlPattern
-            .replace('{x}', location.lat.toString())
-            .replace('{y}', location.lng.toString());
+		const fullUrl = setting.urlPattern
+			.replace(/{x}/g, location.lat.toString())
+			.replace(/{y}/g, location.lng.toString());
         menu.addItem((item: MenuItem) => {
             item.setTitle(`Open in ${setting.name}`);
             item.setIcon('map-pin');

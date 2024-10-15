@@ -168,7 +168,8 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                         // This is not ideal since it ruins scrolling and other default behaviors on touches that
                         // start from the link, but without this, in mobile links launch their default behavior
                         // in addition to the one I set above
-                        ontouchstart: `handleMapViewGeoLink(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
+                        onpointerdown: `handlePointerDown(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
+                        onpointerup: `handlePointerUp(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
                         onmouseover: `createMapPopup(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
                         onmouseout: 'closeMapPopup(event)',
                     },

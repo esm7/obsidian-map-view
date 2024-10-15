@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Wed 09 Oct 2024 21:43:17 IDT -->
+<!-- Added by: erez, at: Wed 09 Oct 2024 21:43:34 IDT -->
 
 <!--te-->
 
@@ -448,6 +448,8 @@ See a pretty comprehensive list [here](https://wiki.openstreetmap.org/wiki/Raste
 For providers that use an API key (e.g. MapTiler or Mapbox), consult the provider documentation for how to add the key to the API URL.
 For example, in MapTiler it would be `https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key=ABCDEFGH`.
 
+Some providers have an extra setting for HiDPI ("retina") tiles, which look sharper on high-resolution displays; to use them automatically when a suitable display is detected, add `{r}` as an optional resolution identifier in the URL.
+
 Although that's the case with this plugin in general, it's worth noting explicitly that using 3rd party map data properly, and making sure you are not violating any terms of use, is your own responsibility.
 
 Note that Google Maps is not in that list, because although it does provide the same standard form of static tiles in the same URL format, the Google Maps terms of service makes it difficult to legally bundle the maps in an application.
@@ -624,6 +626,9 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Upgraded to Leaflet 1.9.4, thanks to @Falke-Design who helped me figure out how to make this play nicely inside Obsidian.
 -   No longer using filters or other state when asking for an external GPS location.
 -   Added a delicate indication (orange dot) that filters are on.
+-   Added support by default to the HiDPI tiles of CartoDB (thanks @sbungartz!)
+-   Better popup handling: no default handler, better handling on mobile
+-   URL template does multi replace, e.g. support for OsmAnd (https://github.com/esm7/obsidian-map-view/issues/283)
 
 ### 5.0.3
 

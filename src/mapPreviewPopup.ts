@@ -68,7 +68,7 @@ export class MapPreviewPopup {
         // the target element (i.e. the link that caused the popup) is removed from the document, e.g. when
         // the user opens another file or something else happens to the view
         this.popupObserver = new MutationObserver((mutations) => {
-            if (!document.body.contains(this.targetElement)) {
+            if (!this.targetElement || !document.body.contains(this.targetElement) || this.isElementHidden(this.targetElement)) {
                 this.close(null);
             }
         });
@@ -107,4 +107,15 @@ export class MapPreviewPopup {
                 this.popupDiv.parentNode?.removeChild(this.popupDiv);
         }, 1000);
     }
+
+	isElementHidden(el: HTMLElement) {
+		if (!el) {
+			return true;
+		}
+
+		// Check if element is hidden by styles
+		const style = window.getComputedStyle(el);
+		return style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0';
+	}
+
 }
