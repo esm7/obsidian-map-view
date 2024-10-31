@@ -21,7 +21,7 @@ export const QUOTED_OR_NOT_QUOTED_LINKEDTO =
 export const QUOTED_OR_NOT_QUOTED_LINKEDFROM =
     /linkedfrom:(("((?:[^"]|\\")*)")|((?:[^"\s]|\\")*))/gu;
 export const COORDINATES =
-    /(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)/;
+    /(?<lat>[+-]?([0-9]*[.])?[0-9]+)\s*,\s*(?<lng>[+-]?([0-9]*[.])?[0-9]+)/;
 export const INLINE_LOCATION_OLD_SYNTAX =
     /`location:\s*\[?(?<lat>[+-]?([0-9]*[.])?[0-9]+)\s*,\s*(?<lng>[+-]?([0-9]*[.])?[0-9]+)\]?/g;
 // A link name is defined here as [^\]]* to prevent a previous link in the same line to count as the beginning
