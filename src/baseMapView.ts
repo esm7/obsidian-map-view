@@ -163,9 +163,14 @@ export abstract class BaseMapView extends ItemView {
     isDarkMode(settings: PluginSettings): boolean {
         if (settings.chosenMapMode === 'dark') return true;
         if (settings.chosenMapMode === 'light') return false;
+
         // Auto mode - check if the theme is dark
-        if ((this.app.vault as any).getConfig('theme') === 'obsidian')
-            return true;
+        const theme = (this.app.vault as any).getConfig('theme');
+        if (theme === 'obsidian') return true;
+        else if (theme === 'moonstone') return false;
+        else if (theme === 'system')
+            return !document.body.classList.contains('theme-light');
+
         return false;
     }
 
