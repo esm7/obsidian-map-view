@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Tue 15 Oct 2024 21:34:23 IDT -->
+<!-- Added by: erez, at: Sun 03 Nov 2024 11:55:14 IST -->
 
 <!--te-->
 
@@ -630,6 +630,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 -   Allow a whitespace around the comma in a geolocation (https://github.com/esm7/obsidian-map-view/pull/272), thanks @zakj!
 
 Improvements relating to the [Geo Helper](https://github.com/esm7/obsidian-geo-helper):
+
 -   Support for the new (0.0.2) optional location label.
 -   Geo Helper settings reorganization (**the settings are not backwards-compatible**, you may need to revalidate them for Geo Helper to work).
 -   No longer using filters or other state when asking for an external GPS location.
