@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Tue 15 Oct 2024 21:33:51 IDT -->
+<!-- Added by: erez, at: Tue 15 Oct 2024 21:34:23 IDT -->
 
 <!--te-->
 
@@ -613,22 +613,26 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
-### 6.0.0
+### 5.1.0
 
 -   Allow filtering by front matter properties - thanks @zakj! (Fixes https://github.com/esm7/obsidian-map-view/issues/257)
 -   When adding a front-matter geolocation to a note, Map View will now overwrite a previous front-matter geolocation if such existed. Fixes https://github.com/esm7/obsidian-map-view/issues/248 and generally improves the behavior with Obsidian properties.
--   Didn't give proper credit to @The-Noah for a change actually included in 5.0.3: support for front-matter links in 'linkedto' and 'linkedfrom'.
+-   I didn't give proper credit to @The-Noah for a change actually included in 5.0.3: support for front-matter links in 'linkedto' and 'linkedfrom'.
 -   Improvements to plugin startup time.
--   Optional location label (requires Geo Helper 0.0.2)
--   Geo helper settings changes (the settings are not backwards-compatible, you may need to revalidate them for Geo Helper to work)
 -   Fixed a bug of links showing unexpectedly when opening Map View from a saved URL.
 -   Added support for country flags emojis (https://github.com/esm7/obsidian-map-view/issues/183).
--   Upgraded to Leaflet 1.9.4, thanks to @Falke-Design who helped me figure out how to make this play nicely inside Obsidian.
--   No longer using filters or other state when asking for an external GPS location.
+-   Upgraded the underlying library to Leaflet 1.9.4, thanks to @Falke-Design who helped me figure out how to make this play nicely inside Obsidian.
 -   Added a delicate indication (orange dot) that filters are on.
 -   Added support by default to the HiDPI tiles of CartoDB (thanks @sbungartz!)
--   Better popup handling: no default handler, better handling on mobile
+-   Major improvement to the mechanism behind geolink previews in notes, providing much less false triggers on touch screens (https://github.com/esm7/obsidian-map-view/issues/185), and hopefully eliminating all issues when clicking on such links (https://github.com/esm7/obsidian-map-view/issues/200).
 -   URL template does multi replace, e.g. support for OsmAnd (https://github.com/esm7/obsidian-map-view/issues/283)
+-   Fix to auto light/dark theme selection (https://github.com/esm7/obsidian-map-view/pull/284 and https://github.com/esm7/obsidian-map-view/issues/136), thanks @The-Noah!
+-   Allow a whitespace around the comma in a geolocation (https://github.com/esm7/obsidian-map-view/pull/272), thanks @zakj!
+
+Improvements relating to the [Geo Helper](https://github.com/esm7/obsidian-geo-helper):
+-   Support for the new (0.0.2) optional location label.
+-   Geo Helper settings reorganization (**the settings are not backwards-compatible**, you may need to revalidate them for Geo Helper to work).
+-   No longer using filters or other state when asking for an external GPS location.
 
 ### 5.0.3
 
