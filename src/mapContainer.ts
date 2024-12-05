@@ -17,17 +17,28 @@ import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
-
-import * as consts from 'src/consts';
-import { MapState, mergeStates, stateToUrl, getCodeBlock } from 'src/mapState';
 import {
-    OpenBehavior,
-    PluginSettings,
-    TileSource,
+    type TileLayerOffline,
+    tileLayerOffline,
+    savetiles,
+    type SaveStatus,
+    hasTile,
+} from 'leaflet.offline';
+import * as consts from 'src/consts';
+import {
+    type MapState,
+    mergeStates,
+    stateToUrl,
+    getCodeBlock,
+} from 'src/mapState';
+import {
+    type OpenBehavior,
+    type PluginSettings,
+    type TileSource,
     DEFAULT_SETTINGS,
 } from 'src/settings';
 import {
-    MarkersMap,
+    type MarkersMap,
     BaseGeoLayer,
     FileMarker,
     buildMarkers,
@@ -36,7 +47,7 @@ import {
     addEdgesToMarkers,
     cacheTagsFromMarkers,
 } from 'src/markers';
-import { getIconFromOptions, IconOptions } from 'src/markerIcons';
+import { getIconFromOptions, type IconOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import {
@@ -48,13 +59,40 @@ import {
 import { Query } from 'src/query';
 import { GeoSearchResult } from 'src/geosearch';
 import {
-    RealTimeLocation,
-    RealTimeLocationSource,
+    type RealTimeLocation,
+    type RealTimeLocationSource,
     isSame,
 } from 'src/realTimeLocation';
 import * as menus from 'src/menus';
 import * as markerPopups from 'src/markerPopups';
-import { createPopper, Instance as PopperInstance } from '@popperjs/core';
+import { createPopper, type Instance as PopperInstance } from '@popperjs/core';
+
+function createTileLayer(
+    url: string,
+    options: leaflet.TileLayerOptions,
+): TileLayerOffline {
+    const tile = tileLayerOffline(url, options);
+    const originalCreateFunction = tile.createTile;
+    // Override the tile creation function and add a class to denote for each
+    // tile if it is available offline or not
+    tile.createTile = (
+        coords: leaflet.Coords,
+        done: leaflet.DoneCallback,
+    ): HTMLElement => {
+        const element = originalCreateFunction.call(
+            tile,
+            coords,
+            done,
+        ) as HTMLElement;
+        const key = tile._getStorageKey(coords);
+        hasTile(key).then((availableOffline) => {
+            if (availableOffline) element.classList.add('mv-offline');
+            else element.classList.add('mv-online');
+        });
+        return element;
+    };
+    return tile;
+}
 
 export type ViewSettings = {
     showZoomButtons: boolean;
@@ -103,7 +141,7 @@ export class MapContainer {
         popupClickEventListener: (ev: MouseEvent) => void;
         /** The leaflet map instance */
         map: leaflet.Map;
-        tileLayer: leaflet.TileLayer;
+        tileLayer: TileLayerOffline;
         /** The cluster management class */
         clusterGroup: leaflet.MarkerClusterGroup;
         /** The markers currently on the map */
@@ -164,7 +202,7 @@ export class MapContainer {
         settings: PluginSettings,
         viewSettings: ViewSettings,
         plugin: MapViewPlugin,
-        app: App
+        app: App,
     ) {
         this.settings = settings;
         this.viewSettings = viewSettings;
@@ -174,16 +212,16 @@ export class MapContainer {
         // we start by applying the state from DEFAULT_SETTINGS, so new fields can get default vaules
         this.defaultState = mergeStates(
             DEFAULT_SETTINGS.defaultState,
-            this.settings.defaultState
+            this.settings.defaultState,
         );
         this.parentEl = parentEl;
 
         // Listen to file changes so we can update markers accordingly
         this.app.vault.on('delete', (file) =>
-            this.updateMarkersWithRelationToFile(file.path, null, true)
+            this.updateMarkersWithRelationToFile(file.path, null, true),
         );
         this.app.metadataCache.on('changed', (file) =>
-            this.updateMarkersWithRelationToFile(file.path, file, false)
+            this.updateMarkersWithRelationToFile(file.path, file, false),
         );
         // On rename we don't need to do anything because the markers hold a TFile, and the TFile object doesn't change
         // when the file name changes. Only its internal path field changes accordingly.
@@ -209,7 +247,7 @@ export class MapContainer {
         const block = getCodeBlock(this.state);
         navigator.clipboard.writeText(block);
         new Notice(
-            'Copied state as code block which you can embed in any note'
+            'Copied state as code block which you can embed in any note',
         );
     }
 
@@ -242,7 +280,7 @@ export class MapContainer {
                 this.viewSettings,
                 this.app,
                 this,
-                this.plugin
+                this.plugin,
             );
             this.display.controls.createControls();
         }
@@ -253,7 +291,7 @@ export class MapContainer {
                 el.style.zIndex = '1';
                 el.style.width = '100%';
                 el.style.height = '100%';
-            }
+            },
         );
         // Make touch move nicer on mobile.
         // See here a discussion of why this was done the way it was:
@@ -296,7 +334,7 @@ export class MapContainer {
                             },
                         },
                     ],
-                }
+                },
             );
         }
     }
@@ -313,7 +351,7 @@ export class MapContainer {
         state: MapState,
         updateControls: boolean = false,
         considerAutoFit: boolean = false,
-        freezeMap: boolean = false
+        freezeMap: boolean = false,
     ) {
         if (state) {
             const newState = mergeStates(this.state, state);
@@ -364,7 +402,7 @@ export class MapContainer {
      * after the method returns.
      */
     public async highLevelSetViewStateAsync(
-        partialState: Partial<MapState>
+        partialState: Partial<MapState>,
     ): Promise<MapState> {
         if (Object.keys(partialState).length === 0) return;
         const state = this.getState();
@@ -425,7 +463,7 @@ export class MapContainer {
             const neededClassName = revertMap ? 'dark-mode' : '';
             const maxNativeZoom =
                 chosenMapSource.maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM;
-            this.display.tileLayer = new leaflet.TileLayer(mapSourceUrl, {
+            this.display.tileLayer = createTileLayer(mapSourceUrl, {
                 maxZoom: this.settings.letZoomBeyondMax
                     ? consts.MAX_ZOOM
                     : maxNativeZoom,
@@ -436,6 +474,28 @@ export class MapContainer {
             });
             this.display.map.addLayer(this.display.tileLayer);
 
+            // TODO TEMP
+            const saveControl = savetiles(this.display.tileLayer, {
+                zoomlevels: [13, 16], // optional zoomlevels to save, default current zoomlevel
+                alwaysDownload: false,
+                confirm(status: SaveStatus, successCallback: Function) {
+                    // eslint-disable-next-line no-alert
+                    if (window.confirm(`Save ${status._tilesforSave.length}`)) {
+                        successCallback();
+                    }
+                },
+                confirmRemoval(status: SaveStatus, successCallback: Function) {
+                    // eslint-disable-next-line no-alert
+                    if (window.confirm('Remove all the tiles?')) {
+                        successCallback();
+                    }
+                },
+                saveText: '<i class="fa fa-download" title="Save tiles"></i>',
+                rmText: '<i class="fa fa-trash" title="Remove tiles"></i>',
+            });
+            saveControl.setPosition('topright');
+            saveControl.addTo(this.display.map);
+
             if (!chosenMapSource?.ignoreErrors) {
                 let recentTileError = false;
                 this.display.tileLayer.on(
@@ -444,14 +504,14 @@ export class MapContainer {
                         if (!recentTileError) {
                             new Notice(
                                 `Map view: unable to load map tiles. If your Internet access is ok, try switching the map source using the View controls.`,
-                                20000
+                                20000,
                             );
                             recentTileError = true;
                             setTimeout(() => {
                                 recentTileError = false;
                             }, 5000);
                         }
-                    }
+                    },
                 );
             }
         }
@@ -485,7 +545,7 @@ export class MapContainer {
                 { position: 'topright' },
                 this,
                 this.app,
-                this.settings
+                this.settings,
             );
             this.display.map.addControl(this.display.lockControl);
         }
@@ -533,7 +593,7 @@ export class MapContainer {
             'doubleClickZoom',
             (event: leaflet.LeafletEvent) => {
                 this.ongoingChanges += 1;
-            }
+            },
         );
         this.display.map.on('viewreset', () => {
             this.setHighlight(this.display.highlight);
@@ -546,7 +606,7 @@ export class MapContainer {
                 this,
                 this.app,
                 this.plugin,
-                this.settings
+                this.settings,
             );
             this.display.map.addControl(this.display.searchControls);
         }
@@ -559,7 +619,7 @@ export class MapContainer {
                 { position: 'topright' },
                 this,
                 this.app,
-                this.settings
+                this.settings,
             );
             this.display.map.addControl(this.display.realTimeControls);
         }
@@ -597,10 +657,10 @@ export class MapContainer {
                     event.latlng,
                     this,
                     this.settings,
-                    this.app
+                    this.app,
                 );
                 mapPopup.showAtPosition(event.originalEvent);
-            }
+            },
         );
 
         // This is an ugly work-around for an issue of marker popups sometimes not closing when they should,
@@ -648,7 +708,7 @@ export class MapContainer {
     async updateMarkersToState(
         state: MapState,
         force: boolean = false,
-        freezeMap: boolean = false
+        freezeMap: boolean = false,
     ) {
         if (this.settings.debug) console.time('updateMarkersToState');
         let files = this.app.vault.getMarkdownFiles();
@@ -667,13 +727,13 @@ export class MapContainer {
             state,
             this.settings,
             this.plugin.iconFactory,
-            this.app
+            this.app,
         );
         addEdgesToMarkers(
             newMarkers,
             this.app,
             state.showLinks,
-            this.display.polylines
+            this.display.polylines,
         );
         this.state = structuredClone(state);
 
@@ -730,7 +790,7 @@ export class MapContainer {
                 // This marker exists, so just keep it
                 newMarkersMap.set(
                     marker.id,
-                    this.display.markers.get(marker.id)
+                    this.display.markers.get(marker.id),
                 );
                 this.display.markers.delete(marker.id);
             } else if (marker instanceof FileMarker) {
@@ -741,7 +801,7 @@ export class MapContainer {
                     console.log(
                         'Map view: warning, marker ID',
                         marker.id,
-                        'already exists, please open an issue if you see this.'
+                        'already exists, please open an issue if you see this.',
                     );
                 newMarkersMap.set(marker.id, marker);
             }
@@ -777,7 +837,7 @@ export class MapContainer {
                             {
                                 color: this.state.linkColor,
                                 weight: 1,
-                            }
+                            },
                         );
                         edge.polyline = polyline;
                         polyline.addTo(this.display.map);
@@ -818,9 +878,9 @@ export class MapContainer {
                     utils.mouseEventToOpenMode(
                         this.settings,
                         event.originalEvent,
-                        'openNote'
+                        'openNote',
                     ),
-                    true
+                    true,
                 );
         });
         newMarker.on('mousedown', (event: leaflet.LeafletMouseEvent) => {
@@ -831,9 +891,9 @@ export class MapContainer {
                     utils.mouseEventToOpenMode(
                         this.settings,
                         event.originalEvent,
-                        'openNote'
+                        'openNote',
                     ),
-                    true
+                    true,
                 );
         });
 
@@ -902,7 +962,7 @@ export class MapContainer {
                     marker.file,
                     this.settings.frontMatterKey,
                     `${newLat},${newLng}`,
-                    false
+                    false,
                 );
             } else if (marker.geolocationMatch?.groups) {
                 await utils.updateInlineGeolocation(
@@ -911,7 +971,7 @@ export class MapContainer {
                     marker.fileLocation,
                     marker.geolocationMatch,
                     newLat,
-                    newLng
+                    newLng,
                 );
             }
         });
@@ -921,7 +981,7 @@ export class MapContainer {
     private openMarkerContextMenu(
         marker: BaseGeoLayer,
         mapMarker: leaflet.Marker,
-        ev: MouseEvent
+        ev: MouseEvent,
     ) {
         this.setHighlight(mapMarker);
         let mapPopup = new Menu();
@@ -932,7 +992,7 @@ export class MapContainer {
                 this,
                 marker.location,
                 mapPopup,
-                this.settings
+                this.settings,
             );
             menus.populateOpenInItems(mapPopup, marker.location, this.settings);
         }
@@ -942,7 +1002,7 @@ export class MapContainer {
     private async showMarkerPopups(
         fileMarker: FileMarker,
         mapMarker: leaflet.Marker,
-        event: leaflet.LeafletMouseEvent
+        event: leaflet.LeafletMouseEvent,
     ) {
         // Popups based on the markers below the cursor shouldn't be opened while animations
         // are occuring
@@ -955,11 +1015,11 @@ export class MapContainer {
                 this.display.popupDiv,
                 this.display.mapDiv,
                 this.settings,
-                this.app
+                this.app,
             );
             const closeButton = this.display.popupDiv.createEl(
                 'button',
-                'mv-marker-popup-close'
+                'mv-marker-popup-close',
             );
             closeButton.onClickEvent((ev: MouseEvent) => {
                 this.closeMarkerPopup();
@@ -983,12 +1043,12 @@ export class MapContainer {
                 this.goToMarker(
                     fileMarker,
                     utils.mouseEventToOpenMode(this.settings, ev, 'openNote'),
-                    true
+                    true,
                 );
             };
             this.display.popupDiv.addEventListener(
                 'click',
-                this.display.popupClickEventListener
+                this.display.popupClickEventListener,
             );
         }
         this.startHoverHighlight(fileMarker);
@@ -1000,7 +1060,7 @@ export class MapContainer {
         this.display.popupElement = null;
         this.display.popupDiv.removeEventListener(
             'click',
-            this.display.popupClickEventListener
+            this.display.popupClickEventListener,
         );
     }
 
@@ -1035,13 +1095,13 @@ export class MapContainer {
             this.display.map.fitBounds(leaflet.latLngBounds(locations), {
                 maxZoom: Math.min(
                     this.settings.zoomOnGoFromNote,
-                    this.getMapSource().maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM
+                    this.getMapSource().maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM,
                 ),
             });
         } else if (this.viewSettings.emptyFitRevertsToDefault) {
             this.display.map.setView(
                 this.defaultState.mapCenter,
-                this.defaultState.mapZoom
+                this.defaultState.mapZoom,
             );
         }
     }
@@ -1055,7 +1115,7 @@ export class MapContainer {
     async goToFile(
         file: TFile,
         openBehavior: OpenBehavior,
-        editorAction?: (editor: Editor) => Promise<void>
+        editorAction?: (editor: Editor) => Promise<void>,
     ) {
         // Find the best candidate for a leaf to open the note according to the required behavior.
         // This is similar to MainViewPlugin.openMap and should be in sync with that code.
@@ -1102,7 +1162,7 @@ export class MapContainer {
         if (createPane) {
             chosenLeaf = this.app.workspace.getLeaf(
                 'split',
-                this.settings.newPaneSplitDirection
+                this.settings.newPaneSplitDirection,
             );
             this.lastPaneLeaf = chosenLeaf;
         }
@@ -1123,13 +1183,13 @@ export class MapContainer {
     async goToMarker(
         marker: FileMarker,
         openBehavior: OpenBehavior,
-        highlight: boolean
+        highlight: boolean,
     ) {
         return this.goToFile(marker.file, openBehavior, async (editor) => {
             await utils.goToEditorLocation(
                 editor,
                 marker.fileLocation,
-                highlight
+                highlight,
             );
         });
     }
@@ -1146,7 +1206,7 @@ export class MapContainer {
     private async updateMarkersWithRelationToFile(
         fileRemoved: string,
         fileAddedOrChanged: TAbstractFile,
-        skipMetadata: boolean
+        skipMetadata: boolean,
     ) {
         if (!this.display.map || !this.isOpen)
             // If the map has not been set up yet then do nothing
@@ -1165,7 +1225,7 @@ export class MapContainer {
                 newMarkers,
                 fileAddedOrChanged,
                 this.settings,
-                this.app
+                this.app,
             );
             cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
             finalizeMarkers(
@@ -1173,7 +1233,7 @@ export class MapContainer {
                 this.state,
                 this.settings,
                 this.plugin.iconFactory,
-                this.app
+                this.app,
             );
             if (this.state.showLinks) {
                 // At the current state of affairs, if links are displayed and even a single marker is changed, there's
@@ -1182,7 +1242,7 @@ export class MapContainer {
                     Array.combine([markers, newMarkers]),
                     this.app,
                     this.state.showLinks,
-                    this.display.polylines
+                    this.display.polylines,
                 );
             }
         }
@@ -1193,7 +1253,7 @@ export class MapContainer {
         this.display.searchResult = leaflet.marker(details.location, {
             icon: getIconFromOptions(
                 consts.SEARCH_RESULT_MARKER,
-                this.plugin.iconFactory
+                this.plugin.iconFactory,
             ),
         });
         const marker = this.display.searchResult;
@@ -1217,7 +1277,7 @@ export class MapContainer {
                 details.location,
                 this,
                 this.settings,
-                this.app
+                this.app,
             );
             mapPopup.showAtPosition(event.originalEvent);
         });
@@ -1228,7 +1288,7 @@ export class MapContainer {
     goToSearchResult(
         location: leaflet.LatLng,
         marker: FileMarker | leaflet.Marker,
-        keepZoom: boolean = false
+        keepZoom: boolean = false,
     ) {
         this.setHighlight(marker);
         let newState: Partial<MapState> = {};
@@ -1301,7 +1361,7 @@ export class MapContainer {
     /** Try to find the marker that corresponds to a specific file (front matter) or a line in the file (inline) */
     findMarkerByFileLine(
         file: TAbstractFile,
-        fileLine: number | null = null
+        fileLine: number | null = null,
     ): BaseGeoLayer | null {
         for (let [_, fileMarker] of this.display.markers) {
             if (fileMarker.file == file) {
@@ -1328,7 +1388,7 @@ export class MapContainer {
             .marker(center, {
                 icon: getIconFromOptions(
                     consts.CURRENT_LOCATION_MARKER,
-                    this.plugin.iconFactory
+                    this.plugin.iconFactory,
                 ),
             })
             .addTo(this.display.map);
@@ -1343,10 +1403,10 @@ export class MapContainer {
                     this.lastRealTimeLocation.center,
                     this,
                     this.settings,
-                    this.app
+                    this.app,
                 );
                 mapPopup.showAtPosition(event.originalEvent);
-            }
+            },
         );
         this.display.realTimeLocationRadius = leaflet
             .circle(center, { radius: accuracy })
@@ -1358,7 +1418,7 @@ export class MapContainer {
         center: leaflet.LatLng,
         accuracy: number,
         source: RealTimeLocationSource,
-        forceRefresh: boolean = false
+        forceRefresh: boolean = false,
     ) {
         const location =
             center === null
@@ -1402,7 +1462,7 @@ export class MapContainer {
                 .marker(location, {
                     icon: getIconFromOptions(
                         consts.ROUTING_SOURCE_MARKER,
-                        this.plugin.iconFactory
+                        this.plugin.iconFactory,
                     ),
                 })
                 .addTo(this.display.map);
@@ -1418,7 +1478,7 @@ export class MapContainer {
                         });
                     });
                     routingSourcePopup.showAtPosition(ev.originalEvent);
-                }
+                },
             );
         }
     }
@@ -1454,7 +1514,6 @@ export class MapContainer {
             this.display.map.scrollWheelZoom.disable();
             this.display.map.boxZoom.disable();
             this.display.map.keyboard.disable();
-            if (this.display.map.tap) this.display.map.tap.disable();
             if (this.display.zoomControls) {
                 this.display.zoomControls.remove();
                 this.display.zoomControls = null;
@@ -1466,7 +1525,6 @@ export class MapContainer {
             this.display.map.scrollWheelZoom.enable();
             this.display.map.boxZoom.enable();
             this.display.map.keyboard.enable();
-            if (this.display.map.tap) this.display.map.tap.disable();
             if (!this.display.zoomControls) this.addZoomButtons();
         }
     }
@@ -1481,7 +1539,7 @@ export class MapContainer {
                 marker.geoLayer
             ) {
                 const parent = this.display.clusterGroup.getVisibleParent(
-                    marker.geoLayer
+                    marker.geoLayer,
                 );
                 const visibleLeafletMarker = parent || marker.geoLayer;
                 const element = visibleLeafletMarker.getElement();
@@ -1513,7 +1571,7 @@ export class MapContainer {
         for (const marker of this.display.markers.values()) {
             if (marker.geoLayer && marker.geoLayer instanceof leaflet.Marker) {
                 const parent = this.display.clusterGroup.getVisibleParent(
-                    marker.geoLayer
+                    marker.geoLayer,
                 );
                 const visibleLeafletMarker = parent || marker.geoLayer;
                 const element = visibleLeafletMarker.getElement();

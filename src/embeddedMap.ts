@@ -1,10 +1,10 @@
-import { App, Notice, MarkdownPostProcessorContext } from 'obsidian';
+import { App, Notice, type MarkdownPostProcessorContext } from 'obsidian';
 
-import { PluginSettings } from 'src/settings';
+import { type PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';
 
-import { MapContainer, ViewSettings } from 'src/mapContainer';
-import { MapState, getCodeBlock } from 'src/mapState';
+import { MapContainer, type ViewSettings } from 'src/mapContainer';
+import { type MapState, getCodeBlock } from 'src/mapState';
 import { getEditor, findOpenMapView } from 'src/utils';
 
 export class EmbeddedMap {
@@ -22,7 +22,7 @@ export class EmbeddedMap {
         app: App,
         settings: PluginSettings,
         plugin: MapViewPlugin,
-        customViewSettings: Partial<ViewSettings> = null
+        customViewSettings: Partial<ViewSettings> = null,
     ) {
         this.app = app;
         this.settings = settings;
@@ -53,7 +53,7 @@ export class EmbeddedMap {
             settings,
             viewSettings,
             plugin,
-            plugin.app
+            plugin.app,
         );
 
         this.mapContainer.updateCodeBlockCallback = async () => {
@@ -64,7 +64,7 @@ export class EmbeddedMap {
             const view = findOpenMapView(this.app);
             if (!view) {
                 new Notice(
-                    "Can't find another Map View instance to copy the state from"
+                    "Can't find another Map View instance to copy the state from",
                 );
                 return;
             }
@@ -91,7 +91,7 @@ export class EmbeddedMap {
             editor.replaceRange(
                 newBlock,
                 { line: sectionInfo.lineStart, ch: 0 },
-                { line: sectionInfo.lineEnd, ch: lastLineLength }
+                { line: sectionInfo.lineEnd, ch: lastLineLength },
             );
             // If the cursor was in an invisible location of the document (e.g. above the current viewport),
             // calling replaceRange above would scroll back to it. In order to prevent such a jump, and ensure

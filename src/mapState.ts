@@ -1,6 +1,6 @@
 import * as leaflet from 'leaflet';
-import * as querystring from 'query-string';
-import { ViewSettings } from './mapContainer';
+import queryString from 'query-string';
+import { type ViewSettings } from './mapContainer';
 
 /** Represents a logical state of the map, in separation from the map display */
 export type MapState = {
@@ -36,12 +36,12 @@ export function copyState(state: MapState): MapState {
 
 export function mergeStates(
     state1: MapState,
-    state2: Partial<MapState>
+    state2: Partial<MapState>,
 ): MapState {
     // Overwrite an existing state with a new one, that may have null or partial values which need to be ignored
     // and taken from the existing state
     const clearedState = Object.fromEntries(
-        Object.entries(state2).filter(([_, value]) => value != null)
+        Object.entries(state2).filter(([_, value]) => value != null),
     );
     return structuredClone({ ...state1, ...clearedState });
 }
@@ -56,11 +56,11 @@ export function areStatesEqual(state1: MapState, state2: MapState) {
         // be a simple dict and not an actual LatLng
         const mapCenter1 = new leaflet.LatLng(
             state1.mapCenter.lat,
-            state1.mapCenter.lng
+            state1.mapCenter.lng,
         );
         const mapCenter2 = new leaflet.LatLng(
             state2.mapCenter.lat,
-            state2.mapCenter.lng
+            state2.mapCenter.lng,
         );
         if (mapCenter1.distanceTo(mapCenter2) > 1000) return false;
     }
@@ -95,7 +95,7 @@ export function stateToRawObject(state: MapState) {
 }
 
 export function stateToUrl(state: MapState) {
-    return querystring.stringify(stateToRawObject(state));
+    return queryString.stringify(stateToRawObject(state));
 }
 
 export function stateFromParsedUrl(obj: any) {
@@ -106,7 +106,7 @@ export function stateFromParsedUrl(obj: any) {
             obj.centerLat && obj.centerLng
                 ? new leaflet.LatLng(
                       parseFloat(obj.centerLat),
-                      parseFloat(obj.centerLng)
+                      parseFloat(obj.centerLng),
                   )
                 : null,
         query: obj.query,
@@ -125,7 +125,7 @@ export function stateFromParsedUrl(obj: any) {
 
 export function getCodeBlock(
     state: MapState,
-    customViewSettings?: Partial<ViewSettings>
+    customViewSettings?: Partial<ViewSettings>,
 ) {
     const params = JSON.stringify({
         ...stateToRawObject(state),

@@ -1,8 +1,8 @@
 import {
-    DecorationSet,
+    type DecorationSet,
     EditorView,
     Decoration,
-    PluginValue,
+    type PluginValue,
     ViewUpdate,
     ViewPlugin,
 } from '@codemirror/view';
@@ -10,7 +10,7 @@ import { RangeSetBuilder } from '@codemirror/state';
 import {
     editorInfoField,
     MarkdownView,
-    MarkdownPostProcessorContext,
+    type MarkdownPostProcessorContext,
 } from 'obsidian';
 import MapViewPlugin from './main';
 import { matchInlineLocation, generateMarkerId } from './markers';
@@ -62,7 +62,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                 // Make sure that only the visible area is searched, for performance reasons
                 const text = view.state.doc.sliceString(
                     viewport.from,
-                    viewport.to
+                    viewport.to,
                 );
                 const editorInfo = view.state.field(editorInfoField);
                 const fileName =
@@ -90,7 +90,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                             lat,
                             lng,
                             from,
-                            null
+                            null,
                         );
                         matches.push({
                             markerId,
@@ -105,7 +105,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                 let frontMatterMatch = text.match(regex.FRONT_MATTER_LOCATION);
                 if (!frontMatterMatch)
                     frontMatterMatch = text.match(
-                        regex.FRONT_MATTER_LOCATION_V2
+                        regex.FRONT_MATTER_LOCATION_V2,
                     );
                 if (frontMatterMatch) {
                     const lat = frontMatterMatch.groups.lat;
@@ -121,7 +121,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                             lat,
                             lng,
                             null,
-                            null
+                            null,
                         );
                         matches.push({
                             markerId,
@@ -143,8 +143,8 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                             match.to,
                             match.markerId,
                             match.lat,
-                            match.lng
-                        )
+                            match.lng,
+                        ),
                     );
                 }
                 return builder.finish();
@@ -155,7 +155,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                 to: number,
                 markerId: string,
                 lat: string,
-                lng: string
+                lng: string,
             ) {
                 return Decoration.mark({
                     from,
@@ -179,7 +179,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
 
             destroy() {}
         },
-        { decorations: (v) => v.decorations }
+        { decorations: (v) => v.decorations },
     );
 }
 
@@ -203,15 +203,15 @@ export const replaceLinksPostProcessor = (mapViewPlugin: MapViewPlugin) => {
                 ) {
                     link.setAttribute(
                         'onclick',
-                        `handleMapViewGeoLink(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`
+                        `handleMapViewGeoLink(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`,
                     );
                     link.setAttribute(
                         'ontouchstart',
-                        `handleMapViewGeoLink(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`
+                        `handleMapViewGeoLink(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`,
                     );
                     link.setAttribute(
                         'onmouseover',
-                        `createMapPopup(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`
+                        `createMapPopup(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`,
                     );
                     link.setAttribute('onmouseout', 'closeMapPopup(event)');
                 }

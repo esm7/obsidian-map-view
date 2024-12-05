@@ -1,5 +1,3 @@
-import * as utils from 'src/utils';
-
 // The pound sign is optional here
 export const TAG_NAME_WITH_HEADER = /tag:(#?[\p{L}\p{N}_\/\-]*)/gu;
 // Same as above, but also supporting wildcards for query purposes (not used for inline tags)
@@ -37,14 +35,3 @@ export const FRONT_MATTER_LOCATION =
     /(?<header>^---.*)(?<loc>location:[ \t]*\[(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\]).*^---/ms;
 
 // location: [32.84577588420059,35.36074429750443]
-
-/**
- * Returns a match object if the given cursor position has the beginning
- * of a `tag:...` expression
- */
-export function getTagUnderCursor(
-    line: string,
-    cursorPosition: number
-): RegExpMatchArray {
-    return utils.matchByPosition(line, TAG_NAME_WITH_HEADER, cursorPosition);
-}

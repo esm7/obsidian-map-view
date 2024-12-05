@@ -13,15 +13,15 @@ import { askForLocation } from 'src/realTimeLocation';
 // A global ID to differentiate instances of the controls for the purpose of label creation
 let lastGlobalId = 0;
 
-import { PluginSettings, MapLightDark } from 'src/settings';
+import { type PluginSettings, type MapLightDark } from 'src/settings';
 
-import { MapState, areStatesEqual, mergeStates } from 'src/mapState';
-import { MapContainer, ViewSettings } from 'src/mapContainer';
+import { type MapState, areStatesEqual, mergeStates } from 'src/mapState';
+import { MapContainer, type ViewSettings } from 'src/mapContainer';
 import { NewPresetDialog } from 'src/newPresetDialog';
 import MapViewPlugin from 'src/main';
 import { QuerySuggest } from 'src/query';
 import { LocationSearchDialog, SuggestInfo } from 'src/locationSearchDialog';
-import { FileMarker, MarkersMap } from 'src/markers';
+import { FileMarker, type MarkersMap } from 'src/markers';
 import * as utils from 'src/utils';
 import * as consts from 'src/consts';
 
@@ -63,7 +63,7 @@ export class ViewControls {
         viewSettings: ViewSettings,
         app: App,
         view: MapContainer,
-        plugin: MapViewPlugin
+        plugin: MapViewPlugin,
     ) {
         this.parentElement = parentElement;
         this.settings = settings;
@@ -119,11 +119,11 @@ export class ViewControls {
         this.setQueryBoxByState();
         this.setLinksByState();
         this.markerLabelBox.setValue(
-            this.getCurrentState().markerLabels ?? 'off'
+            this.getCurrentState().markerLabels ?? 'off',
         );
         if (this.followActiveNoteToggle)
             this.followActiveNoteToggle.setValue(
-                this.getCurrentState().followActiveNote == true
+                this.getCurrentState().followActiveNote == true,
             );
         this.updateSaveButtonVisibility();
         this.updateOngoing = false;
@@ -132,7 +132,7 @@ export class ViewControls {
     private setMapSourceBoxByState() {
         if (this.mapSourceBox)
             this.mapSourceBox.setValue(
-                this.getCurrentState().chosenMapSource.toString()
+                this.getCurrentState().chosenMapSource.toString(),
             );
     }
 
@@ -153,7 +153,7 @@ export class ViewControls {
         this.updateSaveButtonVisibility();
         await this.setNewState(
             { ...state, query: newQuery },
-            newQuery.length > 0
+            newQuery.length > 0,
         );
         this.showHideFiltersOn(newQuery);
     }
@@ -189,7 +189,7 @@ export class ViewControls {
         const linkColor = this.linkColorBox.getValue();
         await this.setNewState(
             { ...state, showLinks: showLinks, linkColor: linkColor },
-            false
+            false,
         );
         this.invalidateActivePreset();
     }
@@ -203,7 +203,7 @@ export class ViewControls {
         // Get the filters 'on' span and show/hide it based on whether we have a query.
         // This is really just one proof too much that this whole file needs to be rewritten with Svelte...
         const label = this.controlsDiv.getElementsByClassName(
-            'mv-filters-on'
+            'mv-filters-on',
         )[0] as HTMLSpanElement;
         label.style.display = query?.length > 0 ? 'inline' : 'none';
     }
@@ -217,7 +217,7 @@ export class ViewControls {
             let openMapView = new ButtonComponent(this.controlsDiv);
             openMapView.buttonEl.addClass(
                 'mv-map-control',
-                'mv-control-button'
+                'mv-control-button',
             );
             openMapView
                 .setButtonText('Open')
@@ -230,9 +230,9 @@ export class ViewControls {
                         utils.mouseEventToOpenMode(
                             this.settings,
                             ev,
-                            'openMap'
+                            'openMap',
                         ),
-                        false
+                        false,
                     );
                 });
         }
@@ -240,12 +240,12 @@ export class ViewControls {
             this.saveButton = new ButtonComponent(this.controlsDiv);
             this.saveButton.buttonEl.addClass(
                 'mv-map-control',
-                'mv-control-button'
+                'mv-control-button',
             );
             this.saveButton
                 .setButtonText('Save')
                 .setTooltip(
-                    'Update the source code block with the updated view state'
+                    'Update the source code block with the updated view state',
                 )
                 .onClick(async () => {
                     this.view.updateCodeBlockCallback();
@@ -267,7 +267,7 @@ export class ViewControls {
 				
 				`;
             const filtersButton = filtersDiv.getElementsByClassName(
-                'controls-toggle'
+                'controls-toggle',
             )[0] as HTMLInputElement;
             filtersButton.checked = this.settings.mapControls.filtersDisplayed;
             filtersButton.onclick = async () => {
@@ -296,11 +296,11 @@ export class ViewControls {
                         suggestor = new QuerySuggest(
                             this.app,
                             this.plugin,
-                            this.queryBox
+                            this.queryBox,
                         );
                         suggestor.open();
                     }
-                }
+                },
             );
             this.queryBox.inputEl.addEventListener(
                 'focusout',
@@ -309,7 +309,7 @@ export class ViewControls {
                         suggestor.close();
                         suggestor = null;
                     }
-                }
+                },
             );
             let clearButton = queryDiv.createDiv('search-input-clear-button');
             clearButton.onClickEvent((ev) => {
@@ -328,7 +328,7 @@ export class ViewControls {
 				<label for="viewCollapsible${lastGlobalId}" class="lbl-toggle">View</label>
 				`;
             const viewButton = viewDiv.getElementsByClassName(
-                'controls-toggle'
+                'controls-toggle',
             )[0] as HTMLInputElement;
             viewButton.checked = this.settings.mapControls.viewDisplayed;
             viewButton.onclick = async () => {
@@ -368,15 +368,15 @@ export class ViewControls {
             goDefault.buttonEl.addClass('mv-map-control');
             if (this.viewSettings.showEmbeddedControls) {
                 this.updateFromActiveMapView = new ButtonComponent(
-                    viewDivContent
+                    viewDivContent,
                 );
                 this.updateFromActiveMapView.buttonEl.addClass(
-                    'mv-map-control'
+                    'mv-map-control',
                 );
                 this.updateFromActiveMapView
                     .setButtonText('Update from open Map View')
                     .setTooltip(
-                        'Update the view and its source code block from an open Map View'
+                        'Update the view and its source code block from an open Map View',
                     )
                     .onClick(async () => {
                         this.view.updateCodeBlockFromMapViewCallback();
@@ -387,13 +387,13 @@ export class ViewControls {
                         (
                             this.getCurrentState()?.embeddedHeight ??
                             consts.DEFAULT_EMBEDDED_HEIGHT
-                        ).toString()
+                        ).toString(),
                     )
                     .onChange(async (value) => {
                         const state = this.getCurrentState();
                         await this.setNewState(
                             { ...state, embeddedHeight: parseInt(value) },
-                            false
+                            false,
                         );
                         this.updateSaveButtonVisibility();
                     });
@@ -405,7 +405,7 @@ export class ViewControls {
                 fitButton
                     .setButtonText('Fit')
                     .setTooltip(
-                        'Set the map view to fit all currently-displayed markers.'
+                        'Set the map view to fit all currently-displayed markers.',
                     )
                     .onClick(() => this.view.autoFitMapToMarkers());
                 fitButton.buttonEl.addClass('mv-map-control');
@@ -426,7 +426,7 @@ export class ViewControls {
                 followLabel.addEventListener('click', () => {
                     this.followActiveNoteToggle.onClick();
                     resetQueryOnFollowOff(
-                        this.followActiveNoteToggle.getValue()
+                        this.followActiveNoteToggle.getValue(),
                     );
                 });
                 followLabel.innerHTML = 'Follow active note';
@@ -435,7 +435,7 @@ export class ViewControls {
                 });
                 this.followActiveNoteToggle.toggleEl.onClickEvent(() => {
                     resetQueryOnFollowOff(
-                        this.followActiveNoteToggle.getValue()
+                        this.followActiveNoteToggle.getValue(),
                     );
                 });
 
@@ -450,7 +450,7 @@ export class ViewControls {
                         const markerLabels = value as 'off' | 'left' | 'right';
                         await this.setNewState(
                             { ...state, markerLabels: markerLabels },
-                            false
+                            false,
                         );
                         this.invalidateActivePreset();
                     })
@@ -471,7 +471,7 @@ export class ViewControls {
 				<label for="linksCollapsible${lastGlobalId}" class="lbl-toggle">Links</label>
 				`;
             const linksButton = linksDiv.getElementsByClassName(
-                'controls-toggle'
+                'controls-toggle',
             )[0] as HTMLInputElement;
             linksButton.checked = this.settings.mapControls.linksDisplayed;
             linksButton.onclick = async () => {
@@ -501,7 +501,7 @@ export class ViewControls {
             setTooltip(
                 this.linkColorBox.inputEl,
                 "Color used for link lines (edges). Can be any valid HTML color, e.g. 'red' or '#bc11ff'.",
-                { delay: 0 }
+                { delay: 0 },
             );
 
             this.setLinksByState();
@@ -517,7 +517,7 @@ export class ViewControls {
 				<label for="presetsCollapsible${lastGlobalId}" class="lbl-toggle">Presets</label>
 				`;
             const presetsButton = this.presetsDiv.getElementsByClassName(
-                'controls-toggle'
+                'controls-toggle',
             )[0] as HTMLInputElement;
             presetsButton.checked = this.settings.mapControls.presetsDisplayed;
             presetsButton.onclick = async () => {
@@ -540,7 +540,7 @@ export class ViewControls {
         this.lastSelectedPresetIndex = chosenPresetNumber;
         this.lastSelectedPreset = mergeStates(
             this.getCurrentState(),
-            chosenPreset
+            chosenPreset,
         );
         await this.setNewState({ ...chosenPreset }, false);
         this.updateControlsToState();
@@ -587,7 +587,7 @@ export class ViewControls {
                         // If a new preset was added, this small function makes sure it's selected afterwards
                         this.refreshPresets();
                         if (index) this.presetsBox.setValue(index);
-                    }
+                    },
                 );
                 dialog.open();
             });
@@ -628,7 +628,7 @@ export class ViewControls {
         const copyBlock = new ButtonComponent(this.presetsDivContent)
             .setButtonText('Copy block')
             .setTooltip(
-                'Copy the current view as a block code you can paste in notes for an inline map.'
+                'Copy the current view as a block code you can paste in notes for an inline map.',
             )
             .onClick(async () => {
                 this.view.copyCodeBlock();
@@ -669,7 +669,7 @@ export class SearchControl extends leaflet.Control {
         view: MapContainer,
         app: App,
         plugin: MapViewPlugin,
-        settings: PluginSettings
+        settings: PluginSettings,
     ) {
         super(options);
         this.view = view;
@@ -681,7 +681,7 @@ export class SearchControl extends leaflet.Control {
     onAdd(map: leaflet.Map) {
         const div = leaflet.DomUtil.create(
             'div',
-            'leaflet-bar leaflet-control'
+            'leaflet-bar leaflet-control',
         );
         this.searchButton = div.createEl('a');
         this.searchButton.innerHTML = '🔍';
@@ -721,7 +721,7 @@ export class SearchControl extends leaflet.Control {
                 const d2 = item2.location.distanceTo(center);
                 if (d1 < d2) return -1;
                 else return 1;
-            }
+            },
         );
 
         const searchDialog = new LocationSearchDialog(
@@ -734,11 +734,11 @@ export class SearchControl extends leaflet.Control {
             null,
             markersByDistanceToCenter,
             true,
-            [{ command: 'shift+enter', purpose: 'go without zoom & pan' }]
+            [{ command: 'shift+enter', purpose: 'go without zoom & pan' }],
         );
         searchDialog.customOnSelect = (
             selection: SuggestInfo,
-            evt: MouseEvent | KeyboardEvent
+            evt: MouseEvent | KeyboardEvent,
         ) => {
             this.view.removeSearchResultMarker();
             const keepZoom = evt.shiftKey;
@@ -746,7 +746,7 @@ export class SearchControl extends leaflet.Control {
                 this.view.goToSearchResult(
                     selection.location,
                     selection.existingMarker,
-                    keepZoom
+                    keepZoom,
                 );
             } else if (selection && selection.location) {
                 this.view.addSearchResultMarker(selection, keepZoom);
@@ -769,7 +769,7 @@ export class RealTimeControl extends leaflet.Control {
         options: any,
         view: MapContainer,
         app: App,
-        settings: PluginSettings
+        settings: PluginSettings,
     ) {
         super(options);
         this.view = view;
@@ -780,7 +780,7 @@ export class RealTimeControl extends leaflet.Control {
     onAdd(map: leaflet.Map) {
         const div = leaflet.DomUtil.create(
             'div',
-            'leaflet-bar leaflet-control'
+            'leaflet-bar leaflet-control',
         );
         this.locateButton = div.createEl('a');
         this.locateButton.innerHTML = '⌖';
@@ -816,7 +816,7 @@ export class LockControl extends leaflet.Control {
         options: any,
         view: MapContainer,
         app: App,
-        settings: PluginSettings
+        settings: PluginSettings,
     ) {
         super(options);
         this.view = view;
@@ -827,7 +827,7 @@ export class LockControl extends leaflet.Control {
     onAdd(map: leaflet.Map) {
         const div = leaflet.DomUtil.create(
             'div',
-            'leaflet-bar leaflet-control'
+            'leaflet-bar leaflet-control',
         );
         this.lockButton = div.createEl('a', 'mv-icon-button');
         const icon = getIcon('lock');

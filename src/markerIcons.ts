@@ -6,8 +6,8 @@ import { far } from '@fortawesome/free-regular-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
 import {
     library,
-    IconPrefix,
-    IconName,
+    type IconPrefix,
+    type IconName,
     config as faConfig,
     findIconDefinition,
     icon as faIcon,
@@ -20,7 +20,7 @@ import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 let localL = L;
 import wildcard from 'wildcard';
 
-import { MarkerIconRule } from 'src/settings';
+import { type MarkerIconRule } from 'src/settings';
 
 // An extended Map View icon options, adding 'simple-circle' to the options of the 'shape' field.
 export interface IconOptions
@@ -31,7 +31,7 @@ export interface IconOptions
 export function getIconFromRules(
     tags: string[],
     rules: MarkerIconRule[],
-    iconFactory: IconFactory
+    iconFactory: IconFactory,
 ) {
     // We iterate over the rules and apply them one by one, so later rules override earlier ones
     let result = rules.find((item) => item.ruleName === 'default').iconDetails;
@@ -45,7 +45,7 @@ export function getIconFromRules(
 
 export function getIconFromOptions(
     iconSpec: IconOptions,
-    iconFactory: IconFactory
+    iconFactory: IconFactory,
 ): leaflet.Icon | leaflet.DivIcon {
     // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
     // @ts-ignore
@@ -62,12 +62,12 @@ export function getIconFromOptions(
                 // If we got here, the icon is a leaflet.ExtraMarkers icon
                 const internalIcon = getInternalIconFromOptions(
                     iconSpec,
-                    iconFactory
+                    iconFactory,
                 );
                 iconSpec.innerHTML = internalIcon;
             }
             return leaflet.ExtraMarkers.icon(
-                iconSpec as leaflet.ExtraMarkers.IconOptions
+                iconSpec as leaflet.ExtraMarkers.IconOptions,
             );
         }
     } finally {
@@ -78,7 +78,7 @@ export function getIconFromOptions(
 
 export function createIconElement(
     containerEl: HTMLElement,
-    icon: leaflet.Icon | leaflet.DivIcon
+    icon: leaflet.Icon | leaflet.DivIcon,
 ): HTMLElement {
     if ('html' in icon.options) {
         const element = containerEl.createDiv();
@@ -89,7 +89,7 @@ export function createIconElement(
 
 function getInternalIconFromOptions(
     iconSpec: IconOptions,
-    iconFactory: IconFactory
+    iconFactory: IconFactory,
 ): string {
     const errorIcon = '<p class="mv-emoji-icon" style="color:white">❓</p>';
     if (isFontAwesome(iconSpec.icon)) {
@@ -166,7 +166,7 @@ export function checkTagPatternMatch(tagPattern: string, tags: string[]) {
  */
 function createSimpleCircleMarker(
     iconSpec: IconOptions,
-    iconFactory: IconFactory
+    iconFactory: IconFactory,
 ): leaflet.DivIcon {
     const internalIcon = getInternalIconFromOptions(iconSpec, iconFactory);
     const circleIcon = leaflet.divIcon({

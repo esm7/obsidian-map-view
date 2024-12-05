@@ -1,5 +1,5 @@
 import * as leaflet from 'leaflet';
-import { PluginSettings } from 'src/settings';
+import { type PluginSettings } from 'src/settings';
 import { isMobile } from 'src/utils';
 import { App, Notice } from 'obsidian';
 import { exec } from 'child_process';
@@ -50,13 +50,13 @@ export function askForLocation(
     settings: PluginSettings,
     geoaction: GeoHelperAction = 'locate',
     mvaction: MapViewGpsAction = 'showonmap',
-    mvcontext = ''
+    mvcontext = '',
 ): boolean {
     if (!settings.supportRealTimeGeolocation) return false;
     if (isMobile(app) && settings.geoHelperPreferApp) {
         open(
             'geohelper://locate' +
-                `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`
+                `?geoaction=${geoaction}&mvaction=${mvaction}&mvcontext=${mvcontext}`,
         );
         new Notice('Asking GeoHelper App for location');
         return true;

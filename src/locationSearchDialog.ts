@@ -1,13 +1,13 @@
-import { Editor, App, SuggestModal, TFile, Instruction } from 'obsidian';
+import { Editor, App, SuggestModal, TFile, type Instruction } from 'obsidian';
 import * as leaflet from 'leaflet';
 
 import MapViewPlugin from 'src/main';
-import { PluginSettings } from 'src/settings';
+import { type PluginSettings } from 'src/settings';
 import { GeoSearcher, GeoSearchResult } from 'src/geosearch';
 import {
     getIconFromOptions,
     createIconElement,
-    IconOptions,
+    type IconOptions,
 } from 'src/markerIcons';
 import * as utils from 'src/utils';
 import * as consts from 'src/consts';
@@ -36,7 +36,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
     // If dialogAction is 'custom', this will launch upon selection
     public customOnSelect: (
         selection: SuggestInfo,
-        evt: MouseEvent | KeyboardEvent
+        evt: MouseEvent | KeyboardEvent,
     ) => void;
     // If specified, this rectangle is used as a parameter for the various geocoding providers, so they can
     // prioritize results that are closer to the current view
@@ -52,7 +52,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         file: TFile = null,
         includeResults: SuggestInfo[] = null,
         hasIcons: boolean = false,
-        moreInstructions: Instruction[] = null
+        moreInstructions: Instruction[] = null,
     ) {
         super(app);
         this.plugin = plugin;
@@ -65,7 +65,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         this.hasIcons = hasIcons;
 
         this.setPlaceholder(
-            title + ': type a place name or paste a string to parse'
+            title + ': type a place name or paste a string to parse',
         );
         let instructions = [{ command: 'enter', purpose: 'to use' }];
         if (moreInstructions)
@@ -123,11 +123,11 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
             let iconDiv = el.createDiv('search-icon-div');
             const compiledIcon = getIconFromOptions(
                 value.icon ?? consts.SEARCH_RESULT_MARKER,
-                this.plugin.iconFactory
+                this.plugin.iconFactory,
             );
             let iconElement: HTMLElement = createIconElement(
                 iconDiv,
-                compiledIcon
+                compiledIcon,
             );
             let style = iconElement.style;
             style.marginLeft = style.marginTop = '0';
@@ -143,7 +143,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
             this.plugin.newFrontMatterNote(
                 value.location,
                 evt,
-                utils.sanitizePlaceNameForNoteName(value.name)
+                utils.sanitizePlaceNameForNoteName(value.name),
             );
         else if (this.dialogAction == 'addToNote')
             this.addToNote(value.location, evt, value.name);
@@ -154,7 +154,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
     async addToNote(
         location: leaflet.LatLng,
         ev: MouseEvent | KeyboardEvent,
-        query: string
+        query: string,
     ) {
         const locationString = `${location.lat},${location.lng}`;
         utils.verifyOrAddFrontMatter(
@@ -163,7 +163,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
             this.file,
             this.settings.frontMatterKey,
             locationString,
-            false
+            false,
         );
     }
 
@@ -182,7 +182,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         this.lastSearch = query;
         this.lastSearchResults = await this.searcher.search(
             query,
-            this.searchArea
+            this.searchArea,
         );
         (this as any).updateSuggestions();
     }

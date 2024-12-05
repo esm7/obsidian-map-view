@@ -2,14 +2,13 @@ import {
     App,
     Editor,
     EditorSuggest,
-    EditorPosition,
+    type EditorPosition,
     TFile,
-    EditorSuggestTriggerInfo,
-    EditorSuggestContext,
+    type EditorSuggestTriggerInfo,
+    type EditorSuggestContext,
 } from 'obsidian';
 
-import { PluginSettings } from 'src/settings';
-import { getTagUnderCursor } from 'src/regex';
+import { type PluginSettings } from 'src/settings';
 import { matchInlineLocation } from 'src/markers';
 import * as utils from 'src/utils';
 import MapViewPlugin from 'src/main';
@@ -30,7 +29,7 @@ export class TagSuggest extends EditorSuggest<SuggestInfo> {
     onTrigger(
         cursor: EditorPosition,
         editor: Editor,
-        file: TFile
+        file: TFile,
     ): EditorSuggestTriggerInfo | null {
         const line = editor.getLine(cursor.line);
         // Start by verifying that the current line has an inline location.
@@ -38,7 +37,7 @@ export class TagSuggest extends EditorSuggest<SuggestInfo> {
         // starts typing 'tag:'
         const hasLocationMatch = matchInlineLocation(line);
         if (!hasLocationMatch || hasLocationMatch.length == 0) return null;
-        const tagMatch = getTagUnderCursor(line, cursor.ch);
+        const tagMatch = utils.getTagUnderCursor(line, cursor.ch);
         if (tagMatch)
             return {
                 start: { line: cursor.line, ch: tagMatch.index },
@@ -61,7 +60,7 @@ export class TagSuggest extends EditorSuggest<SuggestInfo> {
             .getAllTagNames(this.app, this.plugin)
             .map((value) => noPound(value))
             .filter((value) =>
-                value.toLowerCase().includes(tagQuery.toLowerCase())
+                value.toLowerCase().includes(tagQuery.toLowerCase()),
             );
         return matchingTags.map((tagName) => {
             return {
@@ -81,7 +80,7 @@ export class TagSuggest extends EditorSuggest<SuggestInfo> {
         value.context.editor.replaceRange(
             linkResult,
             value.context.start,
-            value.context.end
+            value.context.end,
         );
     }
 }

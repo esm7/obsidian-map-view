@@ -2,26 +2,28 @@ import {
     App,
     TFile,
     getAllTags,
-    CachedMetadata,
-    HeadingCache,
-    BlockCache,
-    LinkCache,
+    type HeadingCache,
+    type BlockCache,
+    type LinkCache,
     parseLinktext,
     resolveSubpath,
-    FrontmatterLinkCache,
+    type FrontmatterLinkCache,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 
-import { PluginSettings } from 'src/settings';
-import { getIconFromRules, IconFactory, IconOptions } from 'src/markerIcons';
-import { MapState } from 'src/mapState';
+import { type PluginSettings } from 'src/settings';
+import {
+    getIconFromRules,
+    IconFactory,
+    type IconOptions,
+} from 'src/markerIcons';
+import { type MapState } from 'src/mapState';
 import * as consts from 'src/consts';
 import * as regex from 'src/regex';
 import { djb2Hash, getHeadingAndBlockForFilePosition } from 'src/utils';
 import wildcard from 'wildcard';
-import { settings } from 'cluster';
 
 type MarkerId = string;
 
@@ -42,7 +44,7 @@ export class Edge {
     constructor(
         marker1: FileMarker,
         marker2: FileMarker,
-        polyline: leaflet.Polyline = null
+        polyline: leaflet.Polyline = null,
     ) {
         this.marker1 = marker1;
         this.marker2 = marker2;
@@ -193,7 +195,7 @@ export class FileMarker extends BaseGeoLayer {
             this.location.lat.toString(),
             this.location.lng.toString(),
             this.fileLocation,
-            this.fileLine
+            this.fileLine,
         );
     }
 
@@ -207,7 +209,7 @@ export function generateMarkerId(
     lat: string,
     lng: string,
     fileLocation?: number,
-    fileLine?: number
+    fileLine?: number,
 ): string {
     return (
         djb2Hash(fileName) +
@@ -217,8 +219,8 @@ export function generateMarkerId(
         (fileLocation
             ? fileLocation
             : fileLine
-            ? 'nofileloc' + fileLine
-            : 'nofileline')
+              ? 'nofileloc' + fileLine
+              : 'nofileline')
     );
 }
 
@@ -238,7 +240,7 @@ export async function buildAndAppendFileMarkers(
     file: TFile,
     settings: PluginSettings,
     app: App,
-    skipMetadata?: boolean
+    skipMetadata?: boolean,
 ) {
     const fileCache = app.metadataCache.getFileCache(file);
     const frontMatter = fileCache?.frontmatter;
@@ -261,7 +263,7 @@ export async function buildAndAppendFileMarkers(
             const markersFromFile = await getMarkersFromFileContent(
                 file,
                 settings,
-                app
+                app,
             );
             mapToAppendTo.push(...markersFromFile);
         }
@@ -277,7 +279,7 @@ export async function buildAndAppendFileMarkers(
 export async function buildMarkers(
     files: TFile[],
     settings: PluginSettings,
-    app: App
+    app: App,
 ): Promise<BaseGeoLayer[]> {
     if (settings.debug) console.time('buildMarkers');
     let markers: BaseGeoLayer[] = [];
@@ -298,14 +300,14 @@ export function finalizeMarkers(
     state: MapState,
     settings: PluginSettings,
     iconFactory: IconFactory,
-    app: App
+    app: App,
 ) {
     for (const marker of markers) {
         if (marker instanceof FileMarker) {
             marker.icon = getIconFromRules(
                 marker.tags,
                 settings.markerIconRules,
-                iconFactory
+                iconFactory,
             );
         } else {
             throw 'Unsupported object type ' + marker.constructor.name;
@@ -355,7 +357,7 @@ export function matchInlineLocation(content: string): RegExpMatchArray[] {
 export async function getMarkersFromFileContent(
     file: TFile,
     settings: PluginSettings,
-    app: App
+    app: App,
 ): Promise<FileMarker[]> {
     let markers: FileMarker[] = [];
     // Get the tags of the file, to these we will add the tags associated with each individual marker (inline tags)
@@ -367,7 +369,7 @@ export async function getMarkersFromFileContent(
         try {
             const location = new leaflet.LatLng(
                 parseFloat(match.groups.lat),
-                parseFloat(match.groups.lng)
+                parseFloat(match.groups.lng),
             );
             verifyLocation(location);
             const marker = new FileMarker(file, location);
@@ -388,7 +390,7 @@ export async function getMarkersFromFileContent(
                 1;
             const [heading, block] = getHeadingAndBlockForFilePosition(
                 metadata,
-                marker.fileLocation
+                marker.fileLocation,
             );
             marker.fileHeading = heading;
             marker.fileBlock = block;
@@ -398,7 +400,7 @@ export async function getMarkersFromFileContent(
         } catch (e) {
             console.log(
                 `Error converting location in file ${file.name}: could not parse ${match[0]}`,
-                e
+                e,
             );
         }
     }
@@ -413,7 +415,7 @@ export async function getMarkersFromFileContent(
 export function getFrontMatterLocation(
     file: TFile,
     app: App,
-    settings: PluginSettings
+    settings: PluginSettings,
 ): leaflet.LatLng {
     const fileCache = app.metadataCache.getFileCache(file);
     const frontMatter = fileCache?.frontmatter;
@@ -428,13 +430,13 @@ export function getFrontMatterLocation(
                 if (Number.isNaN(lat) || Number.isNaN(lng)) {
                     console.log(
                         'Unknown location format:',
-                        frontMatterLocation
+                        frontMatterLocation,
                     );
                     return null;
                 }
                 const location = new leaflet.LatLng(
                     frontMatterLocation[0],
-                    frontMatterLocation[1]
+                    frontMatterLocation[1],
                 );
                 verifyLocation(location);
                 return location;
@@ -459,14 +461,14 @@ export function getFrontMatterLocation(
                 ) {
                     const location = new leaflet.LatLng(
                         locationV2.groups.lat,
-                        locationV2.groups.lng
+                        locationV2.groups.lng,
                     );
                     verifyLocation(location);
                     return location;
                 } else
                     console.log(
                         `Unknown front matter location format: `,
-                        frontMatterLocation
+                        frontMatterLocation,
                     );
             }
         } catch (e) {
@@ -480,7 +482,7 @@ export function addEdgesToMarkers(
     markers: BaseGeoLayer[],
     app: App,
     showLinks: boolean,
-    allPolylines: leaflet.Polyline[]
+    allPolylines: leaflet.Polyline[],
 ) {
     if (!showLinks) return;
 
@@ -505,7 +507,7 @@ export function addEdgesToMarkers(
             fileWithMarkers,
             filesWithMarkersMap,
             app,
-            nodesSeen
+            nodesSeen,
         );
     }
 }
@@ -518,7 +520,7 @@ function addEdgesFromFile(
     source: FileWithMarkers,
     filesWithMarkersMap: Map<string, FileWithMarkers>,
     app: App,
-    nodesSeen: Set<string>
+    nodesSeen: Set<string>,
 ) {
     const file = source.file;
     const path = file.path;
@@ -539,7 +541,7 @@ function addEdgesFromFile(
     for (const link of allLinks) {
         let destination = app.metadataCache.getFirstLinkpathDest(
             link.link,
-            path
+            path,
         );
         if (destination?.path && filesWithMarkersMap.has(destination.path)) {
             // Both the source file and the destination file have markers;
@@ -547,7 +549,7 @@ function addEdgesFromFile(
             // It can be all the pairs between the files, but in case of more specialized links (heading or block links),
             // it can be just some of them.
             let destinationFileWithMarkers = filesWithMarkersMap.get(
-                destination.path
+                destination.path,
             );
             for (let destinationMarker of destinationFileWithMarkers.markers) {
                 if (isMarkerLinkedFrom(destinationMarker, link, app)) {
@@ -557,7 +559,7 @@ function addEdgesFromFile(
                         if (sourceMarker != destinationMarker) {
                             const edge = new Edge(
                                 sourceMarker,
-                                destinationMarker
+                                destinationMarker,
                             );
                             sourceMarker.addEdge(edge);
                             destinationMarker.addEdge(edge);
@@ -577,7 +579,7 @@ function addEdgesFromFile(
  */
 export function cacheTagsFromMarkers(
     markers: BaseGeoLayer[],
-    tagsSet: Set<string>
+    tagsSet: Set<string>,
 ) {
     for (const marker of markers) {
         marker.tags.forEach((tag) => tagsSet.add(tag));
@@ -592,7 +594,7 @@ export function cacheTagsFromMarkers(
 export function isMarkerLinkedFrom(
     marker: FileMarker,
     linkCache: LinkCache | FrontmatterLinkCache,
-    app: App
+    app: App,
 ) {
     const parsedLink = parseLinktext(linkCache.link);
     const fileMatches =

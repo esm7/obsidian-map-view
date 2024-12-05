@@ -1,6 +1,6 @@
 import { LatLng } from 'leaflet';
-import { SplitDirection, Notice } from 'obsidian';
-import { MapState, LegacyMapState } from 'src/mapState';
+import { type SplitDirection, Notice } from 'obsidian';
+import { type MapState, type LegacyMapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import * as consts from 'src/consts';
 
@@ -304,7 +304,7 @@ export function convertLegacyDefaultState(settings: PluginSettings): boolean {
 
 export function removeLegacyPresets1(settings: PluginSettings): boolean {
     const googleMapsParsingRule = settings.urlParsingRules.findIndex(
-        (rule) => rule.name == 'Google Maps' && rule.preset
+        (rule) => rule.name == 'Google Maps' && rule.preset,
     );
     if (googleMapsParsingRule > -1) {
         settings.urlParsingRules.splice(googleMapsParsingRule, 1);
@@ -312,7 +312,7 @@ export function removeLegacyPresets1(settings: PluginSettings): boolean {
     }
     if (
         settings.mapSources.findIndex(
-            (item) => item.name == DEFAULT_SETTINGS.mapSources[0].name
+            (item) => item.name == DEFAULT_SETTINGS.mapSources[0].name,
         ) === -1
     ) {
         settings.mapSources.unshift(DEFAULT_SETTINGS.mapSources[0]);
@@ -375,50 +375,50 @@ export function convertLegacyOpenBehavior(settings: PluginSettings): boolean {
 
 export async function convertLegacySettings(
     settings: PluginSettings,
-    plugin: MapViewPlugin
+    plugin: MapViewPlugin,
 ) {
     let changed = false;
     // Convert old settings formats that are no longer supported
     if (convertLegacyMarkerIcons(settings)) {
         changed = true;
         new Notice(
-            'Map View: legacy marker icons were converted to the new format'
+            'Map View: legacy marker icons were converted to the new format',
         );
     }
     if (convertLegacyTilesUrl(settings)) {
         changed = true;
         new Notice(
-            'Map View: legacy tiles URL was converted to the new format'
+            'Map View: legacy tiles URL was converted to the new format',
         );
     }
     if (convertLegacyDefaultState(settings)) {
         changed = true;
         new Notice(
-            'Map View: legacy default state was converted to the new format'
+            'Map View: legacy default state was converted to the new format',
         );
     }
     if (removeLegacyPresets1(settings)) {
         changed = true;
         new Notice(
-            'Map View: legacy URL parsing rules and/or map sources were converted. See the release notes'
+            'Map View: legacy URL parsing rules and/or map sources were converted. See the release notes',
         );
     }
     if (convertTagsToQueries(settings)) {
         changed = true;
         new Notice(
-            'Map View: legacy tag queries were converted to the new query format'
+            'Map View: legacy tag queries were converted to the new query format',
         );
     }
     if (convertUrlParsingRules1(settings)) {
         changed = true;
         new Notice(
-            'Map View: URL parsing rules were converted to the new format'
+            'Map View: URL parsing rules were converted to the new format',
         );
     }
     if (convertLegacyOpenBehavior(settings)) {
         changed = true;
         new Notice(
-            'Map View: marker click settings were converted to the new settings format (check the settings for new options!)'
+            'Map View: marker click settings were converted to the new settings format (check the settings for new options!)',
         );
     }
 

@@ -9,7 +9,7 @@ import {
 
 import { XMLParser } from 'fast-xml-parser';
 
-import { PluginSettings } from 'src/settings';
+import { type PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import * as regex from 'src/regex';
@@ -31,7 +31,7 @@ export class ImportDialog extends Modal {
         file: TFile,
         app: App,
         plugin: MapViewPlugin,
-        settings: PluginSettings
+        settings: PluginSettings,
     ) {
         super(app);
         this.editor = editor;
@@ -52,10 +52,10 @@ export class ImportDialog extends Modal {
 		`;
         // TODO make collapsible
         const templateBox = new TextAreaComponent(row2).setValue(
-            `- [{{name}}](geo:{{location}})`
+            `- [{{name}}](geo:{{location}})`,
         );
         const fileInput = document.getElementById(
-            'file-input'
+            'file-input',
         ) as HTMLInputElement;
         let imported: ImportedFile | null = null;
         fileInput.addEventListener('change', (ev) => {
@@ -78,7 +78,7 @@ export class ImportDialog extends Modal {
                 if (!imported || imported.items.length === 0) return;
                 const text = styleImportedList(
                     imported,
-                    templateBox.getValue()
+                    templateBox.getValue(),
                 );
                 if (text) {
                     this.editor.replaceSelection(text);
@@ -86,7 +86,7 @@ export class ImportDialog extends Modal {
                         this.app,
                         this.editor,
                         this.file,
-                        this.settings
+                        this.settings,
                     );
                 }
                 this.close();
@@ -128,7 +128,7 @@ async function tryKmlImport(fileContent: string): Promise<ImportedFile | null> {
                         typeof placeCoords === 'string'
                     ) {
                         const coordinates = placeCoords.match(
-                            regex.COORDINATES
+                            regex.COORDINATES,
                         );
                         if (coordinates && coordinates.length > 3) {
                             result.items.push({

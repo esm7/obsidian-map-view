@@ -1,8 +1,8 @@
 import { App, Editor, TFile, request } from 'obsidian';
-import * as querystring from 'query-string';
+import queryString from 'query-string';
 
 import * as leaflet from 'leaflet';
-import { PluginSettings, UrlParsingRule } from 'src/settings';
+import { type PluginSettings, type UrlParsingRule } from 'src/settings';
 import * as utils from 'src/utils';
 
 export type ParsedLocation = {
@@ -44,7 +44,7 @@ export class UrlConvertor {
      * @param line The string to decode
      */
     parseLocationFromUrl(
-        line: string
+        line: string,
     ): ParsedLocation | Promise<ParsedLocation> {
         for (const rule of this.settings.urlParsingRules) {
             const regexp = RegExp(rule.regExp, 'g');
@@ -58,7 +58,7 @@ export class UrlConvertor {
                             url,
                             rule,
                             result.index,
-                            result[0].length
+                            result[0].length,
                         );
                     } else {
                         return {
@@ -66,11 +66,11 @@ export class UrlConvertor {
                                 rule.ruleType === 'latLng'
                                     ? new leaflet.LatLng(
                                           parseFloat(result[1]),
-                                          parseFloat(result[2])
+                                          parseFloat(result[2]),
                                       )
                                     : new leaflet.LatLng(
                                           parseFloat(result[2]),
-                                          parseFloat(result[1])
+                                          parseFloat(result[1]),
                                       ),
                             index: result.index,
                             matchLength: result[0].length,
@@ -87,7 +87,7 @@ export class UrlConvertor {
         url: string,
         rule: UrlParsingRule,
         userTextMatchIndex: number,
-        userTextMatchLength: number
+        userTextMatchLength: number,
     ): Promise<ParsedLocation> {
         const urlContent = await request({ url: url });
         if (this.settings.debug)
@@ -99,12 +99,12 @@ export class UrlConvertor {
         if (rule.contentType === 'latLng' && contentMatch.length > 2)
             geolocation = new leaflet.LatLng(
                 parseFloat(contentMatch[1]),
-                parseFloat(contentMatch[2])
+                parseFloat(contentMatch[2]),
             );
         else if (rule.contentType === 'lngLat' && contentMatch.length > 2)
             geolocation = new leaflet.LatLng(
                 parseFloat(contentMatch[2]),
-                parseFloat(contentMatch[1])
+                parseFloat(contentMatch[1]),
             );
         else if (rule.contentType === 'googlePlace') {
             const placeName = contentMatch[1];
@@ -125,12 +125,12 @@ export class UrlConvertor {
 
     async getGeolocationFromGoogleLink(
         url: string,
-        settings: PluginSettings
+        settings: PluginSettings,
     ): Promise<leaflet.LatLng> {
         const content = await request({ url: url });
         if (this.settings.debug) console.log('Google link: searching url', url);
         const placeNameMatch = content.match(
-            /<meta content="([^\"]*)" itemprop="name">/
+            /<meta content="([^\"]*)" itemprop="name">/,
         );
         if (placeNameMatch) {
             const placeName = placeNameMatch[1];
@@ -143,7 +143,7 @@ export class UrlConvertor {
             };
             const googleUrl =
                 'https://maps.googleapis.com/maps/api/place/textsearch/json?' +
-                querystring.stringify(params);
+                queryString.stringify(params);
             const googleContent = await request({ url: googleUrl });
             const jsonContent = JSON.parse(googleContent) as any;
             if (
@@ -177,7 +177,7 @@ export class UrlConvertor {
                 file,
                 this.settings,
                 { line: cursor.line, ch: geolocation.index },
-                geolocation.matchLength
+                geolocation.matchLength,
             );
     }
 }

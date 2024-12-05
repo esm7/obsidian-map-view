@@ -2,14 +2,14 @@ import {
     Editor,
     FileView,
     MarkdownView,
-    MarkdownFileInfo,
+    type MarkdownFileInfo,
     Menu,
     TFile,
     Plugin,
     WorkspaceLeaf,
     TAbstractFile,
-    ObsidianProtocolData,
-    MarkdownPostProcessorContext,
+    type ObsidianProtocolData,
+    type MarkdownPostProcessorContext,
     Notice,
 } from 'obsidian';
 import 'core-js/actual/structured-clone';
@@ -25,20 +25,23 @@ import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
 import { EmbeddedMap } from 'src/embeddedMap';
 import { IconFactory } from 'src/markerIcons';
-import { askForLocation, RealTimeLocationSource } from 'src/realTimeLocation';
+import {
+    askForLocation,
+    type RealTimeLocationSource,
+} from 'src/realTimeLocation';
 import {
     getLinkReplaceEditorPlugin,
-    GeoLinkReplacePlugin,
+    type GeoLinkReplacePlugin,
     replaceLinksPostProcessor,
 } from 'src/geoLinkReplacers';
 
 import {
-    PluginSettings,
+    type PluginSettings,
     DEFAULT_SETTINGS,
     convertLegacySettings,
-    OpenBehavior,
+    type OpenBehavior,
 } from 'src/settings';
-import { MapState } from 'src/mapState';
+import { type MapState } from 'src/mapState';
 import {
     getFrontMatterLocation,
     matchInlineLocation,
@@ -69,7 +72,7 @@ export default class MapViewPlugin extends Plugin {
         // Add a new ribbon entry to the left bar
         this.addRibbonIcon('map-pin', 'Open map view', (ev: MouseEvent) => {
             this.openMap(
-                utils.mouseEventToOpenMode(this.settings, ev, 'openMap')
+                utils.mouseEventToOpenMode(this.settings, ev, 'openMap'),
             );
         });
 
@@ -94,7 +97,7 @@ export default class MapViewPlugin extends Plugin {
                             params.centerLat && params.centerLng
                                 ? new leaflet.LatLng(
                                       parseFloat(params.centerLat),
-                                      parseFloat(params.centerLng)
+                                      parseFloat(params.centerLng),
                                   )
                                 : null;
                         const accuracy = params.accuracy;
@@ -105,7 +108,7 @@ export default class MapViewPlugin extends Plugin {
                                 location,
                                 parseFloat(accuracy),
                                 source as RealTimeLocationSource,
-                                true
+                                true,
                             );
                         }
                     } else if (params.mvaction === 'newnotehere') {
@@ -114,7 +117,7 @@ export default class MapViewPlugin extends Plugin {
                             params.centerLat && params.centerLng
                                 ? new leaflet.LatLng(
                                       parseFloat(params.centerLat),
-                                      parseFloat(params.centerLng)
+                                      parseFloat(params.centerLng),
                                   )
                                 : null;
                         if (location) {
@@ -125,7 +128,7 @@ export default class MapViewPlugin extends Plugin {
                             params.centerLat && params.centerLng
                                 ? new leaflet.LatLng(
                                       parseFloat(params.centerLat),
-                                      parseFloat(params.centerLng)
+                                      parseFloat(params.centerLng),
                                   )
                                 : null;
                         const editor = utils.getEditor(this.app);
@@ -138,12 +141,12 @@ export default class MapViewPlugin extends Plugin {
                                 file,
                                 this.settings.frontMatterKey,
                                 locationString,
-                                false
+                                false,
                             );
                         } else
                             new Notice(
                                 'Error: "Add to current note" requires an active note.',
-                                30000
+                                30000,
                             );
                     } else if (params.mvaction === 'addtocurrentnoteinline') {
                         const label = params?.label ?? '';
@@ -151,7 +154,7 @@ export default class MapViewPlugin extends Plugin {
                             params.centerLat && params.centerLng
                                 ? new leaflet.LatLng(
                                       parseFloat(params.centerLat),
-                                      parseFloat(params.centerLng)
+                                      parseFloat(params.centerLng),
                                   )
                                 : null;
                         const editor = utils.getEditor(this.app);
@@ -165,12 +168,12 @@ export default class MapViewPlugin extends Plugin {
                                 this.settings,
                                 null,
                                 null,
-                                label
+                                label,
                             );
                         else
                             new Notice(
                                 'Error: "Add to current note" requires an active note.',
-                                30000
+                                30000,
                             );
                     } else if (params.mvaction === 'copyinlinelocation') {
                         new Notice('Inline location copied to clipboard');
@@ -187,7 +190,7 @@ export default class MapViewPlugin extends Plugin {
                         this.openMapWithState(state, 'replaceCurrent', false);
                     }
                 }
-            }
+            },
         );
 
         this.registerMarkdownCodeBlockProcessor(
@@ -195,7 +198,7 @@ export default class MapViewPlugin extends Plugin {
             async (
                 source: string,
                 el: HTMLElement,
-                ctx: MarkdownPostProcessorContext
+                ctx: MarkdownPostProcessorContext,
             ) => {
                 let state = null;
                 let customViewSettings = null;
@@ -207,14 +210,14 @@ export default class MapViewPlugin extends Plugin {
                 } catch (e) {
                     el.setText(
                         'Map View is unable to parse this saved state: ' +
-                            e.toString()
+                            e.toString(),
                     );
                 }
                 if (state) {
                     // Allow templates in the embedded query, e.g. to automatically insert the file name
                     state.query = utils.formatEmbeddedWithTemplates(
                         state.query,
-                        utils.escapeDoubleQuotes(ctx.sourcePath)
+                        utils.escapeDoubleQuotes(ctx.sourcePath),
                     );
                     let map = new EmbeddedMap(
                         el,
@@ -222,11 +225,11 @@ export default class MapViewPlugin extends Plugin {
                         this.app,
                         this.settings,
                         this,
-                        customViewSettings
+                        customViewSettings,
                     );
                     await map.open(state);
                 }
-            }
+            },
         );
 
         this.registerMarkdownPostProcessor(replaceLinksPostProcessor(this));
@@ -265,7 +268,7 @@ export default class MapViewPlugin extends Plugin {
             editorCheckCallback: (
                 checking,
                 editor,
-                view: MarkdownView | MarkdownFileInfo
+                view: MarkdownView | MarkdownFileInfo,
             ) => {
                 if (checking) return editor.getSelection().length > 0;
                 const file = view.file;
@@ -297,7 +300,7 @@ export default class MapViewPlugin extends Plugin {
                     this,
                     this.settings,
                     'newNote',
-                    'New geolocation note'
+                    'New geolocation note',
                 );
                 dialog.open();
             },
@@ -315,7 +318,7 @@ export default class MapViewPlugin extends Plugin {
                     'addToNote',
                     'Add geolocation to note',
                     editor,
-                    view.file
+                    view.file,
                 );
                 dialog.open();
             },
@@ -354,7 +357,7 @@ export default class MapViewPlugin extends Plugin {
                         this.app,
                         this.settings,
                         'locate',
-                        'showonmap'
+                        'showonmap',
                     );
                 },
             });
@@ -367,7 +370,7 @@ export default class MapViewPlugin extends Plugin {
                         this.app,
                         this.settings,
                         'locate',
-                        'copyinlinelocation'
+                        'copyinlinelocation',
                     );
                 },
             });
@@ -380,7 +383,7 @@ export default class MapViewPlugin extends Plugin {
                         this.app,
                         this.settings,
                         'locate',
-                        'newnotehere'
+                        'newnotehere',
                     );
                 },
             });
@@ -393,7 +396,7 @@ export default class MapViewPlugin extends Plugin {
                         this.app,
                         this.settings,
                         'locate',
-                        'addtocurrentnotefm'
+                        'addtocurrentnotefm',
                     );
                 },
             });
@@ -406,7 +409,7 @@ export default class MapViewPlugin extends Plugin {
                         this.app,
                         this.settings,
                         'locate',
-                        'addtocurrentnoteinline'
+                        'addtocurrentnoteinline',
                     );
                 },
             });
@@ -424,13 +427,13 @@ export default class MapViewPlugin extends Plugin {
             documentLocation: number,
             markerId: string,
             lat: string,
-            lng: string
+            lng: string,
         ) => {
             event.preventDefault();
             event.stopImmediatePropagation();
             const location = new leaflet.LatLng(
                 parseFloat(lat),
-                parseFloat(lng)
+                parseFloat(lng),
             );
             this.openMapWithLocation(
                 location,
@@ -438,7 +441,7 @@ export default class MapViewPlugin extends Plugin {
                 null,
                 null,
                 false,
-                markerId
+                markerId,
             );
             this.mapPreviewPopup?.close(event);
         };
@@ -448,7 +451,7 @@ export default class MapViewPlugin extends Plugin {
             documentLocation: number,
             markerId: string,
             lat: string,
-            lng: string
+            lng: string,
         ) => {
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -459,7 +462,7 @@ export default class MapViewPlugin extends Plugin {
             documentLocation: number,
             markerId: string,
             lat: string,
-            lng: string
+            lng: string,
         ) => {
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -476,7 +479,7 @@ export default class MapViewPlugin extends Plugin {
             documentLocation: number,
             markerId: string,
             lat: string,
-            lng: string
+            lng: string,
         ) => {
             if (!this.settings.showGeolinkPreview) return;
             if (this.mapPreviewPopup) {
@@ -489,14 +492,14 @@ export default class MapViewPlugin extends Plugin {
             this.mapPreviewPopup = new MapPreviewPopup(
                 this.settings,
                 this,
-                this.app
+                this.app,
             );
             this.mapPreviewPopup.open(
                 event,
                 documentLocation,
                 markerId,
                 lat,
-                lng
+                lng,
             );
         };
 
@@ -512,7 +515,7 @@ export default class MapViewPlugin extends Plugin {
         // Add items to the file context menu (run when the context menu is built)
         // This is the context menu in the File Explorer and clicking "More options" (three dots) from within a file.
         this.app.workspace.on('file-menu', (menu, file, source, leaf) =>
-            this.onFileMenu(menu, file, source, leaf)
+            this.onFileMenu(menu, file, source, leaf),
         );
 
         this.app.workspace.on('active-leaf-change', (leaf) => {
@@ -551,17 +554,17 @@ export default class MapViewPlugin extends Plugin {
                                     this.app,
                                     editor,
                                     file,
-                                    this.settings
+                                    this.settings,
                                 )
                             ) {
                                 new Notice(
-                                    "The note's front matter was updated to denote locations are present"
+                                    "The note's front matter was updated to denote locations are present",
                                 );
                             }
                         }
                     }
                 }
-            }
+            },
         );
     }
 
@@ -573,7 +576,7 @@ export default class MapViewPlugin extends Plugin {
 
     public async openMap(
         openBehavior: OpenBehavior,
-        state?: MapState
+        state?: MapState,
     ): Promise<MainMapView> {
         // Find the best candidate for a leaf to open the map view on according to the required
         // behavior.
@@ -610,7 +613,7 @@ export default class MapViewPlugin extends Plugin {
         if (createPane)
             chosenLeaf = this.app.workspace.getLeaf(
                 'split',
-                this.settings.newPaneSplitDirection
+                this.settings.newPaneSplitDirection,
             );
         if (!chosenLeaf) {
             chosenLeaf = this.app.workspace.getLeaf(true);
@@ -635,7 +638,7 @@ export default class MapViewPlugin extends Plugin {
         forceAutoFit?: boolean,
         highlightFile: TAbstractFile = null,
         highlightFileLine: number = null,
-        highlightMarkerId: string = null
+        highlightMarkerId: string = null,
     ) {
         const mapView = await this.openMap(openBehavior, state);
         if (mapView && mapView.mapContainer) {
@@ -644,7 +647,7 @@ export default class MapViewPlugin extends Plugin {
             if (highlightFile) {
                 const markerToHighlight = map.findMarkerByFileLine(
                     highlightFile,
-                    highlightFileLine
+                    highlightFileLine,
                 );
                 map.setHighlight(markerToHighlight);
             } else if (highlightMarkerId) {
@@ -669,7 +672,7 @@ export default class MapViewPlugin extends Plugin {
         file: TAbstractFile | null = null,
         fileLine: number = null,
         keepZoom: boolean = false,
-        markerIdToHighlight: string = null
+        markerIdToHighlight: string = null,
     ) {
         let newState = {
             mapCenter: location,
@@ -685,7 +688,7 @@ export default class MapViewPlugin extends Plugin {
             false,
             file,
             fileLine,
-            markerIdToHighlight
+            markerIdToHighlight,
         );
     }
 
@@ -699,7 +702,7 @@ export default class MapViewPlugin extends Plugin {
         editor: Editor,
         lineNumber: number,
         view: FileView,
-        alsoFrontMatter: boolean
+        alsoFrontMatter: boolean,
     ): leaflet.LatLng {
         const line = editor.getLine(lineNumber);
         const match = matchInlineLocation(line)[0];
@@ -707,13 +710,13 @@ export default class MapViewPlugin extends Plugin {
         if (match)
             selectedLocation = new leaflet.LatLng(
                 parseFloat(match.groups.lat),
-                parseFloat(match.groups.lng)
+                parseFloat(match.groups.lng),
             );
         else if (alsoFrontMatter) {
             const fmLocation = getFrontMatterLocation(
                 view.file,
                 this.app,
-                this.settings
+                this.settings,
             );
             if (line.indexOf('location') > -1 && fmLocation)
                 selectedLocation = fmLocation;
@@ -752,7 +755,7 @@ export default class MapViewPlugin extends Plugin {
         menu: Menu,
         file: TAbstractFile,
         _source: string,
-        leaf?: WorkspaceLeaf
+        leaf?: WorkspaceLeaf,
     ) {
         const editor =
             leaf && leaf.view instanceof MarkdownView ? leaf.view.editor : null;
@@ -760,7 +763,7 @@ export default class MapViewPlugin extends Plugin {
             const location = getFrontMatterLocation(
                 file,
                 this.app,
-                this.settings
+                this.settings,
             );
             if (location) {
                 // If there is a geolocation in the front matter of the file
@@ -771,7 +774,7 @@ export default class MapViewPlugin extends Plugin {
                     file,
                     null,
                     this,
-                    this.settings
+                    this.settings,
                 );
                 // Add an option to open it in the default app
                 menus.addOpenWith(menu, location, this.settings);
@@ -784,7 +787,7 @@ export default class MapViewPlugin extends Plugin {
                         this,
                         editor,
                         file,
-                        this.settings
+                        this.settings,
                     );
                 }
             }
@@ -800,7 +803,7 @@ export default class MapViewPlugin extends Plugin {
                     file,
                     this.app,
                     this,
-                    this.settings
+                    this.settings,
                 );
         }
     }
@@ -820,7 +823,7 @@ export default class MapViewPlugin extends Plugin {
                     toLine,
                     geolocations.length,
                     this,
-                    this.settings
+                    this.settings,
                 );
             }
             if (!multiLineMode) {
@@ -829,7 +832,7 @@ export default class MapViewPlugin extends Plugin {
                     editor,
                     editorLine,
                     view,
-                    true
+                    true,
                 );
                 if (location) {
                     const editorLine = editor.getCursor().line;
@@ -839,7 +842,7 @@ export default class MapViewPlugin extends Plugin {
                         view.file,
                         editorLine,
                         this,
-                        this.settings
+                        this.settings,
                     );
                     menus.addOpenWith(menu, location, this.settings);
                 }
@@ -851,7 +854,7 @@ export default class MapViewPlugin extends Plugin {
                 view.file,
                 this.suggestor,
                 this.urlConvertor,
-                this.settings
+                this.settings,
             );
             menus.addEmbed(menu, this, editor);
         }
@@ -859,7 +862,7 @@ export default class MapViewPlugin extends Plugin {
 
     geolocationsWithinSelection(
         editor: Editor,
-        view: MarkdownView
+        view: MarkdownView,
     ): [number, number, leaflet.LatLng[]] {
         let geolocations: leaflet.LatLng[] = [];
         const editorSelections = editor.listSelections();
@@ -875,7 +878,7 @@ export default class MapViewPlugin extends Plugin {
                         editor,
                         line,
                         view,
-                        false
+                        false,
                     );
                     if (geolocationOnLine) geolocations.push(geolocationOnLine);
                 }
@@ -892,7 +895,7 @@ export default class MapViewPlugin extends Plugin {
             this.settings,
             'custom',
             'Quick Map Embed',
-            editor
+            editor,
         );
         searchDialog.customOnSelect = (selection, evt) => {
             const state = mergeStates(this.settings.defaultState, {
@@ -911,7 +914,7 @@ export default class MapViewPlugin extends Plugin {
             });
         };
         searchDialog.setPlaceholder(
-            'Quick map embed: search for an address, landmark or business name to center the map on.'
+            'Quick map embed: search for an address, landmark or business name to center the map on.',
         );
         searchDialog.open();
     }
@@ -919,12 +922,12 @@ export default class MapViewPlugin extends Plugin {
     async newFrontMatterNote(
         location: leaflet.LatLng,
         ev: MouseEvent | KeyboardEvent | null,
-        query: string
+        query: string,
     ) {
         const locationString = `${location.lat},${location.lng}`;
         const newFileName = utils.formatWithTemplates(
             this.settings.newNoteNameFormat,
-            query
+            query,
         );
         const [file, cursorPos] = await utils.newNote(
             this.app,
@@ -933,7 +936,7 @@ export default class MapViewPlugin extends Plugin {
             newFileName,
             locationString,
             this.settings.frontMatterKey,
-            this.settings.newNoteTemplate
+            this.settings.newNoteTemplate,
         );
         // If there is an open map view, use it to decide how and where to open the file.
         // Otherwise, open the file from the active leaf
@@ -943,7 +946,7 @@ export default class MapViewPlugin extends Plugin {
                 file,
                 ev?.ctrlKey ? 'dedicatedPane' : 'replaceCurrent',
                 async (editor) =>
-                    utils.goToEditorLocation(editor, cursorPos, false)
+                    utils.goToEditorLocation(editor, cursorPos, false),
             );
         } else {
             const leaf = this.app.workspace.activeLeaf;

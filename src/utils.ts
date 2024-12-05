@@ -2,14 +2,13 @@ import {
     WorkspaceLeaf,
     MarkdownView,
     Editor,
-    EditorPosition,
+    type EditorPosition,
     App,
     TFile,
     getAllTags,
-    CachedMetadata,
-    Loc,
-    HeadingCache,
-    BlockCache,
+    type CachedMetadata,
+    type HeadingCache,
+    type BlockCache,
 } from 'obsidian';
 
 import * as moment_ from 'moment';
@@ -100,7 +99,7 @@ export async function newNote(
     fileName: string,
     location: string,
     frontMatterKey: string,
-    templatePath?: string
+    templatePath?: string,
 ): Promise<[TFile, number]> {
     // `$CURSOR$` is used to set the cursor
     let content =
@@ -117,8 +116,8 @@ export async function newNote(
     const filePath = path?.join
         ? path.join(directory, fileName)
         : directory
-        ? directory + '/' + fileName
-        : fileName;
+          ? directory + '/' + fileName
+          : fileName;
     let fullName = sanitizeFileName(filePath);
     if (await app.vault.adapter.exists(fullName + '.md'))
         fullName += Math.random() * 1000;
@@ -127,7 +126,7 @@ export async function newNote(
     try {
         const file = await app.vault.create(
             fullName + '.md',
-            content + templateContent
+            content + templateContent,
         );
         return [file, cursorLocation];
     } catch (e) {
@@ -145,7 +144,7 @@ export async function newNote(
 export async function goToEditorLocation(
     editor: Editor,
     fileLocation: number,
-    highlight: boolean
+    highlight: boolean,
 ) {
     if (fileLocation) {
         let pos = editor.offsetToPos(fileLocation);
@@ -153,7 +152,7 @@ export async function goToEditorLocation(
             const lineContent = editor.getLine(pos.line);
             editor.setSelection(
                 { ch: 0, line: pos.line },
-                { ch: lineContent.length, line: pos.line }
+                { ch: lineContent.length, line: pos.line },
             );
         } else {
             editor.setCursor(pos);
@@ -171,7 +170,7 @@ export async function verifyOrAddFrontMatter(
     file: TFile,
     fieldName: string,
     fieldValue: string,
-    skipIfExists: boolean = true
+    skipIfExists: boolean = true,
 ): Promise<boolean> {
     let locationAdded = false;
     await app.fileManager.processFrontMatter(file, (frontmatter: any) => {
@@ -193,7 +192,7 @@ export async function verifyOrAddFrontMatterForInline(
     app: App,
     editor: Editor,
     file: TFile,
-    settings: settings.PluginSettings
+    settings: settings.PluginSettings,
 ): Promise<boolean> {
     // If the user has a custom tag to denote a location, and this tag exists in the note, there's no need to add
     // a front-matter
@@ -222,7 +221,7 @@ export async function updateInlineGeolocation(
     fileLocation: number,
     geolocationMatch: RegExpMatchArray,
     newLat: number,
-    newLng: number
+    newLng: number,
 ): Promise<void> {
     const content = await app.vault.read(file);
     let groups = geolocationMatch?.groups;
@@ -233,12 +232,12 @@ export async function updateInlineGeolocation(
         // we want to replace.
         // The "old" inline syntax isn't supported here, but it's so antique I think it's fine.
         const matchWithoutTags = geolocationMatch[0].match(
-            regex.INLINE_LOCATION_WITHOUT_TAGS
+            regex.INLINE_LOCATION_WITHOUT_TAGS,
         );
         if (!matchWithoutTags) {
             console.error(
                 'Cannot update inline geolocation:',
-                geolocationMatch[0]
+                geolocationMatch[0],
             );
             return;
         }
@@ -251,7 +250,7 @@ export async function updateInlineGeolocation(
 
 export function replaceFollowActiveNoteQuery(
     file: TFile,
-    settings: settings.PluginSettings
+    settings: settings.PluginSettings,
 ) {
     return settings.queryForFollowActiveNote.replace(/\$PATH\$/g, file.path);
 }
@@ -299,7 +298,7 @@ export async function insertLocationToEditor(
     settings: settings.PluginSettings,
     replaceStart?: EditorPosition,
     replaceLength?: number,
-    label?: string
+    label?: string,
 ) {
     const locationString = `[${label ?? ''}](geo:${location.lat},${
         location.lng
@@ -324,7 +323,7 @@ export async function insertLocationToEditor(
 export function matchByPosition(
     s: string,
     r: RegExp,
-    position: number
+    position: number,
 ): RegExpMatchArray {
     const matches = s.matchAll(r);
     for (const match of matches) {
@@ -373,7 +372,7 @@ export function trimmedFileName(file: TFile) {
 export function mouseEventToOpenMode(
     settings: settings.PluginSettings,
     ev: MouseEvent,
-    settingType: 'openMap' | 'openNote'
+    settingType: 'openMap' | 'openNote',
 ) {
     // There are events that don't include middle-click information (some 'click' handlers), so in such cases
     // we invoke this function from keyDown, and don't want to invoke it twice in case it wasn't actually
@@ -399,7 +398,7 @@ export function djb2Hash(s: string) {
 
 export function getHeadingAndBlockForFilePosition(
     fileMetadata: CachedMetadata,
-    fileOffset: number
+    fileOffset: number,
 ): [HeadingCache?, BlockCache?] {
     const headings = fileMetadata.headings;
     const blocks = fileMetadata.blocks;
@@ -438,7 +437,18 @@ export async function getMousePosition(): Promise<{ x: number; y: number }> {
             function handler(ev: MouseEvent) {
                 document.removeEventListener('mousemove', handler);
                 resolve({ x: ev.clientX, y: ev.clientY });
-            }
+            },
         );
     });
+}
+
+/**
+ * Returns a match object if the given cursor position has the beginning
+ * of a `tag:...` expression
+ */
+export function getTagUnderCursor(
+    line: string,
+    cursorPosition: number,
+): RegExpMatchArray {
+    return matchByPosition(line, regex.TAG_NAME_WITH_HEADER, cursorPosition);
 }

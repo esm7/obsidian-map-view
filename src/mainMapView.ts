@@ -1,16 +1,16 @@
 import { WorkspaceLeaf } from 'obsidian';
 
-import { PluginSettings } from 'src/settings';
+import { type PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';
 
 import { BaseMapView } from 'src/baseMapView';
-import { ViewSettings } from 'src/mapContainer';
+import { type ViewSettings } from 'src/mapContainer';
 
 export class MainMapView extends BaseMapView {
     constructor(
         leaf: WorkspaceLeaf,
         settings: PluginSettings,
-        plugin: MapViewPlugin
+        plugin: MapViewPlugin,
     ) {
         const viewSettings: ViewSettings = {
             showZoomButtons: true,

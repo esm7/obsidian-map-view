@@ -1,10 +1,10 @@
-import { PluginSettings } from 'src/settings';
+import { type PluginSettings } from 'src/settings';
 import { EmbeddedMap } from 'src/embeddedMap';
 import MapViewPlugin from './main';
 import { App } from 'obsidian';
-import { MapState, mergeStates } from 'src/mapState';
+import { type MapState, mergeStates } from 'src/mapState';
 import * as leaflet from 'leaflet';
-import { createPopper, Instance as PopperInstance } from '@popperjs/core';
+import { createPopper, type Instance as PopperInstance } from '@popperjs/core';
 
 /***
  * Ideally I would have loved to have a single MapPreviewPopup object and recycle it throughout the app's
@@ -46,7 +46,7 @@ export class MapPreviewPopup {
                 showEmbeddedControls: false,
                 showOpenButton: false,
                 skipAnimations: true,
-            }
+            },
         );
     }
 
@@ -55,7 +55,7 @@ export class MapPreviewPopup {
         documentLocation: number,
         markerId: string,
         lat: string,
-        lng: string
+        lng: string,
     ) {
         // We don't know how to place the element
         if (!(event.target instanceof HTMLElement)) return;

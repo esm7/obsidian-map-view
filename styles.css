@@ -253,8 +253,12 @@ div.map-view-highlight.marker-cluster {
 }
 
 .mv-emoji-icon {
-    text-shadow: 0 0 1px #fff, -1px -1px 1px #fff, 1px -1px 1px #fff,
-        -1px 1px 1px #fff, 0 0 2px #fff;
+    text-shadow:
+        0 0 1px #fff,
+        -1px -1px 1px #fff,
+        1px -1px 1px #fff,
+        -1px 1px 1px #fff,
+        0 0 2px #fff;
     top: -2px;
     position: relative;
 }
@@ -289,7 +293,9 @@ div.map-view-highlight.marker-cluster {
     height: 200px;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.2s ease-in-out, visibility 0s 0.2s;
+    transition:
+        opacity 0.2s ease-in-out,
+        visibility 0s 0.2s;
     padding: 2px;
 }
 
@@ -327,4 +333,9 @@ span.mv-filters-on {
     font-size: 0.3em;
     vertical-align: middle;
     display: none;
+}
+
+img.mv-offline {
+    padding: 1px !important;
+    background-color: blue;
 }

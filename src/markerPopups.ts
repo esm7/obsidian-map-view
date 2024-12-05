@@ -1,7 +1,7 @@
-import { App, Loc, MarkdownRenderer, Component } from 'obsidian';
+import { App, MarkdownRenderer, Component } from 'obsidian';
 import * as leaflet from 'leaflet';
 import { FileMarker } from 'src/markers';
-import { PluginSettings } from 'src/settings';
+import { type PluginSettings } from 'src/settings';
 import * as utils from 'src/utils';
 import * as consts from 'src/consts';
 
@@ -11,7 +11,7 @@ export async function populateMarkerPopup(
     popupDiv: HTMLDivElement,
     mapDiv: HTMLDivElement,
     settings: PluginSettings,
-    app: App
+    app: App,
 ) {
     popupDiv.innerHTML = '';
     const fileName = fileMarker.file.name;
@@ -38,7 +38,7 @@ export async function populateMarkerPopup(
         mapHeight >= consts.MIN_HEIGHT_TO_SHOW_MARKER_POPUP
     ) {
         const previewDiv = popupDiv.createDiv(
-            'markdown-embed markdown-embed-content markdown-preview-view markdown-rendered allow-fold-headings allow-fold-lists'
+            'markdown-embed markdown-embed-content markdown-preview-view markdown-rendered allow-fold-headings allow-fold-lists',
         );
         await createPreview(fileMarker, previewDiv, settings, app);
     }
@@ -48,7 +48,7 @@ async function createPreview(
     fileMarker: FileMarker,
     element: HTMLDivElement,
     settings: PluginSettings,
-    app: App
+    app: App,
 ) {
     const content = await app.vault.read(fileMarker.file);
     const snippet = extractSnippet(content, 15, fileMarker.fileLine);
@@ -57,7 +57,7 @@ async function createPreview(
         snippet,
         element,
         fileMarker.file.path,
-        new Component()
+        new Component(),
     );
 }
 
@@ -67,7 +67,7 @@ async function createPreview(
 export function scrollPopupToHighlight(popupDiv: HTMLDivElement) {
     const element = popupDiv.querySelector('.markdown-embed') as HTMLElement;
     const markedLine = element?.querySelector(
-        'mark.mv-marked-line'
+        'mark.mv-marked-line',
     ) as HTMLElement;
     if (element && markedLine) {
         // Get the top of the marked line in relation to the scrollable container (element).
@@ -89,7 +89,7 @@ export function scrollPopupToHighlight(popupDiv: HTMLDivElement) {
 function extractSnippet(
     content: string,
     snippetLines: number,
-    fileLine?: number
+    fileLine?: number,
 ): string {
     const lines = content.split('\n');
     if (fileLine) {
@@ -97,9 +97,8 @@ function extractSnippet(
         const linesBelow = Math.ceil((snippetLines - 1) / 2);
         let start = Math.max(fileLine - linesAbove, 0);
         let end = Math.min(fileLine + linesBelow + 1, lines.length); // +1 because slice end is exclusive
-        lines[
-            fileLine
-        ] = `<mark class="mv-marked-line">${lines[fileLine]}</mark>`;
+        lines[fileLine] =
+            `<mark class="mv-marked-line">${lines[fileLine]}</mark>`;
         return lines.slice(start, end).join('\n');
     } else {
         return lines.slice(0, snippetLines).join('\n');

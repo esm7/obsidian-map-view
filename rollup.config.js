@@ -5,6 +5,8 @@ import postcss from 'rollup-plugin-postcss';
 import postcss_url from 'postcss-url';
 import copy from 'rollup-plugin-copy';
 import image from '@rollup/plugin-image';
+import svelte from 'rollup-plugin-svelte';
+import { sveltePreprocess } from 'svelte-preprocess';
 
 const isProd = process.env.BUILD === 'production';
 
@@ -32,8 +34,18 @@ export default {
     ],
     plugins: [
         image(),
+        svelte({
+            preprocess: sveltePreprocess(),
+            compilerOptions: {
+                css: true,
+            },
+        }),
+        nodeResolve({
+            browser: true,
+            exportConditions: ['svelte'],
+            extensions: ['.mjs', '.js', '.json', '.node', '.ts', '.svelte'],
+        }),
         typescript(),
-        nodeResolve({ browser: true }),
         image(),
         commonjs(),
         postcss({

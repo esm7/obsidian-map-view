@@ -1,7 +1,7 @@
 import { Modal, App, TextComponent, ButtonComponent } from 'obsidian';
 
-import { PluginSettings } from 'src/settings';
-import { MapState } from 'src/mapState';
+import { type PluginSettings } from 'src/settings';
+import { type MapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 
 export class NewPresetDialog extends Modal {
@@ -15,7 +15,7 @@ export class NewPresetDialog extends Modal {
         stateToSave: MapState,
         plugin: MapViewPlugin,
         settings: PluginSettings,
-        callback: (index: string) => void
+        callback: (index: string) => void,
     ) {
         super(app);
         this.plugin = plugin;
@@ -36,7 +36,7 @@ export class NewPresetDialog extends Modal {
             else saveButton.disabled = false;
             if (this.findPresetByName(value))
                 statusLabel.setText(
-                    "Clicking 'Save' will overwrite an existing preset."
+                    "Clicking 'Save' will overwrite an existing preset.",
                 );
             else statusLabel.setText('');
         });
@@ -79,7 +79,7 @@ export class NewPresetDialog extends Modal {
 
     findPresetByName(name: string) {
         return this.settings.savedStates?.find(
-            (preset) => preset.name === name
+            (preset) => preset.name === name,
         );
     }
 }

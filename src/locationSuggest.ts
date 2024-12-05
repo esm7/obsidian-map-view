@@ -3,15 +3,15 @@ import {
     Editor,
     Notice,
     EditorSuggest,
-    EditorPosition,
+    type EditorPosition,
     TFile,
-    EditorSuggestTriggerInfo,
-    EditorSuggestContext,
+    type EditorSuggestTriggerInfo,
+    type EditorSuggestContext,
 } from 'obsidian';
 import { GeoSearcher } from 'src/geosearch';
 
 import * as utils from 'src/utils';
-import { PluginSettings } from 'src/settings';
+import { type PluginSettings } from 'src/settings';
 import { GeoSearchResult } from 'src/geosearch';
 
 class SuggestInfo extends GeoSearchResult {
@@ -42,7 +42,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
     onTrigger(
         cursor: EditorPosition,
         editor: Editor,
-        file: TFile
+        file: TFile,
     ): EditorSuggestTriggerInfo | null {
         if (!this.initialized) this.init();
         const currentLink = this.getGeolinkOfCursor(cursor, editor);
@@ -56,7 +56,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
     }
 
     async getSuggestions(
-        context: EditorSuggestContext
+        context: EditorSuggestContext,
     ): Promise<SuggestInfo[]> {
         if (context.query.length < 2) return [];
         return await this.getSearchResultsWithDelay(context);
@@ -68,7 +68,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
 
     async selectSuggestion(
         value: SuggestInfo,
-        evt: MouseEvent | KeyboardEvent
+        evt: MouseEvent | KeyboardEvent,
     ) {
         // Replace the link under the cursor with the retrieved location.
         // We call getGeolinkOfCursor again instead of using the original context because it's possible that
@@ -76,13 +76,13 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
         const currentCursor = value.context.editor.getCursor();
         const linkOfCursor = this.getGeolinkOfCursor(
             currentCursor,
-            value.context.editor
+            value.context.editor,
         );
         const finalResult = `[${value.context.query}](geo:${value.location.lat},${value.location.lng})`;
         value.context.editor.replaceRange(
             finalResult,
             { line: currentCursor.line, ch: linkOfCursor.index },
-            { line: currentCursor.line, ch: linkOfCursor.linkEnd }
+            { line: currentCursor.line, ch: linkOfCursor.linkEnd },
         );
         value.context.editor.setCursor({
             line: currentCursor.line,
@@ -93,11 +93,11 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
                 this.app,
                 value.context.editor,
                 value.context.file,
-                this.settings
+                this.settings,
             )
         )
             new Notice(
-                "The note's front matter was updated to denote locations are present"
+                "The note's front matter was updated to denote locations are present",
             );
     }
 
@@ -123,7 +123,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
     }
 
     async getSearchResultsWithDelay(
-        context: EditorSuggestContext
+        context: EditorSuggestContext,
     ): Promise<SuggestInfo[] | null> {
         if (!this.initialized) this.init();
         const timestamp = Date.now();
@@ -154,7 +154,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
             const firstResult = results[0];
             const location = firstResult.location;
             editor.replaceSelection(
-                `[${selection}](geo:${location.lat},${location.lng})`
+                `[${selection}](geo:${location.lat},${location.lng})`,
             );
             new Notice(firstResult.name, 10 * 1000);
             if (
@@ -162,11 +162,11 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
                     this.app,
                     editor,
                     file,
-                    this.settings
+                    this.settings,
                 )
             )
                 new Notice(
-                    "The note's front matter was updated to denote locations are present"
+                    "The note's front matter was updated to denote locations are present",
                 );
         } else {
             new Notice(`No location found for the term '${selection}'`);

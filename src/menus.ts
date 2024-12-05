@@ -8,11 +8,11 @@ import * as consts from 'src/consts';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { UrlConvertor } from 'src/urlConvertor';
 import { LocationSuggest } from 'src/locationSuggest';
-import { MapState } from 'src/mapState';
+import { type MapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import { MapContainer } from 'src/mapContainer';
 import { ImportDialog } from 'src/importDialog';
-import { PluginSettings } from 'src/settings';
+import { type PluginSettings } from 'src/settings';
 import { FileMarker } from 'src/markers';
 import { getIconFromOptions } from 'src/markerIcons';
 
@@ -22,7 +22,7 @@ export function addShowOnMap(
     file: TAbstractFile,
     editorLine: number,
     plugin: MapViewPlugin,
-    settings: PluginSettings
+    settings: PluginSettings,
 ) {
     if (geolocation) {
         menu.addItem((item: MenuItem) => {
@@ -35,7 +35,7 @@ export function addShowOnMap(
                     utils.mouseEventToOpenMode(settings, evt, 'openMap'),
                     file,
                     editorLine,
-                    evt.shiftKey
+                    evt.shiftKey,
                 );
             item.onClick(openFunc);
             addPatchyMiddleClickHandler(item, menu, openFunc);
@@ -46,7 +46,7 @@ export function addShowOnMap(
 export function addOpenWith(
     menu: Menu,
     geolocation: leaflet.LatLng,
-    settings: settings.PluginSettings
+    settings: settings.PluginSettings,
 ) {
     if (geolocation) {
         menu.addItem((item: MenuItem) => {
@@ -71,7 +71,7 @@ export function addOpenWith(
 export function populateOpenInItems(
     menu: Menu,
     location: leaflet.LatLng,
-    settings: settings.PluginSettings
+    settings: settings.PluginSettings,
 ) {
     for (let setting of settings.openIn) {
         if (!setting.name || !setting.urlPattern) continue;
@@ -95,7 +95,7 @@ export function addGeolocationToNote(
     plugin: MapViewPlugin,
     editor: Editor,
     file: TFile,
-    settings: settings.PluginSettings
+    settings: settings.PluginSettings,
 ) {
     menu.addItem((item: MenuItem) => {
         item.setTitle('Add geolocation (front matter)');
@@ -109,7 +109,7 @@ export function addGeolocationToNote(
                 'addToNote',
                 'Add geolocation to note',
                 editor,
-                file
+                file,
             );
             dialog.open();
         });
@@ -120,7 +120,7 @@ export function addFocusNoteInMapView(
     menu: Menu,
     file: TFile,
     settings: settings.PluginSettings,
-    plugin: MapViewPlugin
+    plugin: MapViewPlugin,
 ) {
     menu.addItem((item: MenuItem) => {
         const fileName = utils.trimmedFileName(file);
@@ -133,7 +133,7 @@ export function addFocusNoteInMapView(
                     query: utils.replaceFollowActiveNoteQuery(file, settings),
                 } as MapState,
                 utils.mouseEventToOpenMode(settings, evt, 'openMap'),
-                true
+                true,
             );
         item.onClick(openFunc);
         addPatchyMiddleClickHandler(item, menu, openFunc);
@@ -147,7 +147,7 @@ export function addUrlConversionItems(
     file: TFile,
     suggestor: LocationSuggest,
     urlConvertor: UrlConvertor,
-    settings: PluginSettings
+    settings: PluginSettings,
 ) {
     if (editor.getSelection()) {
         // If there is text selected, add a menu item to convert it to coordinates using geosearch
@@ -156,7 +156,7 @@ export function addUrlConversionItems(
             item.setIcon('search');
             item.setSection('mapview');
             item.onClick(
-                async () => await suggestor.selectionToLink(editor, file)
+                async () => await suggestor.selectionToLink(editor, file),
             );
         });
     }
@@ -188,7 +188,7 @@ export function addUrlConversionItems(
                     clipboardLocation.location,
                     editor,
                     file,
-                    settings
+                    settings,
                 );
         });
     });
@@ -210,7 +210,7 @@ export function addNewNoteItems(
     geolocation: leaflet.LatLng,
     mapContainer: MapContainer,
     settings: settings.PluginSettings,
-    app: App
+    app: App,
 ) {
     const locationString = `${geolocation.lat},${geolocation.lng}`;
     menu.addItem((item: MenuItem) => {
@@ -219,7 +219,7 @@ export function addNewNoteItems(
         item.setSection('new');
         const openFunc = async (ev: MouseEvent) => {
             const newFileName = utils.formatWithTemplates(
-                settings.newNoteNameFormat
+                settings.newNoteNameFormat,
             );
             const [file, cursorPos] = await utils.newNote(
                 app,
@@ -228,13 +228,13 @@ export function addNewNoteItems(
                 newFileName,
                 locationString,
                 settings.frontMatterKey,
-                settings.newNoteTemplate
+                settings.newNoteTemplate,
             );
             mapContainer.goToFile(
                 file,
                 utils.mouseEventToOpenMode(settings, ev, 'openNote'),
                 async (editor) =>
-                    utils.goToEditorLocation(editor, cursorPos, false)
+                    utils.goToEditorLocation(editor, cursorPos, false),
             );
         };
         item.onClick(openFunc);
@@ -246,7 +246,7 @@ export function addNewNoteItems(
         item.setSection('new');
         const openFunc = async (ev: MouseEvent) => {
             const newFileName = utils.formatWithTemplates(
-                settings.newNoteNameFormat
+                settings.newNoteNameFormat,
             );
             const [file, cursorPos] = await utils.newNote(
                 app,
@@ -255,13 +255,13 @@ export function addNewNoteItems(
                 newFileName,
                 locationString,
                 settings.frontMatterKey,
-                settings.newNoteTemplate
+                settings.newNoteTemplate,
             );
             mapContainer.goToFile(
                 file,
                 utils.mouseEventToOpenMode(settings, ev, 'openNote'),
                 async (editor) =>
-                    utils.goToEditorLocation(editor, cursorPos, false)
+                    utils.goToEditorLocation(editor, cursorPos, false),
             );
         };
         item.onClick(openFunc);
@@ -271,7 +271,7 @@ export function addNewNoteItems(
 
 export function addCopyGeolocationItems(
     menu: Menu,
-    geolocation: leaflet.LatLng
+    geolocation: leaflet.LatLng,
 ) {
     const locationString = `${geolocation.lat},${geolocation.lng}`;
     menu.addItem((item: MenuItem) => {
@@ -288,7 +288,7 @@ export function addCopyGeolocationItems(
         item.setSection('copy');
         item.onClick((_ev) => {
             navigator.clipboard.writeText(
-                `---\nlocation: [${locationString}]\n---\n\n`
+                `---\nlocation: [${locationString}]\n---\n\n`,
             );
         });
     });
@@ -301,13 +301,13 @@ export function addFocusLinesInMapView(
     toLine: number,
     numLocations: number,
     plugin: MapViewPlugin,
-    settings: settings.PluginSettings
+    settings: settings.PluginSettings,
 ) {
     menu.addItem((item: MenuItem) => {
         item.setTitle(
             `Focus ${numLocations} ${
                 numLocations > 1 ? 'geolocations' : 'geolocation'
-            } in Map View`
+            } in Map View`,
         );
         item.setIcon('globe');
         item.setSection('mapview');
@@ -317,7 +317,7 @@ export function addFocusLinesInMapView(
                     query: `path:"${file.path}" AND lines:${fromLine}-${toLine}`,
                 } as MapState,
                 utils.mouseEventToOpenMode(settings, evt, 'openMap'),
-                true
+                true,
             );
         item.onClick(openFunc);
         addPatchyMiddleClickHandler(item, menu, openFunc);
@@ -330,7 +330,7 @@ export function addImport(
     file: TFile,
     app: App,
     plugin: MapViewPlugin,
-    settings: settings.PluginSettings
+    settings: settings.PluginSettings,
 ) {
     menu.addItem((item: MenuItem) => {
         // TODO: this is an unfinished corner of the code, currently bypassed by default
@@ -343,7 +343,7 @@ export function addImport(
                 file,
                 app,
                 plugin,
-                settings
+                settings,
             );
             importDialog.open();
         });
@@ -354,7 +354,7 @@ export function populateOpenNote(
     mapContainer: MapContainer,
     fileMarker: FileMarker,
     menu: Menu,
-    settings: PluginSettings
+    settings: PluginSettings,
 ) {
     menu.addItem((item: MenuItem) => {
         item.setTitle('Open note');
@@ -364,14 +364,14 @@ export function populateOpenNote(
             mapContainer.goToMarker(
                 fileMarker,
                 utils.mouseEventToOpenMode(settings, evt, 'openNote'),
-                true
+                true,
             );
         });
         addPatchyMiddleClickHandler(item, menu, async (evt: MouseEvent) => {
             mapContainer.goToMarker(
                 fileMarker,
                 utils.mouseEventToOpenMode(settings, evt, 'openNote'),
-                true
+                true,
             );
         });
     });
@@ -381,7 +381,7 @@ export function populateOpenNote(
 function addPatchyMiddleClickHandler(
     item: MenuItem,
     menu: Menu,
-    handler: (ev: MouseEvent) => void
+    handler: (ev: MouseEvent) => void,
 ) {
     const itemDom = (item as any).dom as HTMLDivElement;
     if (itemDom) {
@@ -398,7 +398,7 @@ export function populateRouting(
     mapContainer: MapContainer,
     geolocation: leaflet.LatLng,
     menu: Menu,
-    settings: settings.PluginSettings
+    settings: settings.PluginSettings,
 ) {
     if (geolocation) {
         menu.addItem((item: MenuItem) => {
@@ -434,7 +434,7 @@ export function populateRouting(
 export function populateMoveMarker(
     menu: Menu,
     fileMarker: FileMarker,
-    plugin: MapViewPlugin
+    plugin: MapViewPlugin,
 ) {
     let title = fileMarker.geoLayer?.dragging?.enabled()
         ? 'Disable move'
@@ -454,8 +454,8 @@ export function populateMoveMarker(
                     leafletMarker.setIcon(
                         getIconFromOptions(
                             consts.UNLOCKED_MARKER,
-                            plugin.iconFactory
-                        )
+                            plugin.iconFactory,
+                        ),
                     );
                 }
             }
@@ -472,7 +472,7 @@ export function addMapContextMenuItems(
     geolocation: leaflet.LatLng,
     mapContainer: MapContainer,
     settings: settings.PluginSettings,
-    app: App
+    app: App,
 ) {
     addNewNoteItems(mapPopup, geolocation, mapContainer, settings, app);
     addCopyGeolocationItems(mapPopup, geolocation);

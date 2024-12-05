@@ -1,7 +1,6 @@
 import {
     App,
     TAbstractFile,
-    Loc,
     Editor,
     ItemView,
     MenuItem,
@@ -22,17 +21,29 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
-import { MapState, mergeStates, stateToUrl, copyState } from 'src/mapState';
-import { PluginSettings, TileSource, DEFAULT_SETTINGS } from 'src/settings';
+import {
+    type MapState,
+    mergeStates,
+    stateToUrl,
+    copyState,
+} from 'src/mapState';
+import {
+    type PluginSettings,
+    type TileSource,
+    DEFAULT_SETTINGS,
+} from 'src/settings';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
+import { OfflineManagerModal } from 'src/offline';
 
-import { MapContainer, ViewSettings } from 'src/mapContainer';
+import { MapContainer, type ViewSettings } from 'src/mapContainer';
 
 export abstract class BaseMapView extends ItemView {
     public mapContainer: MapContainer;
     /** The state that was last saved to Obsidian's history stack */
     private lastSavedState: MapState;
+    private plugin: MapViewPlugin;
+    private settings: PluginSettings;
 
     /**
      * Construct a new map instance
@@ -44,9 +55,11 @@ export abstract class BaseMapView extends ItemView {
         leaf: WorkspaceLeaf,
         settings: PluginSettings,
         viewSettings: ViewSettings,
-        plugin: MapViewPlugin
+        plugin: MapViewPlugin,
     ) {
         super(leaf);
+        this.settings = settings;
+        this.plugin = plugin;
         this.navigation = true;
         this.icon = 'map-pin';
         this.mapContainer = new MapContainer(
@@ -54,16 +67,19 @@ export abstract class BaseMapView extends ItemView {
             settings,
             viewSettings,
             plugin,
-            plugin.app
+            plugin.app,
         );
 
         this.mapContainer.highLevelSetViewState = (
-            partialState: Partial<MapState>
+            partialState: Partial<MapState>,
         ): MapState => {
             if (!this.leaf || this.leaf.view == null) return;
             const viewState = this.leaf?.getViewState();
             if (viewState?.state) {
-                const newState = mergeStates(viewState.state, partialState);
+                const newState = mergeStates(
+                    viewState.state as MapState,
+                    partialState,
+                );
                 this.leaf.setViewState({ ...viewState, state: newState });
                 return newState;
             }
@@ -72,7 +88,7 @@ export abstract class BaseMapView extends ItemView {
 
         this.app.workspace.on(
             'file-open',
-            async (file: TFile) => await this.onFileOpen(file)
+            async (file: TFile) => await this.onFileOpen(file),
         );
         this.app.workspace.on(
             'active-leaf-change',
@@ -81,7 +97,7 @@ export abstract class BaseMapView extends ItemView {
                     const file = leaf.view.file;
                     this.onFileOpen(file);
                 }
-            }
+            },
         );
     }
 
@@ -97,6 +113,16 @@ export abstract class BaseMapView extends ItemView {
                 this.mapContainer.copyCodeBlock();
             });
             item.setIcon('curly-braces');
+        });
+        menu.addItem((item: MenuItem) => {
+            item.setTitle('Offline maps...').onClick(() => {
+                const dialog = new OfflineManagerModal(
+                    this.app,
+                    this.plugin,
+                    this.settings,
+                );
+                dialog.open();
+            });
         });
         super.onPaneMenu(menu, source);
     }
@@ -115,7 +141,7 @@ export abstract class BaseMapView extends ItemView {
             state,
             true,
             false,
-            this.mapContainer.freezeMap
+            this.mapContainer.freezeMap,
         );
         if (this.mapContainer.display.controls)
             this.mapContainer.display.controls.tryToGuessPreset();
@@ -197,7 +223,7 @@ export abstract class BaseMapView extends ItemView {
                     let mapState = viewState.state as MapState;
                     const newQuery = utils.replaceFollowActiveNoteQuery(
                         file,
-                        this.mapContainer.settings
+                        this.mapContainer.settings,
                     );
                     // Change the map state only if the file has actually changed. If the user just went back
                     // and forth and the map is still focused on the same file, don't ruin the user's possible
@@ -212,7 +238,7 @@ export abstract class BaseMapView extends ItemView {
                         this.mapContainer.internalSetViewState(
                             mapState,
                             true,
-                            true
+                            true,
                         );
                     }
                 }

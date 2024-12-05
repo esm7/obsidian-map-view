@@ -1,7 +1,7 @@
 import { App, TFile, TextComponent, PopoverSuggest, Scope } from 'obsidian';
 
 import * as consts from 'src/consts';
-import { matchByPosition } from 'src/utils';
+import { matchByPosition, getTagUnderCursor } from 'src/utils';
 import * as regex from 'src/regex';
 import { BaseGeoLayer, FileMarker, isMarkerLinkedFrom } from 'src/markers';
 import * as utils from 'src/utils';
@@ -27,7 +27,7 @@ export class Query {
         this.app = app;
         if (queryString?.length > 0) {
             this.queryRpn = parser.parse(
-                this.preprocessQueryString(queryString)
+                this.preprocessQueryString(queryString),
             );
         } else this.queryEmpty = true;
     }
@@ -108,7 +108,7 @@ export class Query {
             const query = value.replace('linkedto:', '').toLowerCase();
             const linkedToDest = this.app.metadataCache.getFirstLinkpathDest(
                 query,
-                ''
+                '',
             );
             if (!linkedToDest) return false;
             const fileCache = this.app.metadataCache.getFileCache(marker.file);
@@ -121,8 +121,8 @@ export class Query {
                     (linkCache) =>
                         this.app.metadataCache.getFirstLinkpathDest(
                             linkCache.link,
-                            ''
-                        ) == linkedToDest
+                            '',
+                        ) == linkedToDest,
                 )
             )
                 return true;
@@ -130,7 +130,7 @@ export class Query {
             const query = value.replace('linkedfrom:', '').toLowerCase();
             const fileMatch = this.app.metadataCache.getFirstLinkpathDest(
                 query,
-                ''
+                '',
             );
             if (fileMatch) {
                 const linksFrom =
@@ -185,7 +185,7 @@ export class Query {
             return normalizePropertyValues(propertyValues).some((p) =>
                 isExactQuery
                     ? p === propertyQueryLower
-                    : p.includes(propertyQueryLower)
+                    : p.includes(propertyQueryLower),
             );
         } else throw new Error('Unsupported query format ' + value);
     }
@@ -244,7 +244,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
         app: App,
         plugin: MapViewPlugin,
         sourceElement: TextComponent,
-        scope?: Scope
+        scope?: Scope,
     ) {
         super(app, scope);
         this.app = app;
@@ -276,7 +276,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
             } else if (ev.key == 'ArrowDown' || ev.key == 'ArrowUp') {
                 if (this.lastSuggestions.length == 0) return;
                 let index = this.lastSuggestions.findIndex(
-                    (value) => value == this.selection
+                    (value) => value == this.selection,
                 );
                 const direction = ev.key == 'ArrowDown' ? 1 : -1;
                 do {
@@ -291,7 +291,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
         this.eventHandlers.push(
             ['keyup', keyUp],
             ['mouseup', mouseUp],
-            ['keydown', keyDown]
+            ['keydown', keyDown],
         );
         this.sourceElement.inputEl.addEventListener('keyup', keyUp);
         this.sourceElement.inputEl.addEventListener('mouseup', mouseUp);
@@ -337,22 +337,22 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
     createSuggestions(): Suggestion[] {
         const cursorPos = this.sourceElement.inputEl.selectionStart;
         const input = this.sourceElement.getValue();
-        const tagMatch = regex.getTagUnderCursor(input, cursorPos);
+        const tagMatch = getTagUnderCursor(input, cursorPos);
         // Doesn't include a closing parenthesis
         const pathMatch = matchByPosition(
             input,
             regex.QUOTED_OR_NOT_QUOTED_PATH,
-            cursorPos
+            cursorPos,
         );
         const linkedToMatch = matchByPosition(
             input,
             regex.QUOTED_OR_NOT_QUOTED_LINKEDTO,
-            cursorPos
+            cursorPos,
         );
         const linkedFromMatch = matchByPosition(
             input,
             regex.QUOTED_OR_NOT_QUOTED_LINKEDFROM,
-            cursorPos
+            cursorPos,
         );
         if (tagMatch) {
             const tagQuery = tagMatch[1] ?? '';
@@ -366,7 +366,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
                 .filter((value) =>
                     value
                         .toLowerCase()
-                        .includes(noPound(tagQuery).toLowerCase())
+                        .includes(noPound(tagQuery).toLowerCase()),
                 );
             let toReturn: Suggestion[] = [{ text: 'TAGS', group: true }];
             for (const tagName of allTagNames) {
@@ -415,7 +415,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
 
     createPathSuggestions(
         pathMatch: RegExpMatchArray,
-        operator: string
+        operator: string,
     ): Suggestion[] {
         const pathQuery = pathMatch[3] ?? pathMatch[4];
         const allPathNames = this.getAllPathNames(pathQuery);
@@ -476,7 +476,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
 
     selectSuggestion(
         suggestion: Suggestion,
-        event: MouseEvent | KeyboardEvent
+        event: MouseEvent | KeyboardEvent,
     ) {
         // We don't use it, but need it here to inherit from QuerySuggest
         if (!suggestion.group) {

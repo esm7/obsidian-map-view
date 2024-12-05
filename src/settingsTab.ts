@@ -9,11 +9,11 @@ import {
 
 import MapViewPlugin from 'src/main';
 import {
-    OpenBehavior,
-    UrlParsingRuleType,
-    UrlParsingContentType,
-    GeoHelperType,
-    LinkNamePopupBehavior,
+    type OpenBehavior,
+    type UrlParsingRuleType,
+    type UrlParsingContentType,
+    type GeoHelperType,
+    type LinkNamePopupBehavior,
     DEFAULT_SETTINGS,
 } from 'src/settings';
 import { getIconFromOptions, getIconFromRules } from 'src/markerIcons';
@@ -42,7 +42,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Map follows search results')
             .setDesc(
-                'Auto zoom & pan the map to fit search results, including Follow Active Note.'
+                'Auto zoom & pan the map to fit search results, including Follow Active Note.',
             )
             .addToggle((component) => {
                 component
@@ -57,7 +57,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Geocoding search provider')
             .setDesc(
-                'The service used for searching for geolocations. To use Google, see details in the plugin documentation.'
+                'The service used for searching for geolocations. To use Google, see details in the plugin documentation.',
             )
             .addDropdown((component) => {
                 component
@@ -65,7 +65,7 @@ export class SettingsTab extends PluginSettingTab {
                     .addOption('google', 'Google (API key required)')
                     .setValue(
                         this.plugin.settings.searchProvider ||
-                            DEFAULT_SETTINGS.searchProvider
+                            DEFAULT_SETTINGS.searchProvider,
                     )
                     .onChange(async (value: 'osm' | 'google') => {
                         this.plugin.settings.searchProvider = value;
@@ -83,7 +83,7 @@ export class SettingsTab extends PluginSettingTab {
         apiKeyControl = new Setting(containerEl)
             .setName('Gecoding API key')
             .setDesc(
-                'If using Google as the geocoding search provider, paste the API key here. See the plugin documentation for more details. Changes are applied after restart.'
+                'If using Google as the geocoding search provider, paste the API key here. See the plugin documentation for more details. Changes are applied after restart.',
             )
             .addText((component) => {
                 component
@@ -103,13 +103,13 @@ export class SettingsTab extends PluginSettingTab {
         let googlePlacesControl = new Setting(containerEl)
             .setName('Use Google Places for searches')
             .setDesc(
-                'Use Google Places API instead of Google Geocoding to get higher-quality results. Your API key must have a specific Google Places permission turned on! See the plugin documentation for more details.'
+                'Use Google Places API instead of Google Geocoding to get higher-quality results. Your API key must have a specific Google Places permission turned on! See the plugin documentation for more details.',
             )
             .addToggle((component) => {
                 component
                     .setValue(
                         this.plugin.settings.useGooglePlaces ??
-                            DEFAULT_SETTINGS.useGooglePlaces
+                            DEFAULT_SETTINGS.useGooglePlaces,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.useGooglePlaces = value;
@@ -126,13 +126,13 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('New note name format')
             .setDesc(
-                'Date/times in the format can be wrapped in {{date:...}}, e.g. "note-{{date:YYYY-MM-DD}}". Search queries can be added with {{query}}.'
+                'Date/times in the format can be wrapped in {{date:...}}, e.g. "note-{{date:YYYY-MM-DD}}". Search queries can be added with {{query}}.',
             )
             .addText((component) => {
                 component
                     .setValue(
                         this.plugin.settings.newNoteNameFormat ||
-                            DEFAULT_SETTINGS.newNoteNameFormat
+                            DEFAULT_SETTINGS.newNoteNameFormat,
                     )
                     .onChange(async (value: string) => {
                         this.plugin.settings.newNoteNameFormat = value;
@@ -153,7 +153,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Template file path')
             .setDesc(
-                'Choose the file to use as a template, e.g. "templates/map-log.md".'
+                'Choose the file to use as a template, e.g. "templates/map-log.md".',
             )
             .addText((component) => {
                 component
@@ -166,7 +166,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Max cluster size in pixels')
             .setDesc(
-                'Maximal radius in pixels to cover in a marker cluster. Lower values will produce smaller map clusters. (Requires restart.)'
+                'Maximal radius in pixels to cover in a marker cluster. Lower values will produce smaller map clusters. (Requires restart.)',
             )
             .addSlider((slider) => {
                 slider
@@ -174,7 +174,7 @@ export class SettingsTab extends PluginSettingTab {
                     .setDynamicTooltip()
                     .setValue(
                         this.plugin.settings.maxClusterRadiusPixels ??
-                            DEFAULT_SETTINGS.maxClusterRadiusPixels
+                            DEFAULT_SETTINGS.maxClusterRadiusPixels,
                     )
                     .onChange(async (value: number) => {
                         this.plugin.settings.maxClusterRadiusPixels = value;
@@ -184,7 +184,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Default zoom for "show on map" action')
             .setDesc(
-                'When jumping to the map from a note, what should be the display zoom? This is also used as a max zoom for "Map follows search results" above.'
+                'When jumping to the map from a note, what should be the display zoom? This is also used as a max zoom for "Map follows search results" above.',
             )
             .addSlider((component) => {
                 component
@@ -192,7 +192,7 @@ export class SettingsTab extends PluginSettingTab {
                     .setDynamicTooltip()
                     .setValue(
                         this.plugin.settings.zoomOnGoFromNote ??
-                            DEFAULT_SETTINGS.zoomOnGoFromNote
+                            DEFAULT_SETTINGS.zoomOnGoFromNote,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.zoomOnGoFromNote = value;
@@ -202,13 +202,13 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Allow zooming beyond the defined maximum')
             .setDesc(
-                'Allow zooming further than the maximum defined for the map source, interpolating the image of the highest available zoom.'
+                'Allow zooming further than the maximum defined for the map source, interpolating the image of the highest available zoom.',
             )
             .addToggle((component) => {
                 component
                     .setValue(
                         this.plugin.settings.letZoomBeyondMax ??
-                            DEFAULT_SETTINGS.letZoomBeyondMax
+                            DEFAULT_SETTINGS.letZoomBeyondMax,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.letZoomBeyondMax = value;
@@ -219,7 +219,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Save back/forward history')
             .setDesc(
-                'While making changes to the map, save the history to be browsable through Obsidian back/forward buttons.'
+                'While making changes to the map, save the history to be browsable through Obsidian back/forward buttons.',
             )
             .addToggle((component) => {
                 component
@@ -232,13 +232,13 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Query format for "follow active note"')
             .setDesc(
-                'What query to use for following active notes (in the main or mini view), $PATH$ being the file path.'
+                'What query to use for following active notes (in the main or mini view), $PATH$ being the file path.',
             )
             .addText((component) => {
                 component
                     .setValue(
                         this.plugin.settings.queryForFollowActiveNote ||
-                            DEFAULT_SETTINGS.queryForFollowActiveNote
+                            DEFAULT_SETTINGS.queryForFollowActiveNote,
                     )
                     .onChange(async (value: string) => {
                         this.plugin.settings.queryForFollowActiveNote = value;
@@ -248,13 +248,13 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Fix front-matter on inline geolocation paste')
             .setDesc(
-                'Monitor the clipboard and add a "locations:" front-matter if a supported geolocation is pasted from the keyboard.'
+                'Monitor the clipboard and add a "locations:" front-matter if a supported geolocation is pasted from the keyboard.',
             )
             .addToggle((component) => {
                 component
                     .setValue(
                         this.plugin.settings.fixFrontMatterOnPaste ??
-                            DEFAULT_SETTINGS.fixFrontMatterOnPaste
+                            DEFAULT_SETTINGS.fixFrontMatterOnPaste,
                     )
                     .onChange(async (value: boolean) => {
                         this.plugin.settings.fixFrontMatterOnPaste = value;
@@ -264,13 +264,13 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Key for front matter location')
             .setDesc(
-                'The key Map View uses to denote a front matter geolocation. Restart required. Beware: changing this will make your old front matter key not recognized as geolocations by Map View.'
+                'The key Map View uses to denote a front matter geolocation. Restart required. Beware: changing this will make your old front matter key not recognized as geolocations by Map View.',
             )
             .addText((component) => {
                 component
                     .setValue(
                         this.plugin.settings.frontMatterKey ??
-                            DEFAULT_SETTINGS.frontMatterKey
+                            DEFAULT_SETTINGS.frontMatterKey,
                     )
                     .onChange(async (value: string) => {
                         this.plugin.settings.frontMatterKey = value;
@@ -280,7 +280,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Tag name to denote inline geolocations')
             .setDesc(
-                'Instead or in addition to the "locations:" YAML tag, you can use a regular tag that will mark for Map View that a note has inline geolocations, e.g. "#hasLocations". (Note: this has a performance penalty for the time being.)'
+                'Instead or in addition to the "locations:" YAML tag, you can use a regular tag that will mark for Map View that a note has inline geolocations, e.g. "#hasLocations". (Note: this has a performance penalty for the time being.)',
             )
             .addText((component) => {
                 component
@@ -293,13 +293,13 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Routing service URL')
             .setDesc(
-                'URL to use for calculating and showing routes and directions, used for "route to point". {x0},{y0} are the source lat,lng and {x1},{y1} are the destination lat,lng.'
+                'URL to use for calculating and showing routes and directions, used for "route to point". {x0},{y0} are the source lat,lng and {x1},{y1} are the destination lat,lng.',
             )
             .addText((component) => {
                 component
                     .setValue(
                         this.plugin.settings.routingUrl ??
-                            DEFAULT_SETTINGS.routingUrl
+                            DEFAULT_SETTINGS.routingUrl,
                     )
                     .onChange(async (value: string) => {
                         this.plugin.settings.routingUrl = value;
@@ -311,18 +311,18 @@ export class SettingsTab extends PluginSettingTab {
             .setHeading()
             .setName('Geolinks in Notes')
             .setDesc(
-                'How and if Map View handles geolinks in notes (both front matter and inline)'
+                'How and if Map View handles geolinks in notes (both front matter and inline)',
             );
         new Setting(containerEl)
             .setName('Handle geolinks in notes')
             .setDesc(
-                'When turned on, Map View will handle geolinks internally, and turn front matter locations into links. (Requires restarting Obsidian to update correctly.)'
+                'When turned on, Map View will handle geolinks internally, and turn front matter locations into links. (Requires restarting Obsidian to update correctly.)',
             )
             .addToggle((component) => {
                 component
                     .setValue(
                         this.plugin.settings.handleGeolinksInNotes ??
-                            DEFAULT_SETTINGS.handleGeolinksInNotes
+                            DEFAULT_SETTINGS.handleGeolinksInNotes,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.handleGeolinksInNotes = value;
@@ -332,13 +332,13 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Show geolink previews in notes')
             .setDesc(
-                'Show a popup with a map preview when hovering on geolinks in notes. Requires "Geolinks in Notes" above.'
+                'Show a popup with a map preview when hovering on geolinks in notes. Requires "Geolinks in Notes" above.',
             )
             .addToggle((component) => {
                 component
                     .setValue(
                         this.plugin.settings.showGeolinkPreview ??
-                            DEFAULT_SETTINGS.showGeolinkPreview
+                            DEFAULT_SETTINGS.showGeolinkPreview,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.showGeolinkPreview = value;
@@ -354,7 +354,7 @@ export class SettingsTab extends PluginSettingTab {
                     .setDynamicTooltip()
                     .setValue(
                         this.plugin.settings.zoomOnGeolinkPreview ??
-                            DEFAULT_SETTINGS.zoomOnGeolinkPreview
+                            DEFAULT_SETTINGS.zoomOnGeolinkPreview,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.zoomOnGeolinkPreview = value;
@@ -366,12 +366,12 @@ export class SettingsTab extends PluginSettingTab {
             .setHeading()
             .setName('Marker Hover & Previews')
             .setDesc(
-                'What is shown when hovering (desktop) or clicking (mobile) map markers.'
+                'What is shown when hovering (desktop) or clicking (mobile) map markers.',
             );
         new Setting(containerEl)
             .setName('Show note name on marker hover')
             .setDesc(
-                'Show a popup with the note name when hovering on a map marker.'
+                'Show a popup with the note name when hovering on a map marker.',
             )
             .addToggle((component) => {
                 component
@@ -384,7 +384,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Show inline link name on marker hover')
             .setDesc(
-                'In the popup above, show also the link name, in the case of an inline link.'
+                'In the popup above, show also the link name, in the case of an inline link.',
             )
             .addDropdown((component) => {
                 component
@@ -393,7 +393,7 @@ export class SettingsTab extends PluginSettingTab {
                     .addOption('never', 'Never')
                     .setValue(
                         this.plugin.settings.showLinkNameInPopup ??
-                            DEFAULT_SETTINGS.showLinkNameInPopup
+                            DEFAULT_SETTINGS.showLinkNameInPopup,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.showLinkNameInPopup =
@@ -404,7 +404,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Show note preview on map marker hover')
             .setDesc(
-                'In addition to the note name, show a preview if the note contents. Either way, it will be displayed only if the map is large enough to contain it.'
+                'In addition to the note name, show a preview if the note contents. Either way, it will be displayed only if the map is large enough to contain it.',
             )
             .addToggle((component) => {
                 component
@@ -417,7 +417,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Show preview for marker clusters')
             .setDesc(
-                'Show a hover popup summarizing the icons inside a marker cluster.'
+                'Show a hover popup summarizing the icons inside a marker cluster.',
             )
             .addToggle((component) => {
                 component
@@ -433,7 +433,7 @@ export class SettingsTab extends PluginSettingTab {
             .setHeading()
             .setName('Pane & Tab Usage')
             .setDesc(
-                'Control when and if Map View should use panes vs tabs, new panes vs existing ones etc.'
+                'Control when and if Map View should use panes vs tabs, new panes vs existing ones etc.',
             );
 
         // Name is 'click', 'Ctrl+click' and 'middle click'
@@ -441,22 +441,22 @@ export class SettingsTab extends PluginSettingTab {
             setting: Setting,
             setValue: (value: OpenBehavior) => void,
             getValue: () => OpenBehavior,
-            includeLatest: boolean
+            includeLatest: boolean,
         ) => {
             setting.addDropdown((component) => {
                 component
                     .addOption(
                         'replaceCurrent',
-                        'Open in same pane (replace Map View)'
+                        'Open in same pane (replace Map View)',
                     )
                     .addOption(
                         'dedicatedPane',
-                        'Open in a 2nd pane and keep reusing it'
+                        'Open in a 2nd pane and keep reusing it',
                     )
                     .addOption('alwaysNew', 'Always open a new pane')
                     .addOption(
                         'dedicatedTab',
-                        'Open in a new tab and keep reusing it'
+                        'Open in a new tab and keep reusing it',
                     )
                     .addOption('alwaysNewTab', 'Always open a new tab');
                 if (includeLatest)
@@ -474,7 +474,7 @@ export class SettingsTab extends PluginSettingTab {
             new Setting(containerEl)
                 .setName('Default action for map marker click')
                 .setDesc(
-                    'How should the corresponding note be opened following a click on a marker?'
+                    'How should the corresponding note be opened following a click on a marker?',
                 ),
             (value: OpenBehavior) => {
                 this.plugin.settings.markerClickBehavior = value;
@@ -482,13 +482,13 @@ export class SettingsTab extends PluginSettingTab {
             () => {
                 return this.plugin.settings.markerClickBehavior;
             },
-            true
+            true,
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
                 .setName('Default action for map marker Ctrl+click')
                 .setDesc(
-                    'How should the corresponding note be opened following a Ctrl+click on a marker?'
+                    'How should the corresponding note be opened following a Ctrl+click on a marker?',
                 ),
             (value: OpenBehavior) => {
                 this.plugin.settings.markerCtrlClickBehavior = value;
@@ -496,13 +496,13 @@ export class SettingsTab extends PluginSettingTab {
             () => {
                 return this.plugin.settings.markerCtrlClickBehavior;
             },
-            true
+            true,
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
                 .setName('Default action for map marker middle-click')
                 .setDesc(
-                    'How should the corresponding note be opened following a middle-click on a marker?'
+                    'How should the corresponding note be opened following a middle-click on a marker?',
                 ),
             (value: OpenBehavior) => {
                 this.plugin.settings.markerMiddleClickBehavior = value;
@@ -510,14 +510,14 @@ export class SettingsTab extends PluginSettingTab {
             () => {
                 return this.plugin.settings.markerMiddleClickBehavior;
             },
-            true
+            true,
         );
 
         addOpenBehaviorOptions(
             new Setting(containerEl)
                 .setName('Default mode for opening Map View')
                 .setDesc(
-                    'How should Map View open by default (e.g. when clicking the ribbon icon, or from within a note).'
+                    'How should Map View open by default (e.g. when clicking the ribbon icon, or from within a note).',
                 ),
             (value: OpenBehavior) => {
                 this.plugin.settings.openMapBehavior = value;
@@ -525,7 +525,7 @@ export class SettingsTab extends PluginSettingTab {
             () => {
                 return this.plugin.settings.openMapBehavior;
             },
-            false
+            false,
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
@@ -537,7 +537,7 @@ export class SettingsTab extends PluginSettingTab {
             () => {
                 return this.plugin.settings.openMapCtrlClickBehavior;
             },
-            false
+            false,
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
@@ -549,13 +549,13 @@ export class SettingsTab extends PluginSettingTab {
             () => {
                 return this.plugin.settings.openMapMiddleClickBehavior;
             },
-            false
+            false,
         );
 
         new Setting(containerEl)
             .setName('New pane split direction')
             .setDesc(
-                'Which way should the pane be split when opening in a new pane.'
+                'Which way should the pane be split when opening in a new pane.',
             )
             .addDropdown((component) => {
                 component
@@ -563,7 +563,7 @@ export class SettingsTab extends PluginSettingTab {
                     .addOption('vertical', 'Vertical')
                     .setValue(
                         this.plugin.settings.newPaneSplitDirection ||
-                            'horizontal'
+                            'horizontal',
                     )
                     .onChange(async (value: any) => {
                         this.plugin.settings.newPaneSplitDirection = value;
@@ -587,7 +587,7 @@ export class SettingsTab extends PluginSettingTab {
                 });
                 this.refreshMapSourceSettings(mapSourcesDiv);
                 this.refreshPluginOnHide = true;
-            })
+            }),
         );
         mapSourcesDiv = containerEl.createDiv();
         this.refreshMapSourceSettings(mapSourcesDiv);
@@ -596,7 +596,7 @@ export class SettingsTab extends PluginSettingTab {
             .setHeading()
             .setName('Custom "Open In" Actions')
             .setDesc(
-                "'Open in' actions showing in geolocation-relevant popup menus. URL should have {x} and {y} as parameters to transfer."
+                "'Open in' actions showing in geolocation-relevant popup menus. URL should have {x} and {y} as parameters to transfer.",
             );
 
         let openInActionsDiv: HTMLDivElement = null;
@@ -604,7 +604,7 @@ export class SettingsTab extends PluginSettingTab {
             component.setButtonText('New Custom Action').onClick(() => {
                 this.plugin.settings.openIn.push({ name: '', urlPattern: '' });
                 this.refreshOpenInSettings(openInActionsDiv);
-            })
+            }),
         );
         openInActionsDiv = containerEl.createDiv();
         this.refreshOpenInSettings(openInActionsDiv);
@@ -613,7 +613,7 @@ export class SettingsTab extends PluginSettingTab {
             .setHeading()
             .setName('URL Parsing Rules')
             .setDesc(
-                'Customizable rules for converting URLs of various mapping services to coordinates, for the purpose of the "Convert URL" action.'
+                'Customizable rules for converting URLs of various mapping services to coordinates, for the purpose of the "Convert URL" action.',
             );
 
         let parsingRulesDiv: HTMLDivElement = null;
@@ -626,7 +626,7 @@ export class SettingsTab extends PluginSettingTab {
                     ruleType: 'latLng',
                 });
                 this.refreshUrlParsingRules(parsingRulesDiv);
-            })
+            }),
         );
         parsingRulesDiv = containerEl.createDiv();
         this.refreshUrlParsingRules(parsingRulesDiv);
@@ -648,7 +648,7 @@ export class SettingsTab extends PluginSettingTab {
                     iconDetails: { prefix: 'fas' },
                 });
                 this.refreshMarkerIcons(markerIconsDiv);
-            })
+            }),
         );
         markerIconsDiv = containerEl.createDiv();
         this.refreshMarkerIcons(markerIconsDiv);
@@ -665,7 +665,7 @@ export class SettingsTab extends PluginSettingTab {
                 component
                     .setValue(
                         this.plugin.settings.supportRealTimeGeolocation ??
-                            DEFAULT_SETTINGS.supportRealTimeGeolocation
+                            DEFAULT_SETTINGS.supportRealTimeGeolocation,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.supportRealTimeGeolocation = value;
@@ -678,7 +678,7 @@ export class SettingsTab extends PluginSettingTab {
                 component
                     .setValue(
                         this.plugin.settings.geoHelperPreferApp ??
-                            DEFAULT_SETTINGS.geoHelperPreferApp
+                            DEFAULT_SETTINGS.geoHelperPreferApp,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.geoHelperPreferApp = value;
@@ -688,7 +688,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Geo helper type')
             .setDesc(
-                'If the native app is not used, determines how to launch the geo helper.'
+                'If the native app is not used, determines how to launch the geo helper.',
             )
             .addDropdown((component) => {
                 component
@@ -696,7 +696,7 @@ export class SettingsTab extends PluginSettingTab {
                     .addOption('commandline', 'Command line')
                     .setValue(
                         this.plugin.settings.geoHelperType ??
-                            DEFAULT_SETTINGS.geoHelperType
+                            DEFAULT_SETTINGS.geoHelperType,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.geoHelperType =
@@ -709,13 +709,13 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         const geoHelperCommand = new Setting(containerEl).setName(
-            'Geo Helper Command'
+            'Geo Helper Command',
         );
         geoHelperCommand.addText((component) => {
             component
                 .setValue(
                     this.plugin.settings.geoHelperCommand ??
-                        DEFAULT_SETTINGS.geoHelperCommand
+                        DEFAULT_SETTINGS.geoHelperCommand,
                 )
                 .onChange(async (value) => {
                     this.plugin.settings.geoHelperCommand = value;
@@ -726,7 +726,7 @@ export class SettingsTab extends PluginSettingTab {
         geoHelperUrl.addText((component) => {
             component
                 .setPlaceholder(
-                    'URL to open (directly or using the defined command; see README for more details)'
+                    'URL to open (directly or using the defined command; see README for more details)',
                 )
                 .setValue(this.plugin.settings.geoHelperUrl ?? '')
                 .onChange(async (value) => {
@@ -750,7 +750,7 @@ export class SettingsTab extends PluginSettingTab {
                     .setValue(
                         this.plugin.settings.debug != null
                             ? this.plugin.settings.debug
-                            : DEFAULT_SETTINGS.debug
+                            : DEFAULT_SETTINGS.debug,
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.debug = value;
@@ -762,7 +762,7 @@ export class SettingsTab extends PluginSettingTab {
     hide() {
         if (this.refreshPluginOnHide) {
             const mapViews = this.app.workspace.getLeavesOfType(
-                consts.MAP_VIEW_NAME
+                consts.MAP_VIEW_NAME,
             );
             for (const leaf of mapViews) {
                 if (leaf.view) {
@@ -813,7 +813,7 @@ export class SettingsTab extends PluginSettingTab {
                         .setValue(
                             (
                                 setting.maxZoom ?? DEFAULT_MAX_TILE_ZOOM
-                            ).toString()
+                            ).toString(),
                         )
                         .onChange(async (value: string) => {
                             let zoom = parseInt(value);
@@ -832,7 +832,7 @@ export class SettingsTab extends PluginSettingTab {
                         this.refreshPluginOnHide = true;
                         await this.plugin.saveSettings();
                         this.refreshMapSourceSettings(containerEl);
-                    })
+                    }),
                 );
             controls.settingEl.style.padding = '5px';
             controls.settingEl.style.borderTop = 'none';
@@ -866,7 +866,7 @@ export class SettingsTab extends PluginSettingTab {
                         this.plugin.settings.openIn.remove(setting);
                         await this.plugin.saveSettings();
                         this.refreshOpenInSettings(containerEl);
-                    })
+                    }),
                 );
             controls.settingEl.style.padding = '5px';
             controls.settingEl.style.borderTop = 'none';
@@ -881,7 +881,7 @@ export class SettingsTab extends PluginSettingTab {
         for (const defaultSetting of DEFAULT_SETTINGS.urlParsingRules)
             if (
                 parsingRules.findIndex(
-                    (rule) => rule.name === defaultSetting.name
+                    (rule) => rule.name === defaultSetting.name,
                 ) === -1
             ) {
                 parsingRules.push(defaultSetting);
@@ -895,7 +895,7 @@ export class SettingsTab extends PluginSettingTab {
                 text.setPlaceholder(
                     ruleType === 'fetch'
                         ? 'Regex with 1 capture group'
-                        : 'Regex with 2 capture groups'
+                        : 'Regex with 2 capture groups',
                 );
                 if (line2)
                     line2.style.display =
@@ -926,7 +926,7 @@ export class SettingsTab extends PluginSettingTab {
                         adjustToRuleType(value);
                         await this.plugin.saveSettings();
                     })
-                    .selectEl.addClass('url-rule-dropdown')
+                    .selectEl.addClass('url-rule-dropdown'),
             );
             controls.settingEl.style.padding = '0px';
             controls.settingEl.style.borderTop = 'none';
@@ -936,7 +936,7 @@ export class SettingsTab extends PluginSettingTab {
                         this.plugin.settings.urlParsingRules.remove(setting);
                         await this.plugin.saveSettings();
                         this.refreshUrlParsingRules(containerEl);
-                    })
+                    }),
                 );
             line2 = parsingRuleDiv.createDiv('parsing-rule-line-2');
             adjustToRuleType(setting.ruleType);
@@ -985,7 +985,7 @@ export class SettingsTab extends PluginSettingTab {
                                     rule.ruleName = value;
                                     await this.plugin.saveSettings();
                                     updateIconAndJson();
-                                }).inputEl.style.width = '10em')
+                                }).inputEl.style.width = '10em'),
                     )
                     .addText(
                         (component) =>
@@ -998,10 +998,10 @@ export class SettingsTab extends PluginSettingTab {
                                     await this.plugin.saveSettings();
                                     if (rule.preset)
                                         iconUpdateFunctions.forEach((update) =>
-                                            update()
+                                            update(),
                                         );
                                     else updateIconAndJson();
-                                }).inputEl.style.width = '8em')
+                                }).inputEl.style.width = '8em'),
                     )
                     .addText(
                         (component) =>
@@ -1015,10 +1015,10 @@ export class SettingsTab extends PluginSettingTab {
                                     await this.plugin.saveSettings();
                                     if (rule.preset)
                                         iconUpdateFunctions.forEach((update) =>
-                                            update()
+                                            update(),
                                         );
                                     else updateIconAndJson();
-                                }).inputEl.style.width = '8em')
+                                }).inputEl.style.width = '8em'),
                     )
                     .addText(
                         (component) =>
@@ -1031,10 +1031,10 @@ export class SettingsTab extends PluginSettingTab {
                                     await this.plugin.saveSettings();
                                     if (rule.preset)
                                         iconUpdateFunctions.forEach((update) =>
-                                            update()
+                                            update(),
                                         );
                                     else updateIconAndJson();
-                                }).inputEl.style.width = '6em')
+                                }).inputEl.style.width = '6em'),
                     );
                 setting.settingEl.style.padding = '5px';
                 setting.settingEl.style.borderTop = 'none';
@@ -1047,7 +1047,7 @@ export class SettingsTab extends PluginSettingTab {
                                 await this.plugin.saveSettings();
                                 this.refreshMarkerIcons(containerEl);
                             })
-                            .buttonEl.classList.add('settings-dense-button')
+                            .buttonEl.classList.add('settings-dense-button'),
                     );
                     const ruleIndex = rules.indexOf(rule);
                     setting.addButton((component) =>
@@ -1062,7 +1062,7 @@ export class SettingsTab extends PluginSettingTab {
                                     this.refreshMarkerIcons(containerEl);
                                 }
                             })
-                            .buttonEl.classList.add('settings-dense-button')
+                            .buttonEl.classList.add('settings-dense-button'),
                     );
                     setting.addButton((component) =>
                         component
@@ -1076,7 +1076,7 @@ export class SettingsTab extends PluginSettingTab {
                                     this.refreshMarkerIcons(containerEl);
                                 }
                             })
-                            .buttonEl.classList.add('settings-dense-button')
+                            .buttonEl.classList.add('settings-dense-button'),
                     );
                 }
                 let iconElement: HTMLElement = null;
@@ -1086,11 +1086,11 @@ export class SettingsTab extends PluginSettingTab {
                         {},
                         rules.find((element) => element.ruleName === 'default')
                             .iconDetails,
-                        rule.iconDetails
+                        rule.iconDetails,
                     );
                     const compiledIcon = getIconFromOptions(
                         options,
-                        this.plugin.iconFactory
+                        this.plugin.iconFactory,
                     );
                     iconElement = compiledIcon.createIcon();
                     let style = iconElement.style;
@@ -1102,8 +1102,8 @@ export class SettingsTab extends PluginSettingTab {
                             JSON.stringify(
                                 this.plugin.settings.markerIconRules,
                                 null,
-                                2
-                            )
+                                2,
+                            ),
                         );
                 };
                 iconUpdateFunctions.push(updateIconAndJson);
@@ -1128,7 +1128,7 @@ export class SettingsTab extends PluginSettingTab {
                 const compiledIcon = getIconFromRules(
                     testTagsBox.getValue().split(' '),
                     rules,
-                    this.plugin.iconFactory
+                    this.plugin.iconFactory,
                 );
                 multiTagIconElement = compiledIcon.createIcon();
                 let style = multiTagIconElement.style;
@@ -1142,7 +1142,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Edit marker icons as JSON (advanced)')
             .setDesc(
-                'Use this for advanced settings not controllable by the GUI above. Beware - uncareful edits can get Map View to faulty behaviors!'
+                'Use this for advanced settings not controllable by the GUI above. Beware - uncareful edits can get Map View to faulty behaviors!',
             )
             .addTextArea((component) => {
                 component
@@ -1150,8 +1150,8 @@ export class SettingsTab extends PluginSettingTab {
                         JSON.stringify(
                             this.plugin.settings.markerIconRules,
                             null,
-                            2
-                        )
+                            2,
+                        ),
                     )
                     .onChange(async (value) => {
                         try {

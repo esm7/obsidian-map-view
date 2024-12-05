@@ -4,8 +4,9 @@
 
 <!--ts-->
 
+
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Sun 03 Nov 2024 12:07:11 IST -->
+<!-- Added by: erez, at: Thu 05 Dec 2024 22:35:48 IST -->
 
 <!--te-->
 
@@ -26,9 +27,9 @@ You can set different icons for different note types according to custom rules, 
 
 I wrote this plugin because I wanted my ever-growing Zettelkasten to be able to answer questions like...
 
--   When I get recommendations about cool places to visit, how do I save them in a way that I can recall later?
--   When I'm visiting somewhere, what interesting places do I know in the area?
--   When I'm conducting research for planning a trip, how do I lay out on a map options for places to eat, hike or sleep, combine them with prior knowledge, and save them for future reference?
+- When I get recommendations about cool places to visit, how do I save them in a way that I can recall later?
+- When I'm visiting somewhere, what interesting places do I know in the area?
+- When I'm conducting research for planning a trip, how do I lay out on a map options for places to eat, hike or sleep, combine them with prior knowledge, and save them for future reference?
 
 Map View can integrate with your note-taking flow in order to answer all of these questions and much more.
 
@@ -132,19 +133,19 @@ I later turn these into notes, but of course if that's not how you do things, yo
 
 When I turn my clipped pieces of information into notes, I add geolocations as follows.
 
--   For pieces of information that are _mainly geographical_, e.g. a restaurant recommendation, a hike or somewhere I may want to visit, I create a Zettelkasten note, then use the Map View "add geolocation (front matter) to current note" to tag the relevant geolocation.
-    -   If the location isn't easy to find using a text search, I usually open a more specific mapping tool like a hiking map, locate the place that I want, copy it in lat,lng format and paste it into the same search box above.
-    -   Alternatively, I sometimes prefer to locate it on the map, then right-click and "copy geolocation as front matter" (or create the note from the map in the first place).
-    -   I then tag the complete note with some useful metadata. Examples include: `#hike`, `#season/spring`, `#dogs`, `#camping`, `#food`, `#food/pizza`, `#activity`, `#activity/kids`, `#not` (for negative recommendations).
--   For bulks of geographical information, like a list of recommended coffee shops in a city, I create a note and add all geolocations via inline geolocation links. I have the "add inline geolocation link" command mapped to `Alt+L` so I can easily start a location search while typing a note.
+- For pieces of information that are _mainly geographical_, e.g. a restaurant recommendation, a hike or somewhere I may want to visit, I create a Zettelkasten note, then use the Map View "add geolocation (front matter) to current note" to tag the relevant geolocation.
+    - If the location isn't easy to find using a text search, I usually open a more specific mapping tool like a hiking map, locate the place that I want, copy it in lat,lng format and paste it into the same search box above.
+    - Alternatively, I sometimes prefer to locate it on the map, then right-click and "copy geolocation as front matter" (or create the note from the map in the first place).
+    - I then tag the complete note with some useful metadata. Examples include: `#hike`, `#season/spring`, `#dogs`, `#camping`, `#food`, `#food/pizza`, `#activity`, `#activity/kids`, `#not` (for negative recommendations).
+- For bulks of geographical information, like a list of recommended coffee shops in a city, I create a note and add all geolocations via inline geolocation links. I have the "add inline geolocation link" command mapped to `Alt+L` so I can easily start a location search while typing a note.
 
 **3. Querying**
 
 There are countless occasions that I query my Personal GIS.
 
--   When planning a trip I often look at the area that I'm visiting, sometimes saving it as a preset without any filter applied, and get a general understanding of what I know about the area.
--   I often query the system for a specific set of needs. For example, I obsessively collect information about dog-friendly activities around where I live, so when I want to go camping I query for `#dogs AND #sleep` (to search for dog-friendly camp sites) and to choose dining options I query for `#dogs AND #food`. See [here](#queries) to learn more about how queries work and what you can do with them.
--   When visiting an unknown area I frequently launch Map View from Obsidian Mobile to account for change in plans or finding what to do without planning in advance.
+- When planning a trip I often look at the area that I'm visiting, sometimes saving it as a preset without any filter applied, and get a general understanding of what I know about the area.
+- I often query the system for a specific set of needs. For example, I obsessively collect information about dog-friendly activities around where I live, so when I want to go camping I query for `#dogs AND #sleep` (to search for dog-friendly camp sites) and to choose dining options I query for `#dogs AND #food`. See [here](#queries) to learn more about how queries work and what you can do with them.
+- When visiting an unknown area I frequently launch Map View from Obsidian Mobile to account for change in plans or finding what to do without planning in advance.
 
 See also [this](https://www.reddit.com/r/ObsidianMD/comments/xi42pt/planning_a_vacation_with_map_view/) Reddit post about planning a vacation with Map View.
 
@@ -309,13 +310,13 @@ Embeds also work really nicely in Canvas including live updates.
 
 ### Advanced Additional Options
 
--   The query field in an embedded map supports a template parameter `$filename$`. If, for example, you wish to embed a map in a note template, you can edit the `query` field of the code block to be `"query":"linkedfrom:\"$filename$\" OR linkedto:\"$filename$\""`, and the map will always reference the host note.
+- The query field in an embedded map supports a template parameter `$filename$`. If, for example, you wish to embed a map in a note template, you can edit the `query` field of the code block to be `"query":"linkedfrom:\"$filename$\" OR linkedto:\"$filename$\""`, and the map will always reference the host note.
 
 **Known annoyance:** the `$filename$` replacement is currently performed when processing the code block and sent to Map View as a final result. Therefore, if you edit the embed interactively (e.g. by zoom or pan and clicking Save), the `query` field will be overwritten with the actual file name rather than the template.
 
--   The JSON in the embedded map code block supports a still-rather-raw `autoFit` boolean flag. When set to `true` (i.e. add `"autoFit":true` to the code block's JSON), the map will load with the given pan and zoom, but will then perform an auto-fit and override further zoom and pan changes. This has the annoyance of animating zoom/pan if the saved state is different than the auto-fitted one (click Save to freeze a new state in such a case). I eventually want to bake this nicely to the UI with some more reasonable behaviors.
+- The JSON in the embedded map code block supports a still-rather-raw `autoFit` boolean flag. When set to `true` (i.e. add `"autoFit":true` to the code block's JSON), the map will load with the given pan and zoom, but will then perform an auto-fit and override further zoom and pan changes. This has the annoyance of animating zoom/pan if the saved state is different than the auto-fitted one (click Save to freeze a new state in such a case). I eventually want to bake this nicely to the UI with some more reasonable behaviors.
 
--   The embedded map code block also supports an optional `customViewSettings` object, which allows for some adjustments to the map's UI. Properties and their defaults are defined in [`embeddedMap.ts`](https://github.com/esm7/obsidian-map-view/blob/master/src/embeddedMap.ts#L31-L47).
+- The embedded map code block also supports an optional `customViewSettings` object, which allows for some adjustments to the map's UI. Properties and their defaults are defined in [`embeddedMap.ts`](https://github.com/esm7/obsidian-map-view/blob/master/src/embeddedMap.ts#L31-L47).
 
 ## Queries
 
@@ -325,26 +326,26 @@ Map View supports powerful queries that are roughly similar to Obsidian's query 
 
 The query string can contain the following _search operators_:
 
--   `tag:#...` to search for notes or markers tagged with a specific tag.
-    -   This works on both whole notes (`#hiking`) and inline tags for specific markers (`tag:hiking`).
-    -   You can also use wildcards like in [tag rules](#tag-rules), e.g. `tag:#sleep*` will match `#sleep` but also `#sleep/camping`.
--   `name:...` to search for markers that their name contains the given string.
-    -   For front-matter geolocations this matches the file name.
-    -   For inline geolocations this matches the link name and **ignores** the file name (if you want to always match the file name, use `OR` with `path:`).
--   `path:...` to search by the note path.
-    -   This operator will include all the markers in the path that matches the query.
--   `linkedto:...` includes notes that contain a specific link.
-    -   This operator will include a note (with all the markers in it) if it has a link name that matches the query.
-    -   For example, if you have a note named `Cave Hikes` and you have geolocated notes that **link to it** (e.g. include `[[Cave Hikes]]` as a link), include them by the filter `linkedto:"Cave Hikes"`.
-    -   Anything that resolves into a legal Obsidian link will work, e.g. both a note name ('Cave Hikes') or a path will do, but a partial name will not.
--   `linkedfrom:...` includes notes that are linked from a specific note, and also the origin note itself.
-    -   This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query.
-    -   For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
-    -   Anything that resolves into a legal Obsidian link will work, e.g. both a note name ('Cave Hikes') or a path will do, but a partial name will not.
-    -   Obsidian heading and block links are supported: if a link in the 'from' file includes a heading or a block link, it will match only front-matter markers or inline markers _within that heading or block_.
-    -   The Obsidian Plugin ["Copy Block Link"](https://github.com/mgmeyers/obsidian-copy-block-link) makes this extra useful.
--   `lines:x-y` includes only inline markers that are defined in the given line range in their note.
-    -   For example, `lines:20-30` includes only inline geolocations that are defined in lines 20 to 30 in the file that contains them.
+- `tag:#...` to search for notes or markers tagged with a specific tag.
+    - This works on both whole notes (`#hiking`) and inline tags for specific markers (`tag:hiking`).
+    - You can also use wildcards like in [tag rules](#tag-rules), e.g. `tag:#sleep*` will match `#sleep` but also `#sleep/camping`.
+- `name:...` to search for markers that their name contains the given string.
+    - For front-matter geolocations this matches the file name.
+    - For inline geolocations this matches the link name and **ignores** the file name (if you want to always match the file name, use `OR` with `path:`).
+- `path:...` to search by the note path.
+    - This operator will include all the markers in the path that matches the query.
+- `linkedto:...` includes notes that contain a specific link.
+    - This operator will include a note (with all the markers in it) if it has a link name that matches the query.
+    - For example, if you have a note named `Cave Hikes` and you have geolocated notes that **link to it** (e.g. include `[[Cave Hikes]]` as a link), include them by the filter `linkedto:"Cave Hikes"`.
+    - Anything that resolves into a legal Obsidian link will work, e.g. both a note name ('Cave Hikes') or a path will do, but a partial name will not.
+- `linkedfrom:...` includes notes that are linked from a specific note, and also the origin note itself.
+    - This operator will include a note (with all the markers in it) if it is linked **from** the note mentioned in the query.
+    - For example, if you have a note named `Trip to Italy` with links to various geolocated notes (e.g. of places you want to visit or a trip log), the query `linkedfrom:"Trip to Italy"` will filter only for those markers.
+    - Anything that resolves into a legal Obsidian link will work, e.g. both a note name ('Cave Hikes') or a path will do, but a partial name will not.
+    - Obsidian heading and block links are supported: if a link in the 'from' file includes a heading or a block link, it will match only front-matter markers or inline markers _within that heading or block_.
+    - The Obsidian Plugin ["Copy Block Link"](https://github.com/mgmeyers/obsidian-copy-block-link) makes this extra useful.
+- `lines:x-y` includes only inline markers that are defined in the given line range in their note.
+    - For example, `lines:20-30` includes only inline geolocations that are defined in lines 20 to 30 in the file that contains them.
 
 All operators are case insensitive.
 
@@ -353,9 +354,9 @@ You can combine the above with _logical operators_: `AND`, `OR`, `NOT`, and grou
 
 For examples:
 
--   `linkedfrom:"Trip to Italy" AND tag:#wine` can include places you linked from your trip to Italy, or are within that note itself, and are tagged with `#wine`.
--   `tag:#hike AND tag:#dogs` can include hikes you marked as suitable for dogs.
--   `tag:#hike AND (tag:#dogs OR tag:#amazing) AND NOT path:"bad places"`
+- `linkedfrom:"Trip to Italy" AND tag:#wine` can include places you linked from your trip to Italy, or are within that note itself, and are tagged with `#wine`.
+- `tag:#hike AND tag:#dogs` can include hikes you marked as suitable for dogs.
+- `tag:#hike AND (tag:#dogs OR tag:#amazing) AND NOT path:"bad places"`
 
 There are many creative ways to organize your notes with geolocations that utilize these query abilities.
 You may represent location types with tags (e.g. `#hike` or `#restaurant`), or use tags to represent traits of places (`#hike/summer`, `#hike/easy`).
@@ -481,10 +482,10 @@ These sources can be Google Maps, OpenStreetMap, specialized mapping tools or pr
 
 The Open In list is shown:
 
--   When right-clicking on the map.
--   When right-clicking a marker on the map.
--   When right-clicking a line in a note that has a location.
--   In the context menu of a note that has a front matter location.
+- When right-clicking on the map.
+- When right-clicking a marker on the map.
+- When right-clicking a line in a note that has a location.
+- In the context menu of a note that has a front matter location.
 
 This list can be edited through the plugin's settings menu, with a name that will be displayed in the context menus and a URL pattern. The URL pattern has two parameters -- `{x}` and `{y}` -- that will be replaced by the latitude and longitude of the clicked location.
 
@@ -492,9 +493,9 @@ This list can be edited through the plugin's settings menu, with a name that wil
 
 Popular choices may be:
 
--   Google Maps: `https://maps.google.com/?q={x},{y}`
--   OpenStreetMap: `https://www.openstreetmap.org/#map=16/{x}/{y}` (replace `16` with your preferred zoom level)
--   Waze (online dropped pin): `https://ul.waze.com/ul?ll={x}%2C{y}&navigate=yes&zoom=17` (replace `17` with your preferred zoom level)
+- Google Maps: `https://maps.google.com/?q={x},{y}`
+- OpenStreetMap: `https://www.openstreetmap.org/#map=16/{x}/{y}` (replace `16` with your preferred zoom level)
+- Waze (online dropped pin): `https://ul.waze.com/ul?ll={x}%2C{y}&navigate=yes&zoom=17` (replace `17` with your preferred zoom level)
 
 And you can figure out many other mapping services just by inspecting the URL.
 
@@ -533,8 +534,8 @@ This is closely related to the setting of "map follows search results", and prob
 The specific behavior of how to "follow" the active note can be configured via the 'query format for "follow active note"' setting in the configuration.
 By default, Map View uses the [query](#queries) `path:"$PATH$"`, which means that when you switch to a note, the view automatically updates the query to show only the markers within the path of this note. You can edit this setting to achieve more fine-grained behaviors, for example:
 
--   Use `linkedfrom:"$PATH$"` for a more elaborate inclusion of markers from both the file you're on and files it links to.
--   Use `linkedfrom:"$PATH$" OR linkedto:"$PATH$"` to include markers that the active note links to and also markers that _link to this file_.
+- Use `linkedfrom:"$PATH$"` for a more elaborate inclusion of markers from both the file you're on and files it links to.
+- Use `linkedfrom:"$PATH$" OR linkedto:"$PATH$"` to include markers that the active note links to and also markers that _link to this file_.
 
 ## GPS Location Support
 
@@ -559,13 +560,13 @@ The use for "command line" is for more advanced usages where you want the web ap
 
 This adds the following functionality:
 
--   A GPS location icon is added to Map View maps (below the search controls). When clicked, it tries to get your location via the Geo Helper, and displays it on the map if successful.
--   Multiple commands that can be mapped and launched from within notes:
-    -   GPS: copy inline location
-    -   GPS: new geolocation note
-    -   GPS: find location and focus
-    -   GPS: add geolocation (inline) at current position
-    -   GPS: add geolocation (front matter) to current note.
+- A GPS location icon is added to Map View maps (below the search controls). When clicked, it tries to get your location via the Geo Helper, and displays it on the map if successful.
+- Multiple commands that can be mapped and launched from within notes:
+    - GPS: copy inline location
+    - GPS: new geolocation note
+    - GPS: find location and focus
+    - GPS: add geolocation (inline) at current position
+    - GPS: add geolocation (front matter) to current note.
 
 Many of these can also be launched directly from the geo helper after it finds your location.
 
@@ -580,10 +581,10 @@ To turn this on, open the "Links" drop-down on the map controls and choose "show
 The way it works is that all the markers of a given file (sources) are shown as linked to the markers pointed by the links in that file (destinations).
 A destination can be:
 
--   A whole file -- then all the markers in the source file are linked to all the markers in the destination file.
--   A heading/block -- then all the markers in the source file are linked to:
-    -   The front-matter marker of the destination file, if any.
-    -   Only inline locations in the referenced heading/block.
+- A whole file -- then all the markers in the source file are linked to all the markers in the destination file.
+- A heading/block -- then all the markers in the source file are linked to:
+    - The front-matter marker of the destination file, if any.
+    - Only inline locations in the referenced heading/block.
 
 Finally, you can configure the color used for the edges on the map using any valid [HTML color name](https://www.w3schools.com/tags/ref_colornames.asp) or a hex value like `#faebd7`.
 
@@ -598,20 +599,24 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 **What’s similar?**
 
--   Both plugins support creating maps from your notes, or a folder of notes, with extensive options for customization.
--   Both support creating a map for a specific use (e.g. a trip plan), from a focused set of notes, embedding the map in a note etc.
+- Both plugins support creating maps from your notes, or a folder of notes, with extensive options for customization.
+- Both support creating a map for a specific use (e.g. a trip plan), from a focused set of notes, embedding the map in a note etc.
 
 **What's different?**
 
--   Map View started as a view (similarly to Obsidian’s Graph View) rather than an embedded syntax. And while it now supports embedding maps in notes, the main interaction with it is with a GUI and not with a code block. Leaflet, in contrast, offers its customizations mostly via code in its code block.
--   Map View parses geolocations from the front-matter of notes and also from an inline syntax within notes (allowing multiple geolocations in a note, also with different individual tags), while Leaflet focuses on a geolocation-per-note approach (and further locations can be added to the map code itself).
--   Map View is meant to be a research tool based on your notes: it offers interactive queries through a UI, for example, in order to get insights from it or consult it when planning a trip or arriving to a location. In contrast, Leaflet seems to be more directed towards presenting the most fine-grained customizable map.
--   Map View has powerful geolocation search tools that allow you to quickly add locations from within a note or from the map.
--   Map View builds marker icons based on customizable rules, so you do stuff like “color all #food/\* items in red”, on top of that “give #food/pizza a pizza icon”, and all pizza-tagged places will have a red pizza icon. In Leaflet marker icons are given individually for each marker, or with a global setting that assigns a full icon to a tag.
--   Leaflet supports GPX files, overlays and GeoJSON shapes to be added to the map.
--   Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
+- Map View started as a view (similarly to Obsidian’s Graph View) rather than an embedded syntax. And while it now supports embedding maps in notes, the main interaction with it is with a GUI and not with a code block. Leaflet, in contrast, offers its customizations mostly via code in its code block.
+- Map View parses geolocations from the front-matter of notes and also from an inline syntax within notes (allowing multiple geolocations in a note, also with different individual tags), while Leaflet focuses on a geolocation-per-note approach (and further locations can be added to the map code itself).
+- Map View is meant to be a research tool based on your notes: it offers interactive queries through a UI, for example, in order to get insights from it or consult it when planning a trip or arriving to a location. In contrast, Leaflet seems to be more directed towards presenting the most fine-grained customizable map.
+- Map View has powerful geolocation search tools that allow you to quickly add locations from within a note or from the map.
+- Map View builds marker icons based on customizable rules, so you do stuff like “color all #food/\* items in red”, on top of that “give #food/pizza a pizza icon”, and all pizza-tagged places will have a red pizza icon. In Leaflet marker icons are given individually for each marker, or with a global setting that assigns a full icon to a tag.
+- Leaflet supports GPX files, overlays and GeoJSON shapes to be added to the map.
+- Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+Unreleased:
+
+- Big update to project dependencies.
 
 ### 5.1.0
 
@@ -619,43 +624,43 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 > I originally wanted this release to be a very major one, with several big features some users have been waiting for.
 > However due to lack of time to complete them in a timely manner, and a big bunch of important fixes and tweaks adding up, I'm releasing this packed minor version for now.
 
--   Allow filtering by front matter properties - thanks @zakj! (Fixes https://github.com/esm7/obsidian-map-view/issues/257)
--   When adding a front-matter geolocation to a note, Map View will now overwrite a previous front-matter geolocation if such existed. Fixes https://github.com/esm7/obsidian-map-view/issues/248 and generally improves the behavior with Obsidian properties.
--   I didn't give proper credit to @The-Noah for a change actually included in 5.0.3: support for front-matter links in 'linkedto' and 'linkedfrom'.
--   Improvements to plugin startup time.
--   Fixed a bug of links showing unexpectedly when opening Map View from a saved URL.
--   Added support for country flags emojis (https://github.com/esm7/obsidian-map-view/issues/183).
--   Upgraded the underlying library to Leaflet 1.9.4, thanks to @Falke-Design who helped me figure out how to make this play nicely inside Obsidian.
--   Added a delicate indication (orange dot) that filters are on.
--   Added support by default to the HiDPI tiles of CartoDB (thanks @sbungartz!)
--   Major improvement to the mechanism behind geolink previews in notes, providing much less false triggers on touch screens (https://github.com/esm7/obsidian-map-view/issues/185), and hopefully eliminating all issues when clicking on such links (https://github.com/esm7/obsidian-map-view/issues/200).
--   URL template does multi replace, e.g. support for OsmAnd (https://github.com/esm7/obsidian-map-view/issues/283)
--   Fix to auto light/dark theme selection (https://github.com/esm7/obsidian-map-view/pull/284 and https://github.com/esm7/obsidian-map-view/issues/136), thanks @The-Noah!
--   Allow a whitespace around the comma in a geolocation (https://github.com/esm7/obsidian-map-view/pull/272), thanks @zakj!
+- Allow filtering by front matter properties - thanks @zakj! (Fixes https://github.com/esm7/obsidian-map-view/issues/257)
+- When adding a front-matter geolocation to a note, Map View will now overwrite a previous front-matter geolocation if such existed. Fixes https://github.com/esm7/obsidian-map-view/issues/248 and generally improves the behavior with Obsidian properties.
+- I didn't give proper credit to @The-Noah for a change actually included in 5.0.3: support for front-matter links in 'linkedto' and 'linkedfrom'.
+- Improvements to plugin startup time.
+- Fixed a bug of links showing unexpectedly when opening Map View from a saved URL.
+- Added support for country flags emojis (https://github.com/esm7/obsidian-map-view/issues/183).
+- Upgraded the underlying library to Leaflet 1.9.4, thanks to @Falke-Design who helped me figure out how to make this play nicely inside Obsidian.
+- Added a delicate indication (orange dot) that filters are on.
+- Added support by default to the HiDPI tiles of CartoDB (thanks @sbungartz!)
+- Major improvement to the mechanism behind geolink previews in notes, providing much less false triggers on touch screens (https://github.com/esm7/obsidian-map-view/issues/185), and hopefully eliminating all issues when clicking on such links (https://github.com/esm7/obsidian-map-view/issues/200).
+- URL template does multi replace, e.g. support for OsmAnd (https://github.com/esm7/obsidian-map-view/issues/283)
+- Fix to auto light/dark theme selection (https://github.com/esm7/obsidian-map-view/pull/284 and https://github.com/esm7/obsidian-map-view/issues/136), thanks @The-Noah!
+- Allow a whitespace around the comma in a geolocation (https://github.com/esm7/obsidian-map-view/pull/272), thanks @zakj!
 
 Improvements relating to the [Geo Helper](https://github.com/esm7/obsidian-geo-helper):
 
--   Support for the new (0.0.2) optional location label.
--   Geo Helper settings reorganization (**the settings are not backwards-compatible**, you may need to revalidate them for Geo Helper to work).
--   No longer using filters or other state when asking for an external GPS location.
+- Support for the new (0.0.2) optional location label.
+- Geo Helper settings reorganization (**the settings are not backwards-compatible**, you may need to revalidate them for Geo Helper to work).
+- No longer using filters or other state when asking for an external GPS location.
 
 ### 5.0.3
 
 Many important bug fixes are waiting for me to have a little spare time, in the meantime had to settle for smaller release.
 
--   Fixed "Paste as geolocation" issue (https://github.com/esm7/obsidian-map-view/issues/253), thanks
-    @frees0l0!
--   Fixed "Using custom property instead default location does not work" (https://github.com/esm7/obsidian-map-view/issues/251).
+- Fixed "Paste as geolocation" issue (https://github.com/esm7/obsidian-map-view/issues/253), thanks
+  @frees0l0!
+- Fixed "Using custom property instead default location does not work" (https://github.com/esm7/obsidian-map-view/issues/251).
 
 ### 5.0.2
 
--   Fixed moving inline markers followed by tags (https://github.com/esm7/obsidian-map-view/issues/234).
--   Fixed certain emojis not being correctly recognized as such for map markers (https://github.com/esm7/obsidian-map-view/issues/233).
--   Added support for string arrays as front matter locations (https://github.com/esm7/obsidian-map-view/issues/229).
+- Fixed moving inline markers followed by tags (https://github.com/esm7/obsidian-map-view/issues/234).
+- Fixed certain emojis not being correctly recognized as such for map markers (https://github.com/esm7/obsidian-map-view/issues/233).
+- Added support for string arrays as front matter locations (https://github.com/esm7/obsidian-map-view/issues/229).
 
 ### 5.0.1
 
--   Fixed a bug in "add geolocation (front matter) to current note".
+- Fixed a bug in "add geolocation (front matter) to current note".
 
 ### 5.0.0
 
@@ -665,123 +670,123 @@ Many important bug fixes are waiting for me to have a little spare time, in the 
 
 **The Big Changes:**
 
--   Map View can now show **note links** as edges in the map. Open the Links drop-down in the map controls to turn it on and configure how it looks (big thanks to @IanLindsley!)
-    -   All the markers of a given file are linked to the markers pointed by the links in that file. Those links may reference the whole destination file, and then all the markers in it are linked, or a heading/block and then only the front-matter marker and specific heading/block locations are linked.
-    -   See more details [above](#links-view).
--   Markers can now be moved on the map: right-click a marker, click "enable move" and drag the marker to its new location. The corresponding note will be updated automatically. Big thanks to @IanLindsley for this too!
--   You can now set emojis as map markers. In configuring marker icon rules, just enter an emoji instead of a Font Awesome name and it should show up.
--   Markers can now show optional **labels** showing the marker name. You can turn it on from the View drop-down on the map.
--   The marker popup mechanism was rewritten to enable a much more streamlined experience and less intrusive popups.
-    -   I was in a dilemma whether to continue maintaining the old option (the Obsidian native preview), as it still has its upsides (e.g. it allows scrolling and it preserves note formatting better), but decided against it due to the complexity it will introduce in the long run.
-    -   If you have a strong opinion towards using the old Obsidian preview window, please open an issue so it can be discussed.
--   Map View now supports heading links and block links in 'linkedfrom:' queries, and also for the new Links feature.
-    -   I recommend the "Copy Block Link" plugin that makes this more useful.
--   New format for front matter location, `location: "lat,lng"`, which plays better with Obsidian's property editor. The old format is still supported but new front-matter notes will be created with the new format. Solves https://github.com/esm7/obsidian-map-view/issues/202.
--   A new marker shape `simple-circle` is now supported, drawing a simple circle at the given color without a pin shape.
+- Map View can now show **note links** as edges in the map. Open the Links drop-down in the map controls to turn it on and configure how it looks (big thanks to @IanLindsley!)
+    - All the markers of a given file are linked to the markers pointed by the links in that file. Those links may reference the whole destination file, and then all the markers in it are linked, or a heading/block and then only the front-matter marker and specific heading/block locations are linked.
+    - See more details [above](#links-view).
+- Markers can now be moved on the map: right-click a marker, click "enable move" and drag the marker to its new location. The corresponding note will be updated automatically. Big thanks to @IanLindsley for this too!
+- You can now set emojis as map markers. In configuring marker icon rules, just enter an emoji instead of a Font Awesome name and it should show up.
+- Markers can now show optional **labels** showing the marker name. You can turn it on from the View drop-down on the map.
+- The marker popup mechanism was rewritten to enable a much more streamlined experience and less intrusive popups.
+    - I was in a dilemma whether to continue maintaining the old option (the Obsidian native preview), as it still has its upsides (e.g. it allows scrolling and it preserves note formatting better), but decided against it due to the complexity it will introduce in the long run.
+    - If you have a strong opinion towards using the old Obsidian preview window, please open an issue so it can be discussed.
+- Map View now supports heading links and block links in 'linkedfrom:' queries, and also for the new Links feature.
+    - I recommend the "Copy Block Link" plugin that makes this more useful.
+- New format for front matter location, `location: "lat,lng"`, which plays better with Obsidian's property editor. The old format is still supported but new front-matter notes will be created with the new format. Solves https://github.com/esm7/obsidian-map-view/issues/202.
+- A new marker shape `simple-circle` is now supported, drawing a simple circle at the given color without a pin shape.
 
 **Smaller Improvements:**
 
--   The key to use for front matter geolocation is now configurable (https://github.com/esm7/obsidian-map-view/issues/195)
--   Search names containing slashes are now sanitized and handled properly (https://github.com/esm7/obsidian-map-view/issues/207)
--   Inline tags are now part of filter suggestions (https://github.com/esm7/obsidian-map-view/issues/225)
--   The actions from a search marker context menu now use the geolocation of the marker rather than the mouse location.
--   The way Font Awesome is used was changed to mitigate a performance issue that Map View caused (https://github.com/esm7/obsidian-map-view/issues/216).
--   Font Awesome upgraded to 6.5.1.
--   Map View now requires Obsidian 1.5.6 or newer, and uses the formal front matter API.
--   Tab icons of map views now have the proper map pin icon (https://github.com/esm7/obsidian-map-view/issues/227).
--   Fixed a bug of the cursor not jumping forward after an inline location suggestion.
+- The key to use for front matter geolocation is now configurable (https://github.com/esm7/obsidian-map-view/issues/195)
+- Search names containing slashes are now sanitized and handled properly (https://github.com/esm7/obsidian-map-view/issues/207)
+- Inline tags are now part of filter suggestions (https://github.com/esm7/obsidian-map-view/issues/225)
+- The actions from a search marker context menu now use the geolocation of the marker rather than the mouse location.
+- The way Font Awesome is used was changed to mitigate a performance issue that Map View caused (https://github.com/esm7/obsidian-map-view/issues/216).
+- Font Awesome upgraded to 6.5.1.
+- Map View now requires Obsidian 1.5.6 or newer, and uses the formal front matter API.
+- Tab icons of map views now have the proper map pin icon (https://github.com/esm7/obsidian-map-view/issues/227).
+- Fixed a bug of the cursor not jumping forward after an inline location suggestion.
 
 ### 4.0.1
 
--   Fixed support for innerHTML in icon rules (https://github.com/esm7/obsidian-map-view/issues/183).
--   Fixed some Android issues
+- Fixed support for innerHTML in icon rules (https://github.com/esm7/obsidian-map-view/issues/183).
+- Fixed some Android issues
 
 ### 4.0.0
 
--   **GPS support** (to some extent!)
-    -   Map View now supports a companion app that can help receive a precise location and use it in the map or within your notes.
-    -   This is experimental and will not work smoothly for everyone right away.
-    -   See [here](#gps-location-support) for more details.
--   Routing: when right-clicking the map you now have a "mark as routing source", and once such a source is marked, you can launch an external tool for driving directions or ETAs (by default Google Maps) for various destinations. This is really useful for assessing distances or travel times in trip planning.
--   Embedded maps now have a 'lock' control that disables accidental changes to the map (https://github.com/esm7/obsidian-map-view/issues/178).
--   Added a not-fully-baked `autoFit` flag, with no proper UI yet (https://github.com/esm7/obsidian-map-view/issues/171). See [here](#advanced-additional-options) for details.
--   Added a `$filename$` template parameter to embedded map code blocks (https://github.com/esm7/obsidian-map-view/issues/146).
--   The `linkedto:` query operator now actually resolves Obsidian links instead of doing textual comparison (https://github.com/esm7/obsidian-map-view/issues/162).
-    -   Note: this might break existing queries that counted on it to work on text comparison rather than an actual note path.
--   Fixed various major issues with presets (https://github.com/esm7/obsidian-map-view/issues/175).
--   Fix to blank or malformed inline geolocations throwing exceptions when opening notes (https://github.com/esm7/obsidian-map-view/issues/172).
--   Fixed issues with Map View trying to process non-Markdown files in the vault (https://github.com/esm7/obsidian-map-view/issues/181).
--   The "open in last-used pane" setting now respects pinned panes (https://github.com/esm7/obsidian-map-view/issues/134).
+- **GPS support** (to some extent!)
+    - Map View now supports a companion app that can help receive a precise location and use it in the map or within your notes.
+    - This is experimental and will not work smoothly for everyone right away.
+    - See [here](#gps-location-support) for more details.
+- Routing: when right-clicking the map you now have a "mark as routing source", and once such a source is marked, you can launch an external tool for driving directions or ETAs (by default Google Maps) for various destinations. This is really useful for assessing distances or travel times in trip planning.
+- Embedded maps now have a 'lock' control that disables accidental changes to the map (https://github.com/esm7/obsidian-map-view/issues/178).
+- Added a not-fully-baked `autoFit` flag, with no proper UI yet (https://github.com/esm7/obsidian-map-view/issues/171). See [here](#advanced-additional-options) for details.
+- Added a `$filename$` template parameter to embedded map code blocks (https://github.com/esm7/obsidian-map-view/issues/146).
+- The `linkedto:` query operator now actually resolves Obsidian links instead of doing textual comparison (https://github.com/esm7/obsidian-map-view/issues/162).
+    - Note: this might break existing queries that counted on it to work on text comparison rather than an actual note path.
+- Fixed various major issues with presets (https://github.com/esm7/obsidian-map-view/issues/175).
+- Fix to blank or malformed inline geolocations throwing exceptions when opening notes (https://github.com/esm7/obsidian-map-view/issues/172).
+- Fixed issues with Map View trying to process non-Markdown files in the vault (https://github.com/esm7/obsidian-map-view/issues/181).
+- The "open in last-used pane" setting now respects pinned panes (https://github.com/esm7/obsidian-map-view/issues/134).
 
 ### 3.1.1
 
--   Geolinks in notes, and also front matter geolocations, are now internal Map View links! (https://github.com/esm7/obsidian-map-view/issues/144)
-    -   It means that by default, when you click a geolink in Map View, it will open inside Map View.
-    -   This can be turned off in the settings.
--   There are now optional **map preview hovers** for geolinks in notes (if the above feature is turned on).
-    -   This is currently off by default, and will probably become on by default while I gain confidence in its performance and stability.
--   Wildcard support for "tag that denotes inline locations" (https://github.com/esm7/obsidian-map-view/issues/164).
--   Fixed background in the wrong color on dark mode (https://github.com/esm7/obsidian-map-view/issues/163).
+- Geolinks in notes, and also front matter geolocations, are now internal Map View links! (https://github.com/esm7/obsidian-map-view/issues/144)
+    - It means that by default, when you click a geolink in Map View, it will open inside Map View.
+    - This can be turned off in the settings.
+- There are now optional **map preview hovers** for geolinks in notes (if the above feature is turned on).
+    - This is currently off by default, and will probably become on by default while I gain confidence in its performance and stability.
+- Wildcard support for "tag that denotes inline locations" (https://github.com/esm7/obsidian-map-view/issues/164).
+- Fixed background in the wrong color on dark mode (https://github.com/esm7/obsidian-map-view/issues/163).
 
 ### 3.0.2
 
 Many small improvements and fixes:
 
--   New ribbon icon, based on Lucide, to be consistent with the Obsidian design guidelines (thanks @huy-vuong!)
--   Added a setting to always show the link name on map view popup (and organized the relevant settings into their own section). (https://github.com/esm7/obsidian-map-view/issues/149)
--   Added support for wildcards in tag queries (https://github.com/esm7/obsidian-map-view/issues/159).
--   Fixed a bug with queries set in "query format for follow active note" that include multiple `$PATH$` items (https://github.com/esm7/obsidian-map-view/issues/158).
--   Added the ability to use a custom tag instead of an empty `locations:` YAML tag (https://github.com/esm7/obsidian-map-view/issues/135).
--   The `linkedfrom` query filter now requires an exact match (https://github.com/esm7/obsidian-map-view/issues/152).
--   Fixed a bug where the "save" button didn't pop up on embedded maps if only the zoom was changed (https://github.com/esm7/obsidian-map-view/issues/156).
+- New ribbon icon, based on Lucide, to be consistent with the Obsidian design guidelines (thanks @huy-vuong!)
+- Added a setting to always show the link name on map view popup (and organized the relevant settings into their own section). (https://github.com/esm7/obsidian-map-view/issues/149)
+- Added support for wildcards in tag queries (https://github.com/esm7/obsidian-map-view/issues/159).
+- Fixed a bug with queries set in "query format for follow active note" that include multiple `$PATH$` items (https://github.com/esm7/obsidian-map-view/issues/158).
+- Added the ability to use a custom tag instead of an empty `locations:` YAML tag (https://github.com/esm7/obsidian-map-view/issues/135).
+- The `linkedfrom` query filter now requires an exact match (https://github.com/esm7/obsidian-map-view/issues/152).
+- Fixed a bug where the "save" button didn't pop up on embedded maps if only the zoom was changed (https://github.com/esm7/obsidian-map-view/issues/156).
 
 ### 3.0.1
 
 **Fixes:**
 
--   The ampersand character `&` now works in queries.
--   Embeds added not through a map (aka "quick embeds") now open with a minimum zoom value of 7, so they won't show the entire world if this is the user's default view.
+- The ampersand character `&` now works in queries.
+- Embeds added not through a map (aka "quick embeds") now open with a minimum zoom value of 7, so they won't show the entire world if this is the user's default view.
 
 ### 3.0.0
 
 **New:**
 
--   **Map embeds are finally here!**
-    -   Map View now supports embedding maps in notes.
-    -   This works really well also in Canvas!
-    -   See [here](#embedding-maps-in-notes) for more details.
--   Major performance improvements, especially when displaying hundreds of markers or more. Map View now opens and interacts instantly even with thousands of markers and dozens of icon rules.
-    -   **IMPORTANT:** this might break some very custom marker icon rules (especially ones that use properties that I didn't think to test).
-    -   If you experience such breakage, please open an issue and use version 2.2.0 in the meantime.
--   Major overhaul to the settings of "default action for map marker click". There are now fine-grained settings for fine-tuning what happens when clicking, Ctrl+clicking and middle-clicking markers (and other actions that open a note from the map), and tabs are supported as well as panes.
--   Similarly to the above, new settings were added for all actions that open Map View, so different behaviors can be configured for a click, Ctrl+click and middle-click.
--   When pasting an inline geolocation from the clipboard, a "locations:" front-matter is automatically added (unless turned off in the plugin settings).
+- **Map embeds are finally here!**
+    - Map View now supports embedding maps in notes.
+    - This works really well also in Canvas!
+    - See [here](#embedding-maps-in-notes) for more details.
+- Major performance improvements, especially when displaying hundreds of markers or more. Map View now opens and interacts instantly even with thousands of markers and dozens of icon rules.
+    - **IMPORTANT:** this might break some very custom marker icon rules (especially ones that use properties that I didn't think to test).
+    - If you experience such breakage, please open an issue and use version 2.2.0 in the meantime.
+- Major overhaul to the settings of "default action for map marker click". There are now fine-grained settings for fine-tuning what happens when clicking, Ctrl+clicking and middle-clicking markers (and other actions that open a note from the map), and tabs are supported as well as panes.
+- Similarly to the above, new settings were added for all actions that open Map View, so different behaviors can be configured for a click, Ctrl+click and middle-click.
+- When pasting an inline geolocation from the clipboard, a "locations:" front-matter is automatically added (unless turned off in the plugin settings).
 
 **Fixes:**
 
--   Parenthesis now work in queries (https://github.com/esm7/obsidian-map-view/issues/124).
--   Commas now work in queries (https://github.com/esm7/obsidian-map-view/issues/125).
--   Fixed weird pane selection logic for "Open in Map View" and "Show on Map View" caused by the Obsidian 1.1 UI changes (https://github.com/esm7/obsidian-map-view/issues/127).
--   Fixed the annoying `$CURSOR` that was added to some notes for some people (https://github.com/esm7/obsidian-map-view/issues/21).
--   Fixes to "follow active note" (https://github.com/esm7/obsidian-map-view/issues/113).
+- Parenthesis now work in queries (https://github.com/esm7/obsidian-map-view/issues/124).
+- Commas now work in queries (https://github.com/esm7/obsidian-map-view/issues/125).
+- Fixed weird pane selection logic for "Open in Map View" and "Show on Map View" caused by the Obsidian 1.1 UI changes (https://github.com/esm7/obsidian-map-view/issues/127).
+- Fixed the annoying `$CURSOR` that was added to some notes for some people (https://github.com/esm7/obsidian-map-view/issues/21).
+- Fixes to "follow active note" (https://github.com/esm7/obsidian-map-view/issues/113).
 
 ### 2.2.0
 
 **New:**
 
--   Selecting a range of lines in the editor that have multiple geolocations will show a new "focus X geolocations in Map View" context menu item.
--   A new `name` query filter (to filter for a geolocation name) and a `lines` filter (to filter for a line range within a file).
--   Small UI improvements, e.g. icons in pop-ups.
--   "Focus Note in Map View" is now shown also for notes that have no geolocations, since the "follow active note" query format may look into links.
--   Some behind-the-scenes work for exciting big features that are cooking...
+- Selecting a range of lines in the editor that have multiple geolocations will show a new "focus X geolocations in Map View" context menu item.
+- A new `name` query filter (to filter for a geolocation name) and a `lines` filter (to filter for a line range within a file).
+- Small UI improvements, e.g. icons in pop-ups.
+- "Focus Note in Map View" is now shown also for notes that have no geolocations, since the "follow active note" query format may look into links.
+- Some behind-the-scenes work for exciting big features that are cooking...
 
 **Fixes:**
 
--   **Various fixes and tweaks required for Obsidian 0.16.x.**
-    -   As part of this, "paste as geolocation" is now always shown in the editor context menu, regardless of whether a string that can be parsed was found in the clipboard. This is due to a change of how menus in Obsidian work, which doesn't allow to inspect the clipboard while populating the menu.
--   Fixed Google Places search not working on Mobile due to `querystring` not being present for some reason.
--   Fixed pop-ups not always clickable on mobile.
--   Fixed a problem in parsing link names on lines that contain other links.
+- **Various fixes and tweaks required for Obsidian 0.16.x.**
+    - As part of this, "paste as geolocation" is now always shown in the editor context menu, regardless of whether a string that can be parsed was found in the clipboard. This is due to a change of how menus in Obsidian work, which doesn't allow to inspect the clipboard while populating the menu.
+- Fixed Google Places search not working on Mobile due to `querystring` not being present for some reason.
+- Fixed pop-ups not always clickable on mobile.
+- Fixed a problem in parsing link names on lines that contain other links.
 
 ### 2.1.1
 
@@ -793,72 +798,72 @@ Fix for OpenStreetMap geolocation search stopped working for some users.
 
 **New:**
 
--   The results of a search, or a focused geolocation, is now highlighted by a blue glow on the map.
-    -   The glow can be customized via CSS.
--   Made the graph controls more compact when minimized and properly positioned in more cases.
--   "Follow active note" now works using a customizable query, see [here](#follow-active-note) for details.
--   Clearing "follow active note" now resets the query.
--   Search results are now shown sorted by distance from the center of the map.
--   Shift+Enter on an existing marker in the search result will go to that marker without zooming. This goes hand-in-hand with the highlighting introduced above, so you can easily highlight various markers without the map view changing.
--   When using Google Places as the search provider, geosearch results now give priority to the displayed area.
--   Adapted the various menus to utilize the Obsidian 0.15.x sections.
--   Upgrade the Font Awesome library to 6.1, making more icons available.
--   On mobile, some map interactions are custom-tailored for tapping (tapping a marker shows its name, long-tapping opens the menu).
+- The results of a search, or a focused geolocation, is now highlighted by a blue glow on the map.
+    - The glow can be customized via CSS.
+- Made the graph controls more compact when minimized and properly positioned in more cases.
+- "Follow active note" now works using a customizable query, see [here](#follow-active-note) for details.
+- Clearing "follow active note" now resets the query.
+- Search results are now shown sorted by distance from the center of the map.
+- Shift+Enter on an existing marker in the search result will go to that marker without zooming. This goes hand-in-hand with the highlighting introduced above, so you can easily highlight various markers without the map view changing.
+- When using Google Places as the search provider, geosearch results now give priority to the displayed area.
+- Adapted the various menus to utilize the Obsidian 0.15.x sections.
+- Upgrade the Font Awesome library to 6.1, making more icons available.
+- On mobile, some map interactions are custom-tailored for tapping (tapping a marker shows its name, long-tapping opens the menu).
 
 **Fixes:**
 
--   Fixed misbehavior of the controls in the case of multiple Map View instances.
--   Fixed Map View interfering with the Graph View controls in some themes.
--   Fixed inline tags not recognized when followed by a comma.
--   Various fixes to the internal state update mechanism, hopefully allowing smoother zoom/pan operations with no unexpected jumps.
-    -   As part of this, zoom/pan animations are back on state transitions.
--   Fixes for "follow active note" on Obsidian 0.15.x.
--   Fixed a duplication bug if a file contains multiple markers in the same geolocation (https://github.com/esm7/obsidian-map-view/issues/85).
+- Fixed misbehavior of the controls in the case of multiple Map View instances.
+- Fixed Map View interfering with the Graph View controls in some themes.
+- Fixed inline tags not recognized when followed by a comma.
+- Various fixes to the internal state update mechanism, hopefully allowing smoother zoom/pan operations with no unexpected jumps.
+    - As part of this, zoom/pan animations are back on state transitions.
+- Fixes for "follow active note" on Obsidian 0.15.x.
+- Fixed a duplication bug if a file contains multiple markers in the same geolocation (https://github.com/esm7/obsidian-map-view/issues/85).
 
 ### 2.0.5
 
--   Improved the logic of saving "back/forward" history in a few cases, and optimized the state update logic to make transitions faster.
--   More fixes to "follow active note" when "map follows search results" is set (https://github.com/esm7/obsidian-map-view/issues/92).
--   Fixed "add geolocation (frontmatter)" to notes that contain `---` as a content separator (https://github.com/esm7/obsidian-map-view/issues/98). Thanks @MattWilcox!
--   Fixed paths with backslashes not working in "new note path" (https://github.com/esm7/obsidian-map-view/issues/97).
--   Fix to new note map action not working on Android (https://github.com/esm7/obsidian-map-view/issues/96).
--   The default zoom for "show on map" action, as set in the settings, is now also used as a max zoom in "map follows search results".
--   In-note tag suggestions no longer include the pound sign (which should not be there for inline tags).
+- Improved the logic of saving "back/forward" history in a few cases, and optimized the state update logic to make transitions faster.
+- More fixes to "follow active note" when "map follows search results" is set (https://github.com/esm7/obsidian-map-view/issues/92).
+- Fixed "add geolocation (frontmatter)" to notes that contain `---` as a content separator (https://github.com/esm7/obsidian-map-view/issues/98). Thanks @MattWilcox!
+- Fixed paths with backslashes not working in "new note path" (https://github.com/esm7/obsidian-map-view/issues/97).
+- Fix to new note map action not working on Android (https://github.com/esm7/obsidian-map-view/issues/96).
+- The default zoom for "show on map" action, as set in the settings, is now also used as a max zoom in "map follows search results".
+- In-note tag suggestions no longer include the pound sign (which should not be there for inline tags).
 
 ### 2.0.4
 
--   Fixed an issue with cluster expansion not working.
--   Improved "copy URL" handling between different devices.
--   Added a clear button to the new query box.
--   Fixed touch move & zoom that stopped working due to an unintended upgrade to Leaflet 1.8.0.
--   Fixed inconsistent moves and jumps during fast series of events.
+- Fixed an issue with cluster expansion not working.
+- Improved "copy URL" handling between different devices.
+- Added a clear button to the new query box.
+- Fixed touch move & zoom that stopped working due to an unintended upgrade to Leaflet 1.8.0.
+- Fixed inconsistent moves and jumps during fast series of events.
 
 ### 2.0.3
 
--   Fixed searched stopped working in some cases which are not the new Google Places (https://github.com/esm7/obsidian-map-view/issues/93).
--   Fixes to "follow active note" (https://github.com/esm7/obsidian-map-view/issues/92).
+- Fixed searched stopped working in some cases which are not the new Google Places (https://github.com/esm7/obsidian-map-view/issues/93).
+- Fixes to "follow active note" (https://github.com/esm7/obsidian-map-view/issues/92).
 
 ### 2.0.0
 
 This is a massive version with a huge number of updates, pushing Map View to the next level of functionality!
 
--   Instead of the previous simplistic tag filtering, Map View now has a powerful [Queries](#queries) mechanism with multiple search and logical operators.
-    -   Queries are marker-based and not file-based. This will be a breaking change for some users.
--   Under the View control, turn on "follow active note" for Map View to focus on any note that is opened or changed (https://github.com/esm7/obsidian-map-view/issues/71).
--   Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
--   Fixed issues with front matter tag support (https://github.com/esm7/obsidian-map-view/issues/72) (thanks @gentlegiantJGC!)
--   Added a configuration for the max zoom of a tile layer (thanks @gentlegiantJGC!).
-    -   This also includes a new "zoom beyond max" setting, which will not limit you to the highest zoom level of a tile source.
--   The map search tool now uses the same search window as "New geolocation note", which beyond the configured geocoding service, also does URL parsing.
-    -   It also includes existing markers, so you can quickly jump to an existing name on the map.
-    -   Except the bonus of making the UI more uniform, this is very important for usability, especially on mobile. e.g. you can use it to get your location from another app and use it to create notes or explore around.
-    -   A "search active map view" command was added (available when a map view is focused) so a keyboard shortcut can be assigned to the map search.
--   Auto-completion for inline tags. If you type `tag:` in a line that includes a valid geolocation, you will get suggestions for tag names.
--   In the context menu of a map view, or in the Presets controls section, you can copy the active view as a link.
-    -   Clicking this link from another app should launch Obsidian and open Map View with the exact same view (including the query, zoom, pan and map source).
-    -   To use this in Obsidian notes paste the URL inside a link, e.g. `[Link name](obsidian://...)`
--   All the geolocation searches now support the Google Places API, and will prefer results from Places API over the simpler Google Geolocation API.
-    -   This requires your Google API key to include credentials for Google Places, see the documentation above.
--   Several UI improvements:
-    -   The map control panel is now prettier and smaller when unused.
-    -   The note name and cluster popups now follow the Obsidian theme.
+- Instead of the previous simplistic tag filtering, Map View now has a powerful [Queries](#queries) mechanism with multiple search and logical operators.
+    - Queries are marker-based and not file-based. This will be a breaking change for some users.
+- Under the View control, turn on "follow active note" for Map View to focus on any note that is opened or changed (https://github.com/esm7/obsidian-map-view/issues/71).
+- Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
+- Fixed issues with front matter tag support (https://github.com/esm7/obsidian-map-view/issues/72) (thanks @gentlegiantJGC!)
+- Added a configuration for the max zoom of a tile layer (thanks @gentlegiantJGC!).
+    - This also includes a new "zoom beyond max" setting, which will not limit you to the highest zoom level of a tile source.
+- The map search tool now uses the same search window as "New geolocation note", which beyond the configured geocoding service, also does URL parsing.
+    - It also includes existing markers, so you can quickly jump to an existing name on the map.
+    - Except the bonus of making the UI more uniform, this is very important for usability, especially on mobile. e.g. you can use it to get your location from another app and use it to create notes or explore around.
+    - A "search active map view" command was added (available when a map view is focused) so a keyboard shortcut can be assigned to the map search.
+- Auto-completion for inline tags. If you type `tag:` in a line that includes a valid geolocation, you will get suggestions for tag names.
+- In the context menu of a map view, or in the Presets controls section, you can copy the active view as a link.
+    - Clicking this link from another app should launch Obsidian and open Map View with the exact same view (including the query, zoom, pan and map source).
+    - To use this in Obsidian notes paste the URL inside a link, e.g. `[Link name](obsidian://...)`
+- All the geolocation searches now support the Google Places API, and will prefer results from Places API over the simpler Google Geolocation API.
+    - This requires your Google API key to include credentials for Google Places, see the documentation above.
+- Several UI improvements:
+    - The map control panel is now prettier and smaller when unused.
+    - The note name and cluster popups now follow the Obsidian theme.
