@@ -7,7 +7,6 @@ import {
     TFile,
     getAllTags,
     getFrontMatterInfo,
-    FrontMatterInfo,
     CachedMetadata,
     Loc,
     HeadingCache,
@@ -111,14 +110,17 @@ export async function newNote(
 
     let newFrontMatterContents;
     let contentsBody;
-    if (newNoteType === 'singleLocation'){
-        newFrontMatterContents = `${frontMatterKey}: "${location}"`
-        contentsBody = "${CURSOR}";
-    } else{
-        newFrontMatterContents = `locations:`;
-        contentsBody = "[${CURSOR}](geo:${location})\n";
+    // `$CURSOR$` is used to set the cursor
+    if (newNoteType === 'singleLocation') {
+        newFrontMatterContents = `${frontMatterKey}: "${location}"`;
+        contentsBody = CURSOR;
+    } else {
+        newFrontMatterContents = "locations:";
+        contentsBody = `[${CURSOR}](geo:${location})\n`;
     }
-    const content = `---${templateFrontMatterInfo.frontmatter}\n${newFrontMatterContents}\n---\n\n${contentsBody}\n${templateContent.substring(templateFrontMatterInfo.contentStart)}`;
+    let content = `---\n${newFrontMatterContents}\n${templateFrontMatterInfo.frontmatter}---\n${contentsBody}\n${templateContent.substring(
+        templateFrontMatterInfo.contentStart
+    )}`;
 
     if (!directory) directory = '';
     if (!fileName) fileName = '';
@@ -135,10 +137,7 @@ export async function newNote(
     const cursorLocation = content.indexOf(CURSOR);
     content = content.replace(CURSOR, '');
     try {
-        const file = await app.vault.create(
-            fullName + '.md',
-            content
-        );
+        const file = await app.vault.create(fullName + '.md', content);
         return [file, cursorLocation];
     } catch (e) {
         console.log('Map View: cannot create file', fullName);
