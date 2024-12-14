@@ -120,7 +120,7 @@ export async function newNote(
     }
     let content = `---\n${newFrontMatterContents}\n${
         templateFrontMatterInfo.frontmatter
-    }---\n${contentsBody}\n${templateContent.substring(
+    }---\n\n${contentsBody}${templateContent.substring(
         templateFrontMatterInfo.contentStart
     )}`;
 
