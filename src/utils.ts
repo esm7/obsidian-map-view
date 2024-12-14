@@ -115,10 +115,12 @@ export async function newNote(
         newFrontMatterContents = `${frontMatterKey}: "${location}"`;
         contentsBody = CURSOR;
     } else {
-        newFrontMatterContents = "locations:";
+        newFrontMatterContents = 'locations:';
         contentsBody = `[${CURSOR}](geo:${location})\n`;
     }
-    let content = `---\n${newFrontMatterContents}\n${templateFrontMatterInfo.frontmatter}---\n${contentsBody}\n${templateContent.substring(
+    let content = `---\n${newFrontMatterContents}\n${
+        templateFrontMatterInfo.frontmatter
+    }---\n${contentsBody}\n${templateContent.substring(
         templateFrontMatterInfo.contentStart
     )}`;
 
