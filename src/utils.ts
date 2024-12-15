@@ -6,6 +6,7 @@ import {
     App,
     TFile,
     getAllTags,
+    getFrontMatterInfo,
     CachedMetadata,
     Loc,
     HeadingCache,
@@ -102,14 +103,27 @@ export async function newNote(
     frontMatterKey: string,
     templatePath?: string
 ): Promise<[TFile, number]> {
-    // `$CURSOR$` is used to set the cursor
-    let content =
-        newNoteType === 'singleLocation'
-            ? `---\n${frontMatterKey}: "${location}"\n---\n\n${CURSOR}`
-            : `---\nlocations:\n---\n\n\[${CURSOR}](geo:${location})\n`;
     let templateContent = '';
     if (templatePath && templatePath.length > 0)
         templateContent = await app.vault.adapter.read(templatePath);
+    const templateFrontMatterInfo = getFrontMatterInfo(templateContent);
+
+    let newFrontMatterContents;
+    let contentsBody;
+    // `$CURSOR$` is used to set the cursor
+    if (newNoteType === 'singleLocation') {
+        newFrontMatterContents = `${frontMatterKey}: "${location}"`;
+        contentsBody = CURSOR;
+    } else {
+        newFrontMatterContents = 'locations:';
+        contentsBody = `[${CURSOR}](geo:${location})\n`;
+    }
+    let content = `---\n${newFrontMatterContents}\n${
+        templateFrontMatterInfo.frontmatter
+    }---\n\n${contentsBody}${templateContent.substring(
+        templateFrontMatterInfo.contentStart
+    )}`;
+
     if (!directory) directory = '';
     if (!fileName) fileName = '';
     // Apparently in Obsidian Mobile there is no path.join function, not sure why.
@@ -125,10 +139,7 @@ export async function newNote(
     const cursorLocation = content.indexOf(CURSOR);
     content = content.replace(CURSOR, '');
     try {
-        const file = await app.vault.create(
-            fullName + '.md',
-            content + templateContent
-        );
+        const file = await app.vault.create(fullName + '.md', content);
         return [file, cursorLocation];
     } catch (e) {
         console.log('Map View: cannot create file', fullName);
