@@ -41,15 +41,55 @@ export function getLastUsedValidMarkdownLeaf() {
     return null;
 }
 
-export function formatWithTemplates(s: string, query = '') {
+function resolveJsonPath(json: object, path: string) : string {
+    // Remove leading/trailing curly braces and split the path into parts
+    const pathParts = path.replace(/[{}]/g, '').split('.');
+
+    // Iterate through each part of the path
+    let current = json;
+    for (let part of pathParts) {
+        // Handle array index
+        const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
+        if (arrayMatch) {
+            const key = arrayMatch[1];
+            const index = parseInt(arrayMatch[2], 10);
+            if (current[key] && Array.isArray(current[key]) && current[key][index] !== undefined) {
+                current = current[key][index];
+            } else {
+                return ""; // Path doesn't exist
+            }
+        } else {
+            // Access object property
+            if (current && current.hasOwnProperty(part)) {
+                current = current[part];
+            } else {
+                return ""; // Path doesn't exist
+            }
+        }
+    }
+    return JSON.stringify(current);
+}
+
+function replaceJsonPaths(inputString: string, json: object) {
+    // Use regex to find all patterns like {{some.path.to[0].data}}
+    return inputString.replace(/{{(.*?)}}/g, (_, path: string) => {
+        const value = resolveJsonPath(json, path);
+        // return value !== undefined ? value : null;
+        return value;
+    });
+}
+
+export function formatWithTemplates(s: string, query = '', extraLocationData={}) {
     const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;
     const queryPattern = /{{query}}/g;
-    const replaced = s
+    let replaced = s
         .replace(datePattern, (_, pattern) => {
             // @ts-ignore
             return moment().format(pattern);
         })
         .replace(queryPattern, query);
+    
+    replaced = replaceJsonPaths(replaced, extraLocationData)
 
     return replaced;
 }
@@ -101,11 +141,17 @@ export async function newNote(
     fileName: string,
     location: string,
     frontMatterKey: string,
-    templatePath?: string
+    templatePath: string,
+    extraLocationData?: object,
 ): Promise<[TFile, number]> {
     let templateContent = '';
     if (templatePath && templatePath.length > 0)
         templateContent = await app.vault.adapter.read(templatePath);
+    console.log("extraLocationData:");
+    console.log(extraLocationData);
+
+    templateContent = formatWithTemplates(templateContent, "", extraLocationData);
+    
     const templateFrontMatterInfo = getFrontMatterInfo(templateContent);
 
     let newFrontMatterContents;
@@ -118,6 +164,7 @@ export async function newNote(
         newFrontMatterContents = 'locations:';
         contentsBody = `[${CURSOR}](geo:${location})\n`;
     }
+
     let content = `---\n${newFrontMatterContents}\n${
         templateFrontMatterInfo.frontmatter
     }---\n\n${contentsBody}${templateContent.substring(
