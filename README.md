@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Sun 03 Nov 2024 12:07:11 IST -->
+<!-- Added by: hal, at: Mon 16 Dec 22:03:24 GMT 2024 -->
 
 <!--te-->
 
@@ -231,6 +231,19 @@ Map View offers many ways to add geolocations to notes.
 Map View adds an Obsidian command named "New geolocation note", which you can map to a hotkey and use anywhere in Obsidian.
 
 This opens a dialog on which you can search (address or location based on your [configured geocoding provider](#changing-a-geocoding-provider)) or paste a URL using the built-in or custom [URL parsing rules](#url-parsing-rules).
+
+When using Google Maps Places API, templates can extract additional result data.
+For instance, templates that match `google_maps_place_data.some.path` will be replaced with the value found at `some.path` in the [JSON serach result](https://developers.google.com/maps/documentation/places/web-service/place-data-fields).
+For instance, the following template would set a [place_id](https://developers.google.com/maps/documentation/places/web-service/place-id) property and tags the note with the [type](https://developers.google.com/maps/documentation/places/web-service/supported_types) of the place:
+
+```
+---
+place_id: "{{google_maps_place_data.place_id}}"
+---
+#{{google_maps_place_data.types.0}}
+```
+
+Currently only Google Maps Places API supports this advanced templating feature.
 
 ![](img/new-note-popup.gif)
 
