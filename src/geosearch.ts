@@ -77,7 +77,7 @@ export class GeoSearcher {
                         name: result.name,
                         location: result.location,
                         resultType: 'searchResult',
-                        extraLocationData: result.extraLocationData
+                        extraLocationData: result.extraLocationData,
                     });
             } catch (e) {
                 console.log(
@@ -149,7 +149,7 @@ export async function googlePlacesSearch(
                     name: `${result?.name} (${result?.formatted_address})`,
                     location: geolocation,
                     resultType: 'searchResult',
-                    extraLocationData: {"google_maps_place": result},
+                    extraLocationData: { google_maps_place: result },
                 } as GeoSearchResult);
             }
         }

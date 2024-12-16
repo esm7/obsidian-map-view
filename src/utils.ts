@@ -41,7 +41,7 @@ export function getLastUsedValidMarkdownLeaf() {
     return null;
 }
 
-function resolveJsonPath(json: object, path: string) : string {
+function resolveJsonPath(json: object, path: string): string {
     // Remove leading/trailing curly braces and split the path into parts
     const pathParts = path.replace(/[{}]/g, '').split('.');
 
@@ -53,17 +53,21 @@ function resolveJsonPath(json: object, path: string) : string {
         if (arrayMatch) {
             const key = arrayMatch[1];
             const index = parseInt(arrayMatch[2], 10);
-            if (current[key] && Array.isArray(current[key]) && current[key][index] !== undefined) {
+            if (
+                current[key] &&
+                Array.isArray(current[key]) &&
+                current[key][index] !== undefined
+            ) {
                 current = current[key][index];
             } else {
-                return ""; // Path doesn't exist
+                return ''; // Path doesn't exist
             }
         } else {
             // Access object property
             if (current && current.hasOwnProperty(part)) {
                 current = current[part];
             } else {
-                return ""; // Path doesn't exist
+                return ''; // Path doesn't exist
             }
         }
     }
@@ -79,7 +83,11 @@ function replaceJsonPaths(inputString: string, json: object) {
     });
 }
 
-export function formatWithTemplates(s: string, query = '', extraLocationData={}) {
+export function formatWithTemplates(
+    s: string,
+    query = '',
+    extraLocationData = {}
+) {
     const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;
     const queryPattern = /{{query}}/g;
     let replaced = s
@@ -88,8 +96,8 @@ export function formatWithTemplates(s: string, query = '', extraLocationData={})
             return moment().format(pattern);
         })
         .replace(queryPattern, query);
-    
-    replaced = replaceJsonPaths(replaced, extraLocationData)
+
+    replaced = replaceJsonPaths(replaced, extraLocationData);
 
     return replaced;
 }
@@ -142,16 +150,20 @@ export async function newNote(
     location: string,
     frontMatterKey: string,
     templatePath: string,
-    extraLocationData?: object,
+    extraLocationData?: object
 ): Promise<[TFile, number]> {
     let templateContent = '';
     if (templatePath && templatePath.length > 0)
         templateContent = await app.vault.adapter.read(templatePath);
-    console.log("extraLocationData:");
+    console.log('extraLocationData:');
     console.log(extraLocationData);
 
-    templateContent = formatWithTemplates(templateContent, "", extraLocationData);
-    
+    templateContent = formatWithTemplates(
+        templateContent,
+        '',
+        extraLocationData
+    );
+
     const templateFrontMatterInfo = getFrontMatterInfo(templateContent);
 
     let newFrontMatterContents;
