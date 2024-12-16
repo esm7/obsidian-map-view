@@ -51,15 +51,17 @@ function resolveJsonPath(json: object, path: string): string {
     }, json);
 }
 
-function replaceJsonPaths(content: string, json: {[index: string]:any}) {
+function replaceJsonPaths(content: string, json: { [index: string]: any }) {
     // Use regex to find all patterns like {{some.path.to.data.0}}
 
     // Find patterns to replace that start with an attribute of json
     for (const [key, data] of Object.entries(json)) {
         const regex = new RegExp(`{{${key}\\.(.*?)}}`, 'g');
-        return content.replace(regex, (_, path: string) => {return resolveJsonPath(data, path);});
+        return content.replace(regex, (_, path: string) => {
+            return resolveJsonPath(data, path);
+        });
     }
-    return content
+    return content;
 }
 
 export function formatWithTemplates(

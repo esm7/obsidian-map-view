@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: hal, at: Mon 16 Dec 21:49:38 GMT 2024 -->
+<!-- Added by: hal, at: Mon 16 Dec 22:03:24 GMT 2024 -->
 
 <!--te-->
 
@@ -243,7 +243,7 @@ place_id: "{{google_maps_place_data.place_id}}"
 #{{google_maps_place_data.types.0}}
 ```
 
-Currently only the Google Maps Places API supports this advanced templating feature.
+Currently only Google Maps Places API supports this advanced templating feature.
 
 ![](img/new-note-popup.gif)
 
