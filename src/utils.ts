@@ -51,13 +51,15 @@ function resolveJsonPath(json: object, path: string): string {
     }, json);
 }
 
-function replaceJsonPaths(inputString: string, json: object) {
+function replaceJsonPaths(content: string, json: {[index: string]:any}) {
     // Use regex to find all patterns like {{some.path.to.data.0}}
-    return inputString.replace(/{{(.*?)}}/g, (_, path: string) => {
-        const value = resolveJsonPath(json, path);
-        // return value !== undefined ? value : null;
-        return value;
-    });
+
+    // Find patterns to replace that start with an attribute of json
+    for (const [key, data] of Object.entries(json)) {
+        const regex = new RegExp(`{{${key}\\.(.*?)}}`, 'g');
+        return content.replace(regex, (_, path: string) => {return resolveJsonPath(data, path);});
+    }
+    return content
 }
 
 export function formatWithTemplates(
@@ -132,8 +134,6 @@ export async function newNote(
     let templateContent = '';
     if (templatePath && templatePath.length > 0)
         templateContent = await app.vault.adapter.read(templatePath);
-    console.log('extraLocationData:');
-    console.log(extraLocationData);
 
     templateContent = formatWithTemplates(
         templateContent,
