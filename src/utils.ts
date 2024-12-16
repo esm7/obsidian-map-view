@@ -42,40 +42,15 @@ export function getLastUsedValidMarkdownLeaf() {
 }
 
 function resolveJsonPath(json: object, path: string): string {
+    // convert a string path like "some.path.to.data.0" to the value at that path in json
     // Remove leading/trailing curly braces and split the path into parts
     const pathParts = path.replace(/[{}]/g, '').split('.');
-
-    // Iterate through each part of the path
-    let current = json;
-    for (let part of pathParts) {
-        // Handle array index
-        const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
-        if (arrayMatch) {
-            const key = arrayMatch[1];
-            const index = parseInt(arrayMatch[2], 10);
-            if (
-                current[key] &&
-                Array.isArray(current[key]) &&
-                current[key][index] !== undefined
-            ) {
-                current = current[key][index];
-            } else {
-                return ''; // Path doesn't exist
-            }
-        } else {
-            // Access object property
-            if (current && current.hasOwnProperty(part)) {
-                current = current[part];
-            } else {
-                return ''; // Path doesn't exist
-            }
-        }
-    }
-    return JSON.stringify(current);
+    // Use reduce with optional chaining to traverse the path
+    return pathParts.reduce((current: object, part: string) => {return current?.[part];}, json);
 }
 
 function replaceJsonPaths(inputString: string, json: object) {
-    // Use regex to find all patterns like {{some.path.to[0].data}}
+    // Use regex to find all patterns like {{some.path.to.data.0}}
     return inputString.replace(/{{(.*?)}}/g, (_, path: string) => {
         const value = resolveJsonPath(json, path);
         // return value !== undefined ? value : null;
