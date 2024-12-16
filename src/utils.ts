@@ -46,7 +46,9 @@ function resolveJsonPath(json: object, path: string): string {
     // Remove leading/trailing curly braces and split the path into parts
     const pathParts = path.replace(/[{}]/g, '').split('.');
     // Use reduce with optional chaining to traverse the path
-    return pathParts.reduce((current: object, part: string) => {return current?.[part];}, json);
+    return pathParts.reduce((current: object, part: string) => {
+        return current?.[part];
+    }, json);
 }
 
 function replaceJsonPaths(inputString: string, json: object) {
