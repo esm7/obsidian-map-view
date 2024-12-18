@@ -335,7 +335,7 @@ span.mv-filters-on {
     display: none;
 }
 
-img.mv-offline {
+.mv-highlight-offline img.mv-offline {
     padding: 1px !important;
     background-color: blue;
 }

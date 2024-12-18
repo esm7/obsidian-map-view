@@ -34,7 +34,8 @@ import {
 } from 'src/settings';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
-import { OfflineManagerModal } from 'src/offline';
+import { SvelteModal } from 'src/svelte';
+import OfflineManager from './OfflineManager.svelte';
 
 import { MapContainer, type ViewSettings } from 'src/mapContainer';
 
@@ -116,13 +117,28 @@ export abstract class BaseMapView extends ItemView {
         });
         menu.addItem((item: MenuItem) => {
             item.setTitle('Offline maps...').onClick(() => {
-                const dialog = new OfflineManagerModal(
+                const dialog = new SvelteModal(
+                    OfflineManager,
                     this.app,
                     this.plugin,
                     this.settings,
+                    {
+                        mapContainer: this.mapContainer,
+                        tileLayer: this.mapContainer.display.tileLayer,
+                    },
                 );
                 dialog.open();
             });
+            item.setIcon('download');
+        });
+        menu.addItem((item: MenuItem) => {
+            item.setTitle('Highlight offline tiles').onClick(() => {
+                document.body.classList.toggle('mv-highlight-offline');
+            });
+            item.setIcon('scan');
+            item.setChecked(
+                document.body.classList.contains('mv-highlight-offline'),
+            );
         });
         super.onPaneMenu(menu, source);
     }

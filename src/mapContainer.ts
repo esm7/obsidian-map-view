@@ -20,8 +20,6 @@ import 'leaflet.markercluster';
 import {
     type TileLayerOffline,
     tileLayerOffline,
-    savetiles,
-    type SaveStatus,
     hasTile,
 } from 'leaflet.offline';
 import * as consts from 'src/consts';
@@ -473,28 +471,6 @@ export class MapContainer {
                 className: neededClassName,
             });
             this.display.map.addLayer(this.display.tileLayer);
-
-            // TODO TEMP
-            const saveControl = savetiles(this.display.tileLayer, {
-                zoomlevels: [13, 16], // optional zoomlevels to save, default current zoomlevel
-                alwaysDownload: false,
-                confirm(status: SaveStatus, successCallback: Function) {
-                    // eslint-disable-next-line no-alert
-                    if (window.confirm(`Save ${status._tilesforSave.length}`)) {
-                        successCallback();
-                    }
-                },
-                confirmRemoval(status: SaveStatus, successCallback: Function) {
-                    // eslint-disable-next-line no-alert
-                    if (window.confirm('Remove all the tiles?')) {
-                        successCallback();
-                    }
-                },
-                saveText: '<i class="fa fa-download" title="Save tiles"></i>',
-                rmText: '<i class="fa fa-trash" title="Remove tiles"></i>',
-            });
-            saveControl.setPosition('topright');
-            saveControl.addTo(this.display.map);
 
             if (!chosenMapSource?.ignoreErrors) {
                 let recentTileError = false;
