@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import { type TileLayerOffline } from 'leaflet.offline';
 	import * as leaflet from 'leaflet';
-	import { calculateTilesToDownload } from 'src/offlineTiles.ts';
+	import { calculateTilesToDownload } from 'src/offlineTiles.svelte.ts';
 	import type { TileInfo } from 'leaflet.offline';
 
     let { 
@@ -137,7 +137,7 @@
 			</div>
         </div>
 		<div class="setting-item-control">
-			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+			<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 			<div class="checkbox-container" class:is-enabled={skipExisting} onclick={() => skipExisting = !skipExisting}>
                 <input 
                     type="checkbox" 

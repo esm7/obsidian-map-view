@@ -35,7 +35,7 @@ import {
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import { SvelteModal } from 'src/svelte';
-import OfflineManager from './OfflineManager.svelte';
+import OfflineManagerDialog from './OfflineManagerDialog.svelte';
 
 import { MapContainer, type ViewSettings } from 'src/mapContainer';
 
@@ -118,7 +118,7 @@ export abstract class BaseMapView extends ItemView {
         menu.addItem((item: MenuItem) => {
             item.setTitle('Offline maps...').onClick(() => {
                 const dialog = new SvelteModal(
-                    OfflineManager,
+                    OfflineManagerDialog,
                     this.app,
                     this.plugin,
                     this.settings,

@@ -12,6 +12,7 @@
         "noImplicitAny": true,
         "moduleResolution": "node",
         "importHelpers": true,
+        "allowImportingTsExtensions": true,
         "lib": ["dom", "es2020", "scripthost"]
     },
     "include": ["**/*.ts"]

@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { App, request, Notice } from 'obsidian';
+	import { Notice, App, getIcon } from 'obsidian';
 	import { type PluginSettings } from 'src/settings';
 	import MapViewPlugin from 'src/main';
 	import { SvelteModal } from 'src/svelte.ts';
-	import OfflineNewJob from './OfflineNewJob.svelte';
+	import OfflineNewJobDialog from './OfflineNewJobDialog.svelte';
 	import { removeTile, saveTile, getStorageInfo, type TileLayerOffline, type TileInfo } from 'leaflet.offline';
 	import { MapContainer } from 'src/mapContainer.ts';
+	import * as offlineTiles from 'src/offlineTiles.svelte.ts';
 
 	let {
 		plugin, app, close, settings, mapContainer, tileLayer
@@ -18,15 +19,6 @@
 		tileLayer: TileLayerOffline;
 	}>();
 
-	interface Job {
-		id: number;
-		name: string;
-		tiles: TileInfo[];
-		requestsPerSecond: number;
-		progress: number;
-		abortController: AbortController;
-	}
-
 	interface DownloadedLayerInfo {
 		url: string;
 		urlTemplate: string;
@@ -34,71 +26,7 @@
 		totalSize: number;
 	}
 
-	let jobs: Job[] = $state([]);
 	let downloadedTiles: DownloadedLayerInfo[] = $state([]);
-
-	function cancelJob(jobId: number) {
-		const job = jobs.find(job => job.id === jobId);
-		if (job) {
-			job.abortController.abort();
-		}
-	}
-
-	function startJob(tiles: TileInfo[], requestsPerSecond: number) {
-		const maxId = Math.max(0, ...jobs.map(job => typeof job.id === 'number' ? job.id : 0));
-		const jobUrl = new URL(tiles[0]?.url).hostname;
-		const jobName = `${tiles.length} tiles / ${jobUrl} / started ${new Date().toLocaleTimeString()}`;
-		const newJob: Job = {
-			id: maxId + 1,
-			name: jobName,
-			tiles: tiles,
-			requestsPerSecond: requestsPerSecond,
-			progress: 0,
-			abortController: new AbortController
-		};
-		jobs = [...jobs, newJob];
-		doDownloadJob(newJob);
-	}
-
-	async function doDownloadJob(job: Job) {
-		let downloaded = 0;
-		for (const tile of job.tiles) {
-			try {
-				const response = await requestUrl({ url: tile.url, contentType: 'image/png' });
-				const buffer = await response.arrayBuffer;
-				const startTime = Date.now();
-				const blob = new Blob([buffer], { 
-					type: 'image/png'
-				});
-				await saveTile(tile, blob);
-				const endTime = Date.now();
-				const elapsedMs = endTime - startTime;
-				const minTimePerRequest = 1000 / job.requestsPerSecond;
-				if (elapsedMs < minTimePerRequest) {
-					await new Promise(resolve => setTimeout(resolve, minTimePerRequest - elapsedMs));
-				}
-				downloaded++;
-				jobs = jobs.map(j => {
-					if (j.id === job.id) {
-						return { ...j, progress: (downloaded / job.tiles.length) * 100 };
-					}
-					return j;
-				});
-				if (job.abortController.signal.aborted) 
-					break;
-			} catch (error) {
-				console.error(`Failed to download tile: ${tile.url}`, error);
-				console.error(`Error details: ${error.message}`);
-				new Notice(
-					'Offline tiles downloaded failed, see the console for more details.',
-				);
-				break;
-			}
-		}
-		jobs = jobs.filter(j => j.id !== job.id);
-		await getDownloadedTiles();
-		mapContainer.refreshMap();
-	}
 
 	async function getDownloadedTiles() {
 		downloadedTiles = [];
@@ -118,7 +46,6 @@
 	}
 
 	getDownloadedTiles();
-
 
 	async function deleteDownload(layer: DownloadedLayerInfo) {
 		if (!confirm('This will delete all the tiles for the selected URL, are you sure?'))
@@ -143,9 +70,9 @@
 		mapContainer.refreshMap();
 	}
 
-	function startNewDownload() {
+	function openNewDownloadDialog() {
 		const dialog = new SvelteModal(
-			OfflineNewJob,
+			OfflineNewJobDialog,
 			app,
 			plugin,
 			settings,
@@ -153,6 +80,19 @@
 		);
 		dialog.open();
 	}
+
+	async function startJob(tiles: TileInfo[], requestsPerSecond: number) {
+			offlineTiles.startJob(tiles, requestsPerSecond, async () => {
+				await getDownloadedTiles();
+				mapContainer.refreshMap();
+				// The job goes to do its thing in offlineTiles.svelte.ts regardless of whether this dialog is open.
+				// If by the time it is done the dialog isn't around anymore, notify the user by a notice.
+				if (!document.body.contains(document.querySelector('.offline-manager')))
+					new Notice(
+						'Map View: an offline background download has finished.'
+					);
+			});
+		}
 </script>
 
 <div class="offline-manager">
@@ -168,7 +108,7 @@
 						</div>
 					</div>
 					<div class="setting-item-control">
-						<button class="mod-warning" on:click={() => deleteDownload(layer)}>
+						<button class="mod-warning" onclick={() => deleteDownload(layer)}>
 							Delete
 						</button>
 					</div>
@@ -181,7 +121,7 @@
 						No tiles were downloaded yet.
 					</div>
 					<div class="setting-item-description">
-						{#if jobs.length > 0}
+						{#if offlineTiles.getJobs().length > 0}
 							Once the ongoing job(s) finish, you will see them here.
 						{:else}
 							You can make the current view available offline using the button below.
@@ -191,12 +131,19 @@
 			</div>
 		{/if}
 	</div>
-	{#if jobs.length > 0}
+
+	<div class="info-container">
+		<div class="info-icon">
+			{@html getIcon('info').outerHTML}
+		</div>
+		<p>You can see a visualization of your offline tiles using the "Highlight Offline Tiles" option in the Map View context menu.</p>
+	</div>
+	{#if offlineTiles.getJobs().length > 0}
 		<div class="setting-item">
 			<div class="setting-item-name"><b>Ongoing Downloads</b></div>
 		</div>
 		<div class="jobs-container">
-			{#each jobs as job}
+			{#each offlineTiles.getJobs() as job}
 				<div class="setting-item">
 					<div class="setting-item-info">
 						<div class="setting-item-name">{job.name}</div>
@@ -205,18 +152,24 @@
 						</div>
 					</div>
 					<div class="setting-item-control">
-						<button on:click={() => cancelJob(job.id)}>
+						<button onclick={() => offlineTiles.cancelJob(job.id)}>
 							Cancel
 						</button>
 					</div>
 				</div>
 			{/each}
+			<div class="info-container">
+				<div class="info-icon">
+					{@html getIcon('info').outerHTML}
+				</div>
+				<p>Downloads will continue in the background whether or not this dialog is open.</p>
+			</div>
 		</div>
 	{/if}
 
 	<div class="setting-item">
 		<div class="setting-item-control">
-			<button class="mod-cta" on:click={startNewDownload}>
+			<button class="mod-cta" onclick={openNewDownloadDialog}>
 				Download Tiles...
 			</button>
 		</div>
@@ -231,6 +184,18 @@
 
 	.jobs-container {
 		margin-bottom: var(--size-4-2);
+	}
+
+	.info-container {
+		display: flex;
+		align-items: center;
+		gap: var(--size-4-2);
+		color: var(--text-muted);
+	}
+
+	.info-icon {
+		width: 16px;
+		height: 16px;
 	}
 
 </style>
