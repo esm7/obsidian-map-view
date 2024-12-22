@@ -41,24 +41,28 @@ export function getLastUsedValidMarkdownLeaf() {
     return null;
 }
 
-function resolveJsonPath(json: object, path: string): string {
+
+function resolveJsonPath(json: object, path: string): string | undefined {
     // Convert a string path like "some.path.to.data.0" to the value at that path in JSON
     // Remove leading/trailing curly braces and split the path into parts
     const pathParts = path.replace(/[{}]/g, '').split('.');
     // Use reduce with optional chaining to traverse the path
-    return pathParts.reduce((current: object, part: string) => {
-        return current?.[part];
-    }, json);
+    return pathParts.reduce((current, part) => (current as any)?.[part], json);
 }
 
-function replaceJsonPaths(content: string, json: { [index: string]: any }) {
+export type ExtraLocationData = {
+    googleMapsPlaceData?: google.maps.places.PlaceResult;
+}
+
+function replaceJsonPaths(content: string, json: ExtraLocationData) {
     // Use regex to find all patterns like {{some.path.to.data.0}}
 
     // Find patterns to replace that start with an attribute of json
     for (const [key, data] of Object.entries(json)) {
         const regex = new RegExp(`{{${key}\\.(.*?)}}`, 'g');
         return content.replace(regex, (_, path: string) => {
-            return resolveJsonPath(data, path);
+            const result = resolveJsonPath(data, path);
+            return result ? result : "";
         });
     }
     return content;
@@ -67,7 +71,7 @@ function replaceJsonPaths(content: string, json: { [index: string]: any }) {
 export function formatWithTemplates(
     s: string,
     query = '',
-    extraLocationData = {}
+    extraLocationData: ExtraLocationData = {}
 ) {
     const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;
     const queryPattern = /{{query}}/g;
@@ -131,7 +135,7 @@ export async function newNote(
     location: string,
     frontMatterKey: string,
     templatePath: string,
-    extraLocationData?: object
+    extraLocationData?: ExtraLocationData
 ): Promise<[TFile, number]> {
     let templateContent = '';
     if (templatePath && templatePath.length > 0)

@@ -920,7 +920,7 @@ export default class MapViewPlugin extends Plugin {
         location: leaflet.LatLng,
         ev: MouseEvent | KeyboardEvent | null,
         query: string,
-        extraLocationData: object
+        extraLocationData: utils.ExtraLocationData
     ) {
         const locationString = `${location.lat},${location.lng}`;
         const newFileName = utils.formatWithTemplates(
