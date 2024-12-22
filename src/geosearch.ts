@@ -149,7 +149,7 @@ export async function googlePlacesSearch(
                     name: `${result?.name} (${result?.formatted_address})`,
                     location: geolocation,
                     resultType: 'searchResult',
-                    extraLocationData: { google_maps_place_data: result },
+                    extraLocationData: { googleMapsPlaceData: result },
                 } as GeoSearchResult);
             }
         }

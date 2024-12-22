@@ -42,7 +42,7 @@ export function getLastUsedValidMarkdownLeaf() {
 }
 
 function resolveJsonPath(json: object, path: string): string {
-    // convert a string path like "some.path.to.data.0" to the value at that path in json
+    // Convert a string path like "some.path.to.data.0" to the value at that path in JSON
     // Remove leading/trailing curly braces and split the path into parts
     const pathParts = path.replace(/[{}]/g, '').split('.');
     // Use reduce with optional chaining to traverse the path
@@ -155,7 +155,6 @@ export async function newNote(
         newFrontMatterContents = 'locations:';
         contentsBody = `[${CURSOR}](geo:${location})\n`;
     }
-
     let content = `---\n${newFrontMatterContents}\n${
         templateFrontMatterInfo.frontmatter
     }---\n\n${contentsBody}${templateContent.substring(
