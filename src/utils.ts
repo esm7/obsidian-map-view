@@ -41,7 +41,6 @@ export function getLastUsedValidMarkdownLeaf() {
     return null;
 }
 
-
 function resolveJsonPath(json: object, path: string): string | undefined {
     // Convert a string path like "some.path.to.data.0" to the value at that path in JSON
     // Remove leading/trailing curly braces and split the path into parts
@@ -52,7 +51,7 @@ function resolveJsonPath(json: object, path: string): string | undefined {
 
 export type ExtraLocationData = {
     googleMapsPlaceData?: google.maps.places.PlaceResult;
-}
+};
 
 function replaceJsonPaths(content: string, json: ExtraLocationData) {
     // Use regex to find all patterns like {{some.path.to.data.0}}
@@ -62,7 +61,7 @@ function replaceJsonPaths(content: string, json: ExtraLocationData) {
         const regex = new RegExp(`{{${key}\\.(.*?)}}`, 'g');
         return content.replace(regex, (_, path: string) => {
             const result = resolveJsonPath(data, path);
-            return result ? result : "";
+            return result ? result : '';
         });
     }
     return content;
