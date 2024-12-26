@@ -4,6 +4,7 @@
 	import MapViewPlugin from 'src/main';
 	import { SvelteModal } from 'src/svelte.ts';
 	import OfflineNewJobDialog from './OfflineNewJobDialog.svelte';
+	import OfflinePurgeDialog from './OfflinePurgeDialog.svelte';
 	import { removeTile, saveTile, getStorageInfo, type TileLayerOffline, type TileInfo } from 'leaflet.offline';
 	import { MapContainer } from 'src/mapContainer.ts';
 	import * as offlineTiles from 'src/offlineTiles.svelte.ts';
@@ -24,6 +25,7 @@
 		urlTemplate: string;
 		tiles: number;
 		totalSize: number;
+		oldestTile: number;
 	}
 
 	let downloadedTiles: DownloadedLayerInfo[] = $state([]);
@@ -32,20 +34,32 @@
 		downloadedTiles = [];
 		const sources = settings.mapSources;
 		for (const mapSource of sources) {
-			const url = mapSource.urlLight;
-			const storageInfo = await getStorageInfo(url);
-			if (storageInfo.length > 0) {
-				downloadedTiles = [...downloadedTiles, {
-					url: new URL(url).hostname,
-					urlTemplate: url,
-					tiles: storageInfo.length,
-					totalSize: storageInfo.reduce((sum, item) => sum + item.blob.size, 0)
-				}];
-			}
+					const url = mapSource.urlLight;
+					const storageInfo = await getStorageInfo(url);
+					if (storageInfo.length > 0) {
+						downloadedTiles = [...downloadedTiles, {
+							url: new URL(url).hostname,
+							urlTemplate: url,
+							tiles: storageInfo.length,
+							totalSize: storageInfo.reduce((sum, item) => sum + item.blob.size, 0),
+							oldestTile: Math.min(...storageInfo.map(item => item.createdAt))
+						}];
+					}
 		}
 	}
 
 	getDownloadedTiles();
+
+	async function openPurgeDialog(layer: DownloadedLayerInfo) {
+		const dialog = new SvelteModal(
+			OfflinePurgeDialog,
+			app,
+			plugin,
+			settings,
+			{ urlTemplate: layer.urlTemplate, beforeClose: () => { getDownloadedTiles(); } }
+		);
+		dialog.open();
+	}
 
 	async function deleteDownload(layer: DownloadedLayerInfo) {
 		if (!confirm('This will delete all the tiles for the selected URL, are you sure?'))
@@ -104,10 +118,14 @@
 					<div class="setting-item-info">
 						<div class="setting-item-name">{layer.url}</div>
 						<div class="setting-item-description">
-{layer.tiles} tiles, total {(layer.totalSize / (1024 * 1024)).toFixed(1)}MB.
+{layer.tiles} tiles, total <b>{(layer.totalSize / (1024 * 1024)).toFixed(1)}MB</b>.<br>
+Oldest tile is from {new Date(layer.oldestTile).toISOString().split('T')[0]}.
 						</div>
 					</div>
 					<div class="setting-item-control">
+						<button onclick={() => openPurgeDialog(layer)}>
+							Purge old...
+						</button>
 						<button class="mod-warning" onclick={() => deleteDownload(layer)}>
 							Delete
 						</button>

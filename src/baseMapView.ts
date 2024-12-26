@@ -27,15 +27,10 @@ import {
     stateToUrl,
     copyState,
 } from 'src/mapState';
-import {
-    type PluginSettings,
-    type TileSource,
-    DEFAULT_SETTINGS,
-} from 'src/settings';
+import { type PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
-import { SvelteModal } from 'src/svelte';
-import OfflineManagerDialog from './OfflineManagerDialog.svelte';
+import { openManagerDialog } from 'src/offlineTiles.svelte';
 
 import { MapContainer, type ViewSettings } from 'src/mapContainer';
 
@@ -117,17 +112,11 @@ export abstract class BaseMapView extends ItemView {
         });
         menu.addItem((item: MenuItem) => {
             item.setTitle('Offline maps...').onClick(() => {
-                const dialog = new SvelteModal(
-                    OfflineManagerDialog,
-                    this.app,
+                openManagerDialog(
                     this.plugin,
                     this.settings,
-                    {
-                        mapContainer: this.mapContainer,
-                        tileLayer: this.mapContainer.display.tileLayer,
-                    },
+                    this.mapContainer,
                 );
-                dialog.open();
             });
             item.setIcon('download');
         });

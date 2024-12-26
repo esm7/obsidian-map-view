@@ -64,33 +64,7 @@ import {
 import * as menus from 'src/menus';
 import * as markerPopups from 'src/markerPopups';
 import { createPopper, type Instance as PopperInstance } from '@popperjs/core';
-
-function createTileLayer(
-    url: string,
-    options: leaflet.TileLayerOptions,
-): TileLayerOffline {
-    const tile = tileLayerOffline(url, options);
-    const originalCreateFunction = tile.createTile;
-    // Override the tile creation function and add a class to denote for each
-    // tile if it is available offline or not
-    tile.createTile = (
-        coords: leaflet.Coords,
-        done: leaflet.DoneCallback,
-    ): HTMLElement => {
-        const element = originalCreateFunction.call(
-            tile,
-            coords,
-            done,
-        ) as HTMLElement;
-        const key = tile._getStorageKey(coords);
-        hasTile(key).then((availableOffline) => {
-            if (availableOffline) element.classList.add('mv-offline');
-            else element.classList.add('mv-online');
-        });
-        return element;
-    };
-    return tile;
-}
+import * as offlineTiles from 'src/offlineTiles.svelte';
 
 export type ViewSettings = {
     showZoomButtons: boolean;
@@ -166,6 +140,8 @@ export class MapContainer {
         routingSource: leaflet.Marker = null;
         realTimeLocationMarker: leaflet.Marker = null;
         realTimeLocationRadius: leaflet.Circle = null;
+        /** Part of an ugly mechanism that's required to cache loaded tiles */
+        offlineHelperCanvas: HTMLCanvasElement = null;
     })();
     public ongoingChanges = 0;
     public freezeMap: boolean = false;
@@ -188,6 +164,8 @@ export class MapContainer {
     public updateCodeBlockCallback: () => Promise<void>;
     /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
     public updateCodeBlockFromMapViewCallback: () => Promise<void>;
+    /** Internal URL for a pre-generated "error" tile */
+    private errorTileUrl = '';
 
     /**
      * Construct a new map instance
@@ -301,6 +279,11 @@ export class MapContainer {
                 ev.target === mapDiv || mapDiv.contains(targetNode);
             if (isEventOnMap) ev.stopPropagation();
         });
+
+        this.display.offlineHelperCanvas =
+            this.display.mapDiv.createEl('canvas');
+        this.display.offlineHelperCanvas.style.display = 'none';
+
         await this.createMap();
 
         // Prepare marker popups
@@ -310,6 +293,7 @@ export class MapContainer {
             'popover',
             'hover-popup',
         ]);
+        this.createErrorTile();
         const dummyPopperElement = this.display.viewDiv.createDiv();
         // Popper doesn't work well under mobile
         if (!utils.isMobile(this.app)) {
@@ -461,7 +445,7 @@ export class MapContainer {
             const neededClassName = revertMap ? 'dark-mode' : '';
             const maxNativeZoom =
                 chosenMapSource.maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM;
-            this.display.tileLayer = createTileLayer(mapSourceUrl, {
+            this.display.tileLayer = this.createTileLayer(mapSourceUrl, {
                 maxZoom: this.settings.letZoomBeyondMax
                     ? consts.MAX_ZOOM
                     : maxNativeZoom,
@@ -469,28 +453,41 @@ export class MapContainer {
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                 attribution: attribution,
                 className: neededClassName,
+                errorTileUrl: this.createErrorTile(),
             });
             this.display.map.addLayer(this.display.tileLayer);
-
-            if (!chosenMapSource?.ignoreErrors) {
-                let recentTileError = false;
-                this.display.tileLayer.on(
-                    'tileerror',
-                    (event: leaflet.TileErrorEvent) => {
-                        if (!recentTileError) {
-                            new Notice(
-                                `Map view: unable to load map tiles. If your Internet access is ok, try switching the map source using the View controls.`,
-                                20000,
-                            );
-                            recentTileError = true;
-                            setTimeout(() => {
-                                recentTileError = false;
-                            }, 5000);
-                        }
-                    },
-                );
-            }
         }
+    }
+
+    createErrorTile() {
+        const dpr = window.devicePixelRatio || 1;
+        const tileSize = 256;
+        const canvas = this.display.viewDiv.createEl('canvas');
+
+        // Set actual size in memory (scaled for retina)
+        canvas.width = tileSize * dpr;
+        canvas.height = tileSize * dpr;
+
+        // Set display size
+        canvas.style.width = tileSize + 'px';
+        canvas.style.height = tileSize + 'px';
+
+        const ctx = canvas.getContext('2d');
+
+        // Scale all drawing operations by dpr
+        ctx.scale(dpr, dpr);
+
+        // Fill with light gray background
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, tileSize, tileSize);
+
+        // Add error text
+        ctx.fillStyle = '#666666';
+        ctx.font = `${Math.round(14 * (dpr / 2))}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('Tile unavailable', tileSize / 2, tileSize / 2);
+
+        return canvas.toDataURL();
     }
 
     async refreshMap() {
@@ -1563,5 +1560,42 @@ export class MapContainer {
                 }
             }
         }
+    }
+
+    createTileLayer(
+        url: string,
+        options: leaflet.TileLayerOptions,
+    ): TileLayerOffline {
+        const tileLayer = tileLayerOffline(url, options);
+        const originalCreateFunction = tileLayer.createTile;
+        // Override the tile creation function and add a class to denote for each
+        // tile if it is available offline or not
+        tileLayer.createTile = (
+            coords: leaflet.Coords,
+            done: leaflet.DoneCallback,
+        ): HTMLElement => {
+            const element = originalCreateFunction.call(
+                tileLayer,
+                coords,
+                done,
+            ) as HTMLElement;
+            const key = tileLayer._getStorageKey(coords);
+            hasTile(key).then((availableOffline) => {
+                if (availableOffline) element.classList.add('mv-offline');
+                else {
+                    element.classList.add('mv-online');
+                    if (this.settings.cacheAllTiles)
+                        offlineTiles.saveDownloadedTile(
+                            element as HTMLImageElement,
+                            tileLayer,
+                            coords,
+                            this.display.map.getZoom(),
+                            this.display.offlineHelperCanvas,
+                        );
+                }
+            });
+            return element;
+        };
+        return tileLayer;
     }
 }

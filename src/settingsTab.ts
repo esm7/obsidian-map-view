@@ -20,6 +20,7 @@ import { getIconFromOptions, getIconFromRules } from 'src/markerIcons';
 import { BaseMapView } from 'src/baseMapView';
 import * as consts from 'src/consts';
 import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
+import { openManagerDialog } from 'src/offlineTiles.svelte';
 
 export class SettingsTab extends PluginSettingTab {
     plugin: MapViewPlugin;
@@ -653,6 +654,41 @@ export class SettingsTab extends PluginSettingTab {
         markerIconsDiv = containerEl.createDiv();
         this.refreshMarkerIcons(markerIconsDiv);
 
+        new Setting(containerEl).setHeading().setName('Offline Maps');
+        new Setting(containerEl)
+            .setName('Manage offline storage')
+            .setDesc(
+                'Save and delete tiles for offline usage. Also available via the context menu of the map.',
+            )
+            .addButton((component) => {
+                component.setButtonText('Offline storage...').onClick(() => {
+                    const mapView = this.findMapView();
+                    if (mapView)
+                        openManagerDialog(
+                            this.plugin,
+                            this.plugin.settings,
+                            mapView.mapContainer,
+                        );
+                    else alert('This requires an open Map View.');
+                });
+            });
+        new Setting(containerEl)
+            .setName('Auto cache')
+            .setDesc(
+                'Automatically store all viewed tiles to be available locally. Great for performance but takes some storage. When this is off, only tiles explicitly downloaded for offline storage are kept.',
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.cacheAllTiles ??
+                            DEFAULT_SETTINGS.cacheAllTiles,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.cacheAllTiles = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
         const gpsTitle = new Setting(containerEl).setHeading().setName('GPS');
         const warningFragment = document.createDocumentFragment();
         const warningText = warningFragment.createDiv();
@@ -761,16 +797,19 @@ export class SettingsTab extends PluginSettingTab {
 
     hide() {
         if (this.refreshPluginOnHide) {
-            const mapViews = this.app.workspace.getLeavesOfType(
-                consts.MAP_VIEW_NAME,
-            );
-            for (const leaf of mapViews) {
-                if (leaf.view) {
-                    const mapView = leaf.view as BaseMapView;
-                    mapView.mapContainer.refreshMap();
-                }
-            }
+            const mapView = this.findMapView();
+            if (mapView) mapView.mapContainer.refreshMap();
         }
+    }
+
+    findMapView() {
+        const mapViews = this.app.workspace.getLeavesOfType(
+            consts.MAP_VIEW_NAME,
+        );
+        for (const leaf of mapViews) {
+            if (leaf.view) return leaf.view as BaseMapView;
+        }
+        return null;
     }
 
     refreshMapSourceSettings(containerEl: HTMLElement) {

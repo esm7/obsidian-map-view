@@ -3,9 +3,16 @@ import * as leaflet from 'leaflet';
 import {
     hasTile,
     saveTile,
+    getStorageInfo,
+    removeTile,
     type TileLayerOffline,
     type TileInfo,
 } from 'leaflet.offline';
+import type { PluginSettings } from 'src/settings';
+import MapViewPlugin from 'src/main';
+import { SvelteModal } from 'src/svelte';
+import OfflineManagerDialog from './OfflineManagerDialog.svelte';
+import { MapContainer } from 'src/mapContainer';
 
 interface Job {
     id: number;
@@ -18,6 +25,24 @@ interface Job {
 }
 
 let jobs: Job[] = $state([]);
+
+export function openManagerDialog(
+    plugin: MapViewPlugin,
+    settings: PluginSettings,
+    mapContainer: MapContainer,
+) {
+    const dialog = new SvelteModal(
+        OfflineManagerDialog,
+        plugin.app,
+        plugin,
+        settings,
+        {
+            mapContainer: mapContainer,
+            tileLayer: mapContainer.display.tileLayer,
+        },
+    );
+    dialog.open();
+}
 
 export function getJobs() {
     return jobs;
@@ -54,20 +79,81 @@ export function startJob(
     doDownloadJob(newJob);
 }
 
+async function downloadSingleTile(tileInfo: TileInfo) {
+    const response = await requestUrl({
+        url: tileInfo.url,
+        contentType: 'image/png',
+    });
+    const buffer = response.arrayBuffer;
+    const blob = new Blob([buffer], {
+        type: 'image/png',
+    });
+    await saveTile(tileInfo, blob);
+}
+
+/**
+ * This is a ugly hack that's required to cache an image after the browser (using an img element)
+ * has already downloaded it.
+ * We want to store the tile in the DB but it's not available to us at a binary form.
+ * The straight-forward solution is to download it again programatically with 'fetch', but that's very wasteful.
+ * So instead, we take the hard path, of drawing it on a canvas then converting to a blob.
+ * It seems annoying and inefficient, but it's considerably better than re-downloading.
+ */
+async function getBlobFromImageElement(
+    image: HTMLImageElement,
+    helperCanvas: HTMLCanvasElement,
+): Promise<Blob> {
+    // We can't use the image in a buffer as we intend to do below unless we assure the CORS mechanism we're allowed
+    // to do.
+    image.crossOrigin = 'Anonymous';
+    // Wait for the image to be fully loaded
+    await image.decode();
+    let bitmap = await createImageBitmap(image);
+    let ctx = helperCanvas.getContext('2d');
+    helperCanvas.width = bitmap.width;
+    helperCanvas.height = bitmap.height;
+    ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height);
+    return new Promise<Blob>((resolve) => {
+        helperCanvas.toBlob((blob) => {
+            resolve(blob);
+        }, 'image/png');
+    });
+}
+
+export async function saveDownloadedTile(
+    element: HTMLImageElement,
+    layer: TileLayerOffline,
+    point: leaflet.Point,
+    zoom: number,
+    helperCanvas: HTMLCanvasElement,
+) {
+    // This function saved an existing image element into a blob that the leaflet.offline library knows how to use.
+    // Beware, it gets ugly, as the library wasn't really designed to do this.
+    // First we need to craft a TileInfo object that can identify the tile in the DB, we do this by reversing what the
+    // getTileUrls expects from the layer object that we have.
+    const projectedPoint = point.multiplyBy(layer.getTileSize().x);
+    const tiles = layer.getTileUrls(
+        leaflet.bounds(projectedPoint, projectedPoint),
+        zoom,
+    );
+    if (tiles?.length > 0) {
+        const tile = tiles[0];
+        try {
+            const blob = await getBlobFromImageElement(element, helperCanvas);
+            await saveTile(tile, blob);
+            // Success
+            return true;
+        } catch (e) {}
+    }
+    return false;
+}
+
 async function doDownloadJob(job: Job) {
     let downloaded = 0;
     for (const tile of job.tiles) {
         try {
-            const response = await requestUrl({
-                url: tile.url,
-                contentType: 'image/png',
-            });
-            const buffer = response.arrayBuffer;
             const startTime = Date.now();
-            const blob = new Blob([buffer], {
-                type: 'image/png',
-            });
-            await saveTile(tile, blob);
+            await downloadSingleTile(tile);
             const endTime = Date.now();
             const elapsedMs = endTime - startTime;
             const minTimePerRequest = 1000 / job.requestsPerSecond;
@@ -144,4 +230,19 @@ export async function calculateTilesToDownload(
         }
     }
     return newTiles;
+}
+
+export async function purgeOldTiles(urlTemplate: string, maxMonths: number) {
+    const now = Date.now();
+    const storageInfo = await getStorageInfo(urlTemplate);
+    let numPurged = 0;
+    for (const tile of storageInfo) {
+        const tileTime = tile.createdAt;
+        const monthsAgo = (now - tileTime) / (1000 * 60 * 60 * 24 * 30);
+        if (monthsAgo > maxMonths) {
+            await removeTile(tile.key);
+            numPurged++;
+        }
+    }
+    return numPurged;
 }
