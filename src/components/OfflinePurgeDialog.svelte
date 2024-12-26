@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { purgeOldTiles } from 'src/offlineTiles.svelte';
+	import { purgeOldTiles } from '../offlineTiles.svelte';
 	import { Notice } from 'obsidian';
 
     let { 
@@ -48,7 +48,6 @@
 				class="dropdown"
 				bind:value={maxAgeMonths}
 			>
-				<option value={1/24/30}>1 hour</option>
 				<option value={1}>1 month</option>
 				<option value={3}>3 months</option>
 				<option value={6}>6 months</option>

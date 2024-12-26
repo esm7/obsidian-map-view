@@ -20,6 +20,7 @@ import { LocationSuggest } from 'src/locationSuggest';
 import { UrlConvertor } from 'src/urlConvertor';
 import { mergeStates, stateFromParsedUrl, getCodeBlock } from 'src/mapState';
 import * as menus from 'src/menus';
+import { purgeTilesBySettings } from 'src/offlineTiles.svelte';
 
 import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
@@ -566,6 +567,8 @@ export default class MapViewPlugin extends Plugin {
                 }
             },
         );
+
+        purgeTilesBySettings(this.settings);
     }
 
     public findOpenMainView(): WorkspaceLeaf {

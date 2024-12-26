@@ -688,6 +688,49 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
+        new Setting(containerEl)
+            .setName('Auto-purge tiles older than...')
+            .setDesc(
+                'Remove old tiles on Obsidian startup to keep your map up-to-date. This currently applies both to auto-cached and explicitly downloaded tiles.',
+            )
+            .addDropdown((component) => {
+                component
+                    .addOption('1', '1 month')
+                    .addOption('3', '3 months')
+                    .addOption('6', '6 months')
+                    .addOption('12', '12 months')
+                    .addOption('0', 'Never')
+                    .setValue(
+                        (
+                            this.plugin.settings.offlineMaxTileAgeMonths ?? 0
+                        ).toString(),
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.offlineMaxTileAgeMonths =
+                            parseInt(value);
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Max offline tiles storage (GB)')
+            .setDesc(
+                'Remove tiles by age on Obsidian startup if the storage size is too high. This currently applies both to auto-cached and explicitly downloaded tiles.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        (
+                            this.plugin.settings.offlineMaxStorageGb ?? 0
+                        ).toString(),
+                    )
+                    .onChange(async (value) => {
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue) && numValue >= 0) {
+                            this.plugin.settings.offlineMaxStorageGb = numValue;
+                            await this.plugin.saveSettings();
+                        }
+                    });
+            });
 
         const gpsTitle = new Setting(containerEl).setHeading().setName('GPS');
         const warningFragment = document.createDocumentFragment();

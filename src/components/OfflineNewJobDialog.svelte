@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import { type TileLayerOffline } from 'leaflet.offline';
 	import * as leaflet from 'leaflet';
-	import { calculateTilesToDownload } from 'src/offlineTiles.svelte.ts';
+	import { calculateTilesToDownload } from '../offlineTiles.svelte';
 	import type { TileInfo } from 'leaflet.offline';
 
     let { 

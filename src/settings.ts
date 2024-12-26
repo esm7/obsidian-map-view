@@ -75,6 +75,8 @@ export type PluginSettings = {
     zoomOnGeolinkPreview?: number;
     routingUrl?: string;
     cacheAllTiles?: boolean;
+    offlineMaxTileAgeMonths?: number;
+    offlineMaxStorageGb?: number;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -239,6 +241,10 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     routingUrl:
         'https://www.google.com/maps/dir/?api=1&origin={x0},{y0}&destination={x1},{y1}',
     cacheAllTiles: true,
+    // 0 means never automatically purge
+    offlineMaxTileAgeMonths: 6,
+    // 0 means never automatically purge
+    offlineMaxStorageGb: 2,
 };
 
 export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {

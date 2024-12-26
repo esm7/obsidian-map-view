@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { Notice, App, getIcon } from 'obsidian';
-	import { type PluginSettings } from 'src/settings';
-	import MapViewPlugin from 'src/main';
-	import { SvelteModal } from 'src/svelte.ts';
+	import { type PluginSettings } from '../settings';
+	import MapViewPlugin from '../main';
+	import { SvelteModal } from '../svelte';
 	import OfflineNewJobDialog from './OfflineNewJobDialog.svelte';
 	import OfflinePurgeDialog from './OfflinePurgeDialog.svelte';
-	import { removeTile, saveTile, getStorageInfo, type TileLayerOffline, type TileInfo } from 'leaflet.offline';
-	import { MapContainer } from 'src/mapContainer.ts';
-	import * as offlineTiles from 'src/offlineTiles.svelte.ts';
+	import { removeTile, getStorageInfo, type TileLayerOffline, type TileInfo } from 'leaflet.offline';
+	import { MapContainer } from '../mapContainer';
+	import * as offlineTiles from '../offlineTiles.svelte';
 
 	let {
 		plugin, app, close, settings, mapContainer, tileLayer

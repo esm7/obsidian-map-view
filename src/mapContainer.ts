@@ -1579,6 +1579,9 @@ export class MapContainer {
                 coords,
                 done,
             ) as HTMLElement;
+            const tileSize = tileLayer.getTileSize();
+            element.style.width = tileSize.x + 1 + 'px';
+            element.style.height = tileSize.y + 1 + 'px';
             const key = tileLayer._getStorageKey(coords);
             hasTile(key).then((availableOffline) => {
                 if (availableOffline) element.classList.add('mv-offline');

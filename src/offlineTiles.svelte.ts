@@ -7,11 +7,12 @@ import {
     removeTile,
     type TileLayerOffline,
     type TileInfo,
+    type StoredTile,
 } from 'leaflet.offline';
 import type { PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';
 import { SvelteModal } from 'src/svelte';
-import OfflineManagerDialog from './OfflineManagerDialog.svelte';
+import OfflineManagerDialog from './components/OfflineManagerDialog.svelte';
 import { MapContainer } from 'src/mapContainer';
 
 interface Job {
@@ -232,6 +233,7 @@ export async function calculateTilesToDownload(
     return newTiles;
 }
 
+// Returns the number of tiles that were purged
 export async function purgeOldTiles(urlTemplate: string, maxMonths: number) {
     const now = Date.now();
     const storageInfo = await getStorageInfo(urlTemplate);
@@ -245,4 +247,53 @@ export async function purgeOldTiles(urlTemplate: string, maxMonths: number) {
         }
     }
     return numPurged;
+}
+
+// Returns the number of tiles that were purged
+export async function purgeTilesBySettings(settings: PluginSettings) {
+    if (
+        settings.offlineMaxTileAgeMonths === 0 &&
+        settings.offlineMaxStorageGb === 0
+    )
+        return 0;
+    let allTiles: StoredTile[] = [];
+    let numPurged = 0;
+    let totalSize = 0;
+    const sources = settings.mapSources;
+    const now = Date.now();
+    for (const mapSource of sources) {
+        const url = mapSource.urlLight;
+        const storageInfo = await getStorageInfo(url);
+        for (const tile of storageInfo) {
+            const tileTime = tile.createdAt;
+            const monthsAgo = (now - tileTime) / (1000 * 60 * 60 * 24 * 30);
+            if (
+                settings.offlineMaxTileAgeMonths > 0 &&
+                monthsAgo > settings.offlineMaxTileAgeMonths
+            ) {
+                await removeTile(tile.key);
+                numPurged++;
+            } else {
+                allTiles.push(tile);
+                totalSize += tile.blob.size;
+            }
+        }
+    }
+    if (settings.offlineMaxStorageGb > 0) {
+        allTiles.sort((a, b) => a.createdAt - b.createdAt);
+        // Remove oldest tiles until we're under the storage limit
+        while (
+            totalSize > settings.offlineMaxStorageGb * 1024 * 1024 * 1024 &&
+            allTiles.length > 0
+        ) {
+            const oldestTile = allTiles.shift();
+            totalSize -= oldestTile.blob.size;
+            await removeTile(oldestTile.key);
+            numPurged++;
+        }
+    }
+    if (numPurged > 0)
+        new Notice(
+            `Map View removed ${numPurged} old offline tiles according to the settings.`,
+        );
 }
