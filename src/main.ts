@@ -799,15 +799,7 @@ export default class MapViewPlugin extends Plugin {
                 this.onEditorMenu(menu, editor, leaf.view as MarkdownView);
             }
             menus.addFocusNoteInMapView(menu, file, this.settings, this);
-            if (this.settings.debug)
-                menus.addImport(
-                    menu,
-                    editor,
-                    file,
-                    this.app,
-                    this,
-                    this.settings,
-                );
+            menus.addImport(menu, editor, file, this.app, this, this.settings);
         }
     }
 

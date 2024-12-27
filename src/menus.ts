@@ -11,10 +11,11 @@ import { LocationSuggest } from 'src/locationSuggest';
 import { type MapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import { MapContainer } from 'src/mapContainer';
-import { ImportDialog } from 'src/importDialog';
 import { type PluginSettings } from 'src/settings';
 import { FileMarker } from 'src/markers';
 import { getIconFromOptions } from 'src/markerIcons';
+import { SvelteModal } from 'src/svelte';
+import ImportDialog from './components/ImportDialog.svelte';
 
 export function addShowOnMap(
     menu: Menu,
@@ -100,7 +101,7 @@ export function addGeolocationToNote(
     menu.addItem((item: MenuItem) => {
         item.setTitle('Add geolocation (front matter)');
         item.setSection('mapview');
-        item.setIcon('globe');
+        item.setIcon('map-pin-plus');
         item.onClick(async (_evt: MouseEvent) => {
             const dialog = new LocationSearchDialog(
                 app,
@@ -125,7 +126,7 @@ export function addFocusNoteInMapView(
     menu.addItem((item: MenuItem) => {
         const fileName = utils.trimmedFileName(file);
         item.setTitle(`Focus '${fileName}' in Map View`);
-        item.setIcon('globe');
+        item.setIcon('map-pinned');
         item.setSection('mapview');
         const openFunc = async (evt: MouseEvent) =>
             await plugin.openMapWithState(
@@ -309,7 +310,7 @@ export function addFocusLinesInMapView(
                 numLocations > 1 ? 'geolocations' : 'geolocation'
             } in Map View`,
         );
-        item.setIcon('globe');
+        item.setIcon('map-pinned');
         item.setSection('mapview');
         const openFunc = async (evt: MouseEvent) =>
             await plugin.openMapWithState(
@@ -333,19 +334,18 @@ export function addImport(
     settings: settings.PluginSettings,
 ) {
     menu.addItem((item: MenuItem) => {
-        // TODO: this is an unfinished corner of the code, currently bypassed by default
         item.setTitle('Import geolocations from file...');
-        item.setIcon('globe');
+        item.setIcon('map-pin-plus-inside');
         item.setSection('mapview');
         item.onClick(async (evt: MouseEvent) => {
-            const importDialog = new ImportDialog(
-                editor,
-                file,
+            const dialog = new SvelteModal(
+                ImportDialog,
                 app,
                 plugin,
                 settings,
+                { editor, file },
             );
-            importDialog.open();
+            dialog.open();
         });
     });
 }
