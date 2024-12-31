@@ -41,15 +41,47 @@ export function getLastUsedValidMarkdownLeaf() {
     return null;
 }
 
-export function formatWithTemplates(s: string, query = '') {
+function resolveJsonPath(json: object, path: string): string | undefined {
+    // Convert a string path like "some.path.to.data.0" to the value at that path in JSON
+    // Remove leading/trailing curly braces and split the path into parts
+    const pathParts = path.replace(/[{}]/g, '').split('.');
+    // Use reduce with optional chaining to traverse the path
+    return pathParts.reduce((current, part) => (current as any)?.[part], json);
+}
+
+export type ExtraLocationData = {
+    googleMapsPlaceData?: google.maps.places.PlaceResult;
+};
+
+function replaceJsonPaths(content: string, json: ExtraLocationData) {
+    // Use regex to find all patterns like {{some.path.to.data.0}}
+
+    // Find patterns to replace that start with an attribute of json
+    for (const [key, data] of Object.entries(json)) {
+        const regex = new RegExp(`{{${key}\\.(.*?)}}`, 'g');
+        return content.replace(regex, (_, path: string) => {
+            const result = resolveJsonPath(data, path);
+            return result ? result : '';
+        });
+    }
+    return content;
+}
+
+export function formatWithTemplates(
+    s: string,
+    query = '',
+    extraLocationData: ExtraLocationData = {}
+) {
     const datePattern = /{{date:([a-zA-Z\-\/\.\:]*)}}/g;
     const queryPattern = /{{query}}/g;
-    const replaced = s
+    let replaced = s
         .replace(datePattern, (_, pattern) => {
             // @ts-ignore
             return moment().format(pattern);
         })
         .replace(queryPattern, query);
+
+    replaced = replaceJsonPaths(replaced, extraLocationData);
 
     return replaced;
 }
@@ -101,11 +133,19 @@ export async function newNote(
     fileName: string,
     location: string,
     frontMatterKey: string,
-    templatePath?: string
+    templatePath: string,
+    extraLocationData?: ExtraLocationData
 ): Promise<[TFile, number]> {
     let templateContent = '';
     if (templatePath && templatePath.length > 0)
         templateContent = await app.vault.adapter.read(templatePath);
+
+    templateContent = formatWithTemplates(
+        templateContent,
+        '',
+        extraLocationData
+    );
+
     const templateFrontMatterInfo = getFrontMatterInfo(templateContent);
 
     let newFrontMatterContents;
