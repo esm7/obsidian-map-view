@@ -74,25 +74,6 @@ a.mv-icon-button.on {
     background-color: var(--background-modifier-border-focus) !important;
 }
 
-.controls-toggle:checked
-    + .lbl-triangle
-    + .lbl-toggle
-    + .graph-control-content {
-    display: block;
-}
-
-.lbl-triangle {
-    display: inline-block;
-    position: relative;
-    top: -1px;
-    transition: 0.25s;
-}
-
-.controls-toggle:checked + .lbl-triangle {
-    transform: rotate(90deg);
-    top: 0px;
-}
-
 .settings-dense-button {
     margin-right: 0;
 }
@@ -140,11 +121,6 @@ a.mv-icon-button.on {
 /* Make emoji icons behave in cluster previews */
 .clusterPreviewContainer p {
     margin: 10px 0 !important;
-}
-
-.graph-control-follow-label {
-    vertical-align: top;
-    padding-left: 5px;
 }
 
 .marker-popup {
@@ -327,12 +303,6 @@ div.map-view-highlight.marker-cluster {
 
 .mv-simple-circle-marker .mv-emoji-icon {
     top: 0;
-}
-
-span.mv-filters-on {
-    font-size: 0.3em;
-    vertical-align: middle;
-    display: none;
 }
 
 .mv-highlight-offline img.mv-offline {

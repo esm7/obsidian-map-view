@@ -1,6 +1,6 @@
 import { LatLng } from 'leaflet';
 import { type SplitDirection, Notice } from 'obsidian';
-import { type MapState, type LegacyMapState } from 'src/mapState';
+import { type MapState, type LegacyMapState, mergeStates } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import * as consts from 'src/consts';
 
@@ -17,66 +17,64 @@ export type LinkNamePopupBehavior = 'never' | 'always' | 'mobileOnly';
 
 export type PluginSettings = {
     defaultState: MapState;
-    savedStates: MapState[];
-    // Deprecated
-    markerIcons?: Record<string, any>;
-    markerIconRules?: MarkerIconRule[];
+    // Since the plugin evolves with time, we assume saved states to be partial, i.e. they may not include
+    // all the fields of a full map state.
+    savedStates: Partial<MapState[]>;
+    markerIconRules: MarkerIconRule[];
     zoomOnGoFromNote: number;
-    // Deprecated
-    tilesUrl?: string;
-    // Deprecated
-    chosenMapSource?: number;
     mapSources: TileSource[];
     frontMatterKey: string;
     chosenMapMode?: MapLightDark;
-    // Deprecated
-    defaultMapCenter?: LatLng;
-    // Deprecated
-    defaultZoom?: number;
-    // Deprecated
-    defaultTags?: string[];
     autoZoom: boolean;
-    letZoomBeyondMax?: boolean;
-    markerClickBehavior?: OpenBehavior;
-    markerCtrlClickBehavior?: OpenBehavior;
-    markerMiddleClickBehavior?: OpenBehavior;
-    openMapBehavior?: OpenBehavior;
-    openMapCtrlClickBehavior?: OpenBehavior;
-    openMapMiddleClickBehavior?: OpenBehavior;
-    newPaneSplitDirection?: SplitDirection;
-    newNoteNameFormat?: string;
-    newNotePath?: string;
-    newNoteTemplate?: string;
-    // Deprecated
-    snippetLines?: number;
-    showNoteNamePopup?: boolean;
-    showLinkNameInPopup?: LinkNamePopupBehavior;
-    showNotePreview?: boolean;
-    showClusterPreview?: boolean;
-    debug?: boolean;
-    openIn?: OpenInSettings[];
-    urlParsingRules?: UrlParsingRule[];
-    mapControls?: MapControls;
+    letZoomBeyondMax: boolean;
+    markerClickBehavior: OpenBehavior;
+    markerCtrlClickBehavior: OpenBehavior;
+    markerMiddleClickBehavior: OpenBehavior;
+    openMapBehavior: OpenBehavior;
+    openMapCtrlClickBehavior: OpenBehavior;
+    openMapMiddleClickBehavior: OpenBehavior;
+    newPaneSplitDirection: SplitDirection;
+    newNoteNameFormat: string;
+    newNotePath: string;
+    newNoteTemplate: string;
+    showNoteNamePopup: boolean;
+    showLinkNameInPopup: LinkNamePopupBehavior;
+    showNotePreview: boolean;
+    showClusterPreview: boolean;
+    debug: boolean;
+    openIn: OpenInSettings[];
+    urlParsingRules: UrlParsingRule[];
+    mapControls: MapControls;
     maxClusterRadiusPixels: number;
-    searchProvider?: 'osm' | 'google';
-    geocodingApiKey?: string;
-    useGooglePlaces?: boolean;
-    saveHistory?: boolean;
-    queryForFollowActiveNote?: string;
-    supportRealTimeGeolocation?: boolean;
-    fixFrontMatterOnPaste?: boolean;
-    geoHelperPreferApp?: boolean;
-    geoHelperType?: GeoHelperType;
-    geoHelperCommand?: string;
-    geoHelperUrl?: string;
-    tagForGeolocationNotes?: string;
-    handleGeolinksInNotes?: boolean;
-    showGeolinkPreview?: boolean;
-    zoomOnGeolinkPreview?: number;
-    routingUrl?: string;
-    cacheAllTiles?: boolean;
-    offlineMaxTileAgeMonths?: number;
-    offlineMaxStorageGb?: number;
+    searchProvider: 'osm' | 'google';
+    geocodingApiKey: string;
+    useGooglePlaces: boolean;
+    saveHistory: boolean;
+    queryForFollowActiveNote: string;
+    supportRealTimeGeolocation: boolean;
+    fixFrontMatterOnPaste: boolean;
+    geoHelperPreferApp: boolean;
+    geoHelperType: GeoHelperType;
+    geoHelperCommand: string;
+    geoHelperUrl: string;
+    tagForGeolocationNotes: string;
+    handleGeolinksInNotes: boolean;
+    showGeolinkPreview: boolean;
+    zoomOnGeolinkPreview: number;
+    routingUrl: string;
+    cacheAllTiles: boolean;
+    offlineMaxTileAgeMonths: number;
+    offlineMaxStorageGb: number;
+};
+
+export type DepracatedFields = {
+    markerIcons?: Record<string, any>;
+    tilesUrl?: string;
+    chosenMapSource?: number;
+    defaultMapCenter?: LatLng;
+    defaultZoom?: number;
+    defaultTags?: string[];
+    snippetLines?: number;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -113,6 +111,7 @@ export type LegacyUrlParsingRule = UrlParsingRule & {
 };
 
 export type MapControls = {
+    minimized: boolean;
     filtersDisplayed: boolean;
     viewDisplayed: boolean;
     linksDisplayed: boolean;
@@ -131,9 +130,16 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         mapZoom: 1.0,
         mapCenter: new LatLng(40.44694705960048, -180.70312500000003),
         query: '',
+        queryError: false,
         chosenMapSource: 0,
+        forceHistorySave: false,
+        followActiveNote: false,
+        embeddedHeight: 300,
+        autoFit: false,
+        lock: false,
         showLinks: false,
         linkColor: 'red',
+        markerLabels: 'off',
     },
     savedStates: [],
     markerIconRules: [
@@ -174,7 +180,10 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     openMapBehavior: 'replaceCurrent',
     openMapCtrlClickBehavior: 'dedicatedPane',
     openMapMiddleClickBehavior: 'dedicatedTab',
+    newPaneSplitDirection: 'vertical',
     newNoteNameFormat: 'Location added on {{date:YYYY-MM-DD}}T{{date:HH-mm}}',
+    newNotePath: '',
+    newNoteTemplate: '',
     showNoteNamePopup: true,
     showLinkNameInPopup: 'always',
     showNotePreview: true,
@@ -196,7 +205,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         },
         {
             name: 'Generic Lat,Lng',
-            regExp: /([0-9\.\-]+), ([0-9\.\-]+)/.source,
+            regExp: /([0-9\.\-]+),\s*([0-9\.\-]+)/.source,
             ruleType: 'latLng',
             preset: true,
         },
@@ -208,13 +217,15 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         },
     ],
     mapControls: {
+        minimized: false,
         filtersDisplayed: true,
         viewDisplayed: true,
-        linksDisplayed: true,
+        linksDisplayed: false,
         presetsDisplayed: false,
     },
     maxClusterRadiusPixels: 20,
     searchProvider: 'osm',
+    geocodingApiKey: '',
     useGooglePlaces: false,
     mapSources: [
         {
@@ -235,6 +246,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     geoHelperType: 'url',
     geoHelperCommand: 'chrome',
     geoHelperUrl: 'https://esm7.github.io/obsidian-geo-helper/',
+    tagForGeolocationNotes: '',
     handleGeolinksInNotes: true,
     showGeolinkPreview: false,
     zoomOnGeolinkPreview: 10,
@@ -286,7 +298,7 @@ export function convertLegacyDefaultState(settings: PluginSettings): boolean {
         settings.defaultMapCenter ||
         settings.chosenMapSource
     ) {
-        settings.defaultState = {
+        settings.defaultState = mergeStates(DEFAULT_SETTINGS.defaultState, {
             name: 'Default',
             mapZoom:
                 settings.defaultZoom || DEFAULT_SETTINGS.defaultState.mapZoom,
@@ -299,7 +311,7 @@ export function convertLegacyDefaultState(settings: PluginSettings): boolean {
             chosenMapSource:
                 settings.chosenMapSource ??
                 DEFAULT_SETTINGS.defaultState.chosenMapSource,
-        };
+        });
         settings.defaultTags =
             settings.defaultZoom =
             settings.defaultMapCenter =
@@ -381,6 +393,20 @@ export function convertLegacyOpenBehavior(settings: PluginSettings): boolean {
     return changed;
 }
 
+/*
+ * The more Map View evolves, fields get added to the MapState class, leading to old saved states having
+ * missing fields.
+ * This completes missing fields from the default settings.
+ */
+function completePartialSavedStates(settings: PluginSettings) {
+    const newStates: MapState[] = [];
+    for (const savedState of settings.savedStates) {
+        const state = mergeStates(DEFAULT_SETTINGS.defaultState, savedState);
+        newStates.push(state);
+    }
+    settings.savedStates = newStates;
+}
+
 export async function convertLegacySettings(
     settings: PluginSettings,
     plugin: MapViewPlugin,
@@ -429,6 +455,8 @@ export async function convertLegacySettings(
             'Map View: marker click settings were converted to the new settings format (check the settings for new options!)',
         );
     }
+
+    completePartialSavedStates(settings);
 
     if (changed) plugin.saveSettings();
 }

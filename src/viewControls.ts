@@ -26,6 +26,8 @@ import * as utils from 'src/utils';
 import * as consts from 'src/consts';
 
 import * as leaflet from 'leaflet';
+import { mount, type SvelteComponent } from 'svelte';
+import ViewControlsPanel from './components/ViewControlsPanel.svelte';
 
 export class ViewControls {
     private parentElement: HTMLElement;
@@ -56,6 +58,8 @@ export class ViewControls {
     private lastQueryTime: number;
     private updateOngoing = false;
     private lastSavedState: MapState;
+
+    private controlPanel: ReturnType<typeof mount<ViewControlsPanel>>;
 
     constructor(
         parentElement: HTMLElement,
@@ -94,39 +98,25 @@ export class ViewControls {
         await this.setNewState({ ...state, followActiveNote: follow }, false);
     }
 
-    public tryToGuessPreset() {
-        // Try to guess the preset based on the current state, and choose it in the dropdown
-        // (e.g. for when the plugin loads with a state)
-        const currentState = this.getCurrentState();
-        const states = [
-            this.settings.defaultState,
-            ...(this.settings.savedStates || []),
-        ];
-        for (const [index, state] of states.entries())
-            if (areStatesEqual(state, currentState)) {
-                this.presetsBox.setValue(index.toString());
-                this.lastSelectedPresetIndex = index;
-                this.lastSelectedPreset = structuredClone(currentState);
-                break;
-            }
-    }
+    public tryToGuessPreset() {}
 
     public updateControlsToState() {
         // This updates the controls according to the given state, and prevents a feedback loop by
         // raising the updateOngoing flag
-        this.updateOngoing = true;
-        this.setMapSourceBoxByState();
-        this.setQueryBoxByState();
-        this.setLinksByState();
-        this.markerLabelBox.setValue(
-            this.getCurrentState().markerLabels ?? 'off',
-        );
-        if (this.followActiveNoteToggle)
-            this.followActiveNoteToggle.setValue(
-                this.getCurrentState().followActiveNote == true,
-            );
-        this.updateSaveButtonVisibility();
-        this.updateOngoing = false;
+        // this.updateOngoing = true;
+        // this.setMapSourceBoxByState();
+        // this.setQueryBoxByState();
+        // this.setLinksByState();
+        // this.markerLabelBox.setValue(
+        //     this.getCurrentState().markerLabels ?? 'off',
+        // );
+        // if (this.followActiveNoteToggle)
+        //     this.followActiveNoteToggle.setValue(
+        //         this.getCurrentState().followActiveNote == true,
+        //     );
+        // this.updateSaveButtonVisibility();
+        // this.updateOngoing = false;
+        this.controlPanel.updateControlsToState();
     }
 
     private setMapSourceBoxByState() {
@@ -209,6 +199,17 @@ export class ViewControls {
     }
 
     createControls() {
+        this.controlPanel = mount(ViewControlsPanel, {
+            target: this.parentElement,
+            props: {
+                app: this.app,
+                plugin: this.plugin,
+                settings: this.settings,
+                view: this.view,
+                viewSettings: this.viewSettings,
+            },
+        });
+        return;
         lastGlobalId += 1;
         this.controlsDiv = createDiv({
             cls: 'map-view-graph-controls',
@@ -531,20 +532,7 @@ export class ViewControls {
         this.parentElement.append(this.controlsDiv);
     }
 
-    async choosePresetAndUpdateState(chosenPresetNumber: number) {
-        // Hacky code, not very happy with it... Entry 0 is the default, then 1 is assumed to be the first saved state
-        const chosenPreset =
-            chosenPresetNumber == 0
-                ? this.view.defaultState
-                : this.settings.savedStates[chosenPresetNumber - 1];
-        this.lastSelectedPresetIndex = chosenPresetNumber;
-        this.lastSelectedPreset = mergeStates(
-            this.getCurrentState(),
-            chosenPreset,
-        );
-        await this.setNewState({ ...chosenPreset }, false);
-        this.updateControlsToState();
-    }
+    async choosePresetAndUpdateState(chosenPresetNumber: number) {}
 
     refreshPresets() {
         if (this.presetsDivContent) this.presetsDivContent.remove();

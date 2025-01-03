@@ -10,21 +10,21 @@ export type MapState = {
     /** The query that the user entered */
     query: string;
     /** If true, the query was found to be erroneous */
-    queryError?: boolean;
-    chosenMapSource?: number;
-    forceHistorySave?: boolean;
-    followActiveNote?: boolean;
-    embeddedHeight?: number;
+    queryError: boolean;
+    chosenMapSource: number;
+    forceHistorySave: boolean;
+    followActiveNote: boolean;
+    embeddedHeight: number;
     /** Ignore the zoom level and force auto-fit */
-    autoFit?: boolean;
+    autoFit: boolean;
     /** Do not allow panning & zooming the map */
-    lock?: boolean;
+    lock: boolean;
     /** Whether to show links as edges on the map */
-    showLinks?: boolean;
+    showLinks: boolean;
     /** Color to use for edges */
-    linkColor?: string;
+    linkColor: string;
     /** Marker labels */
-    markerLabels?: 'off' | 'left' | 'right';
+    markerLabels: 'off' | 'left' | 'right';
 };
 
 /** Fields that are deprecated */
@@ -73,7 +73,7 @@ export function areStatesEqual(state1: MapState, state2: MapState) {
         state1.lock === state2.lock &&
         state1.linkColor == state2.linkColor &&
         state1.showLinks == state2.showLinks &&
-        state1.markerLabels == state2.markerLabels
+        (state1.markerLabels || 'off') == (state2.markerLabels || 'off')
     );
 }
 

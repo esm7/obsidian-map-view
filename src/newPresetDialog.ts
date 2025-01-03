@@ -44,18 +44,11 @@ export class NewPresetDialog extends Modal {
         name.inputEl.addEventListener('keypress', (ev: KeyboardEvent) => {
             if (ev.key == 'Enter') saveButton.buttonEl.click();
         });
-        const includeMapSource = row2.createEl('input', { type: 'checkbox' });
-        includeMapSource.id = 'includeMapSource';
-        const includeMapSourceLabel = row2.createEl('label');
-        includeMapSourceLabel.setAttribute('for', 'includeMapSource');
-        includeMapSourceLabel.textContent = 'Include chosen map source';
         let saveButton = new ButtonComponent(row3)
             .setButtonText('Save')
             .onClick(async () => {
                 let existingPreset = this.findPresetByName(name.getValue());
                 let newState = { ...this.stateToSave, name: name.getValue() };
-                if (!(includeMapSource as HTMLInputElement).checked)
-                    newState.chosenMapSource = undefined;
                 if (existingPreset) {
                     Object.assign(existingPreset, newState);
                     newState = existingPreset;
