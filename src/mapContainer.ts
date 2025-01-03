@@ -67,6 +67,7 @@ import { createPopper, type Instance as PopperInstance } from '@popperjs/core';
 import * as offlineTiles from 'src/offlineTiles.svelte';
 
 export type ViewSettings = {
+    showMinimizeButton: boolean;
     showZoomButtons: boolean;
     showMapControls: boolean;
     showFilters: boolean;
@@ -353,7 +354,7 @@ export class MapContainer {
                 if (willAutoFit) await this.autoFitMapToMarkers();
                 this.applyLock();
             }
-            if (updateControls && this.display.controls) {
+            if (this.display.controls) {
                 this.display.controls.updateControlsToState();
             }
             if (this.display.lockControl)

@@ -228,7 +228,11 @@ export default class MapViewPlugin extends Plugin {
                         this,
                         customViewSettings,
                     );
-                    await map.open(state);
+                    const fullState = mergeStates(
+                        this.settings.defaultState,
+                        state,
+                    );
+                    await map.open(fullState);
                 }
             },
         );

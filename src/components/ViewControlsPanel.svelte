@@ -7,6 +7,7 @@
 	import ViewCollapsibleSection from './ViewCollapsibleSection.svelte';
 	import { type MapState, areStatesEqual, mergeStates } from 'src/mapState';
 	import { NewPresetDialog } from 'src/newPresetDialog';
+	import * as utils from 'src/utils';
 
 	let {
 		plugin, app, settings, viewSettings, view 
@@ -25,12 +26,13 @@
 		...(settings.savedStates || []),
 	]);
 	let selectedPreset = $state('-1');
+	let lastSavedState: MapState = $state();
 
 	let minimized = $state(settings.mapControls.minimized);
 
 	$effect(() => {
 		// TODO TEMP what to do with considerAutoFit
-		if (!areStatesEqual(mapState, view.getState()))
+		if (!areStatesEqual(mapState, view.getState(), view.display?.map))
 			view.internalSetViewState(mapState, false/*, considerAutoFit*/);
 		// If the new state matches an existing preset, select that preset.
 		const preset = findPresetIndexForCurrentState().toString();
@@ -59,11 +61,14 @@
 	}
 
 	updateControlsToState();
+	// Initialize lastSavedState to the initial map state (this is not a reactive assignment, i.e. it does not update every time mapState changes).
+	// svelte-ignore state_referenced_locally
+	lastSavedState = mapState;
 
 	// Finds in the presets array a preset that matches the current map state and returns its index, or -1 if none was found
 	function findPresetIndexForCurrentState() {
         for (const [index, preset] of presets.entries())
-			if (areStatesEqual(preset, mapState)) {
+			if (areStatesEqual(preset, mapState, view.display?.map)) {
 				return index;
             }
 		return -1;
@@ -123,26 +128,75 @@
 		view.copyCodeBlock();
 	}
 
+	async function openButtonClick(ev: MouseEvent) {
+		const state = mapState;
+		state.followActiveNote = false;
+		plugin.openMapWithState(
+			state,
+			utils.mouseEventToOpenMode(
+				settings,
+				ev,
+				'openMap',
+			),
+			false,
+		);
+	}
+
+	// An inline block might contain just part of a map state, but we don't want this to necessarily cause the 'save' button
+	// to appear just because fields are missing.
+	function enrichState(partialState: Partial<MapState>) {
+		return mergeStates(settings.defaultState, partialState);
+	}
+
+	async function saveButton() {
+		view.updateCodeBlockCallback();
+		lastSavedState = mapState;
+	}
+
 </script>
 
 <div class="map-view-graph-controls" class:minimized={minimized}>
 	<!-- TODO TEMP showOpenButton -->
 	<!-- TODO TEMP showEmbeddedControls -->
-	<div class="top-right-controls">
-		{#if mapState.query.length > 0}
-			<span class="mv-filters-on" title="Filters are active">🟠</span>
-		{/if}
-		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-		<div 
-			class="minimize-button" 
-			title={settings.mapControls.minimized ? "Expand controls" : "Minimize controls"}
-			onclick={() => {setMapControl('minimized', !settings.mapControls.minimized); minimized = !minimized; }}
-		>
-			{@html getIcon(minimized ? 'maximize-2' : 'minimize-2').outerHTML}
+	{#if viewSettings.showMinimizeButton || viewSettings.showFilters}
+		<div class="top-right-controls">
+			{#if viewSettings.showFilters}
+				{#if mapState.query.length > 0}
+					<span class="mv-filters-on" title="Filters are active">🟠</span>
+				{/if}
+			{/if}
+			{#if viewSettings.showMinimizeButton}
+				<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+				<div 
+					class="minimize-button" 
+					title={settings.mapControls.minimized ? "Expand controls" : "Minimize controls"}
+					onclick={() => {setMapControl('minimized', !settings.mapControls.minimized); minimized = !minimized; }}
+				>
+					{@html getIcon(minimized ? 'maximize-2' : 'minimize-2').outerHTML}
+				</div>
+			{/if}
 		</div>
-	</div>
+	{/if}
 	{#if !minimized}
 		<div class="graph-control-div">
+			{#if viewSettings.showOpenButton}
+				<button 
+					class="button" 
+					title="Open a full Map View with the current state."
+					onclick={openButtonClick}
+				>
+					Open
+				</button>
+			{/if}
+			{#if viewSettings.showEmbeddedControls && !areStatesEqual(mapState, lastSavedState, view.display?.map)}
+				<button 
+					class="button" 
+					title="Update the source code block with the updated view state."
+					onclick={() => saveButton()}
+				>
+					Save
+				</button>
+			{/if}
 			{#if viewSettings.showFilters}
 				<ViewCollapsibleSection 
 					headerText='Filters' 
@@ -334,6 +388,10 @@
 		left: 0;
 	}
 
+	.map-view-graph-controls:not(.minimized):has(.top-right-controls) {
+	    padding-right: 25px;
+	}
+
 	.minimize-button:hover {
 		color: var(--text-normal);
 	}
@@ -349,5 +407,4 @@
 		margin-left: 2px;
 		line-height: 1;
 	}
-
 </style>

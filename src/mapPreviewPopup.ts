@@ -41,6 +41,7 @@ export class MapPreviewPopup {
             this.settings,
             this.plugin,
             {
+                showMinimizeButton: false,
                 showZoomButtons: false,
                 showMapControls: false,
                 showEmbeddedControls: false,

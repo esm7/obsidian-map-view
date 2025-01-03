@@ -31,6 +31,7 @@ export class EmbeddedMap {
         this.customViewSettings = customViewSettings;
 
         const viewSettings: ViewSettings = {
+            showMinimizeButton: false,
             showZoomButtons: true,
             showMapControls: true,
             showFilters: false,

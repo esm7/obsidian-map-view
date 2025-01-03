@@ -48,12 +48,22 @@ export function mergeStates(
 
 const xor = (a: any, b: any) => (a && !b) || (!a && b);
 
-export function areStatesEqual(state1: MapState, state2: MapState) {
+/*
+ * Returns whether the two points represent different states *with regard to the given map*.
+ * The map is used to project LatLng points to pixels, so the current zoom is used to decide on the distance of points.
+ */
+export function areStatesEqual(
+    state1: MapState,
+    state2: MapState,
+    map?: leaflet.Map,
+) {
     if (!state1 || !state2) return false;
     if (xor(state1.mapCenter, state2.mapCenter)) return false;
-    if (state1.mapCenter) {
+    if (state1.mapCenter && map) {
         // To compare locations we need to construct an actual LatLng object because state1 may just
-        // be a simple dict and not an actual LatLng
+        // be a simple dict and not an actual LatLng.
+        // Then, we want to compare their distance in *layer points* and not in meters, because what
+        // we care about is how different the two centers look like at the current zoom level.
         const mapCenter1 = new leaflet.LatLng(
             state1.mapCenter.lat,
             state1.mapCenter.lng,
@@ -62,7 +72,9 @@ export function areStatesEqual(state1: MapState, state2: MapState) {
             state2.mapCenter.lat,
             state2.mapCenter.lng,
         );
-        if (mapCenter1.distanceTo(mapCenter2) > 1000) return false;
+        const p1 = map.latLngToLayerPoint(mapCenter1);
+        const p2 = map.latLngToLayerPoint(mapCenter2);
+        if (p1.distanceTo(p2) > 5) return false;
     }
     return (
         state1.query === state2.query &&

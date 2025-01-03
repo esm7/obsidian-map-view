@@ -101,21 +101,6 @@ export class ViewControls {
     public tryToGuessPreset() {}
 
     public updateControlsToState() {
-        // This updates the controls according to the given state, and prevents a feedback loop by
-        // raising the updateOngoing flag
-        // this.updateOngoing = true;
-        // this.setMapSourceBoxByState();
-        // this.setQueryBoxByState();
-        // this.setLinksByState();
-        // this.markerLabelBox.setValue(
-        //     this.getCurrentState().markerLabels ?? 'off',
-        // );
-        // if (this.followActiveNoteToggle)
-        //     this.followActiveNoteToggle.setValue(
-        //         this.getCurrentState().followActiveNote == true,
-        //     );
-        // this.updateSaveButtonVisibility();
-        // this.updateOngoing = false;
         this.controlPanel.updateControlsToState();
     }
 
@@ -551,8 +536,8 @@ export class ViewControls {
         }
         if (
             this.lastSelectedPresetIndex &&
-            this.lastSelectedPresetIndex < states.length &&
-            areStatesEqual(this.getCurrentState(), this.lastSelectedPreset)
+            this.lastSelectedPresetIndex < states.length
+            // areStatesEqual(this.getCurrentState(), this.lastSelectedPreset, null)
         )
             this.presetsBox.setValue(this.lastSelectedPreset.toString());
         this.presetsBox.onChange(async (value: string) => {
@@ -625,17 +610,17 @@ export class ViewControls {
     }
 
     invalidateActivePreset() {
-        if (!this.presetsBox) return;
-        if (!areStatesEqual(this.getCurrentState(), this.lastSelectedPreset)) {
-            this.presetsBox.setValue('-1');
-        }
+        // if (!this.presetsBox) return;
+        // if (!areStatesEqual(this.getCurrentState(), this.lastSelectedPreset), null) {
+        //     this.presetsBox.setValue('-1');
+        // }
     }
 
     updateSaveButtonVisibility() {
-        if (!this.saveButton) return;
-        if (areStatesEqual(this.getCurrentState(), this.lastSavedState))
-            this.saveButton.buttonEl.style.display = 'none';
-        else this.saveButton.buttonEl.style.display = 'inline';
+        // if (!this.saveButton) return;
+        // if (areStatesEqual(this.getCurrentState(), this.lastSavedState), null)
+        //     this.saveButton.buttonEl.style.display = 'none';
+        // else this.saveButton.buttonEl.style.display = 'inline';
     }
 
     markStateAsSaved(state: MapState = null) {

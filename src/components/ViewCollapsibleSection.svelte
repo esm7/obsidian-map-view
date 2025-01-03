@@ -27,7 +27,9 @@
 
 <style>
 	.collapsible {
-	border: none;
+		border: none;
+		padding: 1px;
+		padding-right: 6px;
 	}
 
 	.collapsible.open {
@@ -35,17 +37,17 @@
 	}
 
 	.toggle {
-	display: none;
+		display: none;
 	}
 
 	label {
-	display: block;
-	padding: 1px;
-	color: var(--gray-darkest, #282828);
+		display: block;
+		padding: 1px;
+		color: var(--gray-darkest, #282828);
 	}
 
 	label span {
-	vertical-align: middle;
+		vertical-align: middle;
 	}
 
 	.triangle {
