@@ -23,7 +23,6 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
     private settings: PluginSettings;
     private searcher: GeoSearcher;
     private lastSearchTime = 0;
-    private delayInMs = 250;
     private lastSearch = '';
     private lastSearchResults: SuggestInfo[] = [];
     private includeResults: SuggestInfo[] = [];
@@ -173,7 +172,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         this.lastSearchTime = timestamp;
         const Sleep = (ms: number) =>
             new Promise((resolve) => setTimeout(resolve, ms));
-        await Sleep(this.delayInMs);
+        await Sleep(this.settings.searchDelayMs);
         if (this.lastSearchTime != timestamp) {
             // Search is canceled by a newer search
             return;

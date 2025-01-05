@@ -331,17 +331,14 @@ export default class MapViewPlugin extends Plugin {
 
         this.addCommand({
             id: 'open-map-search',
-            name: 'Search active map view',
-            checkCallback: (checking) => {
-                const currentView = this.app.workspace.activeLeaf.view;
-                if (
-                    currentView &&
-                    currentView.getViewType() == consts.MAP_VIEW_NAME
-                ) {
-                    if (!checking)
-                        (currentView as MainMapView).mapContainer.openSearch();
-                    return true;
-                } else return false;
+            name: 'Search active Map View or open a new one',
+            callback: async () => {
+                let view = utils.findOpenMapView(this.app);
+                if (!view)
+                    view = await this.openMap(this.settings.openMapBehavior);
+                if (view) {
+                    (view as MainMapView).mapContainer.openSearch();
+                }
             },
         });
 

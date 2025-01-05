@@ -5,8 +5,9 @@
 	import { type ViewSettings, MapContainer } from '../mapContainer';
 	import MapViewPlugin from '../main';
 	import ViewCollapsibleSection from './ViewCollapsibleSection.svelte';
-	import { type MapState, areStatesEqual, mergeStates } from 'src/mapState';
+	import { type MapState, areStatesEqual, mergeStates, copyState } from 'src/mapState';
 	import { NewPresetDialog } from 'src/newPresetDialog';
+	import { QuerySuggest } from 'src/query';
 	import * as utils from 'src/utils';
 
 	let {
@@ -27,13 +28,15 @@
 	]);
 	let selectedPreset = $state('-1');
 	let lastSavedState: MapState = $state();
-
 	let minimized = $state(settings.mapControls.minimized);
+	let suggestor: QuerySuggest = null;
+	let queryInputElement: HTMLInputElement = $state();
+	let previousState: MapState = null;
 
 	$effect(() => {
-		// TODO TEMP what to do with considerAutoFit
+		const considerAutoFit = statesDifferOnlyInQuery(mapState, previousState);
 		if (!areStatesEqual(mapState, view.getState(), view.display?.map))
-			view.internalSetViewState(mapState, false/*, considerAutoFit*/);
+			view.internalSetViewState(mapState, false, considerAutoFit);
 		// If the new state matches an existing preset, select that preset.
 		const preset = findPresetIndexForCurrentState().toString();
 		// We don't want this $effect to be called with selectedPreset changes; when the user selects a new
@@ -41,6 +44,7 @@
 		const untrackedSelectedPreset = untrack(() => selectedPreset);
 		if (preset !== untrackedSelectedPreset)
 			selectedPreset = preset.toString();
+		previousState = copyState(mapState);
 	});
 
 	export function updateControlsToState() {
@@ -60,6 +64,9 @@
 			mapState.query = '';
 	}
 
+	// We save the current state in previousState before calling updateControlsToState because we don't want this initial
+	// call to trigger an auto fit
+	previousState = view.getState()
 	updateControlsToState();
 	// Initialize lastSavedState to the initial map state (this is not a reactive assignment, i.e. it does not update every time mapState changes).
 	// svelte-ignore state_referenced_locally
@@ -153,11 +160,27 @@
 		lastSavedState = mapState;
 	}
 
+	function openQuerySuggest() {
+		if (!suggestor) {
+			suggestor = new QuerySuggest(
+				app,
+				plugin,
+				queryInputElement,
+			);
+			suggestor.open();
+		}
+	}
+
+	// Return true if the two states are identical except their query field
+	function statesDifferOnlyInQuery(state1: MapState, state2: MapState) {
+		if (state1.query == state2.query) return false;
+		const state2WithQuery1 = {...state2, query: state1.query};
+		return areStatesEqual(state1, state2WithQuery1);
+	}
+
 </script>
 
 <div class="map-view-graph-controls" class:minimized={minimized}>
-	<!-- TODO TEMP showOpenButton -->
-	<!-- TODO TEMP showEmbeddedControls -->
 	{#if viewSettings.showMinimizeButton || viewSettings.showFilters}
 		<div class="top-right-controls">
 			{#if viewSettings.showFilters}
@@ -205,8 +228,16 @@
 				>
 					<!-- The classes here utilize Obsidian styling -->
 					<div class="search-input-container mv-map-control">
-						<!-- TODO TEMP suggestions box -->
-						<input type="text" placeholder="Query" bind:value={mapState.query} contenteditable="true" />
+						<input 
+							type="text" 
+							placeholder="Query" 
+							bind:value={mapState.query} 
+							contenteditable="true" 
+							class:graph-control-error={mapState.queryError}
+							bind:this={queryInputElement}
+							onfocus={() => openQuerySuggest()}
+							onfocusout={() => { if (suggestor) { suggestor.close(); suggestor = null; }}}
+						/>
 						<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 						<div class="search-input-clear-button" onclick={() => mapState.query = ''}></div>
 					</div>
@@ -223,7 +254,6 @@
 							<option value={i}>{source.name}</option>
 						{/each}
 					</select>
-					<!-- TODO TEMP verify that works -->
 					<select class="dropdown mv-map-control" bind:value={settings.chosenMapMode}>
 						<option value='auto'>Auto</option>
 						<option value='light'>Light</option>
@@ -263,8 +293,6 @@
 						</select>
 					{/if}
 				</ViewCollapsibleSection>
-				<!-- TODO TEMP embedded controls under showEmbeddedControls-->
-				<!-- TODO TEMP save button and markStateAsSaved-->
 			{/if}
 			{#if viewSettings.showLinks}
 				<ViewCollapsibleSection 

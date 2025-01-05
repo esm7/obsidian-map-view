@@ -47,6 +47,7 @@ export type PluginSettings = {
     mapControls: MapControls;
     maxClusterRadiusPixels: number;
     searchProvider: 'osm' | 'google';
+    searchDelayMs: number;
     geocodingApiKey: string;
     useGooglePlaces: boolean;
     saveHistory: boolean;
@@ -225,6 +226,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     },
     maxClusterRadiusPixels: 20,
     searchProvider: 'osm',
+    searchDelayMs: 250,
     geocodingApiKey: '',
     useGooglePlaces: false,
     mapSources: [

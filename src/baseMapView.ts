@@ -148,8 +148,6 @@ export abstract class BaseMapView extends ItemView {
             false,
             this.mapContainer.freezeMap,
         );
-        if (this.mapContainer.display.controls)
-            this.mapContainer.display.controls.tryToGuessPreset();
     }
 
     /**

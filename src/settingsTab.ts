@@ -123,6 +123,24 @@ export class SettingsTab extends PluginSettingTab {
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
         googlePlacesControl.settingEl.style.display =
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
+        new Setting(containerEl)
+            .setName('Search delay while typing')
+            .setDesc(
+                'Delay in ms to wait before searching while you type (required to not flood the search provider with every key).',
+            )
+            .addSlider((slider) => {
+                slider
+                    .setLimits(100, 500, 50)
+                    .setDynamicTooltip()
+                    .setValue(
+                        this.plugin.settings.searchDelayMs ??
+                            DEFAULT_SETTINGS.searchDelayMs,
+                    )
+                    .onChange(async (value: number) => {
+                        this.plugin.settings.searchDelayMs = value;
+                        this.plugin.saveSettings();
+                    });
+            });
 
         new Setting(containerEl)
             .setName('New note name format')

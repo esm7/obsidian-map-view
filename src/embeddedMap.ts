@@ -114,10 +114,6 @@ export class EmbeddedMap {
         });
         this.resizeObserver.observe(this.mapContainer.display.mapDiv);
         await this.mapContainer.highLevelSetViewStateAsync(state);
-        if (this.mapContainer.display?.controls) {
-            this.mapContainer.display.controls.markStateAsSaved(state);
-            this.mapContainer.display.controls.updateSaveButtonVisibility();
-        }
         if (state.embeddedHeight)
             this.parentEl.style.height = `${state.embeddedHeight}px`;
         this.settings.mapControls.viewDisplayed = false;

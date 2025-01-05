@@ -25,13 +25,15 @@ export const INLINE_LOCATION_OLD_SYNTAX =
 // A link name is defined here as [^\]]* to prevent a previous link in the same line to count as the beginning
 // of the link name
 export const INLINE_LOCATION_WITH_TAGS =
-    /(?<link>\[(?<name>[^\]]*?)\]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\))[ \t]*(?<tags>(tag:[\p{L}\p{N}_\/\-]+[\s,.]+)*)/gu;
+    /(?<link>\[(?<name>[^\]]*?)\]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\))[ \t]*(?<tags>(tag:[\p{L}\p{N}_\/\-]+(?:[\s,.]+|$))*)/gu;
 // Should be exactly like above but without the tags
 export const INLINE_LOCATION_WITHOUT_TAGS =
     /(?<link>\[(?<name>[^\]]*?)\]\(geo:(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\))/gu;
+// location: "32.84,35.36"    or     location: 32.84,35.36
+export const FRONT_MATTER_LOCATION_V3 =
+    /(?<header>^---.*)(?<loc>location:[ \t\r\n]*\-[ \t]*\"?(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\"?).*^---/ms;
 export const FRONT_MATTER_LOCATION_V2 =
-    /(?<header>^---.*)(?<loc>location:[ \t]*\"(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\").*^---/ms;
+    /(?<header>^---.*)(?<loc>location:[ \t]*\"?(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\"?).*^---/ms;
+// location: [32.84577588420059,35.36074429750443]
 export const FRONT_MATTER_LOCATION =
     /(?<header>^---.*)(?<loc>location:[ \t]*\[(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\]).*^---/ms;
-
-// location: [32.84577588420059,35.36074429750443]

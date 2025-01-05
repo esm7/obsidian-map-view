@@ -104,7 +104,7 @@ export async function newNote(
     // `$CURSOR$` is used to set the cursor
     let content =
         newNoteType === 'singleLocation'
-            ? `---\n${frontMatterKey}: "${location}"\n---\n\n${CURSOR}`
+            ? `---\n${frontMatterKey}: ${location}\n---\n\n${CURSOR}`
             : `---\nlocations:\n---\n\n\[${CURSOR}](geo:${location})\n`;
     let templateContent = '';
     if (templatePath && templatePath.length > 0)

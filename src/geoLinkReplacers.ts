@@ -107,6 +107,10 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                     frontMatterMatch = text.match(
                         regex.FRONT_MATTER_LOCATION_V2,
                     );
+                if (!frontMatterMatch)
+                    frontMatterMatch = text.match(
+                        regex.FRONT_MATTER_LOCATION_V3,
+                    );
                 if (frontMatterMatch) {
                     const lat = frontMatterMatch.groups.lat;
                     const lng = frontMatterMatch.groups.lng;

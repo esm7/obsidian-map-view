@@ -8,7 +8,6 @@ import {
     type EditorSuggestContext,
 } from 'obsidian';
 
-import { type PluginSettings } from 'src/settings';
 import { matchInlineLocation } from 'src/markers';
 import * as utils from 'src/utils';
 import MapViewPlugin from 'src/main';

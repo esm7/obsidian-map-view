@@ -498,7 +498,7 @@ export class MapContainer {
         this.display?.map?.remove();
         this.display?.markers?.clear();
         this.display?.controls?.controlsDiv?.remove();
-        this.display?.controls?.reload();
+        await this.display?.controls?.reload();
         await this.createMap();
         this.updateMarkersToState(this.state, true);
         this.display?.controls?.updateControlsToState();
@@ -541,8 +541,6 @@ export class MapContainer {
                 mapZoom: this.display.map.getZoom(),
                 mapCenter: this.display.map.getCenter(),
             });
-            this.display?.controls?.invalidateActivePreset();
-            this.display?.controls?.updateSaveButtonVisibility();
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
         });
@@ -552,8 +550,6 @@ export class MapContainer {
                 mapZoom: this.display.map.getZoom(),
                 mapCenter: this.display.map.getCenter(),
             });
-            this.display?.controls?.invalidateActivePreset();
-            this.display?.controls?.updateSaveButtonVisibility();
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
         });
@@ -732,8 +728,6 @@ export class MapContainer {
                 duration: 0.1,
             });
         }
-        if (this.display?.controls)
-            this.display.controls.setQueryBoxErrorByState();
         if (this.settings.debug) console.timeEnd('updateMarkersToState');
     }
 
@@ -1460,7 +1454,6 @@ export class MapContainer {
     setLock(lock: boolean) {
         this.state.lock = lock;
         this.applyLock();
-        this.display?.controls?.updateSaveButtonVisibility();
     }
 
     addZoomButtons() {

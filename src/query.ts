@@ -234,7 +234,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
     suggestionsDiv: HTMLDivElement;
     app: App;
     plugin: MapViewPlugin;
-    sourceElement: TextComponent;
+    sourceElement: HTMLInputElement;
     selection: Suggestion = null;
     lastSuggestions: Suggestion[];
     // Event handers that were registered, in the format of [name, lambda]
@@ -243,7 +243,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
     constructor(
         app: App,
         plugin: MapViewPlugin,
-        sourceElement: TextComponent,
+        sourceElement: HTMLInputElement,
         scope?: Scope,
     ) {
         super(app, scope);
@@ -258,18 +258,18 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
         });
         this.suggestionsDiv.style.position = 'fixed';
         this.suggestionsDiv.style.top =
-            this.sourceElement.inputEl.getClientRects()[0].bottom + 'px';
+            this.sourceElement.getClientRects()[0].bottom + 'px';
         this.suggestionsDiv.style.left =
-            this.sourceElement.inputEl.getClientRects()[0].left + 'px';
-        const keyUp = async () => {
+            this.sourceElement.getClientRects()[0].left + 'px';
+        const keyUp = () => {
             // We do this in keyup because we want the selection to update first
             this.doSuggestIfNeeded();
         };
-        const mouseUp = async () => {
+        const mouseUp = () => {
             // We do this in keyup because we want the selection to update first
             this.doSuggestIfNeeded();
         };
-        const keyDown = async (ev: KeyboardEvent) => {
+        const keyDown = (ev: KeyboardEvent) => {
             if (ev.key == 'Enter' && this.selection) {
                 this.selectSuggestion(this.selection, ev);
                 this.doSuggestIfNeeded();
@@ -293,9 +293,9 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
             ['mouseup', mouseUp],
             ['keydown', keyDown],
         );
-        this.sourceElement.inputEl.addEventListener('keyup', keyUp);
-        this.sourceElement.inputEl.addEventListener('mouseup', mouseUp);
-        this.sourceElement.inputEl.addEventListener('keydown', keyDown);
+        this.sourceElement.addEventListener('keyup', keyUp);
+        this.sourceElement.addEventListener('mouseup', mouseUp);
+        this.sourceElement.addEventListener('keydown', keyDown);
         this.doSuggestIfNeeded();
     }
 
@@ -335,8 +335,8 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
     }
 
     createSuggestions(): Suggestion[] {
-        const cursorPos = this.sourceElement.inputEl.selectionStart;
-        const input = this.sourceElement.getValue();
+        const cursorPos = this.sourceElement.selectionStart;
+        const input = this.sourceElement.value;
         const tagMatch = getTagUnderCursor(input, cursorPos);
         // Doesn't include a closing parenthesis
         const pathMatch = matchByPosition(
@@ -457,7 +457,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
         this.suggestionsDiv.remove();
         this.clear();
         for (const [eventName, handler] of this.eventHandlers)
-            this.sourceElement.inputEl.removeEventListener(eventName, handler);
+            this.sourceElement.removeEventListener(eventName, handler);
     }
 
     updateSelection(newSelection: Suggestion) {
@@ -483,30 +483,32 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
             const insertAt =
                 suggestion.insertAt != null
                     ? suggestion.insertAt
-                    : this.sourceElement.inputEl.selectionStart;
+                    : this.sourceElement.selectionStart;
             const insertSkip = suggestion.insertSkip ?? 0;
             let addedText = suggestion.textToInsert ?? suggestion.text;
             addedText += suggestion.append ?? '';
-            const currentText = this.sourceElement.getValue();
+            const currentText = this.sourceElement.value;
             const newText =
                 currentText.substring(0, insertAt) +
                 addedText +
                 currentText.substring(insertAt + insertSkip);
-            this.sourceElement.setValue(newText);
-            this.sourceElement.inputEl.selectionEnd =
-                this.sourceElement.inputEl.selectionStart =
+            this.sourceElement.value = newText;
+            this.sourceElement.selectionEnd =
+                this.sourceElement.selectionStart =
                     insertAt +
                     addedText.length +
                     (suggestion?.cursorOffset ?? 0);
             // Don't allow a click to steal the focus from the text box
             event.preventDefault();
+            // Dispatch an input event to trigger Svelte's change detection
+            this.sourceElement.dispatchEvent(
+                new Event('input', { bubbles: true }),
+            );
             // This causes the text area to scroll to the new cursor position
-            this.sourceElement.inputEl.blur();
-            this.sourceElement.inputEl.focus();
+            this.sourceElement.blur();
+            this.sourceElement.focus();
             // Refresh the suggestion box
             this.doSuggestIfNeeded();
-            // Make the UI react to the change
-            this.sourceElement.onChanged();
         }
     }
 

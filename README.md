@@ -5,7 +5,7 @@
 <!--ts-->
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri 03 Jan 2025 10:47:27 IST -->
+<!-- Added by: erez, at: Fri 03 Jan 2025 20:38:57 IST -->
 
 <!--te-->
 
@@ -163,7 +163,7 @@ First is a location tag in a note's [front matter](https://help.obsidian.md/Adva
 <!-- prettier-ignore-start -->
 ```yaml
 ---
-location: "40.6892494,-74.0466891"
+location: 40.6892494,-74.0466891
 ---
 ```
 <!-- prettier-ignore-end -->
@@ -220,6 +220,13 @@ For interoperability with Obsidian's property editor and possibly other plugins,
 location:
     - '39.100105'
     - '-94.5781416'
+```
+
+And also:
+
+```yaml
+location:
+    - 39.100105,-94.5781416
 ```
 
 ## Adding a Location to a Note

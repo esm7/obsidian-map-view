@@ -289,7 +289,7 @@ export function addCopyGeolocationItems(
         item.setSection('copy');
         item.onClick((_ev) => {
             navigator.clipboard.writeText(
-                `---\nlocation: [${locationString}]\n---\n\n`,
+                `---\nlocation: "${locationString}"\n---\n\n`,
             );
         });
     });
