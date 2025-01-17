@@ -4,8 +4,9 @@
 
 <!--ts-->
 
+
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri 17 Jan 2025 22:18:49 IST -->
+<!-- Added by: erez, at: Fri 17 Jan 2025 22:24:10 IST -->
 
 <!--te-->
 
@@ -673,7 +674,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
     - The above can make Map View _considerably faster_ to start up, and it gets faster the more you use it.
     - See [the documentation](#offline-tiles) for more details.
 
-- An internal tool for importing data from a KML file straight into a note, with configurable formats and fields.
+- An [internal tool](#import-from-kml) for importing data from a KML file straight into a note, with configurable formats and fields.
     - This is a lot thanks to [@mofosyne](https://github.com/mofosyne) who prototyped a very good KML conversion tool some time ago, and agreed to use his code as a base.
 
 **Other New Features:**
