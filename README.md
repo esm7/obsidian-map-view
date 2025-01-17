@@ -6,7 +6,7 @@
 
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri 17 Jan 2025 16:19:11 IST -->
+<!-- Added by: erez, at: Fri 17 Jan 2025 22:18:49 IST -->
 
 <!--te-->
 
@@ -17,7 +17,7 @@ It searches your notes for encoded geolocations (see below), places them as mark
 
 It effectively turns your Obsidian vault into a **personal GIS system** that adds a geographical layer to your notes, journals, trip planning and pretty much anything you use Obsidian for.
 
-You can set different icons for different note types according to custom rules, save geolocations from a variety of sources (Google Maps and many others), save custom views, embed maps in notes, switch between map layers, run powerful queries and so much more.
+You can set different icons for different note types according to custom rules, save geolocations from a variety of sources (Google Maps and many others), save custom views, embed maps in notes, switch between map layers, run powerful queries, save map tiles for offline usage and so much more.
 
 ![](img/sample.png)
 
@@ -544,6 +544,38 @@ By default, Map View uses the [query](#queries) `path:"$PATH$"`, which means tha
 - Use `linkedfrom:"$PATH$"` for a more elaborate inclusion of markers from both the file you're on and files it links to.
 - Use `linkedfrom:"$PATH$" OR linkedto:"$PATH$"` to include markers that the active note links to and also markers that _link to this file_.
 
+## Offline Tiles
+
+Map View can store map tiles locally, to be used for caching and offline usage.
+Whenever a map tile is needed to display a Map View or an embedded map, it is first searched in the local storage, leading to considerably better performance and less data usage the more you use Map View.
+
+By default every downloaded map tile is saved to the cache, and downloaded tiles are stored for 6 months or up to 2GB (when the max storage size is reached, tiles are purged by age). These values are configurable under the "Offline Maps" section of the plugin's settings.
+
+Additionally, you can batch-download map tiles that you expect to use often or offline:
+
+- Open the Downloaded Tiles dialog by clicking "offline maps..." from the Map View context menu or "offline storage..." from the plugin settings.
+- Click "download tiles..." to open the new download job dialog.
+- This dialog creates a new download job based on the currently-active Map View, i.e. it will save the area of the map currently displayed.
+- You can decide on a range of zoom levels for which to download tiles in the currently-displayed area of the map, with the current zoom you are viewing displayed under "current zoom level".
+- If you choose "skip existing tiles", the download job will include only tiles that don't yet exist in the offline cache, but if you have tiles from a long time ago and the area has changed, your map may be an inconsistent mix of new and old tiles.
+- **WARNING:** it is up to you to make sure you do not flood the tiles provider, as well as to make sure that caching tiles locally does not violate any terms of use (most providers encourage that, as it saves bandwidth, but it's up to you to make sure with your own specific tile providers).
+- To prevent an accidental flood of tile providers, a maximum of 1 million tiles per download job is hard-coded.
+
+![](img/offline-download.png)
+
+Once starting a download job it progresses in the background, and you can cancel it or track its progress via the Downloaded Tiles dialog. **There is no need to keep the dialog open**, but if it's a mobile device (i.e. iOS or Android), the OS might pause the download when the device screen turns off, or close Obsidian completely.
+
+**General tips:**
+
+- Keep in mind that any click on the map's '+' button increases the zoom level by one. You can use that to assess the level of detail you want to keep offline; The number of tiles to download and the size to store increase exponentially between zoom levels, so if you want to save a large area for offline usage, you probably don't want to go beyond 5-6 zoom levels.
+- You can selectively store different areas in different levels of detail, e.g. 4 zoom levels for your whole country and then 4 more levels for your city or area. Just start a few consecutive downloads while potentially marking "skip existing tiles".
+- If you want to keep a large offline storage, make sure to adjust the "max offline tiles storage" plugin setting.
+
+In order to get a sense of what tiles are available offline, you can check "highlight offline tiles" from the Map View context menu. It will mark with a blue box the tiles that are available locally. The mark is updated only when the map is redrawn, so to visualize the automatic cache (if turned on), go to an area and zoom level that was not downloaded, zoom in, then zoom back out.
+
+Technically, tiles are stored locally in IndexedDB blobs.
+There is currently no support to sync them between devices.
+
 ## GPS Location Support
 
 **This still in early beta.**
@@ -599,6 +631,15 @@ Finally, you can configure the color used for the edges on the map using any val
 
 ![](img/links.png)
 
+## Import from KML
+
+Map View has a built-in tool to convert geolocations from a KML file, typically generated by a tool like Google My Maps.
+(To generate a KML from Google My Maps, in the map's context menu click "download KML", and select "export as KML instead of KMZ".)
+
+To use it, open a new or an existing note, and from the note context menu click "import geolocations from file..."
+
+Select a KML file to import, optionally edit the template used to create geolocations, then click "import into note".
+
 ## Relation to Obsidian Leaflet
 
 Users who are looking to add mapping capabilities to Obsidian may want to also look at the great [Obsidian Leaflet plugin](https://github.com/valentine195/obsidian-leaflet-plugin).
@@ -621,9 +662,42 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
-Unreleased:
+### 5.5.0
 
-- Big update to project dependencies.
+**The Big Stuff:**
+
+- A mechanism and various tools for **offline usage**. This includes:
+
+    - The ability to batch-download map tiles for offline usage.
+    - Manage downloaded tiles, e.g. selectively purge old tiles, add or delete downloaded data etc.
+    - Auto-cache tiles locally as part of the plugin's normal usage, with a configurable auto-purge after a certain age and storage size.
+    - The above can make Map View _considerably faster_ to start up, and it gets faster the more you use it.
+    - See [the documentation](#offline-tiles) for more details.
+
+- An internal tool for importing data from a KML file straight into a note, with configurable formats and fields.
+    - This is a lot thanks to [@mofosyne](https://github.com/mofosyne) who prototyped a very good KML conversion tool some time ago, and agreed to use his code as a base.
+
+**Other New Features:**
+
+- A new 'minimize' button for the controls panel (https://github.com/esm7/obsidian-map-view/issues/270), which was super easy to do after the Svelte rewrite, so why not :)
+- A small dot indicating that the view is filtered.
+- Google Maps place data in templates (thanks @HalFrgrd!)
+- Supporting templates with YAML content (thanks @HalFrgrd!)
+- New setting "search delay while typing" (which was previously hard-coded to 250ms).
+- If turned on in the settings (which is by default), Map View hijacks the context menu of geolinks in notes, to make sure the Map View "open in" options show up rather than Obsidian's defaults.
+- The `open-map-search` command can now either search in an existing Map View or open a new one. This means it can be mapped to a global Obsidian shortcut which will launch Map View with the search dialog.
+
+**Fixes:**
+
+- Inconsistency in front matter format (https://github.com/esm7/obsidian-map-view/issues/288).
+- Inline tags don't work without a trailing space (https://github.com/esm7/obsidian-map-view/issues/286).
+
+**Under the Hood:**
+
+- The map controls were rewritten in Svelte.
+    - The immediate benefit is much shorter and cleaner code, but the main incentive is to be able to easily add UI-centric features with much less effort.
+    - **This might break themes or snippets with special customization for Map View.** Please let me know of any issues.
+- Maintenance work, package upgrades and code cleanups.
 
 ### 5.1.0
 
