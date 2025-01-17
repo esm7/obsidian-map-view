@@ -380,6 +380,22 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
+        new Setting(containerEl)
+            .setName('Geolink context menu in notes')
+            .setDesc(
+                'Override the Obsidian context menu for geolinks in notes, making sure Map View "open in" items are shown correctly. Requires "Geolinks in Notes" above.',
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.handleGeolinkContextMenu ??
+                            DEFAULT_SETTINGS.handleGeolinkContextMenu,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.handleGeolinkContextMenu = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
 
         new Setting(containerEl)
             .setHeading()

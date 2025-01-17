@@ -114,7 +114,7 @@ export class EmbeddedMap {
         });
         this.resizeObserver.observe(this.mapContainer.display.mapDiv);
         await this.mapContainer.highLevelSetViewStateAsync(state);
-        if (state.embeddedHeight)
+        if (state.embeddedHeight && state.embeddedHeight > 0)
             this.parentEl.style.height = `${state.embeddedHeight}px`;
         this.settings.mapControls.viewDisplayed = false;
     }

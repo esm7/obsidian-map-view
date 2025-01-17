@@ -24,6 +24,7 @@ export function addShowOnMap(
     editorLine: number,
     plugin: MapViewPlugin,
     settings: PluginSettings,
+    markerIdToHighlight: string = null,
 ) {
     if (geolocation) {
         menu.addItem((item: MenuItem) => {
@@ -37,6 +38,7 @@ export function addShowOnMap(
                     file,
                     editorLine,
                     evt.shiftKey,
+                    markerIdToHighlight,
                 );
             item.onClick(openFunc);
             addPatchyMiddleClickHandler(item, menu, openFunc);

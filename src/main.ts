@@ -56,7 +56,6 @@ import { MapPreviewPopup } from 'src/mapPreviewPopup';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
-    public highestVersionSeen: number = 0;
     public iconFactory: IconFactory;
     private suggestor: LocationSuggest;
     private tagSuggestor: TagSuggest;
@@ -446,6 +445,35 @@ export default class MapViewPlugin extends Plugin {
                 markerId,
             );
             this.mapPreviewPopup?.close(event);
+        };
+
+        (window as any).handleMapViewContextMenu = (
+            event: PointerEvent,
+            documentLocation: number,
+            markerId: string,
+            lat: string,
+            lng: string,
+        ) => {
+            if (!this.settings.handleGeolinkContextMenu) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            const location = new leaflet.LatLng(
+                parseFloat(lat),
+                parseFloat(lng),
+            );
+            this.mapPreviewPopup?.close(event);
+            let menu = new Menu();
+            menus.addShowOnMap(
+                menu,
+                location,
+                null,
+                null,
+                this,
+                this.settings,
+                markerId,
+            );
+            menus.addOpenWith(menu, location, this.settings);
+            menu.showAtPosition(event);
         };
 
         (window as any).handlePointerUp = (

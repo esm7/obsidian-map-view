@@ -92,6 +92,7 @@ export class MapPreviewPopup {
         const state: Partial<MapState> = {
             mapCenter: new leaflet.LatLng(parseFloat(lat), parseFloat(lng)),
             mapZoom: this.settings.zoomOnGeolinkPreview,
+            embeddedHeight: 0,
         };
         await this.map.open(mergeStates(this.settings.defaultState, state));
         const marker = markerId

@@ -176,6 +176,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                         onpointerup: `handlePointerUp(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
                         onmouseover: `createMapPopup(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
                         onmouseout: 'closeMapPopup(event)',
+                        oncontextmenu: `handleMapViewContextMenu(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
                     },
                     class: 'geolink',
                 });

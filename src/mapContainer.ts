@@ -464,6 +464,7 @@ export class MapContainer {
         const dpr = window.devicePixelRatio || 1;
         const tileSize = 256;
         const canvas = this.display.viewDiv.createEl('canvas');
+        canvas.style.display = 'none';
 
         // Set actual size in memory (scaled for retina)
         canvas.width = tileSize * dpr;

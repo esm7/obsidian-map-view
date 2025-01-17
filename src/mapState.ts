@@ -14,6 +14,7 @@ export type MapState = {
     chosenMapSource: number;
     forceHistorySave: boolean;
     followActiveNote: boolean;
+    /** Used for embedded maps when >0 */
     embeddedHeight: number;
     /** Ignore the zoom level and force auto-fit */
     autoFit: boolean;

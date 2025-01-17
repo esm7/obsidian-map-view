@@ -62,6 +62,7 @@ export type PluginSettings = {
     handleGeolinksInNotes: boolean;
     showGeolinkPreview: boolean;
     zoomOnGeolinkPreview: number;
+    handleGeolinkContextMenu: boolean;
     routingUrl: string;
     cacheAllTiles: boolean;
     offlineMaxTileAgeMonths: number;
@@ -252,6 +253,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     handleGeolinksInNotes: true,
     showGeolinkPreview: false,
     zoomOnGeolinkPreview: 10,
+    handleGeolinkContextMenu: true,
     routingUrl:
         'https://www.google.com/maps/dir/?api=1&origin={x0},{y0}&destination={x1},{y1}',
     cacheAllTiles: true,
