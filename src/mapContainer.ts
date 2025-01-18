@@ -7,6 +7,7 @@ import {
     WorkspaceLeaf,
     Notice,
     MenuItem,
+    getIcon,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -288,7 +289,7 @@ export class MapContainer {
         await this.createMap();
 
         // Prepare marker popups
-        this.display.popupDiv = this.display.viewDiv.createDiv();
+        this.display.popupDiv = this.display.mapDiv.createDiv();
         this.display.popupDiv.addClasses([
             'mv-marker-popup-container',
             'popover',
@@ -992,15 +993,16 @@ export class MapContainer {
                 this.settings,
                 this.app,
             );
-            const closeButton = this.display.popupDiv.createEl(
-                'button',
+
+            const closeButton = this.display.popupDiv.createDiv(
                 'mv-marker-popup-close',
             );
             closeButton.onClickEvent((ev: MouseEvent) => {
                 this.closeMarkerPopup();
                 ev.stopPropagation();
             });
-            closeButton.innerText = 'X';
+            const icon = getIcon('circle-x');
+            closeButton.appendChild(icon);
             const markerElement = event.target.getElement();
             // Make the popup visible
             this.display.popupDiv.style.display = 'block';

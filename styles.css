@@ -146,11 +146,12 @@ a.mv-icon-button.on {
 
 .mv-marker-popup-container {
     max-height: 20em;
+    min-height: 4em;
     width: 30em;
     overflow: hidden;
     /* Initially this isn't displayed */
     display: none;
-    z-index: 2;
+    z-index: 1000;
     box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.5);
 }
 .mv-marker-popup-container .markdown-embed {
@@ -160,7 +161,7 @@ a.mv-icon-button.on {
 }
 /* Simple placement mode is used on mobile, where the screen is too small and Popper is unavailable anyway */
 .mv-marker-popup-container.simple-placement {
-    bottom: 32px;
+    bottom: 0px;
     position: absolute;
     width: 100%;
 }

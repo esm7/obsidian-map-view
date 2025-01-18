@@ -6,7 +6,7 @@
 
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Sat 18 Jan 2025 08:10:43 IST -->
+<!-- Added by: erez, at: Sat 18 Jan 2025 22:05:33 IST -->
 
 <!--te-->
 
@@ -686,6 +686,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - New setting "search delay while typing" (which was previously hard-coded to 250ms).
 - If turned on in the settings (which is by default), Map View hijacks the context menu of geolinks in notes, to make sure the Map View "open in" options show up rather than Obsidian's defaults.
 - The `open-map-search` command can now either search in an existing Map View or open a new one. This means it can be mapped to a global Obsidian shortcut which will launch Map View with the search dialog.
+- Added a `{name}` parameter to "open in" items (https://github.com/esm7/obsidian-map-view/issues/290).
 
 **Fixes:**
 
