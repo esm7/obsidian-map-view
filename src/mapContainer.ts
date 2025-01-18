@@ -963,7 +963,13 @@ export class MapContainer {
                 mapPopup,
                 this.settings,
             );
-            menus.populateOpenInItems(mapPopup, marker.location, this.settings);
+            const name = marker.extraName ?? marker.file.basename;
+            menus.populateOpenInItems(
+                mapPopup,
+                marker.location,
+                name,
+                this.settings,
+            );
         }
         if (ev) mapPopup.showAtPosition(ev);
     }
@@ -1398,7 +1404,6 @@ export class MapContainer {
                       source: source,
                       timestamp: Date.now(),
                   };
-        console.log(`New location received from source '${source}':`, location);
         if (!isSame(location, this.lastRealTimeLocation) || forceRefresh) {
             this.lastRealTimeLocation = location;
             this.updateRealTimeLocationMarkers();

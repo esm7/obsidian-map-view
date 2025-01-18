@@ -57,6 +57,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                     lng: string;
                     from: number;
                     to: number;
+                    name?: string;
                 }[] = [];
                 const viewport = view.viewport;
                 // Make sure that only the visible area is searched, for performance reasons
@@ -74,6 +75,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                 for (const match of inlineMatches) {
                     const lat = match.groups.lat;
                     const lng = match.groups.lng;
+                    const name = match.groups.name;
                     if (
                         match.groups.link &&
                         match.groups.link.length > 0 &&
@@ -98,6 +100,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                             lng,
                             from,
                             to,
+                            name,
                         });
                     }
                 }
@@ -133,6 +136,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                             lng,
                             from,
                             to,
+                            name: fileName,
                         });
                     }
                 }
@@ -148,6 +152,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                             match.markerId,
                             match.lat,
                             match.lng,
+                            match.name,
                         ),
                     );
                 }
@@ -160,7 +165,9 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                 markerId: string,
                 lat: string,
                 lng: string,
+                name?: string,
             ) {
+                name = name ?? '';
                 return Decoration.mark({
                     from,
                     to,
@@ -176,7 +183,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                         onpointerup: `handlePointerUp(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
                         onmouseover: `createMapPopup(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
                         onmouseout: 'closeMapPopup(event)',
-                        oncontextmenu: `handleMapViewContextMenu(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
+                        oncontextmenu: `handleMapViewContextMenu(event, ${from}, "${markerId}", "${lat}", "${lng}", "${name}")`,
                     },
                     class: 'geolink',
                 });

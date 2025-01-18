@@ -49,6 +49,7 @@ export function addShowOnMap(
 export function addOpenWith(
     menu: Menu,
     geolocation: leaflet.LatLng,
+    name: string,
     settings: settings.PluginSettings,
 ) {
     if (geolocation) {
@@ -61,7 +62,7 @@ export function addOpenWith(
             });
         });
         // Populate menu items from user defined "Open In" strings
-        populateOpenInItems(menu, geolocation, settings);
+        populateOpenInItems(menu, geolocation, name, settings);
     }
 }
 
@@ -74,13 +75,15 @@ export function addOpenWith(
 export function populateOpenInItems(
     menu: Menu,
     location: leaflet.LatLng,
+    name: string,
     settings: settings.PluginSettings,
 ) {
     for (let setting of settings.openIn) {
         if (!setting.name || !setting.urlPattern) continue;
         const fullUrl = setting.urlPattern
             .replace(/{x}/g, location.lat.toString())
-            .replace(/{y}/g, location.lng.toString());
+            .replace(/{y}/g, location.lng.toString())
+            .replace(/{name}/g, name || '');
         menu.addItem((item: MenuItem) => {
             item.setTitle(`Open in ${setting.name}`);
             item.setIcon('map-pin');
@@ -479,5 +482,5 @@ export function addMapContextMenuItems(
     addNewNoteItems(mapPopup, geolocation, mapContainer, settings, app);
     addCopyGeolocationItems(mapPopup, geolocation);
     populateRouting(mapContainer, geolocation, mapPopup, settings);
-    addOpenWith(mapPopup, geolocation, settings);
+    addOpenWith(mapPopup, geolocation, null, settings);
 }

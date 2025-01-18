@@ -453,6 +453,7 @@ export default class MapViewPlugin extends Plugin {
             markerId: string,
             lat: string,
             lng: string,
+            name: string,
         ) => {
             if (!this.settings.handleGeolinkContextMenu) return;
             event.preventDefault();
@@ -472,7 +473,7 @@ export default class MapViewPlugin extends Plugin {
                 this.settings,
                 markerId,
             );
-            menus.addOpenWith(menu, location, this.settings);
+            menus.addOpenWith(menu, location, name, this.settings);
             menu.showAtPosition(event);
         };
 
@@ -725,7 +726,7 @@ export default class MapViewPlugin extends Plugin {
     }
 
     /**
-     * Get the geolocation on the current editor line
+     * Get the geolocation on the current editor line and its name
      * @param editor obsidian Editor instance
      * @param view obsidian FileView instance
      * @private
@@ -735,27 +736,31 @@ export default class MapViewPlugin extends Plugin {
         lineNumber: number,
         view: FileView,
         alsoFrontMatter: boolean,
-    ): leaflet.LatLng {
+    ): [leaflet.LatLng, string] {
         const line = editor.getLine(lineNumber);
         const match = matchInlineLocation(line)[0];
         let selectedLocation = null;
-        if (match)
+        let name = null;
+        if (match) {
             selectedLocation = new leaflet.LatLng(
                 parseFloat(match.groups.lat),
                 parseFloat(match.groups.lng),
             );
-        else if (alsoFrontMatter) {
+            name = match.groups.name;
+        } else if (alsoFrontMatter) {
             const fmLocation = getFrontMatterLocation(
                 view.file,
                 this.app,
                 this.settings,
             );
-            if (line.indexOf('location') > -1 && fmLocation)
+            if (line.indexOf('location') > -1 && fmLocation) {
                 selectedLocation = fmLocation;
+                name = view.file.name;
+            }
         }
         if (selectedLocation) {
             verifyLocation(selectedLocation);
-            return selectedLocation;
+            return [selectedLocation, name];
         }
         return null;
     }
@@ -809,7 +814,7 @@ export default class MapViewPlugin extends Plugin {
                     this.settings,
                 );
                 // Add an option to open it in the default app
-                menus.addOpenWith(menu, location, this.settings);
+                menus.addOpenWith(menu, location, file.name, this.settings);
             } else {
                 if (editor) {
                     // If there is no valid geolocation in the front matter, add a menu item to populate it.
@@ -852,7 +857,7 @@ export default class MapViewPlugin extends Plugin {
             }
             if (!multiLineMode) {
                 const editorLine = editor.getCursor().line;
-                const location = this.getLocationOnEditorLine(
+                const [location, name] = this.getLocationOnEditorLine(
                     editor,
                     editorLine,
                     view,
@@ -868,7 +873,7 @@ export default class MapViewPlugin extends Plugin {
                         this,
                         this.settings,
                     );
-                    menus.addOpenWith(menu, location, this.settings);
+                    menus.addOpenWith(menu, location, name, this.settings);
                 }
             }
             menus.addUrlConversionItems(
@@ -898,7 +903,7 @@ export default class MapViewPlugin extends Plugin {
                 const toLine = Math.max(anchorLine, headLine);
                 let geolocations: leaflet.LatLng[] = [];
                 for (let line = fromLine; line <= toLine; line++) {
-                    const geolocationOnLine = this.getLocationOnEditorLine(
+                    const [geolocationOnLine, _] = this.getLocationOnEditorLine(
                         editor,
                         line,
                         view,

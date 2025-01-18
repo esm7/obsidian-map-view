@@ -631,7 +631,7 @@ export class SettingsTab extends PluginSettingTab {
             .setHeading()
             .setName('Custom "Open In" Actions')
             .setDesc(
-                "'Open in' actions showing in geolocation-relevant popup menus. URL should have {x} and {y} as parameters to transfer.",
+                "'Open in' actions showing in geolocation-relevant popup menus. URL should have {x} and {y} as parameters to transfer, and an optional {name} parameter can be used.",
             );
 
         let openInActionsDiv: HTMLDivElement = null;

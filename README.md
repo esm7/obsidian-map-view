@@ -6,7 +6,7 @@
 
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Fri 17 Jan 2025 22:24:10 IST -->
+<!-- Added by: erez, at: Sat 18 Jan 2025 08:10:43 IST -->
 
 <!--te-->
 
@@ -491,10 +491,11 @@ The Open In list is shown:
 
 - When right-clicking on the map.
 - When right-clicking a marker on the map.
+- When right-clicking a geolocation link in a note (if not turned off in the settings).
 - When right-clicking a line in a note that has a location.
 - In the context menu of a note that has a front matter location.
 
-This list can be edited through the plugin's settings menu, with a name that will be displayed in the context menus and a URL pattern. The URL pattern has two parameters -- `{x}` and `{y}` -- that will be replaced by the latitude and longitude of the clicked location.
+This list can be edited through the plugin's settings menu, with a name that will be displayed in the context menus and a URL pattern. The URL pattern has two parameters -- `{x}` and `{y}` -- that will be replaced by the latitude and longitude of the clicked location. There's also an optional `{name}` parameter that can be replaced with the name of the location (the note name or inline link name).
 
 ![](img/custom-open-in.png)
 
@@ -680,7 +681,6 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 **Other New Features:**
 
 - A new 'minimize' button for the controls panel (https://github.com/esm7/obsidian-map-view/issues/270), which was super easy to do after the Svelte rewrite, so why not :)
-- A small dot indicating that the view is filtered.
 - Google Maps place data in templates (thanks @HalFrgrd!)
 - Supporting templates with YAML content (thanks @HalFrgrd!)
 - New setting "search delay while typing" (which was previously hard-coded to 250ms).
