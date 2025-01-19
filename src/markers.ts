@@ -52,7 +52,6 @@ export class Edge {
     }
 }
 
-// TODO TEMP move to a different file
 export abstract class BaseGeoLayer {
     public layerType: 'fileMarker' | 'geojson';
     /** The file object on which this location was found */

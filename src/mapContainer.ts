@@ -983,8 +983,6 @@ export class MapContainer {
     ) {
         // Popups based on the markers below the cursor shouldn't be opened while animations
         // are occuring
-        // TODO TEMP temporary check
-        // if (this.ongoingChanges > 0) return;
         if (this.settings.showNoteNamePopup || this.settings.showNotePreview) {
             this.closeMarkerPopup();
             const component = mount(MarkerPopup, {

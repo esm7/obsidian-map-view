@@ -131,7 +131,6 @@ a.mv-icon-button.on {
     max-height: 20em;
     min-height: 4em;
     width: 30em;
-    height: 300px;
     overflow: hidden;
     /* Initially this isn't displayed */
     display: none;

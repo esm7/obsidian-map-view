@@ -133,7 +133,7 @@
 
 </script>
 
-<div class="mv-marker-popup-internal" >
+<div class="mv-marker-popup-internal" class:with-preview={showPreview}>
 	<div class="top-row">
 		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 		<div class="headlines clickable"
@@ -188,7 +188,10 @@
 		position: relative;
 		margin: 5px;
 		gap: 8px;
-		height: 100%;
+	}
+
+	.with-preview {
+		height: '300px';
 	}
 
 	.top-row {
