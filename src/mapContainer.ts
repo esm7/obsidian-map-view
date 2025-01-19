@@ -23,6 +23,7 @@ import {
     tileLayerOffline,
     hasTile,
 } from 'leaflet.offline';
+import { mount, unmount } from 'svelte';
 import * as consts from 'src/consts';
 import {
     type MapState,
@@ -63,9 +64,9 @@ import {
     isSame,
 } from 'src/realTimeLocation';
 import * as menus from 'src/menus';
-import * as markerPopups from 'src/markerPopups';
 import { createPopper, type Instance as PopperInstance } from '@popperjs/core';
 import * as offlineTiles from 'src/offlineTiles.svelte';
+import MarkerPopup from './components/MarkerPopup.svelte';
 
 export type ViewSettings = {
     showMinimizeButton: boolean;
@@ -112,6 +113,7 @@ export class MapContainer {
         popupDiv: HTMLDivElement;
         popperInstance: PopperInstance;
         popupElement: leaflet.Marker;
+        popupElementUnmount: () => void;
         popupClickEventListener: (ev: MouseEvent) => void;
         /** The leaflet map instance */
         map: leaflet.Map;
@@ -289,7 +291,7 @@ export class MapContainer {
         await this.createMap();
 
         // Prepare marker popups
-        this.display.popupDiv = this.display.mapDiv.createDiv();
+        this.display.popupDiv = this.display.viewDiv.createDiv();
         this.display.popupDiv.addClasses([
             'mv-marker-popup-container',
             'popover',
@@ -841,7 +843,7 @@ export class MapContainer {
         newMarker.on('click', async (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app)) {
                 this.setHighlight(marker);
-                await this.showMarkerPopups(marker, newMarker, event);
+                await this.showMarkerPopups(marker, event);
             } else
                 this.goToMarker(
                     marker,
@@ -869,7 +871,7 @@ export class MapContainer {
 
         newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app)) {
-                this.showMarkerPopups(marker, newMarker, event);
+                this.showMarkerPopups(marker, event);
                 this.display.popupElement = newMarker;
             }
         });
@@ -977,32 +979,31 @@ export class MapContainer {
 
     private async showMarkerPopups(
         fileMarker: FileMarker,
-        mapMarker: leaflet.Marker,
         event: leaflet.LeafletMouseEvent,
     ) {
         // Popups based on the markers below the cursor shouldn't be opened while animations
         // are occuring
-        if (this.ongoingChanges > 0) return;
+        // TODO TEMP temporary check
+        // if (this.ongoingChanges > 0) return;
         if (this.settings.showNoteNamePopup || this.settings.showNotePreview) {
             this.closeMarkerPopup();
-            await markerPopups.populateMarkerPopup(
-                fileMarker,
-                mapMarker,
-                this.display.popupDiv,
-                this.display.mapDiv,
-                this.settings,
-                this.app,
-            );
-
-            const closeButton = this.display.popupDiv.createDiv(
-                'mv-marker-popup-close',
-            );
-            closeButton.onClickEvent((ev: MouseEvent) => {
-                this.closeMarkerPopup();
-                ev.stopPropagation();
+            const component = mount(MarkerPopup, {
+                target: this.display.popupDiv,
+                props: {
+                    plugin: this.plugin,
+                    app: this.app,
+                    settings: this.settings,
+                    view: this,
+                    marker: fileMarker,
+                    doClose: () => {
+                        this.closeMarkerPopup();
+                    },
+                },
             });
-            const icon = getIcon('circle-x');
-            closeButton.appendChild(icon);
+            this.display.popupElementUnmount = () => {
+                unmount(component);
+            };
+
             const markerElement = event.target.getElement();
             // Make the popup visible
             this.display.popupDiv.style.display = 'block';
@@ -1015,18 +1016,6 @@ export class MapContainer {
             } else {
                 this.display.popupDiv.addClass('simple-placement');
             }
-            markerPopups.scrollPopupToHighlight(this.display.popupDiv);
-            this.display.popupClickEventListener = (ev: MouseEvent) => {
-                this.goToMarker(
-                    fileMarker,
-                    utils.mouseEventToOpenMode(this.settings, ev, 'openNote'),
-                    true,
-                );
-            };
-            this.display.popupDiv.addEventListener(
-                'click',
-                this.display.popupClickEventListener,
-            );
         }
         this.startHoverHighlight(fileMarker);
     }
@@ -1035,10 +1024,9 @@ export class MapContainer {
         this.endHoverHighlight();
         this.display.popupDiv.style.display = 'none';
         this.display.popupElement = null;
-        this.display.popupDiv.removeEventListener(
-            'click',
-            this.display.popupClickEventListener,
-        );
+        if (this.display.popupElementUnmount)
+            this.display.popupElementUnmount();
+        this.display.popupElementUnmount = null;
     }
 
     private openClusterPreviewPopup(event: leaflet.LeafletEvent) {

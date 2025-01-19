@@ -6,7 +6,7 @@
 
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Sat 18 Jan 2025 22:05:33 IST -->
+<!-- Added by: erez, at: Sun 19 Jan 2025 21:28:45 IST -->
 
 <!--te-->
 
@@ -681,6 +681,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 **Other New Features:**
 
 - A new 'minimize' button for the controls panel (https://github.com/esm7/obsidian-map-view/issues/270), which was super easy to do after the Svelte rewrite, so why not :)
+- Marker popup improvements, especially for touch screens. The note snippet in the popup can now be interacted with and a button was added to open the context menu of the marker.
 - Google Maps place data in templates (thanks @HalFrgrd!)
 - Supporting templates with YAML content (thanks @HalFrgrd!)
 - New setting "search delay while typing" (which was previously hard-coded to 250ms).
