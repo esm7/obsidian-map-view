@@ -191,7 +191,7 @@
 	}
 
 	.with-preview {
-		height: '300px';
+		height: 300px;
 	}
 
 	.top-row {
