@@ -2,6 +2,6 @@ pre-commit:
     parallel: true
     commands:
         prettier:
-            run: npm run prettier
-        toc:
-            run: tools/gh-md-toc --insert README.md
+            stage_fixed: true
+            glob: '*.{js,ts,jsx,tsx,svelte,css,md,json,yaml,yml}'
+            run: npx prettier --write {staged_files}

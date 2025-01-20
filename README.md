@@ -2,14 +2,6 @@
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/esm7)
 
-<!--ts-->
-
-
-<!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: erez, at: Sun 19 Jan 2025 21:28:45 IST -->
-
-<!--te-->
-
 ## Intro
 
 This plugin introduces an **interactive map view** for [Obsidian.md](https://obsidian.md/).
