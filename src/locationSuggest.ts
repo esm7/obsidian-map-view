@@ -19,7 +19,9 @@ class SuggestInfo extends GeoSearchResult {
 }
 
 export class LocationSuggest extends EditorSuggest<SuggestInfo> {
-    private cursorInsideGeolinkFinder = /\[(.*?)\]\(geo:.*?\)/g;
+    // Match [...](geo:), where the part inside the square brackets cannot be more square brackets (any character
+    // except '[' and ']')
+    private cursorInsideGeolinkFinder = /\[([^\[\]]*?)\]\(geo:.*?\)/g;
     private lastSearchTime = 0;
     private delayInMs = 250;
     private settings: PluginSettings;
