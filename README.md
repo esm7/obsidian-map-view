@@ -685,6 +685,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 - Inconsistency in front matter format (https://github.com/esm7/obsidian-map-view/issues/288).
 - Inline tags don't work without a trailing space (https://github.com/esm7/obsidian-map-view/issues/286).
+- Inline geolocation suggestion fails for lines that contain wikilinks (https://github.com/esm7/obsidian-map-view/issues/299).
 
 **Under the Hood:**
 

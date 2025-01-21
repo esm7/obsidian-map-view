@@ -166,7 +166,6 @@ export async function goToEditorLocation(
 // Returns true if a change to the note was made.
 export async function verifyOrAddFrontMatter(
     app: App,
-    editor: Editor,
     file: TFile,
     fieldName: string,
     fieldValue: string,
@@ -203,7 +202,7 @@ export async function verifyOrAddFrontMatterForInline(
     )
         return false;
     // Otherwise, verify this note has a front matter with an empty 'locations' tag
-    return await verifyOrAddFrontMatter(app, editor, file, 'locations', '');
+    return await verifyOrAddFrontMatter(app, file, 'locations', '');
 }
 
 /**

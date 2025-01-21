@@ -930,7 +930,6 @@ export class MapContainer {
             if (marker.isFrontmatterMarker) {
                 await utils.verifyOrAddFrontMatter(
                     this.app,
-                    null,
                     marker.file,
                     this.settings.frontMatterKey,
                     `${newLat},${newLng}`,

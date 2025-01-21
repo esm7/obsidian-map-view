@@ -137,7 +137,6 @@ export default class MapViewPlugin extends Plugin {
                             const locationString = `"${location.lat},${location.lng}"`;
                             utils.verifyOrAddFrontMatter(
                                 this.app,
-                                editor,
                                 file,
                                 this.settings.frontMatterKey,
                                 locationString,

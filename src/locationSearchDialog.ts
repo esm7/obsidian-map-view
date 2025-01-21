@@ -158,7 +158,6 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         const locationString = `${location.lat},${location.lng}`;
         utils.verifyOrAddFrontMatter(
             this.app,
-            this.editor,
             this.file,
             this.settings.frontMatterKey,
             locationString,
