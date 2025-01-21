@@ -143,6 +143,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
                 value.location,
                 evt,
                 utils.sanitizePlaceNameForNoteName(value.name),
+                value.extraLocationData,
             );
         else if (this.dialogAction == 'addToNote')
             this.addToNote(value.location, evt, value.name);

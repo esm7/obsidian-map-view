@@ -7,6 +7,7 @@ import { type PluginSettings } from 'src/settings';
 import { UrlConvertor } from 'src/urlConvertor';
 import { FileMarker } from 'src/markers';
 import * as consts from 'src/consts';
+import * as utils from 'src/utils';
 
 /**
  * A generic result of a geosearch
@@ -17,6 +18,7 @@ export class GeoSearchResult {
     location: leaflet.LatLng;
     resultType: 'searchResult' | 'url' | 'existingMarker';
     existingMarker?: FileMarker;
+    extraLocationData?: utils.ExtraLocationData;
 }
 
 export class GeoSearcher {
@@ -76,6 +78,7 @@ export class GeoSearcher {
                         name: result.name,
                         location: result.location,
                         resultType: 'searchResult',
+                        extraLocationData: result.extraLocationData,
                     });
             } catch (e) {
                 console.log(
@@ -128,7 +131,7 @@ export async function googlePlacesSearch(
         'https://maps.googleapis.com/maps/api/place/textsearch/json?' +
         queryString.stringify(params);
     const googleContent = await request({ url: googleUrl });
-    const jsonContent = JSON.parse(googleContent) as any;
+    const jsonContent = JSON.parse(googleContent);
     let results: GeoSearchResult[] = [];
     if (
         jsonContent &&
@@ -146,6 +149,7 @@ export async function googlePlacesSearch(
                     name: `${result?.name} (${result?.formatted_address})`,
                     location: geolocation,
                     resultType: 'searchResult',
+                    extraLocationData: { googleMapsPlaceData: result },
                 } as GeoSearchResult);
             }
         }
