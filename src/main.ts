@@ -856,12 +856,13 @@ export default class MapViewPlugin extends Plugin {
             }
             if (!multiLineMode) {
                 const editorLine = editor.getCursor().line;
-                const [location, name] = this.getLocationOnEditorLine(
-                    editor,
-                    editorLine,
-                    view,
-                    true,
-                );
+                const [location, name] =
+                    this.getLocationOnEditorLine(
+                        editor,
+                        editorLine,
+                        view,
+                        true,
+                    ) ?? [];
                 if (location) {
                     const editorLine = editor.getCursor().line;
                     menus.addShowOnMap(
