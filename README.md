@@ -668,6 +668,12 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
+### Not yet Released
+
+- Fixes to respect Obsidian's new "always focus new tab" setting.
+- Fix for https://github.com/esm7/obsidian-map-view/issues/308 (thanks @edzillion!).
+- Comeback of "Show native Obsidian popup on marker hover" due to user request (https://github.com/esm7/obsidian-map-view/issues/235).
+
 ### 5.5.0
 
 **The Big Stuff:**

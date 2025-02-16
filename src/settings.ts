@@ -39,6 +39,7 @@ export type PluginSettings = {
     newNoteTemplate: string;
     showNoteNamePopup: boolean;
     showLinkNameInPopup: LinkNamePopupBehavior;
+    showNativeObsidianHoverPopup: boolean;
     showNotePreview: boolean;
     showClusterPreview: boolean;
     debug: boolean;
@@ -188,6 +189,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     newNoteTemplate: '',
     showNoteNamePopup: true,
     showLinkNameInPopup: 'always',
+    showNativeObsidianHoverPopup: false,
     showNotePreview: true,
     showClusterPreview: true,
     debug: false,

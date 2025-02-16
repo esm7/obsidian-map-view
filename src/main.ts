@@ -903,12 +903,13 @@ export default class MapViewPlugin extends Plugin {
                 const toLine = Math.max(anchorLine, headLine);
                 let geolocations: leaflet.LatLng[] = [];
                 for (let line = fromLine; line <= toLine; line++) {
-                    const [geolocationOnLine, _] = this.getLocationOnEditorLine(
-                        editor,
-                        line,
-                        view,
-                        false,
-                    );
+                    const [geolocationOnLine, _] =
+                        this.getLocationOnEditorLine(
+                            editor,
+                            line,
+                            view,
+                            false,
+                        ) ?? [];
                     if (geolocationOnLine) geolocations.push(geolocationOnLine);
                 }
                 return [fromLine, toLine, geolocations];

@@ -7,7 +7,7 @@ import {
     WorkspaceLeaf,
     Notice,
     MenuItem,
-    getIcon,
+    type Loc,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -1013,6 +1013,30 @@ export class MapContainer {
             } else {
                 this.display.popupDiv.addClass('simple-placement');
             }
+        }
+        if (this.settings.showNativeObsidianHoverPopup) {
+            const previewDetails = {
+                scroll: fileMarker.fileLine,
+                line: fileMarker.fileLine,
+                startLoc: {
+                    line: fileMarker.fileLine,
+                    col: 0,
+                    offset: fileMarker.fileLocation,
+                } as Loc,
+                endLoc: {
+                    line: fileMarker.fileLine,
+                    col: 0,
+                    offset: fileMarker.fileLocation,
+                } as Loc,
+            };
+            this.app.workspace.trigger(
+                'link-hover',
+                fileMarker.geoLayer.getElement(),
+                fileMarker.geoLayer.getElement(),
+                fileMarker.file.path,
+                '',
+                previewDetails,
+            );
         }
         this.startHoverHighlight(fileMarker);
     }
