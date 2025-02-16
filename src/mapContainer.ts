@@ -1131,7 +1131,11 @@ export class MapContainer {
         if (!chosenLeaf) {
             chosenLeaf = this.app.workspace.getLeaf(true);
         }
-        await chosenLeaf.openFile(file);
+        // Open the file and switch to it -- unless we created a new tab for it, on which case we should respect the user's
+        // "always focus new tabs" Obsidian setting
+        let active = undefined; // Respect user's "always focus new tabs" settings
+        if (!createTab) active = true; // Focus the leaf
+        await chosenLeaf.openFile(file, { active });
         const editor = utils.getEditor(this.app, chosenLeaf);
         if (editor && editorAction) await editorAction(editor);
     }

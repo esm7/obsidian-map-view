@@ -980,7 +980,7 @@ export default class MapViewPlugin extends Plugin {
             );
         } else {
             const leaf = this.app.workspace.activeLeaf;
-            await leaf.openFile(file);
+            await leaf.openFile(file, { active: true });
             const editor = utils.getEditor(this.app);
             if (editor)
                 await utils.goToEditorLocation(editor, cursorPos, false);
