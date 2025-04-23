@@ -43,11 +43,8 @@ import {
     type OpenBehavior,
 } from 'src/settings';
 import { type MapState } from 'src/mapState';
-import {
-    getFrontMatterLocation,
-    matchInlineLocation,
-    verifyLocation,
-} from 'src/markers';
+import { getFrontMatterLocation, matchInlineLocation } from 'src/fileMarker';
+import { verifyLocation } from 'src/baseGeoLayer';
 import { SettingsTab } from 'src/settingsTab';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { TagSuggest } from 'src/tagSuggest';

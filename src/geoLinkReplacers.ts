@@ -13,7 +13,7 @@ import {
     type MarkdownPostProcessorContext,
 } from 'obsidian';
 import MapViewPlugin from './main';
-import { matchInlineLocation, generateMarkerId } from './markers';
+import { matchInlineLocation, generateMarkerId } from './fileMarker';
 import * as regex from './regex';
 
 export interface GeoLinkReplacePlugin extends PluginValue {}

@@ -12,7 +12,7 @@ import { type MapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import { MapContainer } from 'src/mapContainer';
 import { type PluginSettings } from 'src/settings';
-import { FileMarker } from 'src/markers';
+import { FileMarker } from 'src/fileMarker';
 import { getIconFromOptions } from 'src/markerIcons';
 import { SvelteModal } from 'src/svelte';
 import ImportDialog from './components/ImportDialog.svelte';

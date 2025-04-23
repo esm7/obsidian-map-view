@@ -6,7 +6,8 @@ import { type PluginSettings } from 'src/settings';
 import { MapContainer, type ViewSettings } from 'src/mapContainer';
 import MapViewPlugin from 'src/main';
 import { LocationSearchDialog, SuggestInfo } from 'src/locationSearchDialog';
-import { FileMarker, type MarkersMap } from 'src/markers';
+import { FileMarker } from 'src/fileMarker';
+import { type MarkersMap } from 'src/baseGeoLayer';
 
 import * as leaflet from 'leaflet';
 import { mount, unmount } from 'svelte';

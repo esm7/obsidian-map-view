@@ -38,15 +38,16 @@ import {
     DEFAULT_SETTINGS,
 } from 'src/settings';
 import {
-    type MarkersMap,
-    BaseGeoLayer,
-    FileMarker,
     buildMarkers,
-    buildAndAppendFileMarkers,
     finalizeMarkers,
-    addEdgesToMarkers,
     cacheTagsFromMarkers,
 } from 'src/markers';
+import {
+    FileMarker,
+    buildAndAppendFileMarkers,
+    addEdgesToMarkers,
+} from 'src/fileMarker';
+import { type MarkersMap, BaseGeoLayer } from 'src/baseGeoLayer';
 import { getIconFromOptions, type IconOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';

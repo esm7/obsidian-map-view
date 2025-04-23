@@ -1,0 +1,78 @@
+import { TFile, type HeadingCache, type BlockCache } from 'obsidian';
+import * as leaflet from 'leaflet';
+import 'leaflet-extra-markers';
+import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
+import * as consts from 'src/consts';
+
+type MarkerId = string;
+
+export abstract class BaseGeoLayer {
+    public layerType: 'fileMarker' | 'geojson';
+    /** The file object on which this location was found */
+    public file: TFile;
+    /** An ID to recognize the marker */
+    public id: MarkerId;
+    /** In the case of an inline location, the position within the file where the location was found */
+    public fileLocation?: number;
+    /** The leaflet layer on the map */
+    public geoLayer?: leaflet.Layer;
+    /** In case of an inline location, the line within the file where the geolocation was found */
+    public fileLine?: number;
+    /** In case of an inline location, the file heading where the geolocation was found (if it's within a heading) */
+    public fileHeading?: HeadingCache;
+    /** In case of an inline location, the file block where the geolocation was found (if it's within a block) */
+    public fileBlock?: BlockCache;
+    /** In case of an inline location, geolocation match */
+    public geolocationMatch?: RegExpMatchArray;
+    /** Optional extra name that can be set for geolocation links (this is the link name rather than the file name) */
+    public extraName?: string;
+    /** Tags that this marker includes */
+    public tags: string[] = [];
+
+    /**
+     * Construct a new BaseGeoLayer object
+     * @param file The file the geo data comes from
+     */
+    protected constructor(file: TFile) {
+        this.file = file;
+    }
+
+    // /**
+    //  * Init the leaflet geographic layer from the data
+    //  * @param map
+    //  */
+    // abstract initGeoLayer(map: MapView): void;
+
+    /** Generate a unique identifier for this layer */
+    abstract generateId(): void;
+
+    /**
+     * Is this geographic layer identical to the other object.
+     * Used to compare to existing data to minimise creation.
+     * @param other The other object to compare to
+     */
+    abstract isSame(other: BaseGeoLayer): boolean;
+
+    /** Get the bounds of the data */
+    abstract getBounds(): leaflet.LatLng[];
+}
+
+export type MarkersMap = Map<MarkerId, BaseGeoLayer>;
+
+/**
+ * Make sure that the coordinates are valid world coordinates
+ * -90 <= latitude <= 90 and -180 <= longitude <= 180
+ * @param location
+ */
+export function verifyLocation(location: leaflet.LatLng) {
+    if (
+        location.lng < consts.LNG_LIMITS[0] ||
+        location.lng > consts.LNG_LIMITS[1]
+    )
+        throw Error(`Lng ${location.lng} is outside the allowed limits`);
+    if (
+        location.lat < consts.LAT_LIMITS[0] ||
+        location.lat > consts.LAT_LIMITS[1]
+    )
+        throw Error(`Lat ${location.lat} is outside the allowed limits`);
+}

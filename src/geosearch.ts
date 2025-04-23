@@ -5,7 +5,7 @@ import queryString from 'query-string';
 
 import { type PluginSettings } from 'src/settings';
 import { UrlConvertor } from 'src/urlConvertor';
-import { FileMarker } from 'src/markers';
+import { FileMarker } from 'src/fileMarker';
 import * as consts from 'src/consts';
 import * as utils from 'src/utils';
 
