@@ -47,6 +47,11 @@ import {
     buildAndAppendFileMarkers,
     addEdgesToMarkers,
 } from 'src/fileMarker';
+import {
+    GeoJsonLayer,
+    buildGeoJsonLayers,
+    GEOJSON_FILE_FILTER,
+} from 'src/geojsonLayer';
 import { type MarkersMap, BaseGeoLayer } from 'src/baseGeoLayer';
 import { getIconFromOptions, type IconOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
@@ -502,8 +507,7 @@ export class MapContainer {
         this.display?.map?.off();
         this.display?.map?.remove();
         this.display?.markers?.clear();
-        this.display?.controls?.controlsDiv?.remove();
-        await this.display?.controls?.reload();
+        this.display?.controls?.reload();
         await this.createMap();
         this.updateMarkersToState(this.state, true);
         this.display?.controls?.updateControlsToState();
@@ -687,8 +691,19 @@ export class MapContainer {
     ) {
         if (this.settings.debug) console.time('updateMarkersToState');
         let files = this.app.vault.getMarkdownFiles();
+        let geoJsonFiles = this.app.vault
+            .getFiles()
+            .filter((file) => GEOJSON_FILE_FILTER.includes(file.extension));
         // Build the markers and filter them according to the query
         let newMarkers = await buildMarkers(files, this.settings, this.app);
+        let geoJsonLayers = await buildGeoJsonLayers(
+            geoJsonFiles,
+            this.settings,
+            this.app,
+        );
+        // TODO TEMP filtering
+        // TODO TEMP loading from inline
+        // TODO TEMP tags
         cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
         try {
             newMarkers = this.filterMarkers(newMarkers, state.query);
@@ -712,7 +727,8 @@ export class MapContainer {
         );
         this.state = structuredClone(state);
 
-        this.updateMapMarkers(newMarkers);
+        // TODO TEMP change name
+        this.updateMapMarkers(Array.combine([newMarkers, geoJsonLayers]));
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
         // of interactions and async updates compete over the map.
         // See the comment in internalSetViewState to get more context
@@ -769,6 +785,17 @@ export class MapContainer {
             } else if (marker instanceof FileMarker) {
                 // New marker - create it
                 marker.geoLayer = this.newLeafletMarker(marker);
+                markersToAdd.push(marker.geoLayer);
+                if (newMarkersMap.get(marker.id))
+                    console.log(
+                        'Map view: warning, marker ID',
+                        marker.id,
+                        'already exists, please open an issue if you see this.',
+                    );
+                newMarkersMap.set(marker.id, marker);
+            } else if (marker instanceof GeoJsonLayer) {
+                // New GeoJson layer - create it
+                marker.geoLayer = this.newLeafletGeoJson(marker);
                 markersToAdd.push(marker.geoLayer);
                 if (newMarkersMap.get(marker.id))
                     console.log(
@@ -1588,5 +1615,9 @@ export class MapContainer {
             return element;
         };
         return tileLayer;
+    }
+
+    private newLeafletGeoJson(marker: GeoJsonLayer): leaflet.GeoJSON {
+        return leaflet.geoJSON(marker.geojson);
     }
 }
