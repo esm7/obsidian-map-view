@@ -2,6 +2,7 @@ import {
     Editor,
     FileView,
     MarkdownView,
+    Platform,
     type MarkdownFileInfo,
     Menu,
     TFile,
@@ -430,7 +431,8 @@ export default class MapViewPlugin extends Plugin {
             lng: string,
         ) => {
             event.preventDefault();
-            event.stopImmediatePropagation();
+            // Special iOS behavior (https://github.com/esm7/obsidian-map-view/issues/301)
+            if (!Platform.isIosApp) event.stopImmediatePropagation();
             const location = new leaflet.LatLng(
                 parseFloat(lat),
                 parseFloat(lng),
@@ -454,7 +456,9 @@ export default class MapViewPlugin extends Plugin {
             lng: string,
             name: string,
         ) => {
-            if (!this.settings.handleGeolinkContextMenu) return;
+            // Special iOS behavior (https://github.com/esm7/obsidian-map-view/issues/301)
+            if (!this.settings.handleGeolinkContextMenu || Platform.isIosApp)
+                return;
             event.preventDefault();
             event.stopImmediatePropagation();
             const location = new leaflet.LatLng(
@@ -483,8 +487,11 @@ export default class MapViewPlugin extends Plugin {
             lat: string,
             lng: string,
         ) => {
-            event.preventDefault();
-            event.stopImmediatePropagation();
+            // Special iOS behavior (https://github.com/esm7/obsidian-map-view/issues/301)
+            if (!Platform.isIosApp) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
         };
 
         (window as any).handlePointerDown = (
@@ -494,9 +501,32 @@ export default class MapViewPlugin extends Plugin {
             lat: string,
             lng: string,
         ) => {
-            event.preventDefault();
-            event.stopImmediatePropagation();
+            // Special iOS behavior (https://github.com/esm7/obsidian-map-view/issues/301)
+            if (!Platform.isIosApp) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
             this.mapPreviewPopup?.close(event);
+        };
+
+        (window as any).handleTouchStart = (
+            event: PointerEvent,
+            documentLocation: number,
+            markerId: string,
+            lat: string,
+            lng: string,
+        ) => {
+            // Special iOS behavior (https://github.com/esm7/obsidian-map-view/issues/301)
+            // Unfortunately this means that a single tap launches the link in iOS, even if the user intended to drag.
+            if (Platform.isIosApp) {
+                (window as any).handleMapViewGeoLink(
+                    event,
+                    documentLocation,
+                    markerId,
+                    lat,
+                    lng,
+                );
+            }
         };
 
         // As part of geoLinkReplacers.ts, geolinks in notes are embedded with mouse events that

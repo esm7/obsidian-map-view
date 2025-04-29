@@ -383,7 +383,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Geolink context menu in notes')
             .setDesc(
-                'Override the Obsidian context menu for geolinks in notes, making sure Map View "open in" items are shown correctly. Requires "Geolinks in Notes" above.',
+                'Override the Obsidian context menu for geolinks in notes, making sure Map View "open in" items are shown correctly. Requires "Geolinks in Notes" above. Does not currently work in iOS.',
             )
             .addToggle((component) => {
                 component

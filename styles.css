@@ -132,10 +132,20 @@ a.mv-icon-button.on {
     min-height: 4em;
     width: 30em;
     overflow: hidden;
-    /* Initially this isn't displayed */
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    display: block;
+    transition:
+        opacity 0.1s ease-out,
+        visibility 0s 0.1s;
     z-index: 1000;
     box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.mv-marker-popup-container.visible {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.1s ease-in;
 }
 .mv-marker-popup-container .markdown-embed {
     border-left: 0;
