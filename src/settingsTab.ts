@@ -383,7 +383,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Geolink context menu in notes')
             .setDesc(
-                'Override the Obsidian context menu for geolinks in notes, making sure Map View "open in" items are shown correctly. Requires "Geolinks in Notes" above.',
+                'Override the Obsidian context menu for geolinks in notes, making sure Map View "open in" items are shown correctly. Requires "Geolinks in Notes" above. Does not currently work in iOS.',
             )
             .addToggle((component) => {
                 component
@@ -437,7 +437,7 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Show note preview on map marker hover')
+            .setName('Show note preview on marker hover')
             .setDesc(
                 'In addition to the note name, show a preview if the note contents. Either way, it will be displayed only if the map is large enough to contain it.',
             )
@@ -446,6 +446,21 @@ export class SettingsTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.showNotePreview)
                     .onChange(async (value) => {
                         this.plugin.settings.showNotePreview = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Show native Obsidian popup on marker hover')
+            .setDesc(
+                'In addition to the above settings, trigger the native Obsidian note preview when hovering on a marker. ' +
+                    'The native Obsidian preview is more feature-rich than the above, and not recommended together with it, but Map View cannot control its placement and cannot add to it the note name, marker name etc.',
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.showNativeObsidianHoverPopup)
+                    .onChange(async (value) => {
+                        this.plugin.settings.showNativeObsidianHoverPopup =
+                            value;
                         await this.plugin.saveSettings();
                     });
             });

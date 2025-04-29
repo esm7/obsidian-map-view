@@ -7,6 +7,7 @@ import {
     TFile,
     getAllTags,
     getFrontMatterInfo,
+    Platform,
     type CachedMetadata,
     type HeadingCache,
     type BlockCache,
@@ -404,7 +405,7 @@ export function getAllTagNames(app: App, plugin: MapViewPlugin): string[] {
 }
 
 export function isMobile(app: App): boolean {
-    return (app as any)?.isMobile;
+    return Platform.isMobile;
 }
 
 export function trimmedFileName(file: TFile) {

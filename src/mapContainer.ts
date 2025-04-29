@@ -7,7 +7,7 @@ import {
     WorkspaceLeaf,
     Notice,
     MenuItem,
-    getIcon,
+    type Loc,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -623,7 +623,7 @@ export class MapContainer {
 
         this.display.map.on('click', (event: leaflet.LeafletMouseEvent) => {
             this.setHighlight(null);
-            this.closeMarkerPopup();
+            this.closeMarkerPopup(false);
         });
 
         // Build the map right-click context menu
@@ -650,12 +650,12 @@ export class MapContainer {
         setInterval(async () => {
             if (
                 this.display.popupDiv &&
-                this.display.popupDiv.style.display != 'none'
+                this.display.popupDiv.hasClass('visible')
             ) {
                 if (utils.isMobile(this.app)) return;
                 // If the popup is displayed, we're not on mobile (so it should be only displayed on hover) but
                 // there's no popup element, close the popup
-                if (!this.display.popupElement) this.closeMarkerPopup();
+                if (!this.display.popupElement) this.closeMarkerPopup(false);
                 if (this.display.popupElement) {
                     const mousePosition = await utils.getMousePosition();
                     const element = this.display.popupElement?.getElement();
@@ -671,7 +671,7 @@ export class MapContainer {
                     ) {
                         // The mouse position is not inside the marker the popup belongs to, seems like we missed
                         // an event to close the popup
-                        this.closeMarkerPopup();
+                        this.closeMarkerPopup(false);
                     }
                 }
             }
@@ -905,11 +905,11 @@ export class MapContainer {
         });
         newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app)) {
-                this.closeMarkerPopup();
+                this.closeMarkerPopup(false);
             }
         });
         newMarker.on('remove', (event: leaflet.LeafletMouseEvent) => {
-            this.closeMarkerPopup();
+            this.closeMarkerPopup(true);
         });
         newMarker.on('add', (event: leaflet.LeafletEvent) => {
             newMarker
@@ -1011,7 +1011,7 @@ export class MapContainer {
         // Popups based on the markers below the cursor shouldn't be opened while animations
         // are occuring
         if (this.settings.showNoteNamePopup || this.settings.showNotePreview) {
-            this.closeMarkerPopup();
+            this.closeMarkerPopup(true);
             const component = mount(MarkerPopup, {
                 target: this.display.popupDiv,
                 props: {
@@ -1021,7 +1021,7 @@ export class MapContainer {
                     view: this,
                     marker: fileMarker,
                     doClose: () => {
-                        this.closeMarkerPopup();
+                        this.closeMarkerPopup(false);
                     },
                 },
             });
@@ -1031,7 +1031,7 @@ export class MapContainer {
 
             const markerElement = event.target.getElement();
             // Make the popup visible
-            this.display.popupDiv.style.display = 'block';
+            this.display.popupDiv.addClass('visible');
             // If we're using Popper (non-mobile), update the Popper instance about which marker it should follow.
             // Otherwise, use a more naive placement
             if (this.display.popperInstance) {
@@ -1042,16 +1042,47 @@ export class MapContainer {
                 this.display.popupDiv.addClass('simple-placement');
             }
         }
+        if (this.settings.showNativeObsidianHoverPopup) {
+            const previewDetails = {
+                scroll: fileMarker.fileLine,
+                line: fileMarker.fileLine,
+                startLoc: {
+                    line: fileMarker.fileLine,
+                    col: 0,
+                    offset: fileMarker.fileLocation,
+                } as Loc,
+                endLoc: {
+                    line: fileMarker.fileLine,
+                    col: 0,
+                    offset: fileMarker.fileLocation,
+                } as Loc,
+            };
+            this.app.workspace.trigger(
+                'link-hover',
+                fileMarker.geoLayer.getElement(),
+                fileMarker.geoLayer.getElement(),
+                fileMarker.file.path,
+                '',
+                previewDetails,
+            );
+        }
         this.startHoverHighlight(fileMarker);
     }
 
-    private closeMarkerPopup() {
+    /*
+     * Popups can be closed in two ways:
+     * 1. A "soft" close, which means the user just hovered out of the popup element, and we may want the popup to fade away nicely, OR,
+     * 2. A "hard" close, which means a new popup needs to be opened right away, and there's no time for a fadeout.
+     */
+    private closeMarkerPopup(hardClose: boolean) {
         this.endHoverHighlight();
-        this.display.popupDiv.style.display = 'none';
-        this.display.popupElement = null;
-        if (this.display.popupElementUnmount)
-            this.display.popupElementUnmount();
-        this.display.popupElementUnmount = null;
+        this.display.popupDiv.removeClass('visible');
+        if (hardClose) {
+            this.display.popupElement = null;
+            if (this.display.popupElementUnmount)
+                this.display.popupElementUnmount();
+            this.display.popupElementUnmount = null;
+        }
     }
 
     private openClusterPreviewPopup(event: leaflet.LeafletEvent) {
@@ -1159,7 +1190,11 @@ export class MapContainer {
         if (!chosenLeaf) {
             chosenLeaf = this.app.workspace.getLeaf(true);
         }
-        await chosenLeaf.openFile(file);
+        // Open the file and switch to it -- unless we created a new tab for it, on which case we should respect the user's
+        // "always focus new tabs" Obsidian setting
+        let active = undefined; // Respect user's "always focus new tabs" settings
+        if (!createTab) active = true; // Focus the leaf
+        await chosenLeaf.openFile(file, { active });
         const editor = utils.getEditor(this.app, chosenLeaf);
         if (editor && editorAction) await editorAction(editor);
     }

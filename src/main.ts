@@ -2,6 +2,7 @@ import {
     Editor,
     FileView,
     MarkdownView,
+    Platform,
     type MarkdownFileInfo,
     Menu,
     TFile,
@@ -427,7 +428,8 @@ export default class MapViewPlugin extends Plugin {
             lng: string,
         ) => {
             event.preventDefault();
-            event.stopImmediatePropagation();
+            // Special iOS behavior (https://github.com/esm7/obsidian-map-view/issues/301)
+            if (!Platform.isIosApp) event.stopImmediatePropagation();
             const location = new leaflet.LatLng(
                 parseFloat(lat),
                 parseFloat(lng),
@@ -451,7 +453,9 @@ export default class MapViewPlugin extends Plugin {
             lng: string,
             name: string,
         ) => {
-            if (!this.settings.handleGeolinkContextMenu) return;
+            // Special iOS behavior (https://github.com/esm7/obsidian-map-view/issues/301)
+            if (!this.settings.handleGeolinkContextMenu || Platform.isIosApp)
+                return;
             event.preventDefault();
             event.stopImmediatePropagation();
             const location = new leaflet.LatLng(
@@ -480,8 +484,11 @@ export default class MapViewPlugin extends Plugin {
             lat: string,
             lng: string,
         ) => {
-            event.preventDefault();
-            event.stopImmediatePropagation();
+            // Special iOS behavior (https://github.com/esm7/obsidian-map-view/issues/301)
+            if (!Platform.isIosApp) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
         };
 
         (window as any).handlePointerDown = (
@@ -491,9 +498,32 @@ export default class MapViewPlugin extends Plugin {
             lat: string,
             lng: string,
         ) => {
-            event.preventDefault();
-            event.stopImmediatePropagation();
+            // Special iOS behavior (https://github.com/esm7/obsidian-map-view/issues/301)
+            if (!Platform.isIosApp) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
             this.mapPreviewPopup?.close(event);
+        };
+
+        (window as any).handleTouchStart = (
+            event: PointerEvent,
+            documentLocation: number,
+            markerId: string,
+            lat: string,
+            lng: string,
+        ) => {
+            // Special iOS behavior (https://github.com/esm7/obsidian-map-view/issues/301)
+            // Unfortunately this means that a single tap launches the link in iOS, even if the user intended to drag.
+            if (Platform.isIosApp) {
+                (window as any).handleMapViewGeoLink(
+                    event,
+                    documentLocation,
+                    markerId,
+                    lat,
+                    lng,
+                );
+            }
         };
 
         // As part of geoLinkReplacers.ts, geolinks in notes are embedded with mouse events that
@@ -853,12 +883,13 @@ export default class MapViewPlugin extends Plugin {
             }
             if (!multiLineMode) {
                 const editorLine = editor.getCursor().line;
-                const [location, name] = this.getLocationOnEditorLine(
-                    editor,
-                    editorLine,
-                    view,
-                    true,
-                );
+                const [location, name] =
+                    this.getLocationOnEditorLine(
+                        editor,
+                        editorLine,
+                        view,
+                        true,
+                    ) ?? [];
                 if (location) {
                     const editorLine = editor.getCursor().line;
                     menus.addShowOnMap(
@@ -899,12 +930,13 @@ export default class MapViewPlugin extends Plugin {
                 const toLine = Math.max(anchorLine, headLine);
                 let geolocations: leaflet.LatLng[] = [];
                 for (let line = fromLine; line <= toLine; line++) {
-                    const [geolocationOnLine, _] = this.getLocationOnEditorLine(
-                        editor,
-                        line,
-                        view,
-                        false,
-                    );
+                    const [geolocationOnLine, _] =
+                        this.getLocationOnEditorLine(
+                            editor,
+                            line,
+                            view,
+                            false,
+                        ) ?? [];
                     if (geolocationOnLine) geolocations.push(geolocationOnLine);
                 }
                 return [fromLine, toLine, geolocations];
@@ -977,7 +1009,7 @@ export default class MapViewPlugin extends Plugin {
             );
         } else {
             const leaf = this.app.workspace.activeLeaf;
-            await leaf.openFile(file);
+            await leaf.openFile(file, { active: true });
             const editor = utils.getEditor(this.app);
             if (editor)
                 await utils.goToEditorLocation(editor, cursorPos, false);

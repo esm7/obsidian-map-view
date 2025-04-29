@@ -176,9 +176,7 @@ export function getLinkReplaceEditorPlugin(mapViewPlugin: MapViewPlugin) {
                         // The functions referenced here need to be given as text, and are therefore defined in
                         // the main plugin module on a 'window' level.
                         onclick: `handleMapViewGeoLink(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
-                        // This is not ideal since it ruins scrolling and other default behaviors on touches that
-                        // start from the link, but without this, in mobile links launch their default behavior
-                        // in addition to the one I set above
+                        ontouchstart: `handleTouchStart(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
                         onpointerdown: `handlePointerDown(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
                         onpointerup: `handlePointerUp(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
                         onmouseover: `createMapPopup(event, ${from}, "${markerId}", "${lat}", "${lng}")`,
