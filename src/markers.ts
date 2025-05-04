@@ -49,7 +49,6 @@ export function finalizeMarkers(
                 iconFactory,
             );
         } else {
-            throw 'Unsupported object type ' + marker.constructor.name;
         }
     }
 }

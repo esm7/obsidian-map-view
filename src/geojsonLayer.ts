@@ -14,6 +14,7 @@ import {
 } from 'obsidian';
 import wildcard from 'wildcard';
 import { type GeoJSON } from 'geojson';
+import * as toGeoJson from '@tmcw/togeojson';
 
 import { BaseGeoLayer, verifyLocation } from 'src/baseGeoLayer';
 import { type IconOptions } from 'src/markerIcons';
@@ -21,7 +22,7 @@ import { djb2Hash, getHeadingAndBlockForFilePosition } from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
 
-export const GEOJSON_FILE_FILTER = ['gpx', 'geojson'];
+export const GEOJSON_FILE_FILTER = ['gpx', 'geojson', 'md', 'kml', 'tcx'];
 
 /** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
 export class GeoJsonLayer extends BaseGeoLayer {
@@ -87,5 +88,73 @@ export async function buildGeoJsonLayers(
     settings: PluginSettings,
     app: App,
 ): Promise<BaseGeoLayer[]> {
-    return [];
+    let layers: BaseGeoLayer[] = [];
+    for (const file of files) {
+        if (file.extension === 'geojson') {
+            try {
+                const content = await app.vault.read(file);
+                const layer = new GeoJsonLayer(file);
+                layer.geojson = JSON.parse(content);
+                layers.push(layer);
+            } catch (e) {
+                console.log(`Error parsing geojson in ${file.name}`, e);
+            }
+        } else if (file.extension === 'md') {
+            // Search for an inline GeoJSON
+            const content = await app.vault.read(file);
+            const matches = content.matchAll(regex.INLINE_GEOJSON);
+            for (const match of matches) {
+                try {
+                    const geoJsonString = match.groups?.content;
+                    if (geoJsonString) {
+                        const geoJson = JSON.parse(geoJsonString);
+                        if (Object.keys(geoJson).length > 0) {
+                            const layer = new GeoJsonLayer(file);
+                            layer.geojson = geoJson;
+                            layer.fileLocation = match.index;
+                            layer.fileLine =
+                                content
+                                    .substring(0, layer.fileLocation)
+                                    .split('\n').length - 1;
+                            // TODO add file block and heading
+                            layer.generateId();
+                            layers.push(layer);
+                        }
+                    }
+                } catch (e) {
+                    console.log(
+                        `Error converting inline GeoJSON in file ${file.name}:`,
+                        e,
+                    );
+                }
+            }
+        } else if (
+            file.extension === 'gpx' ||
+            file.extension === 'kml' ||
+            file.extension === 'tcx'
+        ) {
+            const content = await app.vault.read(file);
+            try {
+                const doc = new DOMParser().parseFromString(
+                    content,
+                    'text/xml',
+                );
+                const geoJson =
+                    file.extension === 'gpx'
+                        ? toGeoJson.gpx(doc)
+                        : file.extension === 'kml'
+                          ? toGeoJson.kml(doc)
+                          : file.extension === 'tcx'
+                            ? toGeoJson.tcx(doc)
+                            : null;
+                const layer = new GeoJsonLayer(file);
+                layer.geojson = geoJson;
+                layer.generateId();
+                layers.push(layer);
+            } catch (e) {
+                console.log(`Error reading path from ${file.name}:`, e);
+            }
+        }
+    }
+    return layers;
 }

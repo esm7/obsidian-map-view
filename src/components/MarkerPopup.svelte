@@ -4,20 +4,20 @@
     import { App, getIcon, Component, MarkdownRenderer } from 'obsidian';
     import { type PluginSettings } from '../settings';
     import { MapContainer } from '../mapContainer';
-    import { FileMarker } from '../fileMarker';
+    import { BaseGeoLayer } from '../baseGeoLayer';
     import * as utils from '../utils';
     import * as consts from '../consts';
 
-    let { plugin, app, settings, view, marker, mapMarker, doClose } = $props<{
+    let { plugin, app, settings, view, layer, mapMarker, doClose } = $props<{
         plugin: MapViewPlugin;
         app: App;
         settings: PluginSettings;
         view: MapContainer;
-        marker: FileMarker;
+        layer: BaseGeoLayer;
         doClose: () => void;
     }>();
 
-    const fileName = marker.file.name;
+    const fileName = layer.file.name;
     const fileNameWithoutExtension = fileName.endsWith('.md')
         ? fileName.substring(0, fileName.lastIndexOf('.md'))
         : fileName;
@@ -26,8 +26,8 @@
     const showExtraName =
         (showLinkSetting === 'always' ||
             (showLinkSetting === 'mobileOnly' && utils.isMobile(app))) &&
-        marker.extraName &&
-        marker.extraName.length > 0;
+        layer.extraName &&
+        layer.extraName.length > 0;
     const mapHeight = view.display.mapDiv.clientHeight;
     const showPreview =
         settings.showNotePreview &&
@@ -35,18 +35,18 @@
     let previewDiv: HTMLDivElement;
 
     async function createPreview(
-        fileMarker: FileMarker,
+        layer: BaseGeoLayer,
         element: HTMLDivElement,
         settings: PluginSettings,
         app: App,
     ) {
-        const content = await app.vault.read(fileMarker.file);
-        const snippet = extractSnippet(content, 15, fileMarker.fileLine);
+        const content = await app.vault.read(layer.file);
+        const snippet = extractSnippet(content, 15, layer.fileLine);
         MarkdownRenderer.render(
             app,
             snippet,
             element,
-            fileMarker.file.path,
+            layer.file.path,
             new Component(),
         );
     }
@@ -96,13 +96,13 @@
 
     onMount(async () => {
         if (showPreview) {
-            await createPreview(marker, previewDiv, settings, app);
+            await createPreview(layer, previewDiv, settings, app);
             scrollPopupToHighlight(previewDiv);
         }
     });
 
     function openMenu(ev: MouseEvent) {
-        const markerElement = marker.geoLayer.getElement();
+        const markerElement = layer.geoLayer.getElement();
         if (markerElement) {
             markerElement.dispatchEvent(
                 new MouseEvent('contextmenu', {
@@ -122,7 +122,7 @@
 
     function openNote(ev: MouseEvent) {
         view.goToMarker(
-            marker,
+            layer,
             utils.mouseEventToOpenMode(settings, ev, 'openNote'),
             true,
         );
@@ -138,7 +138,7 @@
             </p>
             {#if showExtraName}
                 <p class="map-view-marker-sub-name">
-                    {marker.extraName}
+                    {layer.extraName}
                 </p>
             {/if}
         </div>

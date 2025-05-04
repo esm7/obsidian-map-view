@@ -49,7 +49,7 @@ export class Query {
         return newString;
     }
 
-    testMarker(marker: BaseGeoLayer): boolean {
+    testMarker(layer: BaseGeoLayer): boolean {
         if (this.queryEmpty) return true;
         const toBool = (s: string) => {
             return s === 'true';
@@ -60,10 +60,8 @@ export class Query {
         let booleanStack: string[] = [];
         for (const token of this.queryRpn) {
             if (token.name === 'IDENTIFIER') {
-                if (marker instanceof FileMarker) {
-                    const result = this.testIdentifier(marker, token.value);
-                    booleanStack.push(toString(result));
-                }
+                const result = this.testIdentifier(layer, token.value);
+                booleanStack.push(toString(result));
             } else if (token.name === 'OPERATOR') {
                 let result;
                 if (token.value === 'NOT') {
@@ -87,7 +85,7 @@ export class Query {
         return toBool(booleanStack[0]);
     }
 
-    testIdentifier(marker: FileMarker, value: string): boolean {
+    testIdentifier(marker: BaseGeoLayer, value: string): boolean {
         if (value.startsWith('tag:#')) {
             const queryTag = value.replace('tag:', '');
             if (queryTag.length === 0) return false;
@@ -139,6 +137,7 @@ export class Query {
                 const allLinks = [
                     ...(linksFrom?.links ?? []),
                     ...(linksFrom?.frontmatterLinks ?? []),
+                    ...(linksFrom?.embeds ?? []),
                 ];
                 // Check if the given marker is linked from 'fileMatch'
                 for (const link of allLinks) {

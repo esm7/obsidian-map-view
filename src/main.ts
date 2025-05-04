@@ -333,7 +333,11 @@ export default class MapViewPlugin extends Plugin {
                 if (!view)
                     view = await this.openMap(this.settings.openMapBehavior);
                 if (view) {
-                    (view as MainMapView).mapContainer.openSearch();
+                    const mapView = view as MainMapView;
+                    this.app.workspace.setActiveLeaf(mapView.leaf, {
+                        focus: true,
+                    });
+                    mapView.mapContainer.openSearch();
                 }
             },
         });

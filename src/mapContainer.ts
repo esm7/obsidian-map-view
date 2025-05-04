@@ -701,34 +701,33 @@ export class MapContainer {
             this.settings,
             this.app,
         );
-        // TODO TEMP filtering
-        // TODO TEMP loading from inline
+        let allLayers = Array.combine([newMarkers, geoJsonLayers]);
         // TODO TEMP tags
-        cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
+        cacheTagsFromMarkers(allLayers, this.plugin.allTags);
         try {
-            newMarkers = this.filterMarkers(newMarkers, state.query);
+            allLayers = this.filterMarkers(allLayers, state.query);
             state.queryError = false;
         } catch (e) {
-            newMarkers = [];
+            allLayers = [];
             state.queryError = true;
         }
         finalizeMarkers(
-            newMarkers,
+            allLayers,
             state,
             this.settings,
             this.plugin.iconFactory,
             this.app,
         );
         addEdgesToMarkers(
-            newMarkers,
+            allLayers,
             this.app,
             state.showLinks,
             this.display.polylines,
         );
         this.state = structuredClone(state);
 
-        // TODO TEMP change name
-        this.updateMapMarkers(Array.combine([newMarkers, geoJsonLayers]));
+        // TODO TEMP change names
+        this.updateMapMarkers(allLayers);
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
         // of interactions and async updates compete over the map.
         // See the comment in internalSetViewState to get more context
@@ -765,56 +764,53 @@ export class MapContainer {
      * Unchanged markers are not touched, new markers are created and old markers that are not in the updated list are removed.
      * Also, all the polylines (edge lines representing links) are cleared and redrawn, which is inefficient and can
      * be optimized in the future.
-     * @param newMarkers The new array of FileMarkers
+     * @param newLayer The new array of layers
      */
-    updateMapMarkers(newMarkers: BaseGeoLayer[]) {
-        let newMarkersMap: MarkersMap = new Map();
-        let markersToAdd: leaflet.Layer[] = [];
-        let markersToRemove: leaflet.Layer[] = [];
-        for (let marker of newMarkers) {
-            const existingMarker = this.display.markers.has(marker.id)
-                ? this.display.markers.get(marker.id)
+    updateMapMarkers(newLayers: BaseGeoLayer[]) {
+        let newLayersMap: MarkersMap = new Map();
+        let layersToAdd: leaflet.Layer[] = [];
+        let layersToRemove: leaflet.Layer[] = [];
+        for (let layer of newLayers) {
+            const existingMarker = this.display.markers.has(layer.id)
+                ? this.display.markers.get(layer.id)
                 : null;
-            if (existingMarker && existingMarker.isSame(marker)) {
-                // This marker exists, so just keep it
-                newMarkersMap.set(
-                    marker.id,
-                    this.display.markers.get(marker.id),
-                );
-                this.display.markers.delete(marker.id);
-            } else if (marker instanceof FileMarker) {
+            if (existingMarker && existingMarker.isSame(layer)) {
+                // This layer exists, so just keep it
+                newLayersMap.set(layer.id, this.display.markers.get(layer.id));
+                this.display.markers.delete(layer.id);
+            } else if (layer instanceof FileMarker) {
                 // New marker - create it
-                marker.geoLayer = this.newLeafletMarker(marker);
-                markersToAdd.push(marker.geoLayer);
-                if (newMarkersMap.get(marker.id))
+                layer.geoLayer = this.newLeafletMarker(layer);
+                layersToAdd.push(layer.geoLayer);
+                if (newLayersMap.get(layer.id))
                     console.log(
                         'Map view: warning, marker ID',
-                        marker.id,
+                        layer.id,
                         'already exists, please open an issue if you see this.',
                     );
-                newMarkersMap.set(marker.id, marker);
-            } else if (marker instanceof GeoJsonLayer) {
+                newLayersMap.set(layer.id, layer);
+            } else if (layer instanceof GeoJsonLayer) {
                 // New GeoJson layer - create it
-                marker.geoLayer = this.newLeafletGeoJson(marker);
-                markersToAdd.push(marker.geoLayer);
-                if (newMarkersMap.get(marker.id))
+                layer.geoLayer = this.newLeafletGeoJson(layer);
+                layersToAdd.push(layer.geoLayer);
+                if (newLayersMap.get(layer.id))
                     console.log(
-                        'Map view: warning, marker ID',
-                        marker.id,
+                        'Map view: warning, layer ID',
+                        layer.id,
                         'already exists, please open an issue if you see this.',
                     );
-                newMarkersMap.set(marker.id, marker);
+                newLayersMap.set(layer.id, layer);
             }
         }
         for (let [key, value] of this.display.markers) {
-            markersToRemove.push(value.geoLayer);
+            layersToRemove.push(value.geoLayer);
             // Remove the edges that connect the markers we are removing, together with their polylines
             if (value instanceof FileMarker)
                 value.removeEdges(this.display.polylines);
         }
-        this.display.clusterGroup.removeLayers(markersToRemove);
-        this.display.clusterGroup.addLayers(markersToAdd);
-        this.display.markers = newMarkersMap;
+        this.display.clusterGroup.removeLayers(layersToRemove);
+        this.display.clusterGroup.addLayers(layersToAdd);
+        this.display.markers = newLayersMap;
         this.buildPolylines();
     }
 
@@ -1005,10 +1001,10 @@ export class MapContainer {
     }
 
     private async showMarkerPopups(
-        fileMarker: FileMarker,
+        layer: BaseGeoLayer,
         event: leaflet.LeafletMouseEvent,
     ) {
-        // Popups based on the markers below the cursor shouldn't be opened while animations
+        // Popups based on the layers below the cursor shouldn't be opened while animations
         // are occuring
         if (this.settings.showNoteNamePopup || this.settings.showNotePreview) {
             this.closeMarkerPopup(true);
@@ -1019,7 +1015,7 @@ export class MapContainer {
                     app: this.app,
                     settings: this.settings,
                     view: this,
-                    marker: fileMarker,
+                    layer: layer,
                     doClose: () => {
                         this.closeMarkerPopup(false);
                     },
@@ -1042,31 +1038,35 @@ export class MapContainer {
                 this.display.popupDiv.addClass('simple-placement');
             }
         }
-        if (this.settings.showNativeObsidianHoverPopup) {
+        if (
+            this.settings.showNativeObsidianHoverPopup &&
+            layer.layerType === 'fileMarker'
+        ) {
             const previewDetails = {
-                scroll: fileMarker.fileLine,
-                line: fileMarker.fileLine,
+                scroll: layer.fileLine,
+                line: layer.fileLine,
                 startLoc: {
-                    line: fileMarker.fileLine,
+                    line: layer.fileLine,
                     col: 0,
-                    offset: fileMarker.fileLocation,
+                    offset: layer.fileLocation,
                 } as Loc,
                 endLoc: {
-                    line: fileMarker.fileLine,
+                    line: layer.fileLine,
                     col: 0,
-                    offset: fileMarker.fileLocation,
+                    offset: layer.fileLocation,
                 } as Loc,
             };
+            const fileMarker = layer as FileMarker;
             this.app.workspace.trigger(
                 'link-hover',
                 fileMarker.geoLayer.getElement(),
                 fileMarker.geoLayer.getElement(),
-                fileMarker.file.path,
+                layer.file.path,
                 '',
                 previewDetails,
             );
         }
-        this.startHoverHighlight(fileMarker);
+        this.startHoverHighlight(layer);
     }
 
     /*
@@ -1552,7 +1552,7 @@ export class MapContainer {
         }
     }
 
-    startHoverHighlight(markerToFocus: FileMarker) {
+    startHoverHighlight(markerToFocus: BaseGeoLayer) {
         if (!this.state.showLinks) return;
         this.display.mapDiv.addClass('mv-fade-active');
         for (const marker of this.display.markers.values()) {
@@ -1568,7 +1568,8 @@ export class MapContainer {
                 const element = visibleLeafletMarker.getElement();
                 const shouldBeVisible =
                     marker === markerToFocus ||
-                    marker.isLinkedTo(markerToFocus);
+                    (markerToFocus.layerType === 'fileMarker' &&
+                        marker.isLinkedTo(markerToFocus as FileMarker));
                 if (element) {
                     // We add two classes, one denoting that generally a fade is active and another to denote
                     // that a specific marker should be shown. It is done this way because of cluster groups.
@@ -1653,6 +1654,17 @@ export class MapContainer {
     }
 
     private newLeafletGeoJson(marker: GeoJsonLayer): leaflet.GeoJSON {
-        return leaflet.geoJSON(marker.geojson);
+        const geoJsonLayer = leaflet.geoJSON(marker.geojson, {
+            onEachFeature: (feature: any, layer: leaflet.Layer) => {
+                layer.bindPopup(marker.file.name, { autoClose: true });
+                layer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+                    layer.openPopup();
+                });
+                layer.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
+                    layer.closePopup();
+                });
+            },
+        });
+        return geoJsonLayer;
     }
 }

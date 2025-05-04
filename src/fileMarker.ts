@@ -11,6 +11,7 @@ import {
     parseLinktext,
     resolveSubpath,
     type FrontmatterLinkCache,
+    type ReferenceCache,
 } from 'obsidian';
 import wildcard from 'wildcard';
 
@@ -19,6 +20,7 @@ import { type IconOptions } from 'src/markerIcons';
 import { djb2Hash, getHeadingAndBlockForFilePosition } from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
+import { GeoJsonLayer } from './geojsonLayer';
 
 /** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
 export class FileMarker extends BaseGeoLayer {
@@ -410,20 +412,23 @@ function addEdgesFromFile(
  * only if the marker is in that header/block. A front-matter marker is considered link regardless of the block/header.
  */
 export function isMarkerLinkedFrom(
-    marker: FileMarker,
-    linkCache: LinkCache | FrontmatterLinkCache,
+    marker: BaseGeoLayer,
+    linkCache: LinkCache | FrontmatterLinkCache | ReferenceCache,
     app: App,
 ) {
     const parsedLink = parseLinktext(linkCache.link);
     const fileMatches =
         parsedLink.path.toLowerCase() === marker.file.basename.toLowerCase() ||
+        parsedLink.path === marker.file.name ||
         linkCache.displayText.toLowerCase() ===
             marker.file.basename.toLowerCase();
     // If the link is not pointing at the marker's file at all, there's nothing more to talk about
     if (!fileMatches) return false;
 
     // Now if it's a front matter marker, being the right file is all we need
-    if (marker.isFrontmatterMarker) return true;
+    if (marker instanceof FileMarker && marker.isFrontmatterMarker) return true;
+    // Also if it's a GeoJSON marker
+    if (marker instanceof GeoJsonLayer) return true;
     // If the link doesn't have a subpath, being the right file is all we need too
     if (!parsedLink.subpath) return true;
 

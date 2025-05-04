@@ -57,6 +57,7 @@ export abstract class BaseGeoLayer {
     abstract getBounds(): leaflet.LatLng[];
 }
 
+// TODO change class name to LayersMap
 export type MarkersMap = Map<MarkerId, BaseGeoLayer>;
 
 /**
