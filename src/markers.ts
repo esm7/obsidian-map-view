@@ -5,6 +5,7 @@ import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 
 import { type PluginSettings } from 'src/settings';
 import { getIconFromRules, IconFactory } from 'src/markerIcons';
+import { DisplayRulesCache } from 'src/displayRulesCache';
 import { type MapState } from 'src/mapState';
 import { BaseGeoLayer } from 'src/baseGeoLayer';
 import { buildAndAppendFileMarkers, FileMarker } from 'src/fileMarker';
@@ -39,13 +40,14 @@ export function finalizeMarkers(
     state: MapState,
     settings: PluginSettings,
     iconFactory: IconFactory,
+    displayRulesCache: DisplayRulesCache,
     app: App,
 ) {
     for (const marker of markers) {
         if (marker instanceof FileMarker) {
             marker.icon = getIconFromRules(
-                marker.tags,
-                settings.markerIconRules,
+                marker,
+                displayRulesCache,
                 iconFactory,
             );
         } else {

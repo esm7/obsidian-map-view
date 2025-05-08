@@ -1,5 +1,7 @@
 import * as leaflet from 'leaflet';
 
+import { App } from 'obsidian';
+
 // import '@fortawesome/fontawesome-free/js/all.min';
 import { fas } from '@fortawesome/free-solid-svg-icons';
 import { far } from '@fortawesome/free-regular-svg-icons';
@@ -20,7 +22,9 @@ import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 let localL = L;
 import wildcard from 'wildcard';
 
-import { type MarkerIconRule } from 'src/settings';
+import { type DisplayRule } from 'src/settings';
+import { FileMarker } from 'src/fileMarker';
+import type { DisplayRulesCache } from './displayRulesCache';
 
 // An extended Map View icon options, adding 'simple-circle' to the options of the 'shape' field.
 export interface IconOptions
@@ -29,18 +33,13 @@ export interface IconOptions
 }
 
 export function getIconFromRules(
-    tags: string[],
-    rules: MarkerIconRule[],
+    marker: FileMarker,
+    displayRulesCache: DisplayRulesCache,
     iconFactory: IconFactory,
 ) {
     // We iterate over the rules and apply them one by one, so later rules override earlier ones
-    let result = rules.find((item) => item.ruleName === 'default').iconDetails;
-    for (const rule of rules) {
-        if (checkTagPatternMatch(rule.ruleName, tags)) {
-            result = Object.assign({}, result, rule.iconDetails);
-        }
-    }
-    return getIconFromOptions(result, iconFactory);
+    const iconOptions = displayRulesCache.runOn(marker);
+    return getIconFromOptions(iconOptions, iconFactory);
 }
 
 export function getIconFromOptions(

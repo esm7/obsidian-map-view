@@ -20,7 +20,7 @@ export type PluginSettings = {
     // Since the plugin evolves with time, we assume saved states to be partial, i.e. they may not include
     // all the fields of a full map state.
     savedStates: Partial<MapState[]>;
-    markerIconRules: MarkerIconRule[];
+    displayRules: DisplayRule[];
     zoomOnGoFromNote: number;
     mapSources: TileSource[];
     frontMatterKey: string;
@@ -68,10 +68,12 @@ export type PluginSettings = {
     cacheAllTiles: boolean;
     offlineMaxTileAgeMonths: number;
     offlineMaxStorageGb: number;
+    loadLayersAhead: boolean;
 };
 
 export type DepracatedFields = {
     markerIcons?: Record<string, any>;
+    markerIconRules?: MarkerIconRule[];
     tilesUrl?: string;
     chosenMapSource?: number;
     defaultMapCenter?: LatLng;
@@ -128,6 +130,13 @@ export type MarkerIconRule = {
     iconDetails: any;
 };
 
+export type DisplayRule = {
+    query: string;
+    preset: boolean;
+    iconDetails?: any;
+    pathDetails?: any;
+};
+
 export const DEFAULT_SETTINGS: PluginSettings = {
     defaultState: {
         name: 'Default',
@@ -146,9 +155,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         markerLabels: 'off',
     },
     savedStates: [],
-    markerIconRules: [
+    displayRules: [
         {
-            ruleName: 'default',
+            query: '',
             preset: true,
             iconDetails: {
                 prefix: 'fas',
@@ -157,7 +166,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             },
         },
         {
-            ruleName: '#trip',
+            query: 'tag:#trip',
             preset: false,
             iconDetails: {
                 prefix: 'fas',
@@ -166,12 +175,12 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             },
         },
         {
-            ruleName: '#trip-water',
+            query: 'tag:#trip-water',
             preset: false,
             iconDetails: { prefix: 'fas', markerColor: 'blue' },
         },
         {
-            ruleName: '#dogs',
+            query: 'tag:#dogs',
             preset: false,
             iconDetails: { prefix: 'fas', icon: 'fa-paw' },
         },
@@ -264,6 +273,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     offlineMaxTileAgeMonths: 6,
     // 0 means never automatically purge
     offlineMaxStorageGb: 2,
+    loadLayersAhead: true,
 };
 
 export function convertLegacyMarkerIcons(
@@ -422,6 +432,27 @@ export function convertLegacyGooglePlaces(settings: PluginSettings): boolean {
     return changed;
 }
 
+export function convertMarkerIconRulesToDisplayRules(
+    settings: PluginSettings & DepracatedFields,
+) {
+    let changed = false;
+    if (settings.markerIconRules) {
+        // Make sure not to add to any defaults
+        settings.displayRules = [];
+        for (const rule of settings.markerIconRules) {
+            const displayRule: DisplayRule = {
+                query: rule.preset ? '' : `tag:${rule.ruleName}`,
+                preset: rule.preset,
+                iconDetails: rule.iconDetails,
+            };
+            settings.displayRules.push(displayRule);
+            changed = true;
+        }
+    }
+    delete settings.markerIconRules;
+    return changed;
+}
+
 /*
  * The more Map View evolves, fields get added to the MapState class, leading to old saved states having
  * missing fields.
@@ -485,6 +516,12 @@ export async function convertLegacySettings(
         );
     }
     if (convertLegacyGooglePlaces(settings)) changed = true;
+    if (convertMarkerIconRulesToDisplayRules(settings)) {
+        changed = true;
+        new Notice(
+            'Map View: legacy marker icon rules were converted to the new "display rules" format.',
+        );
+    }
 
     completePartialSavedStates(settings);
 

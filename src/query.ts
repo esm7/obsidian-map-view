@@ -33,7 +33,7 @@ export class Query {
         } else this.queryEmpty = true;
     }
 
-    preprocessQueryString(queryString: string) {
+    private preprocessQueryString(queryString: string) {
         // 1. Replace tag:#abc by "tag:#abc" because this parser doesn't like the '#' symbol
         // 2. Replace path:"abc def/ghi" by "path:abc def/dhi" because the parser doesn't like quotes as part of the words
         // 3. Same goes for linkedto:"", linkedfrom:"" and name:""
@@ -85,7 +85,7 @@ export class Query {
         return toBool(booleanStack[0]);
     }
 
-    testIdentifier(marker: BaseGeoLayer, value: string): boolean {
+    private testIdentifier(marker: BaseGeoLayer, value: string): boolean {
         if (value.startsWith('tag:#')) {
             const queryTag = value.replace('tag:', '');
             if (queryTag.length === 0) return false;

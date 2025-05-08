@@ -42,11 +42,7 @@ import {
     finalizeMarkers,
     cacheTagsFromMarkers,
 } from 'src/markers';
-import {
-    FileMarker,
-    buildAndAppendFileMarkers,
-    addEdgesToMarkers,
-} from 'src/fileMarker';
+import { FileMarker, addEdgesToMarkers } from 'src/fileMarker';
 import {
     GeoJsonLayer,
     buildGeoJsonLayers,
@@ -690,22 +686,13 @@ export class MapContainer {
         freezeMap: boolean = false,
     ) {
         if (this.settings.debug) console.time('updateMarkersToState');
-        let files = this.app.vault.getMarkdownFiles();
-        let geoJsonFiles = this.app.vault
-            .getFiles()
-            .filter((file) => GEOJSON_FILE_FILTER.includes(file.extension));
-        // Build the markers and filter them according to the query
-        let newMarkers = await buildMarkers(files, this.settings, this.app);
-        let geoJsonLayers = await buildGeoJsonLayers(
-            geoJsonFiles,
-            this.settings,
-            this.app,
-        );
-        let allLayers = Array.combine([newMarkers, geoJsonLayers]);
-        // TODO TEMP tags
-        cacheTagsFromMarkers(allLayers, this.plugin.allTags);
+        await this.plugin.waitForInitialization();
+        let allLayers: BaseGeoLayer[] = [];
         try {
-            allLayers = this.filterMarkers(allLayers, state.query);
+            allLayers = this.filterMarkers(
+                this.plugin.layerCache.values(),
+                state.query,
+            );
             state.queryError = false;
         } catch (e) {
             allLayers = [];
@@ -716,6 +703,7 @@ export class MapContainer {
             state,
             this.settings,
             this.plugin.iconFactory,
+            this.plugin.displayRulesCache,
             this.app,
         );
         addEdgesToMarkers(
@@ -751,7 +739,7 @@ export class MapContainer {
         if (this.settings.debug) console.timeEnd('updateMarkersToState');
     }
 
-    filterMarkers(allMarkers: BaseGeoLayer[], queryString: string) {
+    filterMarkers(allMarkers: MapIterator<BaseGeoLayer>, queryString: string) {
         let results: BaseGeoLayer[] = [];
         const query = new Query(this.app, queryString);
         for (const marker of allMarkers)
@@ -1219,61 +1207,6 @@ export class MapContainer {
         });
     }
 
-    /**
-     * Update the map markers with a list of markers not from the removed file plus the markers from the new file.
-     * Run when a file is deleted, renamed or *changed*.
-     * WARNING: THIS METHOD RUNS A LOT. When a Map View is open and a note is edited anywhere in Obsidian,
-     * this method can be called repeatedly during typing, and thus must be very efficient to not cause
-     * delays for the user.
-     * @param fileRemoved The old file path
-     * @param fileAddedOrChanged The new file data
-     */
-    private async updateMarkersWithRelationToFile(
-        fileRemoved: string,
-        fileAddedOrChanged: TAbstractFile,
-        skipMetadata: boolean,
-    ) {
-        if (!this.display.map || !this.isOpen)
-            // If the map has not been set up yet then do nothing
-            return;
-        let markers: BaseGeoLayer[] = [];
-        // Create an array of all file markers not in the removed file
-        for (let [_markerId, existingMarker] of this.display.markers) {
-            if (existingMarker.file.path !== fileRemoved)
-                markers.push(existingMarker);
-        }
-        let newMarkers: BaseGeoLayer[] = [];
-        if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
-            // Add file markers from the added/modified file. These markers may be (and usually are) identical
-            // to the ones already on the map
-            await buildAndAppendFileMarkers(
-                newMarkers,
-                fileAddedOrChanged,
-                this.settings,
-                this.app,
-            );
-            cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
-            finalizeMarkers(
-                newMarkers,
-                this.state,
-                this.settings,
-                this.plugin.iconFactory,
-                this.app,
-            );
-            if (this.state.showLinks) {
-                // At the current state of affairs, if links are displayed and even a single marker is changed, there's
-                // no choice but to recalculate the links for *all* the markers.
-                addEdgesToMarkers(
-                    Array.combine([markers, newMarkers]),
-                    this.app,
-                    this.state.showLinks,
-                    this.display.polylines,
-                );
-            }
-        }
-        this.updateMapMarkers(Array.combine([markers, newMarkers]));
-    }
-
     addSearchResultMarker(details: GeoSearchResult, keepZoom: boolean) {
         this.display.searchResult = leaflet.marker(details.location, {
             icon: getIconFromOptions(
@@ -1666,5 +1599,19 @@ export class MapContainer {
             },
         });
         return geoJsonLayer;
+    }
+
+    private async updateMarkersWithRelationToFile(
+        fileRemoved: string,
+        fileAddedOrChanged: TAbstractFile,
+        skipMetadata: boolean,
+    ) {
+        await this.plugin.updateMarkersWithRelationToFile(
+            fileRemoved,
+            fileAddedOrChanged,
+            skipMetadata,
+        );
+        // Reapply filters and redraw layers as needed
+        this.updateMarkersToState(this.state, true);
     }
 }

@@ -1,4 +1,4 @@
-import { WorkspaceLeaf } from 'obsidian';
+import { WorkspaceLeaf, TAbstractFile, TFile } from 'obsidian';
 
 import { type PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';

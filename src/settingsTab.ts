@@ -21,6 +21,8 @@ import { BaseMapView } from 'src/baseMapView';
 import * as consts from 'src/consts';
 import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
 import { openManagerDialog } from 'src/offlineTiles.svelte';
+import { SvelteModal } from 'src/svelte';
+import DisplayRules from './components/DisplayRules.svelte';
 
 export class SettingsTab extends PluginSettingTab {
     plugin: MapViewPlugin;
@@ -39,6 +41,20 @@ export class SettingsTab extends PluginSettingTab {
         containerEl.createEl('h2', {
             text: 'Settings for the map view plugin.',
         });
+
+        new Setting(containerEl)
+            .setName('Pre-load markers and paths')
+            .setDesc(
+                'Load map markers and paths cache in the background when Obsidian starts. This greatly speeds up Map View but takes memory even when unused. When off, the map content will load only when Map View is first used.',
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.loadLayersAhead)
+                    .onChange(async (value) => {
+                        this.plugin.settings.loadLayersAhead = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
 
         new Setting(containerEl)
             .setName('Map follows search results')
@@ -683,25 +699,32 @@ export class SettingsTab extends PluginSettingTab {
 
         const iconRulesHeading = new Setting(containerEl)
             .setHeading()
-            .setName('Marker Icon Rules');
+            .setName('Marker & Path Display Rules');
         iconRulesHeading.descEl.innerHTML = `Customize map markers by note tags.
 			Refer to <a href="https://fontawesome.com/">Font Awesome</a> for icon names or use <a href="https://emojipedia.org">emojis</a>, and see <a href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties">here</a> for the other properties.
 			<br>The rules override each other, starting from the default. Refer to the plugin documentation for more details.
 		`;
 
-        let markerIconsDiv: HTMLDivElement = null;
         new Setting(containerEl).addButton((component) =>
-            component.setButtonText('New Icon Rule').onClick(() => {
-                this.plugin.settings.markerIconRules.push({
-                    ruleName: '',
-                    preset: false,
-                    iconDetails: { prefix: 'fas' },
-                });
-                this.refreshMarkerIcons(markerIconsDiv);
-            }),
+            component
+                .setButtonText('Marker & Path Display Rules...')
+                .onClick(() => {
+                    const dialog = new SvelteModal(
+                        DisplayRules,
+                        this.app,
+                        this.plugin,
+                        this.plugin.settings,
+                        {
+                            close: {},
+                            settings: this.plugin.settings,
+                            app: this.app,
+                            plugin: this.plugin,
+                        },
+                        ['mod-settings', 'mod-sidebar-layout'],
+                    );
+                    dialog.open();
+                }),
         );
-        markerIconsDiv = containerEl.createDiv();
-        this.refreshMarkerIcons(markerIconsDiv);
 
         new Setting(containerEl).setHeading().setName('Offline Maps');
         new Setting(containerEl)

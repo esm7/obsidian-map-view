@@ -17,12 +17,16 @@ export class SvelteModal extends Modal {
         plugin: MapViewPlugin,
         settings: PluginSettings,
         extraProps: Record<string, any> = {},
+        extraModalClasses: string[] = [],
+        extraContentClasses: string[] = [],
     ) {
         super(app);
         this.plugin = plugin;
         this.settings = settings;
         this.component = component;
         this.extraProps = extraProps;
+        this.modalEl.classList.add(...extraModalClasses);
+        this.contentEl.classList.add(...extraContentClasses);
     }
 
     onOpen() {

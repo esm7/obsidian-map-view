@@ -27,6 +27,7 @@ import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
 import { EmbeddedMap } from 'src/embeddedMap';
 import { IconFactory } from 'src/markerIcons';
+import { DisplayRulesCache } from 'src/displayRulesCache';
 import {
     askForLocation,
     type RealTimeLocationSource,
@@ -44,17 +45,33 @@ import {
     type OpenBehavior,
 } from 'src/settings';
 import { type MapState } from 'src/mapState';
-import { getFrontMatterLocation, matchInlineLocation } from 'src/fileMarker';
+import {
+    getFrontMatterLocation,
+    matchInlineLocation,
+    buildAndAppendFileMarkers,
+} from 'src/fileMarker';
+import {
+    GeoJsonLayer,
+    buildGeoJsonLayers,
+    GEOJSON_FILE_FILTER,
+} from 'src/geojsonLayer';
 import { verifyLocation } from 'src/baseGeoLayer';
 import { SettingsTab } from 'src/settingsTab';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { TagSuggest } from 'src/tagSuggest';
 import * as utils from 'src/utils';
 import { MapPreviewPopup } from 'src/mapPreviewPopup';
+import { BaseGeoLayer, type MarkersMap } from 'src/baseGeoLayer';
+import { cacheTagsFromMarkers, buildMarkers } from 'src/markers';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
+    // TODO document
+    // If null it means that the map is not yet initialized. An empty map means just no markers.
+    public layerCache: MarkersMap | null = null;
+    private layerCacheInitStarted: boolean = false;
     public iconFactory: IconFactory;
+    public displayRulesCache: DisplayRulesCache;
     private suggestor: LocationSuggest;
     private tagSuggestor: TagSuggest;
     private urlConvertor: UrlConvertor;
@@ -245,6 +262,9 @@ export default class MapViewPlugin extends Plugin {
         await convertLegacySettings(this.settings, this);
 
         this.iconFactory = new IconFactory(document.body);
+        this.displayRulesCache = new DisplayRulesCache(this.app);
+        // TODO rebuild when needed
+        this.displayRulesCache.build(this.settings.displayRules);
 
         this.mapPreviewPopup = null;
 
@@ -626,6 +646,17 @@ export default class MapViewPlugin extends Plugin {
                     }
                 }
             },
+        );
+
+        if (this.settings.loadLayersAhead)
+            this.app.workspace.onLayoutReady(() =>
+                this.buildInitialLayersCache(),
+            );
+        this.app.vault.on('delete', (file) =>
+            this.updateMarkersWithRelationToFile(file.path, null, true),
+        );
+        this.app.metadataCache.on('changed', (file) =>
+            this.updateMarkersWithRelationToFile(file.path, file, false),
         );
 
         purgeTilesBySettings(this.settings);
@@ -1017,6 +1048,77 @@ export default class MapViewPlugin extends Plugin {
             const editor = utils.getEditor(this.app);
             if (editor)
                 await utils.goToEditorLocation(editor, cursorPos, false);
+        }
+    }
+
+    private async buildInitialLayersCache() {
+        this.layerCacheInitStarted = true;
+        let files = this.app.vault.getMarkdownFiles();
+        let geoJsonFiles = this.app.vault
+            .getFiles()
+            .filter((file) => GEOJSON_FILE_FILTER.includes(file.extension));
+        let newMarkers = await buildMarkers(files, this.settings, this.app);
+        let geoJsonLayers = await buildGeoJsonLayers(
+            geoJsonFiles,
+            this.settings,
+            this.app,
+        );
+        const allLayers = Array.combine([newMarkers, geoJsonLayers]);
+        cacheTagsFromMarkers(allLayers, this.allTags);
+        let layerCache: MarkersMap = new Map();
+        // We do this on a variable rather than directly on the member so Map Views will be able to easily know when the initialization
+        // was done
+        for (const layer of allLayers) layerCache.set(layer.id, layer);
+        this.layerCache = layerCache;
+        if (this.settings.debug)
+            console.log(
+                'Map View initialized with',
+                this.layerCache.size,
+                'items.',
+            );
+    }
+
+    /**
+     * Run when a file is deleted, renamed or *changed*.
+     * When a file is changed, the same is populated in fileRemoved and fileAddedOrChanged, so its markers are removed and then re-added.
+     * WARNING: THIS METHOD RUNS A LOT. When a Map View is open and a note is edited anywhere in Obsidian,
+     * this method can be called repeatedly during typing, and thus must be very efficient to not cause
+     * delays for the user.
+     * @param fileRemoved The old file path
+     * @param fileAddedOrChanged The new file data
+     */
+    public async updateMarkersWithRelationToFile(
+        fileRemoved: string,
+        fileAddedOrChanged: TAbstractFile,
+        skipMetadata: boolean,
+    ): Promise<BaseGeoLayer[]> {
+        if (fileRemoved) {
+            for (let [markerId, existingMarker] of this.layerCache) {
+                if (existingMarker.file.path === fileRemoved)
+                    this.layerCache.delete(markerId);
+            }
+        }
+        let newLayers: BaseGeoLayer[] = [];
+        if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
+            // Add file markers from the added/modified file. These markers may be (and usually are) identical
+            // to the ones already on the map
+            await buildAndAppendFileMarkers(
+                newLayers,
+                fileAddedOrChanged,
+                this.settings,
+                this.app,
+            );
+            cacheTagsFromMarkers(newLayers, this.allTags);
+        }
+        for (const layer of newLayers) this.layerCache.set(layer.id, layer);
+        return newLayers;
+    }
+
+    public async waitForInitialization() {
+        if (!this.layerCacheInitStarted) await this.buildInitialLayersCache();
+        while (true) {
+            if (this.layerCache) break;
+            await new Promise((resolve) => setTimeout(resolve, 100));
         }
     }
 }
