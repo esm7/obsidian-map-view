@@ -104,16 +104,16 @@ export class SettingsTab extends PluginSettingTab {
         let googlePlacesControl = new Setting(containerEl)
             .setName('Use Google Places for searches')
             .setDesc(
-                'Use Google Places API instead of Google Geocoding to get higher-quality results. Your API key must have a specific Google Places permission turned on! See the plugin documentation for more details.',
+                'Use Google Places API instead of Google Geocoding to get higher-quality results. Your API key must have a specific "Google Places (New)" permission turned on! See the plugin documentation for more details.',
             )
             .addToggle((component) => {
                 component
                     .setValue(
-                        this.plugin.settings.useGooglePlaces ??
-                            DEFAULT_SETTINGS.useGooglePlaces,
+                        this.plugin.settings.useGooglePlacesNew2025 ??
+                            DEFAULT_SETTINGS.useGooglePlacesNew2025,
                     )
                     .onChange(async (value) => {
-                        this.plugin.settings.useGooglePlaces = value;
+                        this.plugin.settings.useGooglePlacesNew2025 = value;
                         await this.plugin.saveSettings();
                     });
             });

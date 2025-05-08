@@ -233,7 +233,7 @@ Map View adds an Obsidian command named "New geolocation note", which you can ma
 This opens a dialog on which you can search (address or location based on your [configured geocoding provider](#changing-a-geocoding-provider)) or paste a URL using the built-in or custom [URL parsing rules](#url-parsing-rules).
 
 When using Google Maps Places API, templates can extract additional result data.
-For instance, templates that match `googleMapsPlaceData.some.path` will be replaced with the value found at `some.path` in the [JSON serach result](https://developers.google.com/maps/documentation/places/web-service/place-data-fields).
+For instance, templates that match `googleMapsPlaceData.some.path` will be replaced with the value found at `some.path` in the [JSON serach result](https://developers.google.com/maps/documentation/places/web-service/text-search#fieldmask).
 For instance, the following template would set a [place_id](https://developers.google.com/maps/documentation/places/web-service/place-id) property and tags the note with the [type](https://developers.google.com/maps/documentation/places/web-service/supported_types) of the place:
 
 ```
@@ -445,10 +445,22 @@ If you prefer to use the Google Maps search, you can configure this in the plugi
 The Google Geocoding API is practically free or very cheap for normal note-taking usage, but you'd need to setup a project and obtain an API key from Google.
 See [here](https://developers.google.com/maps/documentation/javascript/get-api-key) for more details.
 
-If you want, you can add to your API key the slightly more expensive [Places API](https://developers.google.com/maps/documentation/places/web-service/cloud-setup), then turn on "Use Google Places for searches" in the Map View settings.
+If you want, you can add to your API key the slightly more expensive [Places API](https://developers.google.com/maps/documentation/places/web-service/cloud-setup) (now called "Google Places (New)"), then turn on "Use Google Places for searches" in the Map View settings.
 For most reasonable note-taking usage, you will not likely go beyond the Places API free tier.
 
 **Note:** usage of any geocoding provider is at your own risk, and it's your own responsibility to verify you are not violating the service's terms of usage.
+
+### Migrating to Google Places API (New)
+
+Google introduced a new Places API in 2025 and Map View is required to migrate for it in order for the service to continue working for all users.
+
+To migrate your existing API key to Google Places API (New):
+
+1. Visit the Google Cloud Admin [here](https://console.cloud.google.com/google/maps-apis).
+2. You may need to select on top the project you created for creating the Places API, if you have more than one project.
+3. Go to APIs & Services on the left. Search for "Places API (New)" and click Enable.
+4. Go back, then click Keys & Credentials. Find your existing Places API key, and in its Actions menu, choose "Edit API key".
+5. If under "API restrictions" you selected "Don't restrict key" -- you should be good to go. If you have "Restrict key", add "Places API (New)" that should be available after enabling it in step 3. Save the edited key.
 
 ## Map Sources
 
@@ -674,6 +686,8 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Fix for https://github.com/esm7/obsidian-map-view/issues/308 (thanks @edzillion!).
 - Comeback of "Show native Obsidian popup on marker hover" due to user request (https://github.com/esm7/obsidian-map-view/issues/235).
 - Inline location bug on iOS (https://github.com/esm7/obsidian-map-view/issues/301)
+- Places API (New)
+- TODO: Fix places API templates
 
 ### 5.5.0
 

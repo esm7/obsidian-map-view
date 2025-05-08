@@ -50,7 +50,7 @@ export type PluginSettings = {
     searchProvider: 'osm' | 'google';
     searchDelayMs: number;
     geocodingApiKey: string;
-    useGooglePlaces: boolean;
+    useGooglePlacesNew2025: boolean;
     saveHistory: boolean;
     queryForFollowActiveNote: string;
     supportRealTimeGeolocation: boolean;
@@ -78,6 +78,7 @@ export type DepracatedFields = {
     defaultZoom?: number;
     defaultTags?: string[];
     snippetLines?: number;
+    useGooglePlaces?: boolean;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -231,7 +232,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     searchProvider: 'osm',
     searchDelayMs: 250,
     geocodingApiKey: '',
-    useGooglePlaces: false,
+    useGooglePlacesNew2025: false,
     mapSources: [
         {
             name: 'CartoDB',
@@ -265,7 +266,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     offlineMaxStorageGb: 2,
 };
 
-export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
+export function convertLegacyMarkerIcons(
+    settings: PluginSettings & DepracatedFields,
+): boolean {
     if (settings.markerIcons) {
         settings.markerIconRules = [];
         for (let key in settings.markerIcons) {
@@ -282,7 +285,9 @@ export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
     return false;
 }
 
-export function convertLegacyTilesUrl(settings: PluginSettings): boolean {
+export function convertLegacyTilesUrl(
+    settings: PluginSettings & DepracatedFields,
+): boolean {
     if (settings.tilesUrl) {
         settings.mapSources = [
             {
@@ -297,7 +302,9 @@ export function convertLegacyTilesUrl(settings: PluginSettings): boolean {
     return false;
 }
 
-export function convertLegacyDefaultState(settings: PluginSettings): boolean {
+export function convertLegacyDefaultState(
+    settings: PluginSettings & DepracatedFields,
+): boolean {
     if (
         settings.defaultTags ||
         settings.defaultZoom ||
@@ -328,7 +335,9 @@ export function convertLegacyDefaultState(settings: PluginSettings): boolean {
     return false;
 }
 
-export function removeLegacyPresets1(settings: PluginSettings): boolean {
+export function removeLegacyPresets1(
+    settings: PluginSettings & DepracatedFields,
+): boolean {
     const googleMapsParsingRule = settings.urlParsingRules.findIndex(
         (rule) => rule.name == 'Google Maps' && rule.preset,
     );
@@ -399,6 +408,20 @@ export function convertLegacyOpenBehavior(settings: PluginSettings): boolean {
     return changed;
 }
 
+export function convertLegacyGooglePlaces(settings: PluginSettings): boolean {
+    let changed = false;
+    if ((settings as DepracatedFields).useGooglePlaces) {
+        (settings as DepracatedFields).useGooglePlaces = false;
+        settings.useGooglePlacesNew2025 = true;
+        changed = true;
+        new Notice(
+            'IMPORTANT! Map View now uses the new "Google Places (New)" API, which requires that you update your API key. See the "Migrating to Google Places API (New)" section of the README. Your geo searches might fail until you do this update!',
+            0,
+        );
+    }
+    return changed;
+}
+
 /*
  * The more Map View evolves, fields get added to the MapState class, leading to old saved states having
  * missing fields.
@@ -461,6 +484,7 @@ export async function convertLegacySettings(
             'Map View: marker click settings were converted to the new settings format (check the settings for new options!)',
         );
     }
+    if (convertLegacyGooglePlaces(settings)) changed = true;
 
     completePartialSavedStates(settings);
 
