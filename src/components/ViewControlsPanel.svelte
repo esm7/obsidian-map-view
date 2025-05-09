@@ -241,7 +241,6 @@
                     <QueryTextField
                         {plugin}
                         {app}
-                        {settings}
                         bind:query={mapState.query}
                         bind:queryError={mapState.queryError}
                     />

@@ -1,19 +1,16 @@
 <script lang="ts">
     import MapViewPlugin from '../main';
     import { App } from 'obsidian';
-    import { type PluginSettings } from '../settings';
     import { QuerySuggest } from '../query';
 
     let {
         plugin,
         app,
-        settings,
         query = $bindable(),
         queryError = $bindable(),
     } = $props<{
         plugin: MapViewPlugin;
         app: App;
-        settings: PluginSettings;
         query: string;
         queryError: boolean;
     }>();

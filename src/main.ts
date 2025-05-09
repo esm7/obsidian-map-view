@@ -63,6 +63,7 @@ import * as utils from 'src/utils';
 import { MapPreviewPopup } from 'src/mapPreviewPopup';
 import { BaseGeoLayer, type MarkersMap } from 'src/baseGeoLayer';
 import { cacheTagsFromMarkers, buildMarkers } from 'src/markers';
+import type { BaseMapView } from './baseMapView';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
@@ -263,7 +264,6 @@ export default class MapViewPlugin extends Plugin {
 
         this.iconFactory = new IconFactory(document.body);
         this.displayRulesCache = new DisplayRulesCache(this.app);
-        // TODO rebuild when needed
         this.displayRulesCache.build(this.settings.displayRules);
 
         this.mapPreviewPopup = null;
@@ -1119,6 +1119,15 @@ export default class MapViewPlugin extends Plugin {
         while (true) {
             if (this.layerCache) break;
             await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+    }
+
+    public refreshAllMapViews() {
+        const mapViews = this.app.workspace.getLeavesOfType(
+            consts.MAP_VIEW_NAME,
+        );
+        for (const view of mapViews) {
+            (view.view as BaseMapView).mapContainer.refreshMap();
         }
     }
 }
