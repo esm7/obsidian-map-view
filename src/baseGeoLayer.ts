@@ -14,7 +14,7 @@ export abstract class BaseGeoLayer {
     public id: MarkerId;
     /** In the case of an inline location, the position within the file where the location was found */
     public fileLocation?: number;
-    /** The leaflet layer on the map */
+    /** The leaflet layer on the map; overriden by child classes */
     public geoLayer?: leaflet.Layer;
     /** In case of an inline location, the line within the file where the geolocation was found */
     public fileLine?: number;
@@ -28,6 +28,8 @@ export abstract class BaseGeoLayer {
     public extraName?: string;
     /** Tags that this marker includes */
     public tags: string[] = [];
+    /** A custom field used for optimizations */
+    public touched: boolean;
 
     /**
      * Construct a new BaseGeoLayer object

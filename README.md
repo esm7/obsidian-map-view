@@ -688,6 +688,8 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Inline location bug on iOS (https://github.com/esm7/obsidian-map-view/issues/301)
 - Places API (New)
 - TODO: Fix places API templates
+- Major performance optimizations to filtering
+- Filtering now works properly when changing notes
 
 ### 5.5.0
 

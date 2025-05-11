@@ -503,3 +503,10 @@ export function getTagUnderCursor(
 ): RegExpMatchArray {
     return matchByPosition(line, regex.TAG_NAME_WITH_HEADER, cursorPosition);
 }
+
+// TODO document
+export function* combineIterables<T>(...iterables: Iterable<T>[]): Iterable<T> {
+    for (const iterable of iterables) {
+        yield* iterable;
+    }
+}

@@ -150,15 +150,19 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
 
     async selectionToLink(editor: Editor, file: TFile) {
         if (!this.initialized) this.init();
-        const selection = editor.getSelection();
-        const results = await this.searcher.search(selection);
-        if (results && results.length > 0) {
-            const firstResult = results[0];
-            const location = firstResult.location;
-            editor.replaceSelection(
-                `[${selection}](geo:${location.lat},${location.lng})`,
-            );
-            new Notice(firstResult.name, 10 * 1000);
+        let resultString = '';
+        const selectionLines = editor.getSelection().split('\n');
+        for (const line of selectionLines) {
+            const results = await this.searcher.search(line);
+            if (results && results.length > 0) {
+                const firstResult = results[0];
+                const location = firstResult.location;
+                if (resultString.length > 0) resultString += '\n\n';
+                resultString += `[${line.trim()}](geo:${location.lat},${location.lng})`;
+            }
+        }
+        if (resultString) {
+            editor.replaceSelection(resultString);
             if (
                 await utils.verifyOrAddFrontMatterForInline(
                     this.app,
@@ -171,7 +175,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
                     "The note's front matter was updated to denote locations are present",
                 );
         } else {
-            new Notice(`No location found for the term '${selection}'`);
+            new Notice(`No location found for the term '${selectionLines}'`);
         }
     }
 }

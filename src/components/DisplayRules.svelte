@@ -44,7 +44,7 @@
         try {
             for (const rule of rules) {
                 const queryObject = new Query(app, rule.query);
-                for (const layer of plugin.layerCache.values()) {
+                for (const layer of plugin.layerCache.map.values()) {
                     queryObject.testMarker(layer);
                 }
             }

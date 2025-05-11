@@ -26,6 +26,7 @@ import { purgeTilesBySettings } from 'src/offlineTiles.svelte';
 import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
 import { EmbeddedMap } from 'src/embeddedMap';
+import { MapContainer } from 'src/mapContainer';
 import { IconFactory } from 'src/markerIcons';
 import { DisplayRulesCache } from 'src/displayRulesCache';
 import {
@@ -61,15 +62,15 @@ import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { TagSuggest } from 'src/tagSuggest';
 import * as utils from 'src/utils';
 import { MapPreviewPopup } from 'src/mapPreviewPopup';
-import { BaseGeoLayer, type MarkersMap } from 'src/baseGeoLayer';
 import { cacheTagsFromMarkers, buildMarkers } from 'src/markers';
-import type { BaseMapView } from './baseMapView';
+import { LayerCache } from 'src/layerCache';
+import { BaseGeoLayer } from 'src/baseGeoLayer';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
     // TODO document
-    // If null it means that the map is not yet initialized. An empty map means just no markers.
-    public layerCache: MarkersMap | null = null;
+    // If null it means that the map is not yet initialized.
+    public layerCache: LayerCache | null = null;
     private layerCacheInitStarted: boolean = false;
     public iconFactory: IconFactory;
     public displayRulesCache: DisplayRulesCache;
@@ -81,6 +82,7 @@ export default class MapViewPlugin extends Plugin {
     // Includes all the known tags that are within markers, both inline (which are not necessarily known to Obsidian)
     // and actual Obsidian tags
     public allTags: Set<string>;
+    private allMapContainers: MapContainer[] = [];
 
     async onload() {
         await this.loadSettings();
@@ -668,6 +670,11 @@ export default class MapViewPlugin extends Plugin {
         else return null;
     }
 
+    // TODO document
+    public registerMapContainer(mapContainer: MapContainer) {
+        this.allMapContainers.push(mapContainer);
+    }
+
     public async openMap(
         openBehavior: OpenBehavior,
         state?: MapState,
@@ -1065,10 +1072,10 @@ export default class MapViewPlugin extends Plugin {
         );
         const allLayers = Array.combine([newMarkers, geoJsonLayers]);
         cacheTagsFromMarkers(allLayers, this.allTags);
-        let layerCache: MarkersMap = new Map();
+        let layerCache = new LayerCache();
         // We do this on a variable rather than directly on the member so Map Views will be able to easily know when the initialization
         // was done
-        for (const layer of allLayers) layerCache.set(layer.id, layer);
+        for (const layer of allLayers) layerCache.add(layer);
         this.layerCache = layerCache;
         if (this.settings.debug)
             console.log(
@@ -1093,10 +1100,7 @@ export default class MapViewPlugin extends Plugin {
         skipMetadata: boolean,
     ): Promise<BaseGeoLayer[]> {
         if (fileRemoved) {
-            for (let [markerId, existingMarker] of this.layerCache) {
-                if (existingMarker.file.path === fileRemoved)
-                    this.layerCache.delete(markerId);
-            }
+            this.layerCache.deleteAllFromFile(fileRemoved);
         }
         let newLayers: BaseGeoLayer[] = [];
         if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
@@ -1110,7 +1114,43 @@ export default class MapViewPlugin extends Plugin {
             );
             cacheTagsFromMarkers(newLayers, this.allTags);
         }
-        for (const layer of newLayers) this.layerCache.set(layer.id, layer);
+        for (const layer of newLayers) {
+            if (this.layerCache.get(layer.id))
+                console.error(`Layer ID ${layer.id} already in map!`);
+            this.layerCache.add(layer);
+        }
+        // TODO document
+        this.maintainMapContainersList();
+        for (const mapContainer of this.allMapContainers) {
+            const existingLayers =
+                fileRemoved &&
+                mapContainer.display.markers.hasLayersFromFile(fileRemoved)
+                    ? new LayerCache(mapContainer.display.markers)
+                    : mapContainer.display.markers;
+            if (fileRemoved) existingLayers.deleteAllFromFile(fileRemoved);
+            const newMarkers = mapContainer.filterAndPrepareMarkers(
+                newLayers,
+                mapContainer.state,
+            );
+            const combinedLayersIterator = utils.combineIterables(
+                existingLayers.layers,
+                newMarkers,
+            );
+            console.log(
+                'Document contains:',
+                document.contains(mapContainer.display.mapDiv),
+            );
+            try {
+                mapContainer.updateMapMarkers(combinedLayersIterator);
+                console.log('TODO TEMP updated map container:', mapContainer);
+            } catch (e) {
+                console.error(
+                    'Error updating markers on file modification:',
+                    e,
+                );
+                console.log('This happened on container:', mapContainer);
+            }
+        }
         return newLayers;
     }
 
@@ -1123,11 +1163,14 @@ export default class MapViewPlugin extends Plugin {
     }
 
     public refreshAllMapViews() {
-        const mapViews = this.app.workspace.getLeavesOfType(
-            consts.MAP_VIEW_NAME,
-        );
-        for (const view of mapViews) {
-            (view.view as BaseMapView).mapContainer.refreshMap();
+        for (const mapContainer of this.allMapContainers) {
+            mapContainer.refreshMap();
         }
+    }
+
+    private maintainMapContainersList() {
+        this.allMapContainers = this.allMapContainers.filter((mapContainer) =>
+            document.contains(mapContainer.display.mapDiv),
+        );
     }
 }

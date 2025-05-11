@@ -24,7 +24,7 @@ import { GeoJsonLayer } from './geojsonLayer';
 
 /** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
 export class FileMarker extends BaseGeoLayer {
-    public geoLayer?: leaflet.Marker;
+    public geoLayer?: leaflet.Marker = null;
     public location: leaflet.LatLng;
     public icon?: leaflet.Icon<IconOptions>;
     private _edges: Edge[] = [];
@@ -95,9 +95,8 @@ export class FileMarker extends BaseGeoLayer {
             this.fileLocation === other.fileLocation &&
             this.fileLine === other.fileLine &&
             this.extraName === other.extraName &&
-            // This comparison is heavy when many edges are present, but I'm not sure there's a reasonable way
-            // around it (maybe just an internal optimization for the comparison)
-            this.edges == other.edges &&
+            // TODO: need to compare the edges themselves
+            this.edges.length == other.edges.length &&
             this.icon?.options?.iconUrl === other.icon?.options?.iconUrl &&
             // @ts-ignore
             this.icon?.options?.icon === other.icon?.options?.icon &&

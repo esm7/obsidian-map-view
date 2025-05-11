@@ -7,7 +7,7 @@
         "baseUrl": ".",
         "inlineSources": true,
         "module": "ESNext",
-        "target": "ES2018",
+        "target": "ES2022",
         "allowJs": true,
         "noImplicitAny": true,
         "moduleResolution": "node",

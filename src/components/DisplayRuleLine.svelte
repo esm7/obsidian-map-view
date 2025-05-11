@@ -47,7 +47,7 @@
             try {
                 const queryObject = new Query(app, displayRule.query);
                 let matches = 0;
-                for (const layer of plugin.layerCache.values()) {
+                for (const layer of plugin.layerCache.map.values()) {
                     if (queryObject.testMarker(layer)) matches += 1;
                 }
                 queryError = false;

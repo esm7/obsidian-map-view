@@ -37,18 +37,11 @@ import {
     type TileSource,
     DEFAULT_SETTINGS,
 } from 'src/settings';
-import {
-    buildMarkers,
-    finalizeMarkers,
-    cacheTagsFromMarkers,
-} from 'src/markers';
+import { finalizeMarkers } from 'src/markers';
 import { FileMarker, addEdgesToMarkers } from 'src/fileMarker';
-import {
-    GeoJsonLayer,
-    buildGeoJsonLayers,
-    GEOJSON_FILE_FILTER,
-} from 'src/geojsonLayer';
-import { type MarkersMap, BaseGeoLayer } from 'src/baseGeoLayer';
+import { GeoJsonLayer } from 'src/geojsonLayer';
+import { BaseGeoLayer } from 'src/baseGeoLayer';
+import { LayerCache } from 'src/layerCache';
 import { getIconFromOptions, type IconOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
@@ -93,10 +86,6 @@ export type ViewSettings = {
     skipAnimations?: boolean;
 };
 
-interface FrontMatterAttributes {
-    [key: string]: any; // This allows any property with string keys
-}
-
 export class MapContainer {
     private app: App;
     public settings: PluginSettings;
@@ -123,7 +112,8 @@ export class MapContainer {
         /** The cluster management class */
         clusterGroup: leaflet.MarkerClusterGroup;
         /** The markers currently on the map */
-        markers: MarkersMap = new Map();
+        // TODO change name
+        markers: LayerCache = new LayerCache();
         /** The polylines currently on the map */
         polylines: leaflet.Polyline[] = [];
         /** The view controls */
@@ -190,6 +180,7 @@ export class MapContainer {
         this.viewSettings = viewSettings;
         this.plugin = plugin;
         this.app = app;
+        this.plugin.registerMapContainer(this);
         // Create the default state by the configuration. Since state fields can be added on new plugin versions,
         // we start by applying the state from DEFAULT_SETTINGS, so new fields can get default vaules
         this.defaultState = mergeStates(
@@ -198,16 +189,6 @@ export class MapContainer {
         );
         this.parentEl = parentEl;
 
-        // Listen to file changes so we can update markers accordingly
-        this.app.vault.on('delete', (file) =>
-            this.updateMarkersWithRelationToFile(file.path, null, true),
-        );
-        this.app.metadataCache.on('changed', (file) =>
-            this.updateMarkersWithRelationToFile(file.path, file, false),
-        );
-        // On rename we don't need to do anything because the markers hold a TFile, and the TFile object doesn't change
-        // when the file name changes. Only its internal path field changes accordingly.
-        // this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
         this.app.workspace.on('css-change', () => {
             console.log('Map view: map refresh due to CSS change');
             this.refreshMap();
@@ -686,31 +667,11 @@ export class MapContainer {
         freezeMap: boolean = false,
     ) {
         if (this.settings.debug) console.time('updateMarkersToState');
+        if (!this.isOpen) return;
         await this.plugin.waitForInitialization();
-        let allLayers: BaseGeoLayer[] = [];
-        try {
-            allLayers = this.filterMarkers(
-                this.plugin.layerCache.values(),
-                state.query,
-            );
-            state.queryError = false;
-        } catch (e) {
-            allLayers = [];
-            state.queryError = true;
-        }
-        finalizeMarkers(
-            allLayers,
+        const allLayers = this.filterAndPrepareMarkers(
+            this.plugin.layerCache.layers,
             state,
-            this.settings,
-            this.plugin.iconFactory,
-            this.plugin.displayRulesCache,
-            this.app,
-        );
-        addEdgesToMarkers(
-            allLayers,
-            this.app,
-            state.showLinks,
-            this.display.polylines,
         );
         this.state = structuredClone(state);
 
@@ -739,7 +700,36 @@ export class MapContainer {
         if (this.settings.debug) console.timeEnd('updateMarkersToState');
     }
 
-    filterMarkers(allMarkers: MapIterator<BaseGeoLayer>, queryString: string) {
+    filterAndPrepareMarkers(
+        layers: Iterable<BaseGeoLayer>,
+        state: MapState,
+    ): BaseGeoLayer[] {
+        let filteredLayers: BaseGeoLayer[] = [];
+        try {
+            filteredLayers = this.filterMarkers(layers, state.query);
+            state.queryError = false;
+        } catch (e) {
+            filteredLayers = [];
+            state.queryError = true;
+        }
+        finalizeMarkers(
+            filteredLayers,
+            state,
+            this.settings,
+            this.plugin.iconFactory,
+            this.plugin.displayRulesCache,
+            this.app,
+        );
+        addEdgesToMarkers(
+            filteredLayers,
+            this.app,
+            state.showLinks,
+            this.display.polylines,
+        );
+        return filteredLayers;
+    }
+
+    filterMarkers(allMarkers: Iterable<BaseGeoLayer>, queryString: string) {
         let results: BaseGeoLayer[] = [];
         const query = new Query(this.app, queryString);
         for (const marker of allMarkers)
@@ -754,51 +744,40 @@ export class MapContainer {
      * be optimized in the future.
      * @param newLayer The new array of layers
      */
-    updateMapMarkers(newLayers: BaseGeoLayer[]) {
-        let newLayersMap: MarkersMap = new Map();
-        let layersToAdd: leaflet.Layer[] = [];
-        let layersToRemove: leaflet.Layer[] = [];
+    updateMapMarkers(newLayers: Iterable<BaseGeoLayer>) {
+        for (const layer of this.display.markers.layers) layer.touched = false;
+        let layersToAdd: BaseGeoLayer[] = [];
+        let layersToRemove: BaseGeoLayer[] = [];
         for (let layer of newLayers) {
-            const existingMarker = this.display.markers.has(layer.id)
-                ? this.display.markers.get(layer.id)
-                : null;
-            if (existingMarker && existingMarker.isSame(layer)) {
+            const existingLayer = this.display.markers.get(layer.id);
+            if (existingLayer && existingLayer.isSame(layer)) {
                 // This layer exists, so just keep it
-                newLayersMap.set(layer.id, this.display.markers.get(layer.id));
-                this.display.markers.delete(layer.id);
-            } else if (layer instanceof FileMarker) {
-                // New marker - create it
-                layer.geoLayer = this.newLeafletMarker(layer);
-                layersToAdd.push(layer.geoLayer);
-                if (newLayersMap.get(layer.id))
-                    console.log(
-                        'Map view: warning, marker ID',
-                        layer.id,
-                        'already exists, please open an issue if you see this.',
-                    );
-                newLayersMap.set(layer.id, layer);
-            } else if (layer instanceof GeoJsonLayer) {
-                // New GeoJson layer - create it
-                layer.geoLayer = this.newLeafletGeoJson(layer);
-                layersToAdd.push(layer.geoLayer);
-                if (newLayersMap.get(layer.id))
-                    console.log(
-                        'Map view: warning, layer ID',
-                        layer.id,
-                        'already exists, please open an issue if you see this.',
-                    );
-                newLayersMap.set(layer.id, layer);
+                existingLayer.touched = true;
+            } else {
+                // New layer - create it
+                if (layer instanceof FileMarker)
+                    layer.geoLayer = this.newLeafletMarker(layer);
+                else if (layer instanceof GeoJsonLayer)
+                    layer.geoLayer = this.newLeafletGeoJson(layer);
+                layersToAdd.push(layer);
             }
         }
-        for (let [key, value] of this.display.markers) {
-            layersToRemove.push(value.geoLayer);
-            // Remove the edges that connect the markers we are removing, together with their polylines
-            if (value instanceof FileMarker)
-                value.removeEdges(this.display.polylines);
+        for (const layer of this.display.markers.layers) {
+            if (!layer.touched) {
+                layersToRemove.push(layer);
+                this.display.markers.delete(layer.id);
+                // Remove the edges that connect the markers we are removing, together with their polylines
+                if (layer instanceof FileMarker)
+                    layer.removeEdges(this.display.polylines);
+            }
         }
-        this.display.clusterGroup.removeLayers(layersToRemove);
-        this.display.clusterGroup.addLayers(layersToAdd);
-        this.display.markers = newLayersMap;
+        for (const layer of layersToAdd) this.display.markers.add(layer);
+        this.display.clusterGroup.removeLayers(
+            layersToRemove.map((layer) => layer.geoLayer),
+        );
+        this.display.clusterGroup.addLayers(
+            layersToAdd.map((layer) => layer.geoLayer),
+        );
         this.buildPolylines();
     }
 
@@ -807,7 +786,7 @@ export class MapContainer {
      */
     private buildPolylines() {
         if (this.state.showLinks) {
-            for (const marker of this.display.markers.values()) {
+            for (const marker of this.display.markers.layers) {
                 if (marker instanceof FileMarker) {
                     // Draw edges between markers
                     for (const edge of marker.edges) {
@@ -1098,7 +1077,7 @@ export class MapContainer {
     public async autoFitMapToMarkers() {
         if (this.display.markers.size > 0) {
             const locations: leaflet.LatLng[] = [];
-            for (const marker of this.display.markers.values()) {
+            for (const marker of this.display.markers.layers) {
                 locations.push(...marker.getBounds());
             }
             this.display.map.fitBounds(leaflet.latLngBounds(locations), {
@@ -1275,7 +1254,7 @@ export class MapContainer {
 
     openSearch() {
         if (this.display.searchControls)
-            this.display.searchControls.openSearch(this.display.markers);
+            this.display.searchControls.openSearch(this.display.markers.map);
     }
 
     setHighlight(mapOrFileMarker: leaflet.Layer | BaseGeoLayer) {
@@ -1321,7 +1300,7 @@ export class MapContainer {
         file: TAbstractFile,
         fileLine: number | null = null,
     ): BaseGeoLayer | null {
-        for (let [_, fileMarker] of this.display.markers) {
+        for (let [_, fileMarker] of this.display.markers.map) {
             if (fileMarker.file == file) {
                 if (!fileLine) return fileMarker;
                 if (fileLine == fileMarker.fileLine) return fileMarker;
@@ -1488,7 +1467,7 @@ export class MapContainer {
     startHoverHighlight(markerToFocus: BaseGeoLayer) {
         if (!this.state.showLinks) return;
         this.display.mapDiv.addClass('mv-fade-active');
-        for (const marker of this.display.markers.values()) {
+        for (const marker of this.display.markers.layers) {
             if (
                 markerToFocus &&
                 marker instanceof FileMarker &&
@@ -1525,7 +1504,7 @@ export class MapContainer {
 
     endHoverHighlight() {
         this.display.mapDiv.removeClass('mv-fade-active');
-        for (const marker of this.display.markers.values()) {
+        for (const marker of this.display.markers.layers) {
             if (marker.geoLayer && marker.geoLayer instanceof leaflet.Marker) {
                 const parent = this.display.clusterGroup.getVisibleParent(
                     marker.geoLayer,
@@ -1599,19 +1578,5 @@ export class MapContainer {
             },
         });
         return geoJsonLayer;
-    }
-
-    private async updateMarkersWithRelationToFile(
-        fileRemoved: string,
-        fileAddedOrChanged: TAbstractFile,
-        skipMetadata: boolean,
-    ) {
-        await this.plugin.updateMarkersWithRelationToFile(
-            fileRemoved,
-            fileAddedOrChanged,
-            skipMetadata,
-        );
-        // Reapply filters and redraw layers as needed
-        this.updateMarkersToState(this.state, true);
     }
 }
