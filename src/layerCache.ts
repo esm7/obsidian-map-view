@@ -39,6 +39,11 @@ export class LayerCache {
 
     // Assumes the layer doesn't exist yet
     public add(layer: BaseGeoLayer) {
+        if (this.layersMap.get(layer.id))
+            console.error(
+                `Layer with ID ${layer.id} already in LayersCache! details:`,
+                this.layersMap.get(layer.id),
+            );
         this.layersMap.set(layer.id, layer);
         const filePath = layer.file.path;
         if (!this.layersByFilePath[filePath]) {

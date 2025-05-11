@@ -156,6 +156,9 @@ export class MapContainer {
     private lastTabLeaf: WorkspaceLeaf;
     /** Is the view currently open */
     private isOpen: boolean = false;
+    // TODO document
+    private mapContainerId: number;
+    private static staticMaxMapContainerId: number = 0;
     /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
     public updateCodeBlockCallback: () => Promise<void>;
     /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
@@ -181,6 +184,8 @@ export class MapContainer {
         this.plugin = plugin;
         this.app = app;
         this.plugin.registerMapContainer(this);
+        this.mapContainerId = MapContainer.staticMaxMapContainerId;
+        MapContainer.staticMaxMapContainerId++;
         // Create the default state by the configuration. Since state fields can be added on new plugin versions,
         // we start by applying the state from DEFAULT_SETTINGS, so new fields can get default vaules
         this.defaultState = mergeStates(
@@ -521,7 +526,7 @@ export class MapContainer {
         });
         this.display.map.addLayer(this.display.clusterGroup);
 
-        this.display.map.on('zoomend', async (event: leaflet.LeafletEvent) => {
+        this.display.map.on('zoomend', async (_event: leaflet.LeafletEvent) => {
             this.ongoingChanges -= 1;
             this.updateStateAfterMapChange({
                 mapZoom: this.display.map.getZoom(),
@@ -530,7 +535,7 @@ export class MapContainer {
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
         });
-        this.display.map.on('moveend', async (event: leaflet.LeafletEvent) => {
+        this.display.map.on('moveend', async (_event: leaflet.LeafletEvent) => {
             this.ongoingChanges -= 1;
             this.updateStateAfterMapChange({
                 mapZoom: this.display.map.getZoom(),
@@ -539,15 +544,15 @@ export class MapContainer {
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
         });
-        this.display.map.on('movestart', (event: leaflet.LeafletEvent) => {
+        this.display.map.on('movestart', (_event: leaflet.LeafletEvent) => {
             this.ongoingChanges += 1;
         });
-        this.display.map.on('zoomstart', (event: leaflet.LeafletEvent) => {
+        this.display.map.on('zoomstart', (_event: leaflet.LeafletEvent) => {
             this.ongoingChanges += 1;
         });
         this.display.map.on(
             'doubleClickZoom',
-            (event: leaflet.LeafletEvent) => {
+            (_event: leaflet.LeafletEvent) => {
                 this.ongoingChanges += 1;
             },
         );
@@ -598,7 +603,7 @@ export class MapContainer {
             });
         }
 
-        this.display.map.on('click', (event: leaflet.LeafletMouseEvent) => {
+        this.display.map.on('click', (_event: leaflet.LeafletMouseEvent) => {
             this.setHighlight(null);
             this.closeMarkerPopup(false);
         });
@@ -667,15 +672,20 @@ export class MapContainer {
         freezeMap: boolean = false,
     ) {
         if (this.settings.debug) console.time('updateMarkersToState');
-        if (!this.isOpen) return;
+        if (!this.isOpen) {
+            console.log('Skipping closed map container:', this);
+            return;
+        }
         await this.plugin.waitForInitialization();
         const allLayers = this.filterAndPrepareMarkers(
             this.plugin.layerCache.layers,
             state,
         );
+        const forceRecreate = state.markerLabels != this.state.markerLabels;
         this.state = structuredClone(state);
 
         // TODO TEMP change names
+        if (forceRecreate) this.updateMapMarkers([]);
         this.updateMapMarkers(allLayers);
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
         // of interactions and async updates compete over the map.
@@ -747,7 +757,7 @@ export class MapContainer {
     updateMapMarkers(newLayers: Iterable<BaseGeoLayer>) {
         for (const layer of this.display.markers.layers) layer.touched = false;
         let layersToAdd: BaseGeoLayer[] = [];
-        let layersToRemove: BaseGeoLayer[] = [];
+        let totalLayers = 0;
         for (let layer of newLayers) {
             const existingLayer = this.display.markers.get(layer.id);
             if (existingLayer && existingLayer.isSame(layer)) {
@@ -756,12 +766,20 @@ export class MapContainer {
             } else {
                 // New layer - create it
                 if (layer instanceof FileMarker)
-                    layer.geoLayer = this.newLeafletMarker(layer);
+                    layer.geoLayers.set(
+                        this.mapContainerId,
+                        this.newLeafletMarker(layer),
+                    );
                 else if (layer instanceof GeoJsonLayer)
-                    layer.geoLayer = this.newLeafletGeoJson(layer);
+                    layer.geoLayers.set(
+                        this.mapContainerId,
+                        this.newLeafletGeoJson(layer),
+                    );
                 layersToAdd.push(layer);
             }
+            totalLayers++;
         }
+        let layersToRemove: BaseGeoLayer[] = [];
         for (const layer of this.display.markers.layers) {
             if (!layer.touched) {
                 layersToRemove.push(layer);
@@ -771,14 +789,23 @@ export class MapContainer {
                     layer.removeEdges(this.display.polylines);
             }
         }
-        for (const layer of layersToAdd) this.display.markers.add(layer);
         this.display.clusterGroup.removeLayers(
-            layersToRemove.map((layer) => layer.geoLayer),
+            layersToRemove.map((layer) => this.getGeoLayer(layer)),
         );
+        for (const layer of layersToAdd) this.display.markers.add(layer);
+        // Now add the actual markers & paths on the map
         this.display.clusterGroup.addLayers(
-            layersToAdd.map((layer) => layer.geoLayer),
+            layersToAdd.map((layer) => this.getGeoLayer(layer)),
         );
         this.buildPolylines();
+        // Just a cheap sanity check
+        if (totalLayers != this.display.markers.size)
+            console.error(
+                'Something went wrong building the map, it has',
+                this.display.markers.size,
+                'items instead of',
+                totalLayers,
+            );
     }
 
     /**
@@ -866,15 +893,15 @@ export class MapContainer {
                 this.display.popupElement = newMarker;
             }
         });
-        newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
+        newMarker.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app)) {
                 this.closeMarkerPopup(false);
             }
         });
-        newMarker.on('remove', (event: leaflet.LeafletMouseEvent) => {
+        newMarker.on('remove', (_event: leaflet.LeafletMouseEvent) => {
             this.closeMarkerPopup(true);
         });
-        newMarker.on('add', (event: leaflet.LeafletEvent) => {
+        newMarker.on('add', (_event: leaflet.LeafletEvent) => {
             newMarker
                 .getElement()
                 .addEventListener('contextmenu', (ev: MouseEvent) => {
@@ -902,7 +929,7 @@ export class MapContainer {
                     }
                 });
         });
-        newMarker.on('moveend', async (event: leaflet.LeafletEvent) => {
+        newMarker.on('moveend', async (_event: leaflet.LeafletEvent) => {
             marker.location = newMarker.getLatLng().clone();
             let newLat = marker.location.lat;
             // If the user drags the marker too far, the longitude will exceed the threshold, an
@@ -1026,8 +1053,8 @@ export class MapContainer {
             const fileMarker = layer as FileMarker;
             this.app.workspace.trigger(
                 'link-hover',
-                fileMarker.geoLayer.getElement(),
-                fileMarker.geoLayer.getElement(),
+                this.getGeoLayer(fileMarker).getElement(),
+                this.getGeoLayer(fileMarker).getElement(),
                 layer.file.path,
                 '',
                 previewDetails,
@@ -1194,7 +1221,7 @@ export class MapContainer {
             ),
         });
         const marker = this.display.searchResult;
-        marker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+        marker.on('mouseover', (_event: leaflet.LeafletMouseEvent) => {
             marker
                 .bindPopup(details.name, {
                     closeButton: true,
@@ -1202,7 +1229,7 @@ export class MapContainer {
                 })
                 .openPopup();
         });
-        marker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
+        marker.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
             marker.closePopup();
         });
         marker.on('contextmenu', (event: leaflet.LeafletMouseEvent) => {
@@ -1262,7 +1289,7 @@ export class MapContainer {
         let highlight: leaflet.Layer = mapOrFileMarker
             ? mapOrFileMarker instanceof leaflet.Layer
                 ? mapOrFileMarker
-                : mapOrFileMarker.geoLayer
+                : this.getGeoLayer(mapOrFileMarker)
             : null;
         // In case the marker is hidden in a cluster group, we actually want the cluster group
         // to be the highlighted item
@@ -1471,12 +1498,12 @@ export class MapContainer {
             if (
                 markerToFocus &&
                 marker instanceof FileMarker &&
-                marker.geoLayer
+                this.getGeoLayer(marker)
             ) {
-                const parent = this.display.clusterGroup.getVisibleParent(
-                    marker.geoLayer,
-                );
-                const visibleLeafletMarker = parent || marker.geoLayer;
+                const geoLayer = this.getGeoLayer(marker);
+                const parent =
+                    this.display.clusterGroup.getVisibleParent(geoLayer);
+                const visibleLeafletMarker = parent || geoLayer;
                 const element = visibleLeafletMarker.getElement();
                 const shouldBeVisible =
                     marker === markerToFocus ||
@@ -1505,11 +1532,11 @@ export class MapContainer {
     endHoverHighlight() {
         this.display.mapDiv.removeClass('mv-fade-active');
         for (const marker of this.display.markers.layers) {
-            if (marker.geoLayer && marker.geoLayer instanceof leaflet.Marker) {
-                const parent = this.display.clusterGroup.getVisibleParent(
-                    marker.geoLayer,
-                );
-                const visibleLeafletMarker = parent || marker.geoLayer;
+            const geoLayer = this.getGeoLayer(marker);
+            if (geoLayer && geoLayer instanceof leaflet.Marker) {
+                const parent =
+                    this.display.clusterGroup.getVisibleParent(geoLayer);
+                const visibleLeafletMarker = parent || geoLayer;
                 const element = visibleLeafletMarker.getElement();
                 if (element) element.removeClasses(['mv-fade-marker-shown']);
                 if (marker instanceof FileMarker) {
@@ -1567,16 +1594,22 @@ export class MapContainer {
 
     private newLeafletGeoJson(marker: GeoJsonLayer): leaflet.GeoJSON {
         const geoJsonLayer = leaflet.geoJSON(marker.geojson, {
-            onEachFeature: (feature: any, layer: leaflet.Layer) => {
+            onEachFeature: (_feature: any, layer: leaflet.Layer) => {
                 layer.bindPopup(marker.file.name, { autoClose: true });
-                layer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+                layer.on('mouseover', (_event: leaflet.LeafletMouseEvent) => {
                     layer.openPopup();
                 });
-                layer.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
+                layer.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
                     layer.closePopup();
                 });
             },
         });
         return geoJsonLayer;
+    }
+
+    private getGeoLayer<T extends BaseGeoLayer>(
+        layer: T,
+    ): T extends FileMarker ? leaflet.Marker : leaflet.Layer {
+        return layer.geoLayers.get(this.mapContainerId) as any;
     }
 }

@@ -15,7 +15,8 @@ export abstract class BaseGeoLayer {
     /** In the case of an inline location, the position within the file where the location was found */
     public fileLocation?: number;
     /** The leaflet layer on the map; overriden by child classes */
-    public geoLayer?: leaflet.Layer;
+    // TODO document, index by container ID
+    public abstract geoLayers: Map<number, leaflet.Layer>;
     /** In case of an inline location, the line within the file where the geolocation was found */
     public fileLine?: number;
     /** In case of an inline location, the file heading where the geolocation was found (if it's within a heading) */

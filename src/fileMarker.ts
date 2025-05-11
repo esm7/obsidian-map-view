@@ -24,7 +24,7 @@ import { GeoJsonLayer } from './geojsonLayer';
 
 /** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
 export class FileMarker extends BaseGeoLayer {
-    public geoLayer?: leaflet.Marker = null;
+    public geoLayers: Map<number, leaflet.Marker> = new Map();
     public location: leaflet.LatLng;
     public icon?: leaflet.Icon<IconOptions>;
     private _edges: Edge[] = [];

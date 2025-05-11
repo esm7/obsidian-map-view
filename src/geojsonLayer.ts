@@ -26,6 +26,7 @@ export const GEOJSON_FILE_FILTER = ['gpx', 'geojson', 'md', 'kml', 'tcx'];
 
 /** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
 export class GeoJsonLayer extends BaseGeoLayer {
+    public geoLayers: Map<number, leaflet.Layer> = new Map();
     public location: leaflet.LatLng;
     public geojson: GeoJSON;
 

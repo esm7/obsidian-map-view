@@ -1136,19 +1136,19 @@ export default class MapViewPlugin extends Plugin {
                 existingLayers.layers,
                 newMarkers,
             );
-            console.log(
-                'Document contains:',
-                document.contains(mapContainer.display.mapDiv),
-            );
             try {
                 mapContainer.updateMapMarkers(combinedLayersIterator);
-                console.log('TODO TEMP updated map container:', mapContainer);
             } catch (e) {
                 console.error(
                     'Error updating markers on file modification:',
                     e,
                 );
-                console.log('This happened on container:', mapContainer);
+                console.log(
+                    'This happened on container:',
+                    mapContainer,
+                    'which:',
+                    document.contains(mapContainer.display.mapDiv),
+                );
             }
         }
         return newLayers;
@@ -1169,8 +1169,9 @@ export default class MapViewPlugin extends Plugin {
     }
 
     private maintainMapContainersList() {
-        this.allMapContainers = this.allMapContainers.filter((mapContainer) =>
-            document.contains(mapContainer.display.mapDiv),
-        );
+        this.allMapContainers = this.allMapContainers.filter((mapContainer) => {
+            return document.contains(mapContainer.display.mapDiv);
+        });
+        // TODO clear containers from layers
     }
 }
