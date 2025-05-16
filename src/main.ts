@@ -1099,6 +1099,7 @@ export default class MapViewPlugin extends Plugin {
         fileAddedOrChanged: TAbstractFile,
         skipMetadata: boolean,
     ): Promise<BaseGeoLayer[]> {
+        if (!this.layerCache) return;
         if (fileRemoved) {
             this.layerCache.deleteAllFromFile(fileRemoved);
         }

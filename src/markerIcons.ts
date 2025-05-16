@@ -38,7 +38,7 @@ export function getIconFromRules(
     iconFactory: IconFactory,
 ) {
     // We iterate over the rules and apply them one by one, so later rules override earlier ones
-    const iconOptions = displayRulesCache.runOn(marker);
+    const [iconOptions, _] = displayRulesCache.runOn(marker);
     return getIconFromOptions(iconOptions, iconFactory);
 }
 

@@ -1,4 +1,4 @@
-import { LatLng } from 'leaflet';
+import { LatLng, type PathOptions } from 'leaflet';
 import { type SplitDirection, Notice } from 'obsidian';
 import { type MapState, type LegacyMapState, mergeStates } from 'src/mapState';
 import MapViewPlugin from 'src/main';
@@ -134,7 +134,12 @@ export type DisplayRule = {
     query: string;
     preset: boolean;
     iconDetails?: any;
-    pathDetails?: any;
+    pathOptions?: PathOptions;
+};
+
+export const EMPTY_DISPLAY_RULE: Partial<DisplayRule> = {
+    iconDetails: { icon: '', markerColor: '', shape: '' },
+    pathOptions: { color: '', weight: 0, opacity: 0 },
 };
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -163,6 +168,11 @@ export const DEFAULT_SETTINGS: PluginSettings = {
                 prefix: 'fas',
                 icon: 'fa-circle',
                 markerColor: 'blue',
+            },
+            pathOptions: {
+                color: 'blue',
+                weight: 5,
+                opacity: 0.8,
             },
         },
         {
@@ -439,6 +449,7 @@ export function convertMarkerIconRulesToDisplayRules(
     if (settings.markerIconRules) {
         // Make sure not to add to any defaults
         settings.displayRules = [];
+        // TODO include default path options here
         for (const rule of settings.markerIconRules) {
             const displayRule: DisplayRule = {
                 query: rule.preset ? '' : `tag:${rule.ruleName}`,

@@ -4,6 +4,9 @@
     import { App, getIcon } from 'obsidian';
     import DisplayRuleLine from './DisplayRuleLine.svelte';
     import { Query } from '../query';
+    import { DisplayRulesCache } from '../displayRulesCache';
+    import { BaseGeoLayer } from '../baseGeoLayer';
+    import { getIconFromOptions } from '../markerIcons';
 
     let { close, app, plugin, settings } = $props<{
         close: () => void;
@@ -15,20 +18,24 @@
     let rulesCopy: DisplayRule[] = $state(
         structuredClone(settings.displayRules),
     );
-    let rulesCopyFormatted: string = $state('');
     let allOk: boolean = $derived(sanityCheck(rulesCopy));
-    let invalidJson: boolean = $state(false);
-
-    $effect(() => {
-        rulesCopyFormatted = JSON.stringify(rulesCopy, null, 2);
-    });
+    let previewLayerName: string = $state('');
 
     async function save() {
-        settings.displayRules = rulesCopy;
-        plugin.displayRulesCache.build(settings.displayRules);
+        plugin.settings.displayRules = rulesCopy;
+        plugin.displayRulesCache.build(plugin.settings.displayRules);
         await plugin.saveSettings();
         plugin.refreshAllMapViews();
         close();
+    }
+
+    function newRule() {
+        rulesCopy.push({ query: '', preset: false });
+        const rulesGroup = document.querySelector('.rules-group');
+        // TODO replace with bind this
+        if (rulesGroup) {
+            rulesGroup.scrollTop = rulesGroup.scrollHeight;
+        }
     }
 
     function sanityCheck(rules: DisplayRule[]) {
@@ -38,8 +45,9 @@
         // Check no other rule is defined a preset
         if (rules.filter((rule) => rule.preset === true).length !== 1)
             ok = false;
-        // Check no JSON errors
-        if (invalidJson) ok = false;
+        // Only the default rule is alowed an empty query
+        if (rules.filter((rule) => rule.query.trim() === '').length !== 1)
+            ok = false;
         // Check no errors inside rules
         try {
             for (const rule of rules) {
@@ -53,14 +61,58 @@
         }
         return ok;
     }
+
+    function doDelete(toDelete: DisplayRule) {
+        rulesCopy = rulesCopy.filter((rule) => rule !== toDelete);
+    }
+
+    function doMove(rule: DisplayRule, direction: 'up' | 'down') {
+        const ruleIndex = rulesCopy.findIndex((r) => r === rule);
+        if (direction === 'up' && ruleIndex > 0) {
+            // Move up - swap with the previous element
+            [rulesCopy[ruleIndex], rulesCopy[ruleIndex - 1]] = [
+                rulesCopy[ruleIndex - 1],
+                rulesCopy[ruleIndex],
+            ];
+        } else if (direction === 'down' && ruleIndex < rulesCopy.length - 1) {
+            // Move down - swap with the next element
+            [rulesCopy[ruleIndex], rulesCopy[ruleIndex + 1]] = [
+                rulesCopy[ruleIndex + 1],
+                rulesCopy[ruleIndex],
+            ];
+        }
+    }
+
+    function layerPreview(name: string) {
+        const layer = plugin.layerCache.findName(name);
+        if (!layer) return null;
+        const rulesCache = new DisplayRulesCache(app);
+        rulesCache.build(rulesCopy);
+        const [iconOptions, pathOptions] = rulesCache.runOn(layer);
+        const compiledIcon = getIconFromOptions(
+            iconOptions,
+            plugin.iconFactory,
+        );
+        const iconElement = compiledIcon.createIcon();
+        // The marker icons library generates the icons with margins meant for map display. We have to override this
+        // programatically here, and not by a style, as it's set directly to the element style.
+        iconElement.style.marginLeft = '';
+        iconElement.style.marginTop = '';
+        return iconElement;
+    }
 </script>
 
-<div class="map-element-rules-dialog" style="overflow: auto; width: 100%;">
+<div class="map-element-rules-dialog" style="overflow: auto">
     <div class="setting-item with-padding">
         <div class="setting-item-info">
-            <div class="setting-item-name"><b>Marker Rules</b></div>
+            <div class="setting-item-name"><b>Display Rules</b></div>
             <div class="setting-item-description">
-                <p>Description.</p>
+                <p>
+                    See <a
+                        href="https://github.com/esm7/obsidian-map-view?tab=readme-ov-file#marker-icons"
+                        >here</a
+                    > for details.
+                </p>
             </div>
         </div>
     </div>
@@ -72,39 +124,40 @@
                     allRules={rulesCopy}
                     {app}
                     {plugin}
+                    doDelete={() => doDelete(rule)}
+                    {doMove}
                 />
             </div>
         {/each}
     </div>
 
+    <div class="modal-button-container" style="padding-bottom: 15px;">
+        <button onclick={newRule}>New Rule</button>
+    </div>
+
     <div class="setting-item with-padding">
         <div class="setting-item-info">
-            <div class="setting-item-name">
-                Edit display rules as JSON (advanced)
-            </div>
+            <div class="setting-item-name">Rule Tester</div>
             <div class="setting-item-description">
-                <p>Description.</p>
+                Select a marker or a path to test.
             </div>
         </div>
         <div class="setting-item-control">
-            <textarea
-                class="json-editor"
-                class:json-error={invalidJson}
-                bind:value={rulesCopyFormatted}
-                oninput={(e) => {
-                    try {
-                        const parsed = JSON.parse(e.currentTarget.value);
-                        if (Array.isArray(parsed)) {
-                            rulesCopy = parsed;
-                            invalidJson = false;
-                        } else invalidJson = true;
-                    } catch (error) {
-                        invalidJson = true;
-                    }
-                }}
-                rows="10"
-                style="width: 100%; font-family: monospace;"
-            ></textarea>
+            <input
+                class="input"
+                type="text"
+                list="layerSuggestions"
+                bind:value={previewLayerName}
+                contenteditable="true"
+            />
+            <datalist id="layerSuggestions">
+                {#each plugin.layerCache.layers as layer}
+                    <option>{layer.extraName ?? layer.file.basename}</option>
+                {/each}
+            </datalist>
+            <div class="icon-preview">
+                {@html layerPreview(previewLayerName)?.outerHTML}
+            </div>
         </div>
     </div>
 
@@ -126,8 +179,6 @@
 
 <style>
     .map-element-rules-dialog {
-        padding-top: var(--size-4-8);
-        padding-bottom: var(--size-4-16);
     }
 
     .with-padding {
@@ -150,7 +201,14 @@
         margin-inline-end: 0;
     }
 
-    .json-error {
-        border-color: red;
+    .icon-preview {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        min-width: 35px;
+        min-height: 45px;
+        margin: 0 5px 0 5px;
     }
 </style>

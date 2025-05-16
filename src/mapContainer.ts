@@ -1281,7 +1281,7 @@ export class MapContainer {
 
     openSearch() {
         if (this.display.searchControls)
-            this.display.searchControls.openSearch(this.display.markers.map);
+            this.display.searchControls.openSearch(this.display.markers);
     }
 
     setHighlight(mapOrFileMarker: leaflet.Layer | BaseGeoLayer) {
@@ -1593,7 +1593,9 @@ export class MapContainer {
     }
 
     private newLeafletGeoJson(marker: GeoJsonLayer): leaflet.GeoJSON {
+        const [_, pathOptions] = this.plugin.displayRulesCache.runOn(marker);
         const geoJsonLayer = leaflet.geoJSON(marker.geojson, {
+            style: pathOptions,
             onEachFeature: (_feature: any, layer: leaflet.Layer) => {
                 layer.bindPopup(marker.file.name, { autoClose: true });
                 layer.on('mouseover', (_event: leaflet.LeafletMouseEvent) => {

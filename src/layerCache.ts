@@ -37,6 +37,18 @@ export class LayerCache {
         return this.layersMap.get(layerId);
     }
 
+    public findName(name: string) {
+        for (const layer of this.layersMap.values()) {
+            if (
+                (layer.extraName && layer.extraName === name) ||
+                layer.file.basename === name
+            ) {
+                return layer;
+            }
+        }
+        return null;
+    }
+
     // Assumes the layer doesn't exist yet
     public add(layer: BaseGeoLayer) {
         if (this.layersMap.get(layer.id))

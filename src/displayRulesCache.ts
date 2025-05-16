@@ -1,7 +1,8 @@
 import { App } from 'obsidian';
 import { type DisplayRule } from 'src/settings';
 import { Query } from 'src/query';
-import { FileMarker } from 'src/fileMarker';
+import { BaseGeoLayer } from 'src/baseGeoLayer';
+import { type PathOptions } from 'leaflet';
 
 export class DisplayRulesCache {
     private displayRuleQueries: Query[] = [];
@@ -21,11 +22,16 @@ export class DisplayRulesCache {
         this.displayRules = displayRules;
     }
 
-    public runOn(marker: FileMarker) {
+    // TODO document
+    public runOn(marker: BaseGeoLayer): [any, PathOptions] {
         const defaultRule = this.displayRules.find(
             (rule) => rule.preset == true,
         );
         let iconDetails: any = Object.assign({}, defaultRule.iconDetails);
+        let pathOptions: PathOptions = Object.assign(
+            {},
+            defaultRule.pathOptions,
+        );
         if (this.displayRuleQueries.length != this.displayRules.length)
             throw new Error(
                 `Display rules cache is garbled, ${this.displayRuleQueries.length} vs ${this.displayRules.length} rules`,
@@ -36,14 +42,21 @@ export class DisplayRulesCache {
             if (!rule.preset) {
                 const query = this.displayRuleQueries[i];
                 if (query.testMarker(marker)) {
-                    iconDetails = Object.assign(
-                        {},
-                        iconDetails,
-                        rule.iconDetails,
-                    );
+                    if (rule.iconDetails)
+                        iconDetails = Object.assign(
+                            {},
+                            iconDetails,
+                            rule.iconDetails,
+                        );
+                    if (rule.pathOptions)
+                        pathOptions = Object.assign(
+                            {},
+                            pathOptions,
+                            rule.pathOptions,
+                        );
                 }
             }
         }
-        return iconDetails;
+        return [iconDetails, pathOptions];
     }
 }

@@ -6,23 +6,51 @@
     import QueryTextField from './QueryTextField.svelte';
     import { getIconFromOptions } from '../markerIcons';
     import { Query } from '../query';
+    import { SvelteModal } from 'src/svelte';
+    import EditDisplayRuleDialog from './EditDisplayRuleDialog.svelte';
 
     let {
         displayRule = $bindable(),
         allRules,
         plugin,
         app,
+        doDelete,
+        doMove,
     } = $props<{
         displayRule: DisplayRule;
         allRules: DisplayRule[];
         plugin: MapViewPlugin;
         app: App;
+        doDelete: (toDelete: DisplayRule) => void;
+        doMove: (rule: DisplayRule, direction: 'up' | 'down') => void;
     }>();
 
     let queryError: boolean = $state(false);
     let zeroMatchWarning: boolean = $state(false);
 
+    function openEdit() {
+        const dialog = new SvelteModal(
+            EditDisplayRuleDialog,
+            app,
+            plugin,
+            plugin.settings,
+            {
+                displayRule,
+                allRules,
+                app,
+                plugin,
+                // TODO TEMP if this work explain why we do assign
+                onSave: (newRule: DisplayRule) => {
+                    Object.assign(displayRule, newRule);
+                },
+            },
+            ['mod-settings'],
+        );
+        dialog.open();
+    }
+
     function makePreview() {
+        // TODO unify with the edit dialog
         const defaultRule = allRules.find(
             (rule: DisplayRule) => rule.preset === true,
         );
@@ -83,43 +111,39 @@
                 bind:queryError
             />
         {:else}
-            <input
-                type="text"
-                placeholder="Default"
-                title="The default icon and base for all other rules"
-                class="rule-input"
-                disabled
-            />
+            <div class="search-input-container">
+                <input
+                    type="text"
+                    placeholder="Default"
+                    title="The default icon and base for all other rules"
+                    disabled
+                />
+            </div>
         {/if}
-        <input
-            type="text"
-            bind:value={displayRule.iconDetails.icon}
-            placeholder="Icon"
-            title="A FontAwesome icon name or an emoji"
-            class="rule-input"
-        />
-        <input
-            type="text"
-            bind:value={displayRule.iconDetails.markerColor}
-            placeholder="Color"
-            class="rule-input"
-        />
-        <input
-            type="text"
-            bind:value={displayRule.iconDetails.shape}
-            placeholder="Shape"
-            class="rule-input"
-        />
         <div class="icon-preview">
             {@html makePreview().outerHTML}
         </div>
-        {#if !displayRule.preset}
-            <button class="settings-dense-button">Delete</button>
-        {/if}
-        <button class="settings-dense-button">
+        <button class="settings-dense-button" onclick={openEdit}> Edit </button>
+        <button
+            class="settings-dense-button"
+            disabled={displayRule.preset}
+            onclick={() => doDelete(displayRule)}
+        >
+            Delete
+        </button>
+        <button
+            class="settings-dense-button"
+            disabled={displayRule == allRules[0] || displayRule.preset}
+            onclick={() => doMove(displayRule, 'up')}
+        >
             {@html getIcon('arrow-up').outerHTML}
         </button>
-        <button class="settings-dense-button">
+        <button
+            class="settings-dense-button"
+            disabled={displayRule == allRules[allRules.length - 1] ||
+                displayRule.preset}
+            onclick={() => doMove(displayRule, 'down')}
+        >
             {@html getIcon('arrow-down').outerHTML}
         </button>
     </div>
@@ -144,12 +168,6 @@
         left: -24px;
         top: 50%;
         transform: translateY(-50%);
-    }
-
-    .rule-input {
-        min-width: 30px;
-        flex-shrink: 1;
-        margin: 2px;
     }
 
     .settings-dense-button {

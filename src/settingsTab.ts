@@ -14,9 +14,9 @@ import {
     type UrlParsingContentType,
     type GeoHelperType,
     type LinkNamePopupBehavior,
+    type DisplayRule,
     DEFAULT_SETTINGS,
 } from 'src/settings';
-import { getIconFromOptions, getIconFromRules } from 'src/markerIcons';
 import { BaseMapView } from 'src/baseMapView';
 import * as consts from 'src/consts';
 import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
@@ -719,7 +719,7 @@ export class SettingsTab extends PluginSettingTab {
                             app: this.app,
                             plugin: this.plugin,
                         },
-                        ['mod-settings', 'mod-sidebar-layout'],
+                        ['mod-settings'],
                     );
                     dialog.open();
                 }),

@@ -7,7 +7,7 @@ import { MapContainer, type ViewSettings } from 'src/mapContainer';
 import MapViewPlugin from 'src/main';
 import { LocationSearchDialog, SuggestInfo } from 'src/locationSearchDialog';
 import { FileMarker } from 'src/fileMarker';
-import { type MarkersMap } from 'src/baseGeoLayer';
+import { LayerCache } from 'src/layerCache';
 
 import * as leaflet from 'leaflet';
 import { mount, unmount } from 'svelte';
@@ -107,9 +107,9 @@ export class SearchControl extends leaflet.Control {
         return div;
     }
 
-    openSearch(existingMarkers: MarkersMap) {
+    openSearch(existingLayers: LayerCache) {
         let markerSearchResults: SuggestInfo[] = [];
-        for (const marker of existingMarkers.values()) {
+        for (const marker of existingLayers.layers) {
             if (marker instanceof FileMarker) {
                 markerSearchResults.push({
                     name: marker.extraName

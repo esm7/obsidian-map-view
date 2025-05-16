@@ -379,6 +379,8 @@ In all cases you can [save presets](#Presets) that include the filter or sub-fil
 
 ## Marker Icons
 
+TODO - this requires a major update and also updating the links that lead here, including from the code!
+
 Map View allows you to customize notes' map marker icons based on a powerful rules system.
 These rules can be edited using the plugin's settings pane or edited as JSON for some even more fine-grained control.
 
@@ -690,6 +692,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - TODO: Fix places API templates
 - Major performance optimizations to filtering
 - Filtering now works properly when changing notes
+- Searching the map now shows all markers, not just the ones in the current filter
 
 ### 5.5.0
 
