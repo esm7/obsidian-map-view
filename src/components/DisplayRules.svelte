@@ -5,8 +5,8 @@
     import DisplayRuleLine from './DisplayRuleLine.svelte';
     import { Query } from '../query';
     import { DisplayRulesCache } from '../displayRulesCache';
-    import { BaseGeoLayer } from '../baseGeoLayer';
     import { getIconFromOptions } from '../markerIcons';
+    import { tick } from 'svelte';
 
     let { close, app, plugin, settings } = $props<{
         close: () => void;
@@ -20,6 +20,7 @@
     );
     let allOk: boolean = $derived(sanityCheck(rulesCopy));
     let previewLayerName: string = $state('');
+    let rulesGroup: HTMLElement = $state();
 
     async function save() {
         plugin.settings.displayRules = rulesCopy;
@@ -29,10 +30,9 @@
         close();
     }
 
-    function newRule() {
+    async function newRule() {
         rulesCopy.push({ query: '', preset: false });
-        const rulesGroup = document.querySelector('.rules-group');
-        // TODO replace with bind this
+        await tick();
         if (rulesGroup) {
             rulesGroup.scrollTop = rulesGroup.scrollHeight;
         }
@@ -108,15 +108,17 @@
             <div class="setting-item-name"><b>Display Rules</b></div>
             <div class="setting-item-description">
                 <p>
-                    See <a
+                    Each marker or path starts from the default setting, then
+                    matched by order, potentially overwriting some properties on
+                    every rule match. See <a
                         href="https://github.com/esm7/obsidian-map-view?tab=readme-ov-file#marker-icons"
                         >here</a
-                    > for details.
+                    > for details and examples.
                 </p>
             </div>
         </div>
     </div>
-    <div class="with-padding rules-group">
+    <div class="with-padding rules-group" bind:this={rulesGroup}>
         {#each rulesCopy as rule}
             <div class="setting-item" style="padding: 5px; border-top: none;">
                 <DisplayRuleLine
@@ -183,8 +185,8 @@
 
     .with-padding {
         padding-right: 5px;
-        padding-inline-start: var(--size-4-12);
-        padding-inline-end: var(--size-4-12);
+        padding-inline-start: var(--size-4-4);
+        padding-inline-end: var(--size-4-4);
     }
 
     .rules-group {

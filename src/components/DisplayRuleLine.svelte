@@ -123,7 +123,9 @@
         <div class="icon-preview">
             {@html makePreview().outerHTML}
         </div>
-        <button class="settings-dense-button" onclick={openEdit}> Edit </button>
+        <button class="settings-dense-button" onclick={openEdit}>
+            Edit...
+        </button>
         <button
             class="settings-dense-button"
             disabled={displayRule.preset}
