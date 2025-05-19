@@ -302,3 +302,31 @@ div.map-view-highlight.marker-cluster {
     padding: 1px !important;
     background-color: blue;
 }
+
+.mv-badge {
+    position: absolute;
+    background-color: red;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+.mv-badge-tl {
+    top: 0;
+    left: 0;
+}
+.mv-badge-tr {
+    top: 0;
+    right: 0;
+}
+.mv-badge-bl {
+    bottom: 0;
+    left: 0;
+}
+.mv-badge-br {
+    bottom: 0;
+    right: 0;
+}

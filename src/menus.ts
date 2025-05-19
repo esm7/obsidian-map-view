@@ -459,6 +459,7 @@ export function populateMoveMarker(
                     leafletMarker.setIcon(
                         getIconFromOptions(
                             consts.UNLOCKED_MARKER,
+                            [],
                             plugin.iconFactory,
                         ),
                     );

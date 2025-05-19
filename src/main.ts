@@ -13,6 +13,7 @@ import {
     type MarkdownPostProcessorContext,
     Notice,
 } from 'obsidian';
+
 import 'core-js/actual/structured-clone';
 import { ViewPlugin } from '@codemirror/view';
 import * as consts from 'src/consts';
@@ -27,7 +28,7 @@ import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
 import { EmbeddedMap } from 'src/embeddedMap';
 import { MapContainer } from 'src/mapContainer';
-import { IconFactory } from 'src/markerIcons';
+import { getIconFromRules, IconFactory } from 'src/markerIcons';
 import { DisplayRulesCache } from 'src/displayRulesCache';
 import {
     askForLocation,
@@ -51,20 +52,16 @@ import {
     matchInlineLocation,
     buildAndAppendFileMarkers,
 } from 'src/fileMarker';
-import {
-    GeoJsonLayer,
-    buildGeoJsonLayers,
-    GEOJSON_FILE_FILTER,
-} from 'src/geojsonLayer';
+import { buildGeoJsonLayers, GEOJSON_FILE_FILTER } from 'src/geojsonLayer';
 import { verifyLocation } from 'src/baseGeoLayer';
+import { FileMarker } from 'src/fileMarker';
 import { SettingsTab } from 'src/settingsTab';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { TagSuggest } from 'src/tagSuggest';
 import * as utils from 'src/utils';
 import { MapPreviewPopup } from 'src/mapPreviewPopup';
-import { cacheTagsFromMarkers, buildMarkers } from 'src/markers';
 import { LayerCache } from 'src/layerCache';
-import { BaseGeoLayer } from 'src/baseGeoLayer';
+import { BaseGeoLayer, cacheTagsFromLayers } from 'src/baseGeoLayer';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
@@ -100,6 +97,9 @@ export default class MapViewPlugin extends Plugin {
 
         this.editorLinkReplacePlugin = getLinkReplaceEditorPlugin(this);
         this.registerEditorExtension(this.editorLinkReplacePlugin);
+
+        this.displayRulesCache = new DisplayRulesCache(this.app);
+        this.displayRulesCache.build(this.settings.displayRules);
 
         // Currently not in use; the feature is frozen until I have the time to work on its various quirks
         // this.registerView(consts.MINI_MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
@@ -265,8 +265,6 @@ export default class MapViewPlugin extends Plugin {
         await convertLegacySettings(this.settings, this);
 
         this.iconFactory = new IconFactory(document.body);
-        this.displayRulesCache = new DisplayRulesCache(this.app);
-        this.displayRulesCache.build(this.settings.displayRules);
 
         this.mapPreviewPopup = null;
 
@@ -1059,30 +1057,40 @@ export default class MapViewPlugin extends Plugin {
     }
 
     private async buildInitialLayersCache() {
+        // This initialization can happen from two places:
+        // 1. From the layout-ready event, if the settings allow it.
+        // 2. From a mapContainer, if it needs to open Map View before the layout-ready event (this happens if Obsidian opens with a
+        //    Map View already).
+        if (this.layerCacheInitStarted) return;
         this.layerCacheInitStarted = true;
         let files = this.app.vault.getMarkdownFiles();
         let geoJsonFiles = this.app.vault
             .getFiles()
             .filter((file) => GEOJSON_FILE_FILTER.includes(file.extension));
-        let newMarkers = await buildMarkers(files, this.settings, this.app);
+        let newMarkers = await buildAndAppendFileMarkers(
+            files,
+            this.settings,
+            this.app,
+            this,
+        );
         let geoJsonLayers = await buildGeoJsonLayers(
             geoJsonFiles,
             this.settings,
             this.app,
+            this,
         );
         const allLayers = Array.combine([newMarkers, geoJsonLayers]);
-        cacheTagsFromMarkers(allLayers, this.allTags);
+        cacheTagsFromLayers(allLayers, this.allTags);
         let layerCache = new LayerCache();
         // We do this on a variable rather than directly on the member so Map Views will be able to easily know when the initialization
         // was done
         for (const layer of allLayers) layerCache.add(layer);
         this.layerCache = layerCache;
-        if (this.settings.debug)
-            console.log(
-                'Map View initialized with',
-                this.layerCache.size,
-                'items.',
-            );
+        console.log(
+            'Map View initialized with',
+            this.layerCache.size,
+            'markers & paths.',
+        );
     }
 
     /**
@@ -1107,13 +1115,23 @@ export default class MapViewPlugin extends Plugin {
         if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
             // Add file markers from the added/modified file. These markers may be (and usually are) identical
             // to the ones already on the map
-            await buildAndAppendFileMarkers(
-                newLayers,
-                fileAddedOrChanged,
+            newLayers = await buildAndAppendFileMarkers(
+                [fileAddedOrChanged],
                 this.settings,
                 this.app,
+                this,
             );
-            cacheTagsFromMarkers(newLayers, this.allTags);
+
+            if (GEOJSON_FILE_FILTER.includes(fileAddedOrChanged.extension)) {
+                let geoJsonLayers = await buildGeoJsonLayers(
+                    [fileAddedOrChanged],
+                    this.settings,
+                    this.app,
+                    this,
+                );
+                newLayers.push(...geoJsonLayers);
+            }
+            cacheTagsFromLayers(newLayers, this.allTags);
         }
         for (const layer of newLayers) {
             if (this.layerCache.get(layer.id))

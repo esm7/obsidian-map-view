@@ -88,9 +88,11 @@
         if (!layer) return null;
         const rulesCache = new DisplayRulesCache(app);
         rulesCache.build(rulesCopy);
-        const [iconOptions, pathOptions] = rulesCache.runOn(layer);
+        const [iconOptions, pathOptions, badgeOptions] =
+            rulesCache.runOn(layer);
         const compiledIcon = getIconFromOptions(
             iconOptions,
+            badgeOptions,
             plugin.iconFactory,
         );
         const iconElement = compiledIcon.createIcon();

@@ -122,6 +122,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
             let iconDiv = el.createDiv('search-icon-div');
             const compiledIcon = getIconFromOptions(
                 value.icon ?? consts.SEARCH_RESULT_MARKER,
+                [],
                 this.plugin.iconFactory,
             );
             let iconElement: HTMLElement = createIconElement(

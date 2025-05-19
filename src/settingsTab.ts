@@ -201,7 +201,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Max cluster size in pixels')
             .setDesc(
-                'Maximal radius in pixels to cover in a marker cluster. Lower values will produce smaller map clusters. (Requires restart.)',
+                'Maximal radius in pixels to cover in a marker cluster. Higher values will group more markers together, which leads to better performance. (Requires restart.)',
             )
             .addSlider((slider) => {
                 slider

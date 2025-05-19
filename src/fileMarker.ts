@@ -21,6 +21,8 @@ import { djb2Hash, getHeadingAndBlockForFilePosition } from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
 import { GeoJsonLayer } from './geojsonLayer';
+import type MapViewPlugin from './main';
+import { getIconFromRules } from 'src/markerIcons';
 
 /** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
 export class FileMarker extends BaseGeoLayer {
@@ -468,36 +470,52 @@ export function isMarkerLinkedFrom(
  * @param skipMetadata If true will not find markers in the front matter
  */
 export async function buildAndAppendFileMarkers(
-    mapToAppendTo: BaseGeoLayer[],
-    file: TFile,
+    files: TFile[],
     settings: PluginSettings,
     app: App,
+    plugin: MapViewPlugin,
     skipMetadata?: boolean,
-) {
-    const fileCache = app.metadataCache.getFileCache(file);
-    const frontMatter = fileCache?.frontmatter;
-    const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
-    if (frontMatter || tagNameToSearch?.length > 0) {
-        if (frontMatter && !skipMetadata) {
-            const location = getFrontMatterLocation(file, app, settings);
-            if (location) {
-                verifyLocation(location);
-                let marker = new FileMarker(file, location);
-                marker.tags = getAllTags(fileCache);
-                mapToAppendTo.push(marker);
+): Promise<FileMarker[]> {
+    let layers: FileMarker[] = [];
+    for (const file of files) {
+        const fileCache = app.metadataCache.getFileCache(file);
+        const frontMatter = fileCache?.frontmatter;
+        const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
+        if (frontMatter || tagNameToSearch?.length > 0) {
+            if (frontMatter && !skipMetadata) {
+                const location = getFrontMatterLocation(file, app, settings);
+                if (location) {
+                    verifyLocation(location);
+                    let marker = new FileMarker(file, location);
+                    marker.tags = getAllTags(fileCache);
+                    layers.push(marker);
+                }
+            }
+            if (
+                (frontMatter && 'locations' in frontMatter) ||
+                (tagNameToSearch?.length > 0 &&
+                    wildcard(tagNameToSearch, getAllTags(fileCache)))
+            ) {
+                const markersFromFile = await getMarkersFromFileContent(
+                    file,
+                    settings,
+                    app,
+                );
+                layers.push(...markersFromFile);
             }
         }
-        if (
-            (frontMatter && 'locations' in frontMatter) ||
-            (tagNameToSearch?.length > 0 &&
-                wildcard(tagNameToSearch, getAllTags(fileCache)))
-        ) {
-            const markersFromFile = await getMarkersFromFileContent(
-                file,
-                settings,
-                app,
+    }
+
+    // Apply display rules
+    for (const layer of layers) {
+        if (layer instanceof FileMarker) {
+            layer.icon = getIconFromRules(
+                layer,
+                plugin.displayRulesCache,
+                plugin.iconFactory,
             );
-            mapToAppendTo.push(...markersFromFile);
         }
     }
+
+    return layers;
 }

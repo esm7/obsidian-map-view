@@ -43,6 +43,7 @@
                 onSave: (newRule: DisplayRule) => {
                     Object.assign(displayRule, newRule);
                 },
+                makePreview: makePreview,
             },
             ['mod-settings'],
         );
@@ -60,7 +61,16 @@
             defaultRule.iconDetails,
             displayRule.iconDetails,
         );
-        const compiledIcon = getIconFromOptions(options, plugin.iconFactory);
+        let badgeOptions = Object.assign(
+            {},
+            defaultRule.badgeOptions,
+            displayRule.badgeOptions,
+        );
+        const compiledIcon = getIconFromOptions(
+            options,
+            [badgeOptions],
+            plugin.iconFactory,
+        );
         const iconElement = compiledIcon.createIcon();
         // The marker icons library generates the icons with margins meant for map display. We have to override this
         // programatically here, and not by a style, as it's set directly to the element style.
@@ -155,6 +165,10 @@
     .rule-line-container {
         width: 100%;
         position: relative;
+    }
+
+    :global(.rule-line-container .search-input-container) {
+        min-width: 8em;
     }
 
     .rule-line {

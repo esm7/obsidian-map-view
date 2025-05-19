@@ -1,7 +1,5 @@
 import * as leaflet from 'leaflet';
 
-import { App } from 'obsidian';
-
 // import '@fortawesome/fontawesome-free/js/all.min';
 import { fas } from '@fortawesome/free-solid-svg-icons';
 import { far } from '@fortawesome/free-regular-svg-icons';
@@ -22,7 +20,7 @@ import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 let localL = L;
 import wildcard from 'wildcard';
 
-import { type DisplayRule } from 'src/settings';
+import { type IconBadgeOptions } from 'src/settings';
 import { FileMarker } from 'src/fileMarker';
 import type { DisplayRulesCache } from './displayRulesCache';
 
@@ -38,12 +36,13 @@ export function getIconFromRules(
     iconFactory: IconFactory,
 ) {
     // We iterate over the rules and apply them one by one, so later rules override earlier ones
-    const [iconOptions, _] = displayRulesCache.runOn(marker);
-    return getIconFromOptions(iconOptions, iconFactory);
+    const [iconOptions, _, badgeOptions] = displayRulesCache.runOn(marker);
+    return getIconFromOptions(iconOptions, badgeOptions, iconFactory);
 }
 
 export function getIconFromOptions(
     iconSpec: IconOptions,
+    badgeOptions: IconBadgeOptions[],
     iconFactory: IconFactory,
 ): leaflet.Icon | leaflet.DivIcon {
     // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
@@ -65,14 +64,68 @@ export function getIconFromOptions(
                 );
                 iconSpec.innerHTML = internalIcon;
             }
-            return leaflet.ExtraMarkers.icon(
-                iconSpec as leaflet.ExtraMarkers.IconOptions,
+            return addBadges(
+                leaflet.ExtraMarkers.icon(
+                    iconSpec as leaflet.ExtraMarkers.IconOptions,
+                ),
+                badgeOptions,
             );
         }
     } finally {
         // @ts-ignore
         L = backupL;
     }
+}
+
+function addBadges(
+    leafletIcon: leaflet.Icon,
+    badgeOptions: IconBadgeOptions[],
+) {
+    // TODO support this in simpleCircleMarker too
+    if (!badgeOptions || badgeOptions.length === 0) return leafletIcon;
+    const oldCreator = leafletIcon.createIcon;
+    leafletIcon.createIcon = function (oldIcon: HTMLElement) {
+        const iconDiv = oldCreator.call(this, oldIcon);
+        if (iconDiv) {
+            // TODO document
+            const CLASS_NAMES = [
+                'mv-badge-tl',
+                'mv-badge-tr',
+                'mv-badge-bl',
+                'mv-badge-br',
+            ];
+            let index = 0;
+            for (const badge of badgeOptions) {
+                if (badge.badge) {
+                    createBadge(
+                        iconDiv,
+                        badge,
+                        CLASS_NAMES[index % CLASS_NAMES.length],
+                    );
+                    index++;
+                }
+            }
+        }
+        return iconDiv;
+    };
+    return leafletIcon;
+}
+
+function createBadge(
+    iconDiv: HTMLDivElement,
+    badgeOptions: IconBadgeOptions,
+    badgePositionClass: string,
+) {
+    const badgeDiv = iconDiv.createDiv();
+    badgeDiv.classList.add('mv-badge', badgePositionClass);
+    badgeDiv.style.backgroundColor = badgeOptions.backColor;
+    badgeDiv.style.color = badgeOptions.textColor;
+    if (badgeOptions.border) badgeDiv.style.border = badgeOptions.border;
+    const textSpan = createEl('span', 'mv-badge-text');
+    textSpan.innerHTML = badgeOptions.badge;
+    if (badgeOptions.cssFilters)
+        textSpan.style.filter = badgeOptions.cssFilters;
+    badgeDiv.appendChild(textSpan);
 }
 
 export function createIconElement(

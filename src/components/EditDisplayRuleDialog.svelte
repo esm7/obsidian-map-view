@@ -2,22 +2,23 @@
     import { App } from 'obsidian';
     import MapViewPlugin from '../main';
     import {
-        type PluginSettings,
         type DisplayRule,
+        type IconBadgeOptions,
         EMPTY_DISPLAY_RULE,
     } from '../settings';
     import { getIcon } from 'obsidian';
-    import { getIconFromOptions } from '../markerIcons';
     import ViewCollapsibleSection from './ViewCollapsibleSection.svelte';
 
-    let { close, displayRule, allRules, plugin, app, onSave } = $props<{
-        close: () => void;
-        displayRule: DisplayRule;
-        allRules: DisplayRule[];
-        plugin: MapViewPlugin;
-        app: App;
-        onSave: (newRule: DisplayRule) => void;
-    }>();
+    let { close, displayRule, allRules, plugin, app, onSave, makePreview } =
+        $props<{
+            close: () => void;
+            displayRule: DisplayRule;
+            allRules: DisplayRule[];
+            plugin: MapViewPlugin;
+            app: App;
+            onSave: (newRule: DisplayRule) => void;
+            makePreview: () => void;
+        }>();
 
     let ruleCopy: DisplayRule = $state(
         structuredClone(expandDisplayRule(displayRule)),
@@ -38,7 +39,7 @@
     function shrinkDisplayRule(rule: DisplayRule) {
         const cleanedRule = structuredClone(rule);
         const iconDetails = cleanedRule.iconDetails as any;
-        for (const key in cleanedRule.iconDetails) {
+        for (const key in iconDetails) {
             if (iconDetails[key] === '' || iconDetails[key] === null) {
                 delete cleanedRule.iconDetails[key];
             }
@@ -53,26 +54,13 @@
                 delete (cleanedRule.pathOptions as any)[key];
             }
         }
+        const badgeOptions = cleanedRule.badgeOptions as any;
+        for (const key in badgeOptions) {
+            if (badgeOptions[key] === '' || badgeOptions[key] === null) {
+                delete (cleanedRule.badgeOptions as any)[key];
+            }
+        }
         return cleanedRule;
-    }
-
-    function makePreview(ruleToPreview: DisplayRule) {
-        const defaultRule = allRules.find(
-            (rule: DisplayRule) => rule.preset === true,
-        );
-        if (!defaultRule) throw new Error("Can't find default rule");
-        let options = Object.assign(
-            {},
-            defaultRule.iconDetails,
-            shrinkDisplayRule(ruleToPreview).iconDetails,
-        );
-        const compiledIcon = getIconFromOptions(options, plugin.iconFactory);
-        const iconElement = compiledIcon.createIcon();
-        // The marker icons library generates the icons with margins meant for map display. We have to override this
-        // programatically here, and not by a style, as it's set directly to the element style.
-        iconElement.style.marginLeft = '';
-        iconElement.style.marginTop = '';
-        return iconElement;
     }
 
     function sanityCheck(rule: DisplayRule) {
@@ -102,120 +90,192 @@
 {/snippet}
 
 <div class="map-element-rules-dialog">
-    <div class="section">
-        <p><b>Marker Icon Properties</b></p>
-        <p>
-            See Font Awesome reference <a
-                href="https://fontawesome.com/search?ic=free">here</a
-            >
-            and emoji reference <a href="https://emojipedia.org/">here</a>.
-        </p>
-        <div class="rule-group">
-            <div class="rule-input">
-                {@render fieldName('Icon', 'A FontAwesome icon or an emoji')}
-                <input
-                    type="text"
-                    bind:value={ruleCopy.iconDetails.icon}
-                    class="rule-input"
-                />
+    <div class="scrollable">
+        <div class="section">
+            <div class="setting-item-info">
+                <div class="setting-item-name">Marker Icon Properties</div>
+                <div class="setting-item-description">
+                    See Font Awesome reference <a
+                        href="https://fontawesome.com/search?ic=free">here</a
+                    >
+                    and emoji reference
+                    <a href="https://emojipedia.org/">here</a>.
+                </div>
             </div>
-            <div class="rule-input">
-                {@render fieldName(
-                    'Marker Color',
-                    "A hex color or one of the following: 'red', 'darkred', 'orange', 'green', 'darkgreen', 'blue', 'purple', 'darkpurple', 'cadetblue'",
-                )}
-                <input
-                    type="text"
-                    bind:value={ruleCopy.iconDetails.markerColor}
-                    class="rule-input"
-                />
-            </div>
-            <div class="rule-input">
-                {@render fieldName(
-                    'Icon Color',
-                    'Any color name or a hex value',
-                )}
-                <input
-                    type="text"
-                    bind:value={ruleCopy.iconDetails.iconColor}
-                    class="rule-input"
-                />
-            </div>
-            <div class="rule-input">
-                {@render fieldName(
-                    'Shape',
-                    'circle, square, star, penta, simple-circle',
-                )}
-                <input
-                    type="text"
-                    bind:value={ruleCopy.iconDetails.shape}
-                    class="rule-input"
-                />
-            </div>
-        </div>
-    </div>
-
-    <div class="section">
-        <p><b>Path Properties</b></p>
-        <div class="rule-group">
-            <div class="rule-input">
-                {@render fieldName('Color', 'Any color name or a hex value')}
-                <input
-                    type="text"
-                    bind:value={ruleCopy.pathOptions.color}
-                    class="rule-input"
-                />
-            </div>
-            <div class="rule-input">
-                {@render fieldName('Weight', 'Line weight in pixels')}
-                <input
-                    type="number"
-                    bind:value={ruleCopy.pathOptions.weight}
-                    class="rule-input"
-                />
-            </div>
-            <div class="rule-input">
-                {@render fieldName('Opacity', 'Between 0 to 1')}
-                <input
-                    type="number"
-                    bind:value={ruleCopy.pathOptions.opacity}
-                    placeholder="Opacity"
-                    class="rule-input"
-                />
+            <div class="rule-group">
+                <div class="rule-input">
+                    {@render fieldName(
+                        'Icon',
+                        'A FontAwesome icon or an emoji',
+                    )}
+                    <input
+                        type="text"
+                        bind:value={ruleCopy.iconDetails.icon}
+                        class="rule-input"
+                    />
+                </div>
+                <div class="rule-input">
+                    {@render fieldName(
+                        'Marker Color',
+                        "A hex color or one of the following: 'red', 'darkred', 'orange', 'green', 'darkgreen', 'blue', 'purple', 'darkpurple', 'cadetblue'",
+                    )}
+                    <input
+                        type="text"
+                        bind:value={ruleCopy.iconDetails.markerColor}
+                        class="rule-input"
+                    />
+                </div>
+                <div class="rule-input">
+                    {@render fieldName(
+                        'Icon Color',
+                        'Any color name or a hex value',
+                    )}
+                    <input
+                        type="text"
+                        bind:value={ruleCopy.iconDetails.iconColor}
+                        class="rule-input"
+                    />
+                </div>
+                <div class="rule-input">
+                    {@render fieldName(
+                        'Shape',
+                        'circle, square, star, penta, simple-circle',
+                    )}
+                    <input
+                        type="text"
+                        bind:value={ruleCopy.iconDetails.shape}
+                        class="rule-input"
+                    />
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="section icon-preview">
-        {@html makePreview(ruleCopy).outerHTML}
-    </div>
+        {#if !displayRule.preset}
+            <div class="section">
+                <div class="setting-item-info">
+                    <div class="setting-item-name">Marker Badge</div>
+                    <div class="setting-item-description">
+                        TODO add documentation, and refer from there to the
+                        cssFilters field too
+                    </div>
+                </div>
+                <div class="rule-group">
+                    <div class="rule-input">
+                        {@render fieldName(
+                            'Symbol',
+                            'An emoji or up to 2 characters',
+                        )}
+                        <input
+                            type="text"
+                            bind:value={ruleCopy.badgeOptions.badge}
+                            class="rule-input"
+                        />
+                    </div>
+                    <div class="rule-input">
+                        {@render fieldName(
+                            'Text Color',
+                            'Any color name or a hex value',
+                        )}
+                        <input
+                            type="text"
+                            bind:value={ruleCopy.badgeOptions.textColor}
+                            class="rule-input"
+                        />
+                    </div>
+                    <div class="rule-input">
+                        {@render fieldName(
+                            'Background color',
+                            'Any color name or a hex value',
+                        )}
+                        <input
+                            type="text"
+                            bind:value={ruleCopy.badgeOptions.backColor}
+                            class="rule-input"
+                        />
+                    </div>
+                    <div class="rule-input">
+                        {@render fieldName(
+                            'Border',
+                            "A CSS 'border' value, e.g. '1px solid black'",
+                        )}
+                        <input
+                            type="text"
+                            bind:value={ruleCopy.badgeOptions.border}
+                            class="rule-input"
+                        />
+                    </div>
+                </div>
+            </div>
+        {/if}
 
-    <div class="section">
-        <ViewCollapsibleSection headerText="Advanced">
-            <p>
-                Edit the rule directly as JSON, which allows a wider range of
-                advanced options. See <a
-                    href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties"
-                    >here</a
-                > for the complete list of properties.
-            </p>
-            <textarea
-                class="json-editor"
-                class:json-error={invalidJson}
-                bind:value={rulesCopyFormatted}
-                oninput={(e) => {
-                    try {
-                        const parsed = JSON.parse(e.currentTarget.value);
-                        ruleCopy = parsed;
-                        invalidJson = false;
-                    } catch (error) {
-                        invalidJson = true;
-                    }
-                }}
-                rows="10"
-                style="width: 100%; font-family: monospace;"
-            ></textarea>
-        </ViewCollapsibleSection>
+        <div class="section">
+            <div class="setting-item-info">
+                <div class="setting-item-name">Path Properties</div>
+                <div class="setting-item-description">TODO description</div>
+            </div>
+            <div class="rule-group">
+                <div class="rule-input">
+                    {@render fieldName(
+                        'Color',
+                        'Any color name or a hex value',
+                    )}
+                    <input
+                        type="text"
+                        bind:value={ruleCopy.pathOptions.color}
+                        class="rule-input"
+                    />
+                </div>
+                <div class="rule-input">
+                    {@render fieldName('Weight', 'Line weight in pixels')}
+                    <input
+                        type="number"
+                        bind:value={ruleCopy.pathOptions.weight}
+                        class="rule-input"
+                    />
+                </div>
+                <div class="rule-input">
+                    {@render fieldName('Opacity', 'Between 0 to 1')}
+                    <input
+                        type="number"
+                        bind:value={ruleCopy.pathOptions.opacity}
+                        placeholder="Opacity"
+                        class="rule-input"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <div class="section icon-preview">
+            {@html makePreview(ruleCopy).outerHTML}
+        </div>
+
+        <div class="section">
+            <ViewCollapsibleSection headerText="Advanced">
+                <p>
+                    Edit the rule directly as JSON, which allows a wider range
+                    of advanced options. See <a
+                        href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties"
+                        >here</a
+                    > for the complete list of properties.
+                </p>
+                <textarea
+                    class="json-editor"
+                    class:json-error={invalidJson}
+                    bind:value={rulesCopyFormatted}
+                    oninput={(e) => {
+                        try {
+                            const parsed = JSON.parse(e.currentTarget.value);
+                            ruleCopy = parsed;
+                            invalidJson = false;
+                        } catch (error) {
+                            invalidJson = true;
+                        }
+                    }}
+                    rows="10"
+                    style="width: 100%; font-family: monospace;"
+                ></textarea>
+            </ViewCollapsibleSection>
+        </div>
     </div>
 
     <div class="modal-button-container">
@@ -235,14 +295,29 @@
 </div>
 
 <style>
+    /* This is a patch after for some reason I was unable to make just the 'scroller' div scrollable and the buttons fixed. */
+    :global(.modal.mod-settings .modal-content:has(.map-element-rules-dialog)) {
+        overflow-y: auto;
+    }
+
     .map-element-rules-dialog {
+        gap: 10px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        height: 100%;
+        max-height: var(--dialog-max-height);
+    }
+
+    .scrollable {
+        flex: 1;
+    }
+
+    .setting-item-name {
+        font-weight: bold;
     }
 
     .section {
-        padding-bottom: 10px;
+        padding-bottom: 20px;
         padding-right: 5px;
         padding-inline-start: var(--size-4-4);
         padding-inline-end: var(--size-4-4);

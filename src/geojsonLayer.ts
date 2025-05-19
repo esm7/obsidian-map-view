@@ -1,4 +1,5 @@
 import * as leaflet from 'leaflet';
+import { type PathOptions } from 'leaflet';
 import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 import {
@@ -21,6 +22,7 @@ import { type IconOptions } from 'src/markerIcons';
 import { djb2Hash, getHeadingAndBlockForFilePosition } from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
+import MapViewPlugin from 'src/main';
 
 export const GEOJSON_FILE_FILTER = ['gpx', 'geojson', 'md', 'kml', 'tcx'];
 
@@ -29,6 +31,7 @@ export class GeoJsonLayer extends BaseGeoLayer {
     public geoLayers: Map<number, leaflet.Layer> = new Map();
     public location: leaflet.LatLng;
     public geojson: GeoJSON;
+    public pathOptions: PathOptions = {};
 
     /**
      * Construct a new GeoJsonLayer object
@@ -88,6 +91,7 @@ export async function buildGeoJsonLayers(
     files: TFile[],
     settings: PluginSettings,
     app: App,
+    plugin: MapViewPlugin,
 ): Promise<BaseGeoLayer[]> {
     let layers: BaseGeoLayer[] = [];
     for (const file of files) {
@@ -156,6 +160,11 @@ export async function buildGeoJsonLayers(
                 console.log(`Error reading path from ${file.name}:`, e);
             }
         }
+    }
+    // Calculate display rules
+    for (const layer of layers) {
+        const [_, pathOptions] = plugin.displayRulesCache.runOn(layer);
+        (layer as GeoJsonLayer).pathOptions = pathOptions;
     }
     return layers;
 }

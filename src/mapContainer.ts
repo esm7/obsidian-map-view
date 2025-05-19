@@ -37,7 +37,6 @@ import {
     type TileSource,
     DEFAULT_SETTINGS,
 } from 'src/settings';
-import { finalizeMarkers } from 'src/markers';
 import { FileMarker, addEdgesToMarkers } from 'src/fileMarker';
 import { GeoJsonLayer } from 'src/geojsonLayer';
 import { BaseGeoLayer } from 'src/baseGeoLayer';
@@ -722,14 +721,6 @@ export class MapContainer {
             filteredLayers = [];
             state.queryError = true;
         }
-        finalizeMarkers(
-            filteredLayers,
-            state,
-            this.settings,
-            this.plugin.iconFactory,
-            this.plugin.displayRulesCache,
-            this.app,
-        );
         addEdgesToMarkers(
             filteredLayers,
             this.app,
@@ -1217,6 +1208,7 @@ export class MapContainer {
         this.display.searchResult = leaflet.marker(details.location, {
             icon: getIconFromOptions(
                 consts.SEARCH_RESULT_MARKER,
+                [],
                 this.plugin.iconFactory,
             ),
         });
@@ -1352,6 +1344,7 @@ export class MapContainer {
             .marker(center, {
                 icon: getIconFromOptions(
                     consts.CURRENT_LOCATION_MARKER,
+                    [],
                     this.plugin.iconFactory,
                 ),
             })
@@ -1425,6 +1418,7 @@ export class MapContainer {
                 .marker(location, {
                     icon: getIconFromOptions(
                         consts.ROUTING_SOURCE_MARKER,
+                        [],
                         this.plugin.iconFactory,
                     ),
                 })
@@ -1593,13 +1587,12 @@ export class MapContainer {
     }
 
     private newLeafletGeoJson(marker: GeoJsonLayer): leaflet.GeoJSON {
-        const [_, pathOptions] = this.plugin.displayRulesCache.runOn(marker);
         const geoJsonLayer = leaflet.geoJSON(marker.geojson, {
-            style: pathOptions,
+            style: marker.pathOptions,
             onEachFeature: (_feature: any, layer: leaflet.Layer) => {
                 layer.bindPopup(marker.file.name, { autoClose: true });
-                layer.on('mouseover', (_event: leaflet.LeafletMouseEvent) => {
-                    layer.openPopup();
+                layer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+                    layer.openPopup(event.latlng);
                 });
                 layer.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
                     layer.closePopup();

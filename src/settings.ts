@@ -130,16 +130,33 @@ export type MarkerIconRule = {
     iconDetails: any;
 };
 
+export type IconBadgeOptions = {
+    badge?: string;
+    textColor?: string;
+    backColor?: string;
+    // TODO put this in the documentation
+    cssFilters?: string;
+    border?: string;
+};
+
 export type DisplayRule = {
     query: string;
     preset: boolean;
     iconDetails?: any;
     pathOptions?: PathOptions;
+    badgeOptions?: IconBadgeOptions;
 };
 
 export const EMPTY_DISPLAY_RULE: Partial<DisplayRule> = {
     iconDetails: { icon: '', markerColor: '', shape: '' },
     pathOptions: { color: '', weight: 0, opacity: 0 },
+    badgeOptions: {
+        badge: '',
+        textColor: '',
+        backColor: '',
+        cssFilters: '',
+        border: '',
+    },
 };
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -174,6 +191,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
                 weight: 5,
                 opacity: 0.8,
             },
+            badgeOptions: {},
         },
         {
             query: 'tag:#trip',
@@ -247,7 +265,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         linksDisplayed: false,
         presetsDisplayed: false,
     },
-    maxClusterRadiusPixels: 20,
+    maxClusterRadiusPixels: 25,
     searchProvider: 'osm',
     searchDelayMs: 250,
     geocodingApiKey: '',
@@ -449,7 +467,7 @@ export function convertMarkerIconRulesToDisplayRules(
     if (settings.markerIconRules) {
         // Make sure not to add to any defaults
         settings.displayRules = [];
-        // TODO include default path options here
+        // TODO include default path and badge options here
         for (const rule of settings.markerIconRules) {
             const displayRule: DisplayRule = {
                 query: rule.preset ? '' : `tag:${rule.ruleName}`,

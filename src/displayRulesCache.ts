@@ -1,5 +1,5 @@
 import { App } from 'obsidian';
-import { type DisplayRule } from 'src/settings';
+import { type DisplayRule, type IconBadgeOptions } from 'src/settings';
 import { Query } from 'src/query';
 import { BaseGeoLayer } from 'src/baseGeoLayer';
 import { type PathOptions } from 'leaflet';
@@ -23,7 +23,7 @@ export class DisplayRulesCache {
     }
 
     // TODO document
-    public runOn(marker: BaseGeoLayer): [any, PathOptions] {
+    public runOn(marker: BaseGeoLayer): [any, PathOptions, IconBadgeOptions[]] {
         const defaultRule = this.displayRules.find(
             (rule) => rule.preset == true,
         );
@@ -32,6 +32,7 @@ export class DisplayRulesCache {
             {},
             defaultRule.pathOptions,
         );
+        let badgeOptions: IconBadgeOptions[] = [];
         if (this.displayRuleQueries.length != this.displayRules.length)
             throw new Error(
                 `Display rules cache is garbled, ${this.displayRuleQueries.length} vs ${this.displayRules.length} rules`,
@@ -54,9 +55,11 @@ export class DisplayRulesCache {
                             pathOptions,
                             rule.pathOptions,
                         );
+                    // TODO overwrite existing overlay options with the same overlay
+                    if (rule.badgeOptions) badgeOptions.push(rule.badgeOptions);
                 }
             }
         }
-        return [iconDetails, pathOptions];
+        return [iconDetails, pathOptions, badgeOptions];
     }
 }
