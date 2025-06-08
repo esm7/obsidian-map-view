@@ -330,3 +330,7 @@ div.map-view-highlight.marker-cluster {
     bottom: 0;
     right: 0;
 }
+
+.leaflet-pm-toolbar .button-container.pos-right {
+    margin-top: 0;
+}

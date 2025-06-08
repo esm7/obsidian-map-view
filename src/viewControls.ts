@@ -1,4 +1,4 @@
-import { App, getIcon } from 'obsidian';
+import { App, getIcon, TFile } from 'obsidian';
 import { askForLocation } from 'src/realTimeLocation';
 
 import { type PluginSettings } from 'src/settings';
@@ -13,6 +13,8 @@ import * as leaflet from 'leaflet';
 import { mount, unmount } from 'svelte';
 import ViewControlsPanel from './components/ViewControlsPanel.svelte';
 
+export type EditModeTools = { noteToEdit: TFile };
+
 export class ViewControls {
     private parentElement: HTMLElement;
     private settings: PluginSettings;
@@ -22,6 +24,8 @@ export class ViewControls {
     private plugin: MapViewPlugin;
 
     private controlPanel: any;
+
+    public editModeTools: EditModeTools = { noteToEdit: null };
 
     constructor(
         parentElement: HTMLElement,
@@ -55,12 +59,17 @@ export class ViewControls {
                 settings: this.settings,
                 view: this.view,
                 viewSettings: this.viewSettings,
+                editModeTools: this.editModeTools,
             },
         });
     }
 
     public updateControlsToState() {
         if (this.controlPanel) this.controlPanel.updateControlsToState();
+    }
+
+    public openEditSection() {
+        if (this.controlPanel) this.controlPanel.openEditSection();
     }
 }
 
@@ -257,5 +266,53 @@ export class LockControl extends leaflet.Control {
     updateIcon() {
         if (this.locked) this.lockButton.addClass('on');
         else this.lockButton.removeClass('on');
+    }
+}
+
+export class EditControl extends leaflet.Control {
+    view: MapContainer;
+    app: App;
+    settings: PluginSettings;
+    editButton: HTMLAnchorElement;
+
+    constructor(
+        options: any,
+        view: MapContainer,
+        app: App,
+        settings: PluginSettings,
+    ) {
+        super(options);
+        this.view = view;
+        this.app = app;
+        this.settings = settings;
+    }
+
+    onAdd(map: leaflet.Map) {
+        const div = leaflet.DomUtil.create(
+            'div',
+            'leaflet-bar leaflet-control',
+        );
+        this.editButton = div.createEl('a', 'mv-icon-button');
+        const icon = getIcon('pencil');
+        this.editButton.appendChild(icon);
+        this.editButton.addEventListener('click', (ev: MouseEvent) => {
+            const newEditMode = !this.view.state.editMode;
+            this.view.highLevelSetViewState({ editMode: newEditMode });
+            if (newEditMode) {
+                // Open the 'edit' view pane
+                this.view.display.controls.openEditSection();
+            }
+        });
+
+        return div;
+    }
+
+    updateFromState(editMode: boolean) {
+        this.updateIcon(editMode);
+    }
+
+    updateIcon(editMode: boolean) {
+        if (editMode) this.editButton.addClass('on');
+        else this.editButton.removeClass('on');
     }
 }

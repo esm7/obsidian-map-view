@@ -122,6 +122,7 @@ export type MapControls = {
     viewDisplayed: boolean;
     linksDisplayed: boolean;
     presetsDisplayed: boolean;
+    editDisplayed: boolean;
 };
 
 export type MarkerIconRule = {
@@ -175,6 +176,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         showLinks: false,
         linkColor: 'red',
         markerLabels: 'off',
+        editMode: false,
     },
     savedStates: [],
     displayRules: [
@@ -264,6 +266,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         viewDisplayed: true,
         linksDisplayed: false,
         presetsDisplayed: false,
+        editDisplayed: false,
     },
     maxClusterRadiusPixels: 25,
     searchProvider: 'osm',
@@ -467,13 +470,28 @@ export function convertMarkerIconRulesToDisplayRules(
     if (settings.markerIconRules) {
         // Make sure not to add to any defaults
         settings.displayRules = [];
-        // TODO include default path and badge options here
         for (const rule of settings.markerIconRules) {
-            const displayRule: DisplayRule = {
-                query: rule.preset ? '' : `tag:${rule.ruleName}`,
-                preset: rule.preset,
-                iconDetails: rule.iconDetails,
-            };
+            let displayRule: DisplayRule;
+            if (rule.preset) {
+                // If it's the user's default rule we're converting, take the icon details, then the path options and the badge options
+                // from the plugin's default (as the user doesn't have any yet)
+                const defaultRule = DEFAULT_SETTINGS.displayRules.find(
+                    (rule) => rule.preset == true,
+                );
+                displayRule = {
+                    query: '',
+                    preset: true,
+                    iconDetails: rule.iconDetails,
+                    pathOptions: defaultRule.pathOptions,
+                    badgeOptions: defaultRule.badgeOptions,
+                };
+            } else {
+                displayRule = {
+                    query: `tag:${rule.ruleName}`,
+                    preset: false,
+                    iconDetails: rule.iconDetails,
+                };
+            }
             settings.displayRules.push(displayRule);
             changed = true;
         }

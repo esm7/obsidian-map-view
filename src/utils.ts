@@ -11,6 +11,7 @@ import {
     type CachedMetadata,
     type HeadingCache,
     type BlockCache,
+    type FrontMatterCache,
 } from 'obsidian';
 
 import * as moment_ from 'moment';
@@ -21,6 +22,7 @@ import * as consts from './consts';
 import * as regex from './regex';
 import { BaseMapView } from './baseMapView';
 import MapViewPlugin from 'src/main';
+import wildcard from 'wildcard';
 
 /**
  * An ordered stack (latest first) of the latest used leaves.
@@ -241,18 +243,24 @@ export async function verifyOrAddFrontMatter(
 
 export async function verifyOrAddFrontMatterForInline(
     app: App,
-    editor: Editor,
+    // If no editor, the content of the file is used instead
+    editor: Editor | null,
     file: TFile,
     settings: settings.PluginSettings,
 ): Promise<boolean> {
     // If the user has a custom tag to denote a location, and this tag exists in the note, there's no need to add
     // a front-matter
     const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
-    if (
-        tagNameToSearch?.length > 0 &&
-        editor.getValue()?.contains(tagNameToSearch)
-    )
-        return false;
+    if (tagNameToSearch?.length > 0) {
+        if (editor) {
+            // If the user supplied an editor, use it to search for the tag name
+            if (editor.getValue()?.contains(tagNameToSearch)) return false;
+        } else {
+            // Otherwise we need to open the file
+            const content = await app.vault.read(file);
+            if (content.includes(tagNameToSearch)) return false;
+        }
+    }
     // Otherwise, verify this note has a front matter with an empty 'locations' tag
     return await verifyOrAddFrontMatter(app, file, 'locations', '');
 }
@@ -509,4 +517,29 @@ export function* combineIterables<T>(...iterables: Iterable<T>[]): Iterable<T> {
     for (const iterable of iterables) {
         yield* iterable;
     }
+}
+
+export function hasFrontMatterLocations(
+    frontMatter: FrontMatterCache,
+    fileCache: CachedMetadata,
+    settings: settings.PluginSettings,
+) {
+    const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
+    return (
+        (frontMatter && 'locations' in frontMatter) ||
+        (tagNameToSearch?.length > 0 &&
+            wildcard(tagNameToSearch, getAllTags(fileCache)))
+    );
+}
+
+export async function appendGeolocationToNote(
+    file: TFile,
+    label: string,
+    location: leaflet.LatLng,
+    app: App,
+    settings: settings.PluginSettings,
+) {
+    const locationString = `\n[${label}](geo:${location.lat},${location.lng})\n`;
+    await app.vault.append(file, locationString);
+    await verifyOrAddFrontMatterForInline(app, null, file, settings);
 }

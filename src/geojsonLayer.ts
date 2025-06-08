@@ -16,10 +16,16 @@ import {
 import wildcard from 'wildcard';
 import { type GeoJSON } from 'geojson';
 import * as toGeoJson from '@tmcw/togeojson';
+import { DOMParser } from '@xmldom/xmldom';
 
 import { BaseGeoLayer, verifyLocation } from 'src/baseGeoLayer';
 import { type IconOptions } from 'src/markerIcons';
-import { djb2Hash, getHeadingAndBlockForFilePosition } from 'src/utils';
+import {
+    djb2Hash,
+    getHeadingAndBlockForFilePosition,
+    hasFrontMatterLocations,
+    verifyOrAddFrontMatterForInline,
+} from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
 import MapViewPlugin from 'src/main';
@@ -94,6 +100,8 @@ export async function buildGeoJsonLayers(
     plugin: MapViewPlugin,
 ): Promise<BaseGeoLayer[]> {
     let layers: BaseGeoLayer[] = [];
+    if (settings.debug) console.time('buildGeoJsonLayers');
+    const domParser = new DOMParser();
     for (const file of files) {
         if (file.extension === 'geojson') {
             try {
@@ -105,32 +113,36 @@ export async function buildGeoJsonLayers(
                 console.log(`Error parsing geojson in ${file.name}`, e);
             }
         } else if (file.extension === 'md') {
-            // Search for an inline GeoJSON
-            const content = await app.vault.read(file);
-            const matches = content.matchAll(regex.INLINE_GEOJSON);
-            for (const match of matches) {
-                try {
-                    const geoJsonString = match.groups?.content;
-                    if (geoJsonString) {
-                        const geoJson = JSON.parse(geoJsonString);
-                        if (Object.keys(geoJson).length > 0) {
-                            const layer = new GeoJsonLayer(file);
-                            layer.geojson = geoJson;
-                            layer.fileLocation = match.index;
-                            layer.fileLine =
-                                content
-                                    .substring(0, layer.fileLocation)
-                                    .split('\n').length - 1;
-                            // TODO add file block and heading
-                            layer.generateId();
-                            layers.push(layer);
+            const fileCache = app.metadataCache.getFileCache(file);
+            const frontMatter = fileCache?.frontmatter;
+            if (hasFrontMatterLocations(frontMatter, fileCache, settings)) {
+                // Search for an inline GeoJSON
+                const content = await app.vault.read(file);
+                const matches = content.matchAll(regex.INLINE_GEOJSON);
+                for (const match of matches) {
+                    try {
+                        const geoJsonString = match.groups?.content;
+                        if (geoJsonString) {
+                            const geoJson = JSON.parse(geoJsonString);
+                            if (Object.keys(geoJson).length > 0) {
+                                const layer = new GeoJsonLayer(file);
+                                layer.geojson = geoJson;
+                                layer.fileLocation = match.index;
+                                layer.fileLine =
+                                    content
+                                        .substring(0, layer.fileLocation)
+                                        .split('\n').length - 1;
+                                // TODO add file block and heading
+                                layer.generateId();
+                                layers.push(layer);
+                            }
                         }
+                    } catch (e) {
+                        console.log(
+                            `Error converting inline GeoJSON in file ${file.name}:`,
+                            e,
+                        );
                     }
-                } catch (e) {
-                    console.log(
-                        `Error converting inline GeoJSON in file ${file.name}:`,
-                        e,
-                    );
                 }
             }
         } else if (
@@ -140,10 +152,7 @@ export async function buildGeoJsonLayers(
         ) {
             const content = await app.vault.read(file);
             try {
-                const doc = new DOMParser().parseFromString(
-                    content,
-                    'text/xml',
-                );
+                const doc = domParser.parseFromString(content, 'text/xml');
                 const geoJson =
                     file.extension === 'gpx'
                         ? toGeoJson.gpx(doc)
@@ -161,10 +170,26 @@ export async function buildGeoJsonLayers(
             }
         }
     }
+    if (settings.debug) console.timeLog('buildGeoJsonLayers');
     // Calculate display rules
     for (const layer of layers) {
         const [_, pathOptions] = plugin.displayRulesCache.runOn(layer);
         (layer as GeoJsonLayer).pathOptions = pathOptions;
     }
+    if (settings.debug) console.timeEnd('buildGeoJsonLayers');
     return layers;
+}
+
+export async function createGeoJsonInFile(
+    layer: GeoJSON,
+    file: TFile,
+    app: App,
+    settings: PluginSettings,
+) {
+    const geoJsonString = `
+\`\`\`geojson
+${JSON.stringify(layer)}
+\`\`\`\n`;
+    await app.vault.append(file, geoJsonString);
+    await verifyOrAddFrontMatterForInline(app, null, file, settings);
 }

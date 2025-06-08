@@ -22,6 +22,7 @@ export class MainMapView extends BaseMapView {
             showLinks: true,
             showEmbeddedControls: false,
             showPresets: true,
+            showEdit: true,
             showSearch: true,
             showRealTimeButton: true,
             showLockButton: false,

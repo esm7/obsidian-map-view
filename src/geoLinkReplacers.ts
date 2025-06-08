@@ -224,6 +224,10 @@ export const replaceLinksPostProcessor = (mapViewPlugin: MapViewPlugin) => {
                         `createMapPopup(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`,
                     );
                     link.setAttribute('onmouseout', 'closeMapPopup(event)');
+                    link.setAttribute(
+                        'oncontextmenu',
+                        `handleMapViewContextMenu(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`,
+                    );
                 }
             }
         }

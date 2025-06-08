@@ -26,6 +26,7 @@ export type MapState = {
     linkColor: string;
     /** Marker labels */
     markerLabels: 'off' | 'left' | 'right';
+    editMode: boolean;
 };
 
 /** Fields that are deprecated */
@@ -87,7 +88,8 @@ export function areStatesEqual(
         state1.linkColor == state2.linkColor &&
         state1.showLinks == state2.showLinks &&
         state1.followActiveNote == state2.followActiveNote &&
-        (state1.markerLabels || 'off') == (state2.markerLabels || 'off')
+        (state1.markerLabels || 'off') == (state2.markerLabels || 'off') &&
+        state1.editMode == state2.editMode
     );
 }
 

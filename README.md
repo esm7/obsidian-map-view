@@ -691,8 +691,11 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Places API (New)
 - TODO: Fix places API templates
 - Major performance optimizations to filtering
-- Filtering now works properly when changing notes
-- Searching the map now shows all markers, not just the ones in the current filter
+- Filtering now reapplies properly when modifying notes
+- Paths
+- Badges
+- Context menu 'open in' fix for Reading View (https://github.com/esm7/obsidian-map-view/issues/326)
+- Fixed file-menu event not registered to plugin (https://github.com/esm7/obsidian-map-view/issues/327)
 
 ### 5.5.0
 

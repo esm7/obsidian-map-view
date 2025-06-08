@@ -1,6 +1,6 @@
 <script lang="ts">
     import { untrack } from 'svelte';
-    import { Notice, App, getIcon } from 'obsidian';
+    import { Notice, App, getIcon, TFile } from 'obsidian';
     import { type PluginSettings } from '../settings';
     import { type ViewSettings, MapContainer } from '../mapContainer';
     import MapViewPlugin from '../main';
@@ -15,13 +15,23 @@
     import { NewPresetDialog } from 'src/newPresetDialog';
     import { QuerySuggest } from 'src/query';
     import * as utils from 'src/utils';
+    import { NoteSelectDialog } from 'src/noteSelectDialog';
+    import { type EditModeTools } from 'src/viewControls';
 
-    let { plugin, app, settings, viewSettings, view } = $props<{
+    let {
+        plugin,
+        app,
+        settings,
+        viewSettings,
+        view,
+        editModeTools = $bindable(),
+    } = $props<{
         plugin: MapViewPlugin;
         app: App;
         settings: PluginSettings;
         viewSettings: ViewSettings;
         view: MapContainer;
+        editModeTools: EditModeTools;
     }>();
 
     let mapState: MapState = $state();
@@ -36,6 +46,7 @@
     let suggestor: QuerySuggest = null;
     let queryInputElement: HTMLInputElement = $state();
     let previousState: MapState = null;
+    let noteToEdit: TFile = $state(null);
 
     $effect(() => {
         const considerAutoFit = statesDifferOnlyInQuery(
@@ -56,6 +67,31 @@
 
     export function updateControlsToState() {
         mapState = view.getState();
+    }
+
+    export function openEditSection() {
+        setMapControl('editDisplayed', true);
+        setMapControl('minimized', false);
+        minimized = false;
+        // Trigger reactivity
+        settings = { ...settings };
+    }
+
+    export function openChooseNote() {
+        const dialog = new NoteSelectDialog(
+            app,
+            plugin,
+            settings,
+            (selection: any, evt: MouseEvent | KeyboardEvent) => {
+                if (selection.file) {
+                    noteToEdit = selection.file;
+                    editModeTools.noteToEdit = noteToEdit;
+                    mapState.editMode = true;
+                }
+            },
+            'Choose a note to edit or press Shift+Enter to create new',
+        );
+        dialog.open();
     }
 
     // Update settings.mapControls.<path> about whether a collapsible section of the accordion is open or not
@@ -406,6 +442,52 @@
                     >
                         Copy Block
                     </button>
+                </ViewCollapsibleSection>
+            {/if}
+
+            {#if viewSettings.showEdit}
+                <ViewCollapsibleSection
+                    headerText="Edit"
+                    expanded={settings.mapControls.editDisplayed}
+                    afterToggle={(expanded) =>
+                        setMapControl('editDisplayed', expanded)}
+                >
+                    <div class="graph-control-edit">
+                        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+                        <div
+                            class="checkbox-container"
+                            class:is-enabled={mapState.editMode}
+                            onclick={() => {
+                                mapState.editMode = !mapState.editMode;
+                            }}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={mapState.editMode}
+                                id="edit-active"
+                            />
+                        </div>
+                        <label class="edit-label" for="edit-active"
+                            >Edit Mode</label
+                        >
+                    </div>
+
+                    <button
+                        class="button"
+                        class:mod-warning={mapState.editMode &&
+                            noteToEdit === null}
+                        title="Choose the note to use for adding markers and paths"
+                        onclick={() => {
+                            openChooseNote();
+                        }}
+                    >
+                        Choose Note...
+                    </button>
+                    {#if noteToEdit !== null}
+                        <span title={noteToEdit.basename}>
+                            {@html getIcon('check').outerHTML}
+                        </span>
+                    {/if}
                 </ViewCollapsibleSection>
             {/if}
         </div>

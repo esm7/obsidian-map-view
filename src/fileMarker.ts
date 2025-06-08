@@ -13,16 +13,23 @@ import {
     type FrontmatterLinkCache,
     type ReferenceCache,
 } from 'obsidian';
-import wildcard from 'wildcard';
 
 import { BaseGeoLayer, verifyLocation } from 'src/baseGeoLayer';
 import { type IconOptions } from 'src/markerIcons';
-import { djb2Hash, getHeadingAndBlockForFilePosition } from 'src/utils';
+import {
+    djb2Hash,
+    getHeadingAndBlockForFilePosition,
+    appendGeolocationToNote,
+} from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
+import * as consts from 'src/consts';
+import * as utils from 'src/utils';
 import { GeoJsonLayer } from './geojsonLayer';
 import type MapViewPlugin from './main';
 import { getIconFromRules } from 'src/markerIcons';
+import { SvelteModal } from 'src/svelte';
+import TextBoxDialog from './components/TextBoxDialog.svelte';
 
 /** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
 export class FileMarker extends BaseGeoLayer {
@@ -492,9 +499,7 @@ export async function buildAndAppendFileMarkers(
                 }
             }
             if (
-                (frontMatter && 'locations' in frontMatter) ||
-                (tagNameToSearch?.length > 0 &&
-                    wildcard(tagNameToSearch, getAllTags(fileCache)))
+                utils.hasFrontMatterLocations(frontMatter, fileCache, settings)
             ) {
                 const markersFromFile = await getMarkersFromFileContent(
                     file,
@@ -518,4 +523,68 @@ export async function buildAndAppendFileMarkers(
     }
 
     return layers;
+}
+
+export async function moveFileMarker(
+    marker: FileMarker,
+    newLocation: leaflet.LatLng,
+    settings: PluginSettings,
+    app: App,
+) {
+    marker.location = newLocation;
+    let newLat = marker.location.lat;
+    // If the user drags the marker too far, the longitude will exceed the threshold, an
+    // exception will be thrown, and the marker will disappear.
+    // If the threshold is exceeded, set the longitude back to the max (back in bounds).
+    // leaflet seems to protect against drags beyond the latitude threshold.
+    let newLng = marker.location.lng;
+    if (newLng < consts.LNG_LIMITS[0]) {
+        newLng = consts.LNG_LIMITS[0];
+    }
+    if (newLng > consts.LNG_LIMITS[1]) {
+        newLng = consts.LNG_LIMITS[1];
+    }
+    // We will now change the content of the note containing the marker. This will trigger Map View to rebuild
+    // the marker, causing the actual marker object to be replaced
+    if (marker.isFrontmatterMarker) {
+        await utils.verifyOrAddFrontMatter(
+            app,
+            marker.file,
+            settings.frontMatterKey,
+            `${newLat},${newLng}`,
+            false,
+        );
+    } else if (marker.geolocationMatch?.groups) {
+        await utils.updateInlineGeolocation(
+            app,
+            marker.file,
+            marker.fileLocation,
+            marker.geolocationMatch,
+            newLat,
+            newLng,
+        );
+    }
+}
+
+export async function createMarkerInFile(
+    marker: leaflet.Marker,
+    file: TFile,
+    app: App,
+    settings: PluginSettings,
+    plugin: MapViewPlugin,
+) {
+    const dialog = new SvelteModal(TextBoxDialog, app, plugin, settings, {
+        label: 'Select a name for the new marker:',
+        existingText: 'New Marker',
+        onOk: (text: string) => {
+            appendGeolocationToNote(
+                file,
+                text,
+                marker.getLatLng(),
+                app,
+                settings,
+            );
+        },
+    });
+    dialog.open();
 }

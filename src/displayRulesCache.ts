@@ -22,8 +22,7 @@ export class DisplayRulesCache {
         this.displayRules = displayRules;
     }
 
-    // TODO document
-    public runOn(marker: BaseGeoLayer): [any, PathOptions, IconBadgeOptions[]] {
+    public getDefaults(): [any, PathOptions, IconBadgeOptions[]] {
         const defaultRule = this.displayRules.find(
             (rule) => rule.preset == true,
         );
@@ -33,6 +32,12 @@ export class DisplayRulesCache {
             defaultRule.pathOptions,
         );
         let badgeOptions: IconBadgeOptions[] = [];
+        return [iconDetails, pathOptions, badgeOptions];
+    }
+
+    // TODO document
+    public runOn(marker: BaseGeoLayer): [any, PathOptions, IconBadgeOptions[]] {
+        let [iconDetails, pathOptions, badgeOptions] = this.getDefaults();
         if (this.displayRuleQueries.length != this.displayRules.length)
             throw new Error(
                 `Display rules cache is garbled, ${this.displayRuleQueries.length} vs ${this.displayRules.length} rules`,

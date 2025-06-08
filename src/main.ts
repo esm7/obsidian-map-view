@@ -595,16 +595,20 @@ export default class MapViewPlugin extends Plugin {
 
         // Add items to the file context menu (run when the context menu is built)
         // This is the context menu in the File Explorer and clicking "More options" (three dots) from within a file.
-        this.app.workspace.on('file-menu', (menu, file, source, leaf) =>
-            this.onFileMenu(menu, file, source, leaf),
+        this.registerEvent(
+            this.app.workspace.on('file-menu', (menu, file, source, leaf) =>
+                this.onFileMenu(menu, file, source, leaf),
+            ),
         );
 
-        this.app.workspace.on('active-leaf-change', (leaf) => {
-            if (utils.lastUsedLeaves.contains(leaf)) {
-                utils.lastUsedLeaves.remove(leaf);
-            }
-            utils.lastUsedLeaves.unshift(leaf);
-        });
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', (leaf) => {
+                if (utils.lastUsedLeaves.contains(leaf)) {
+                    utils.lastUsedLeaves.remove(leaf);
+                }
+                utils.lastUsedLeaves.unshift(leaf);
+            }),
+        );
 
         // Currently frozen until I have time to work on this feature's quirks
         // if (this.app.workspace.layoutReady) this.initMiniMap()
@@ -612,51 +616,59 @@ export default class MapViewPlugin extends Plugin {
 
         // Add items to the editor context menu (run when the context menu is built)
         // This is the context menu when right clicking within an editor view.
-        this.app.workspace.on('editor-menu', (menu, editor, view) => {
-            const file = view.file;
-            if (file) this.onEditorMenu(menu, editor, view as MarkdownView);
-        });
+        this.registerEvent(
+            this.app.workspace.on('editor-menu', (menu, editor, view) => {
+                const file = view.file;
+                if (file) this.onEditorMenu(menu, editor, view as MarkdownView);
+            }),
+        );
 
         // Watch for pasted text and add a 'locations:' front matter where applicable if the user pastes
         // an inline geolocation
-        this.app.workspace.on(
-            'editor-paste',
-            (evt: ClipboardEvent, editor: Editor) => {
-                if (this.settings.fixFrontMatterOnPaste) {
-                    const text = evt.clipboardData.getData('text');
-                    if (text) {
-                        const inlineMatch = matchInlineLocation(text);
-                        if (inlineMatch && inlineMatch.length > 0) {
-                            const file = utils.getFile(this.app);
-                            // The pasted text contains an inline location, so try to help the user by verifying
-                            // a frontmatter exists
-                            if (
-                                utils.verifyOrAddFrontMatterForInline(
-                                    this.app,
-                                    editor,
-                                    file,
-                                    this.settings,
-                                )
-                            ) {
-                                new Notice(
-                                    "The note's front matter was updated to denote locations are present",
-                                );
+        this.registerEvent(
+            this.app.workspace.on(
+                'editor-paste',
+                (evt: ClipboardEvent, editor: Editor) => {
+                    if (this.settings.fixFrontMatterOnPaste) {
+                        const text = evt.clipboardData.getData('text');
+                        if (text) {
+                            const inlineMatch = matchInlineLocation(text);
+                            if (inlineMatch && inlineMatch.length > 0) {
+                                const file = utils.getFile(this.app);
+                                // The pasted text contains an inline location, so try to help the user by verifying
+                                // a frontmatter exists
+                                if (
+                                    utils.verifyOrAddFrontMatterForInline(
+                                        this.app,
+                                        editor,
+                                        file,
+                                        this.settings,
+                                    )
+                                ) {
+                                    new Notice(
+                                        "The note's front matter was updated to denote locations are present",
+                                    );
+                                }
                             }
                         }
                     }
-                }
-            },
+                },
+            ),
         );
 
         if (this.settings.loadLayersAhead)
             this.app.workspace.onLayoutReady(() =>
                 this.buildInitialLayersCache(),
             );
-        this.app.vault.on('delete', (file) =>
-            this.updateMarkersWithRelationToFile(file.path, null, true),
+        this.registerEvent(
+            this.app.vault.on('delete', (file) =>
+                this.updateMarkersWithRelationToFile(file.path, null, true),
+            ),
         );
-        this.app.metadataCache.on('changed', (file) =>
-            this.updateMarkersWithRelationToFile(file.path, file, false),
+        this.registerEvent(
+            this.app.metadataCache.on('changed', (file) =>
+                this.updateMarkersWithRelationToFile(file.path, file, false),
+            ),
         );
 
         purgeTilesBySettings(this.settings);
@@ -1062,6 +1074,7 @@ export default class MapViewPlugin extends Plugin {
         // 2. From a mapContainer, if it needs to open Map View before the layout-ready event (this happens if Obsidian opens with a
         //    Map View already).
         if (this.layerCacheInitStarted) return;
+        if (this.settings.debug) console.time('buildInitialLayersCache');
         this.layerCacheInitStarted = true;
         let files = this.app.vault.getMarkdownFiles();
         let geoJsonFiles = this.app.vault
@@ -1086,6 +1099,7 @@ export default class MapViewPlugin extends Plugin {
         // was done
         for (const layer of allLayers) layerCache.add(layer);
         this.layerCache = layerCache;
+        if (this.settings.debug) console.timeEnd('buildInitialLayersCache');
         console.log(
             'Map View initialized with',
             this.layerCache.size,

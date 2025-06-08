@@ -13,6 +13,9 @@ import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 import * as leafletFullscreen from 'leaflet-fullscreen';
+import '@geoman-io/leaflet-geoman-free';
+import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
+
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -37,8 +40,13 @@ import {
     type TileSource,
     DEFAULT_SETTINGS,
 } from 'src/settings';
-import { FileMarker, addEdgesToMarkers } from 'src/fileMarker';
-import { GeoJsonLayer } from 'src/geojsonLayer';
+import {
+    FileMarker,
+    addEdgesToMarkers,
+    moveFileMarker,
+    createMarkerInFile,
+} from 'src/fileMarker';
+import { GeoJsonLayer, createGeoJsonInFile } from 'src/geojsonLayer';
 import { BaseGeoLayer } from 'src/baseGeoLayer';
 import { LayerCache } from 'src/layerCache';
 import { getIconFromOptions, type IconOptions } from 'src/markerIcons';
@@ -49,6 +57,7 @@ import {
     SearchControl,
     RealTimeControl,
     LockControl,
+    EditControl,
 } from 'src/viewControls';
 import { Query } from 'src/query';
 import { GeoSearchResult } from 'src/geosearch';
@@ -72,6 +81,7 @@ export type ViewSettings = {
     viewTabType: 'regular' | 'mini';
     showEmbeddedControls: boolean;
     showPresets: boolean;
+    showEdit: boolean;
     showSearch: boolean;
     showOpenButton: boolean;
     showRealTimeButton: boolean;
@@ -123,6 +133,8 @@ export class MapContainer {
         searchControls: SearchControl = null;
         /** The real-time geolocation controls */
         realTimeControls: RealTimeControl = null;
+        /** The pencil button for showing edit controls */
+        editControl: EditControl = null;
         /** The lock control */
         lockControl: LockControl = null;
         /** A marker of the last search result */
@@ -346,9 +358,24 @@ export class MapContainer {
             }
             if (this.display.controls) {
                 this.display.controls.updateControlsToState();
+                if (newState.editMode) {
+                    this.display.map.pm.addControls({
+                        position: 'topright',
+                        drawCircleMarker: false,
+                        drawCircle: false,
+                        drawText: false,
+                        removalMode: false,
+                    });
+                    // this.display.map.pm.enableGlobalEditMode({});
+                } else {
+                    this.display.map.pm.removeControls();
+                    // this.display.map.pm.disableGlobalEditMode();
+                }
             }
             if (this.display.lockControl)
                 this.display.lockControl.updateFromState(state.lock);
+            if (this.display.editControl)
+                this.display.editControl.updateFromState(newState.editMode);
         }
     }
 
@@ -522,6 +549,10 @@ export class MapContainer {
                 DEFAULT_SETTINGS.maxClusterRadiusPixels,
             animate: false,
             chunkedLoading: true,
+            pmIgnore: true,
+            polygonOptions: {
+                pmIgnore: true,
+            },
         });
         this.display.map.addLayer(this.display.clusterGroup);
 
@@ -555,6 +586,67 @@ export class MapContainer {
                 this.ongoingChanges += 1;
             },
         );
+
+        const [defaultIcon, defaultPathOptions, _] =
+            this.plugin.displayRulesCache.getDefaults();
+        this.display.map.pm.setGlobalOptions({
+            snapDistance: 10,
+            markerStyle: {
+                icon: getIconFromOptions(
+                    defaultIcon,
+                    [],
+                    this.plugin.iconFactory,
+                ),
+            },
+            pathOptions: defaultPathOptions,
+            limitMarkersToCount: 20,
+            continueDrawing: false,
+        });
+        this.display.map.on('pm:drawstart', (e) => {
+            if (!this.display.controls.editModeTools.noteToEdit) {
+                new Notice('You must first select a note.');
+                this.display.map.pm.disableDraw();
+                this.display.controls.openEditSection();
+            }
+        });
+        this.display.map.on(
+            'pm:create',
+            (e: {
+                shape: leaflet.PM.SUPPORTED_SHAPES;
+                layer: leaflet.Layer;
+            }) => {
+                const file = this.display.controls.editModeTools.noteToEdit;
+                if (
+                    e.shape === 'Line' ||
+                    e.shape === 'Rectangle' ||
+                    e.shape === 'Polygon'
+                ) {
+                    createGeoJsonInFile(
+                        (e.layer as leaflet.Polyline).toGeoJSON(),
+                        file,
+                        this.app,
+                        this.settings,
+                    );
+                } else if (
+                    e.shape === 'Marker' &&
+                    e.layer instanceof leaflet.Marker
+                ) {
+                    createMarkerInFile(
+                        e.layer,
+                        file,
+                        this.app,
+                        this.settings,
+                        this.plugin,
+                    );
+                } else {
+                    console.log('Unsupported shape:', e);
+                }
+                // This temporary layer doesn't truly represent a Map View marker -- remove it as it will soon be replaced by the
+                // newly-picked-up geolocation
+                e.layer.remove();
+            },
+        );
+
         this.display.map.on('viewreset', () => {
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
@@ -584,6 +676,16 @@ export class MapContainer {
             this.display.map.addControl(this.display.realTimeControls);
         }
 
+        if (this.viewSettings.showEdit && !this.state.editMode) {
+            this.display.editControl = new EditControl(
+                { position: 'topright' },
+                this,
+                this.app,
+                this.settings,
+            );
+            this.display.map.addControl(this.display.editControl);
+        }
+
         if (this.settings.showClusterPreview) {
             this.display.clusterGroup.on('clustermouseover', (event) => {
                 if (!utils.isMobile(this.app))
@@ -600,6 +702,22 @@ export class MapContainer {
                 this.setHighlight(this.display.highlight);
                 this.updateRealTimeLocationMarkers();
             });
+
+            // // TODO an attempt to make PM (Leaflet-Geoman) work
+            // Maybe not needed!
+            // const pmDragEnd = (e: any) => {
+            // 	if (this.display.map.pm.globalDragModeEnabled()) {
+            // 		this.display.map.pm.disableGlobalDragMode();
+            // 		this.display.map.pm.enableGlobalDragMode();
+            // 	} else if (this.display.map.pm.globalEditModeEnabled()) {
+            // 		this.display.map.pm.toggleGlobalEditMode();
+            // 		this.display.map.pm.toggleGlobalEditMode();
+            // 	}
+            // 	console.log('TODO TEMP dragend');
+            // };
+            // this.display.clusterGroup.on('layeradd',(e)=>{
+            // 	e.layer.on('pm:dragend', pmDragEnd);
+            // });
         }
 
         this.display.map.on('click', (_event: leaflet.LeafletMouseEvent) => {
@@ -955,6 +1073,23 @@ export class MapContainer {
                 );
             }
         });
+        newMarker.on(
+            'pm:edit',
+            (e: {
+                shape: leaflet.PM.SUPPORTED_SHAPES;
+                layer: leaflet.Layer;
+            }) => {
+                console.log('PM Edit:', e.shape, e.layer);
+                if (e.layer instanceof leaflet.Marker) {
+                    moveFileMarker(
+                        marker,
+                        e.layer.getLatLng(),
+                        this.settings,
+                        this.app,
+                    );
+                }
+            },
+        );
         return newMarker;
     }
 
@@ -967,7 +1102,6 @@ export class MapContainer {
         let mapPopup = new Menu();
         if (marker instanceof FileMarker) {
             menus.populateOpenNote(this, marker, mapPopup, this.settings);
-            menus.populateMoveMarker(mapPopup, marker, this.plugin);
             menus.populateRouting(
                 this,
                 marker.location,

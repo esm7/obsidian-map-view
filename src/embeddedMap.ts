@@ -40,6 +40,7 @@ export class EmbeddedMap {
             viewTabType: 'mini',
             showEmbeddedControls: true,
             showPresets: false,
+            showEdit: false,
             showSearch: false,
             showRealTimeButton: false,
             showLockButton: true,

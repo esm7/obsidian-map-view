@@ -436,39 +436,6 @@ export function populateRouting(
     }
 }
 
-export function populateMoveMarker(
-    menu: Menu,
-    fileMarker: FileMarker,
-    plugin: MapViewPlugin,
-) {
-    let title = fileMarker.geoLayer?.dragging?.enabled()
-        ? 'Disable move'
-        : 'Enable move';
-    let icon = fileMarker.geoLayer?.dragging?.enabled() ? 'lock' : 'unlock';
-    menu.addItem((item: MenuItem) => {
-        item.setTitle(title);
-        item.setSection('mapview');
-        item.setIcon(icon);
-        item.onClick(() => {
-            let leafletMarker = fileMarker.geoLayer;
-            if (leafletMarker?.dragging) {
-                if (leafletMarker.dragging.enabled()) {
-                    leafletMarker.dragging.disable();
-                } else {
-                    leafletMarker.dragging.enable();
-                    leafletMarker.setIcon(
-                        getIconFromOptions(
-                            consts.UNLOCKED_MARKER,
-                            [],
-                            plugin.iconFactory,
-                        ),
-                    );
-                }
-            }
-        });
-    });
-}
-
 /* The context menu on an area of the map where there is no existing marker, showing mostly options to add
  * a new marker or open this geolocation elsewhere.
  * This can also be used on a search result.
