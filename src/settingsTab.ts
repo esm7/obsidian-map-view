@@ -725,6 +725,22 @@ export class SettingsTab extends PluginSettingTab {
                 }),
         );
 
+        new Setting(containerEl).setHeading().setName('Paths, GeoJSONs, GPXs');
+        new Setting(containerEl)
+            .setName("Handle 'geojson' code blocks")
+            .setDesc("Display an embedded map for a 'geojson' code block.")
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.handleGeoJsonCodeBlocks ??
+                            DEFAULT_SETTINGS.handleGeoJsonCodeBlocks,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.handleGeoJsonCodeBlocks = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
         new Setting(containerEl).setHeading().setName('Offline Maps');
         new Setting(containerEl)
             .setName('Manage offline storage')

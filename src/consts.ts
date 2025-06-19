@@ -25,6 +25,11 @@ export const UNLOCKED_MARKER = {
     icon: 'fa-up-down-left-right',
     markerColor: SEARCH_RESULT_MARKER.markerColor,
 } as leaflet.ExtraMarkers.IconOptions;
+export const GEOJSON_MARKER = {
+    prefix: 'fas',
+    icon: 'fa-circle',
+    markerColor: 'blue',
+} as leaflet.ExtraMarkers.IconOptions;
 export const MAX_CLUSTER_PREVIEW_ICONS = 4;
 export const HISTORY_SAVE_ZOOM_DIFF = 2;
 

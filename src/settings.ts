@@ -69,6 +69,7 @@ export type PluginSettings = {
     offlineMaxTileAgeMonths: number;
     offlineMaxStorageGb: number;
     loadLayersAhead: boolean;
+    handleGeoJsonCodeBlocks: boolean;
 };
 
 export type DepracatedFields = {
@@ -305,6 +306,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     // 0 means never automatically purge
     offlineMaxStorageGb: 2,
     loadLayersAhead: true,
+    handleGeoJsonCodeBlocks: true,
 };
 
 export function convertLegacyMarkerIcons(

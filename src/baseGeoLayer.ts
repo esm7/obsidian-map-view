@@ -7,7 +7,7 @@ import * as consts from 'src/consts';
 type MarkerId = string;
 
 export abstract class BaseGeoLayer {
-    public layerType: 'fileMarker' | 'geojson';
+    public layerType: 'fileMarker' | 'geojson' | 'floatingMarker';
     /** The file object on which this location was found */
     public file: TFile;
     /** An ID to recognize the marker */

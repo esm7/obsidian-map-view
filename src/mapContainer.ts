@@ -33,6 +33,7 @@ import {
     mergeStates,
     stateToUrl,
     getCodeBlock,
+    areStatesEqual,
 } from 'src/mapState';
 import {
     type OpenBehavior,
@@ -46,6 +47,7 @@ import {
     moveFileMarker,
     createMarkerInFile,
 } from 'src/fileMarker';
+import { FloatingMarker } from 'src/floatingMarker';
 import { GeoJsonLayer, createGeoJsonInFile } from 'src/geojsonLayer';
 import { BaseGeoLayer } from 'src/baseGeoLayer';
 import { LayerCache } from 'src/layerCache';
@@ -347,7 +349,7 @@ export class MapContainer {
             // the map during ongoing changes (especially in fast zooms and pans).
             // There are therefore multiple layers of safeguards here, i.e. both the freezeMap boolean,
             // the ongoingChanges counter, and inside updateMarkersToState there are additional safeguards
-            if (!freezeMap && this.ongoingChanges == 0) {
+            if (!freezeMap && !this.freezeMap && this.ongoingChanges <= 0) {
                 const willAutoFit =
                     state.autoFit || // State auto-fit
                     (considerAutoFit && // Global auto-fit
@@ -423,9 +425,12 @@ export class MapContainer {
      * For this purpose, this part of the flow is synchronuous.
      */
     public updateStateAfterMapChange(partialState: Partial<MapState>) {
-        this.state = mergeStates(this.state, partialState);
-        this.freezeMap = true;
-        this.highLevelSetViewState(partialState);
+        const mergedState = mergeStates(this.state, partialState);
+        if (!areStatesEqual(this.state, mergedState)) {
+            this.state = mergedState;
+            this.freezeMap = true;
+            this.highLevelSetViewState(partialState);
+        }
         if (this.ongoingChanges <= 0) {
             this.freezeMap = false;
             this.ongoingChanges = 0;
@@ -616,6 +621,7 @@ export class MapContainer {
                 layer: leaflet.Layer;
             }) => {
                 const file = this.display.controls.editModeTools.noteToEdit;
+                const heading = this.display.controls.editModeTools.noteHeading;
                 if (
                     e.shape === 'Line' ||
                     e.shape === 'Rectangle' ||
@@ -624,6 +630,7 @@ export class MapContainer {
                     createGeoJsonInFile(
                         (e.layer as leaflet.Polyline).toGeoJSON(),
                         file,
+                        heading,
                         this.app,
                         this.settings,
                     );
@@ -634,6 +641,7 @@ export class MapContainer {
                     createMarkerInFile(
                         e.layer,
                         file,
+                        heading,
                         this.app,
                         this.settings,
                         this.plugin,
@@ -810,7 +818,7 @@ export class MapContainer {
         if (
             !freezeMap &&
             !this.freezeMap &&
-            this.ongoingChanges == 0 &&
+            this.ongoingChanges <= 0 &&
             (this.display.map.getCenter().distanceTo(this.state.mapCenter) >
                 1 ||
                 this.display.map.getZoom() != this.state.mapZoom)
@@ -970,7 +978,7 @@ export class MapContainer {
         newMarker.on('click', async (event: leaflet.LeafletMouseEvent) => {
             if (utils.isMobile(this.app)) {
                 this.setHighlight(marker);
-                await this.showMarkerPopups(marker, event);
+                await this.showMarkerPopups(marker, newMarker, event);
             } else
                 this.goToMarker(
                     marker,
@@ -998,8 +1006,7 @@ export class MapContainer {
 
         newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app)) {
-                this.showMarkerPopups(marker, event);
-                this.display.popupElement = newMarker;
+                this.showMarkerPopups(marker, newMarker, event);
             }
         });
         newMarker.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
@@ -1121,6 +1128,7 @@ export class MapContainer {
 
     private async showMarkerPopups(
         layer: BaseGeoLayer,
+        leafletLayer: leaflet.Layer,
         event: leaflet.LeafletMouseEvent,
     ) {
         // Popups based on the layers below the cursor shouldn't be opened while animations
@@ -1135,6 +1143,7 @@ export class MapContainer {
                     settings: this.settings,
                     view: this,
                     layer: layer,
+                    leafletLayer: leafletLayer,
                     doClose: () => {
                         this.closeMarkerPopup(false);
                     },
@@ -1186,6 +1195,8 @@ export class MapContainer {
             );
         }
         this.startHoverHighlight(layer);
+        if (leafletLayer instanceof leaflet.Marker)
+            this.display.popupElement = leafletLayer;
     }
 
     /*
@@ -1721,16 +1732,85 @@ export class MapContainer {
     }
 
     private newLeafletGeoJson(marker: GeoJsonLayer): leaflet.GeoJSON {
+        // TODO: use the marker popup component here, and less code repetition.
+        // Maybe show the relevant embeds if it's a file?
         const geoJsonLayer = leaflet.geoJSON(marker.geojson, {
             style: marker.pathOptions,
-            onEachFeature: (_feature: any, layer: leaflet.Layer) => {
-                layer.bindPopup(marker.file.name, { autoClose: true });
-                layer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
-                    layer.openPopup(event.latlng);
+            onEachFeature: (feature: any, layer: leaflet.Layer) => {
+                // Features of type 'Point' are handled below
+                if (feature?.geometry?.type !== 'Point') {
+                    const name = (feature as any)?.properties?.name;
+                    let header = name
+                        ? `${name} (in '${marker.file.name}')`
+                        : marker.file.name;
+                    layer.bindPopup(header, { autoClose: true });
+                    layer.on(
+                        'mouseover',
+                        (event: leaflet.LeafletMouseEvent) => {
+                            layer.openPopup(event.latlng);
+                        },
+                    );
+                    layer.on(
+                        'mouseout',
+                        (_event: leaflet.LeafletMouseEvent) => {
+                            layer.closePopup();
+                        },
+                    );
+                    layer.on('click', () => {
+                        // TODO proper mobile support
+                        if (
+                            !(this.app.vault as any)?.config
+                                ?.showUnsupportedFiles
+                        )
+                            new Notice(
+                                'Some file types can only be displayed if you turn on "detect all file extensions" in the Obsidian "Files and links" settings.',
+                                60 * 1000,
+                            );
+                        const fileExplorer = (
+                            this.app as any
+                        )?.internalPlugins?.getEnabledPluginById(
+                            'file-explorer',
+                        );
+                        // TODO reveal inline when relevant
+                        // TODO context menu that allows viewing embeds?
+                        fileExplorer?.revealInFolder(marker.file);
+                    });
+                }
+            },
+            pointToLayer: (feature: any, latlng: leaflet.LatLng) => {
+                const leafletMarker = leaflet.marker(latlng, {
+                    icon: getIconFromOptions(
+                        consts.GEOJSON_MARKER,
+                        [],
+                        this.plugin.iconFactory,
+                    ),
                 });
-                layer.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
-                    layer.closePopup();
-                });
+                const floatingMarker = new FloatingMarker(
+                    marker.file,
+                    leafletMarker,
+                );
+                floatingMarker.header =
+                    feature?.properties?.name ?? marker.file.name;
+                floatingMarker.description = feature?.properties?.desc ?? '';
+                floatingMarker.extraName = `Stored in '${marker.file.name}'`;
+                // TODO proper mobile support
+                leafletMarker.on(
+                    'mouseover',
+                    (event: leaflet.LeafletMouseEvent) => {
+                        this.showMarkerPopups(
+                            floatingMarker,
+                            leafletMarker,
+                            event,
+                        );
+                    },
+                );
+                leafletMarker.on(
+                    'mouseout',
+                    (_event: leaflet.LeafletMouseEvent) => {
+                        this.closeMarkerPopup(false);
+                    },
+                );
+                return leafletMarker;
             },
         });
         return geoJsonLayer;

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { untrack } from 'svelte';
-    import { Notice, App, getIcon, TFile } from 'obsidian';
+    import { Notice, App, getIcon, TFile, type HeadingCache } from 'obsidian';
     import { type PluginSettings } from '../settings';
     import { type ViewSettings, MapContainer } from '../mapContainer';
     import MapViewPlugin from '../main';
@@ -43,18 +43,19 @@
     let selectedPreset = $state('-1');
     let lastSavedState: MapState = $state();
     let minimized = $state(settings.mapControls.minimized);
-    let suggestor: QuerySuggest = null;
-    let queryInputElement: HTMLInputElement = $state();
     let previousState: MapState = null;
     let noteToEdit: TFile = $state(null);
+    let noteHeading: string | null = $state(null);
+    let allNoteHeadings: string[] = $state([]);
 
     $effect(() => {
         const considerAutoFit = statesDifferOnlyInQuery(
             mapState,
             previousState,
         );
-        if (!areStatesEqual(mapState, view.getState(), view.display?.map))
+        if (!areStatesEqual(mapState, view.getState(), view.display?.map)) {
             view.internalSetViewState(mapState, false, considerAutoFit);
+        }
         // If the new state matches an existing preset, select that preset.
         const preset = findPresetIndexForCurrentState().toString();
         // We don't want this $effect to be called with selectedPreset changes; when the user selects a new
@@ -63,6 +64,10 @@
         if (preset !== untrackedSelectedPreset)
             selectedPreset = preset.toString();
         previousState = copyState(mapState);
+    });
+
+    $effect(() => {
+        editModeTools.noteHeading = noteHeading;
     });
 
     export function updateControlsToState() {
@@ -87,6 +92,13 @@
                     noteToEdit = selection.file;
                     editModeTools.noteToEdit = noteToEdit;
                     mapState.editMode = true;
+                    const headings = app.metadataCache.getFileCache(
+                        selection.file,
+                    )?.headings as HeadingCache[];
+                    // TODO bug here, heading positions change as note changes
+                    allNoteHeadings = headings
+                        ? headings.map((heading) => heading.heading)
+                        : [];
                 }
             },
             'Choose a note to edit or press Shift+Enter to create new',
@@ -183,6 +195,7 @@
     async function openButtonClick(ev: MouseEvent) {
         const state = mapState;
         state.followActiveNote = false;
+        state.autoFit = false;
         plugin.openMapWithState(
             state,
             utils.mouseEventToOpenMode(settings, ev, 'openMap'),
@@ -190,22 +203,9 @@
         );
     }
 
-    // An inline block might contain just part of a map state, but we don't want this to necessarily cause the 'save' button
-    // to appear just because fields are missing.
-    function enrichState(partialState: Partial<MapState>) {
-        return mergeStates(settings.defaultState, partialState);
-    }
-
     async function saveButton() {
         view.updateCodeBlockCallback();
         lastSavedState = mapState;
-    }
-
-    function openQuerySuggest() {
-        if (!suggestor) {
-            suggestor = new QuerySuggest(app, plugin, queryInputElement);
-            suggestor.open();
-        }
     }
 
     // Return true if the two states are identical except their query field
@@ -247,7 +247,8 @@
             {/if}
         </div>
     {/if}
-    {#if !minimized}
+    {#if !minimized || !viewSettings.showMinimizeButton}
+        <!-- If the view doesn't include the minimize button (e.g. in EmbeddedMapView), we ignore minimization -->
         <div class="graph-control-div">
             {#if viewSettings.showOpenButton}
                 <button
@@ -319,7 +320,9 @@
                         <button
                             class="button"
                             title="Set the map view to fit all currently-displayed markers."
-                            onclick={view.autoFitMapToMarkers()}
+                            onclick={() => {
+                                view.autoFitMapToMarkers();
+                            }}
                         >
                             Fit
                         </button>
@@ -488,6 +491,17 @@
                             {@html getIcon('check').outerHTML}
                         </span>
                     {/if}
+                    <select
+                        class="dropdown mv-map-control"
+                        bind:value={noteHeading}
+                        title="Choose where in the selected note you wish markers and paths to be added."
+                        disabled={noteToEdit === null}
+                    >
+                        <option value={null}>Append to end</option>
+                        {#each allNoteHeadings as heading}
+                            <option value={heading}>{heading}</option>
+                        {/each}
+                    </select>
                 </ViewCollapsibleSection>
             {/if}
         </div>

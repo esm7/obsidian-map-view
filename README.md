@@ -232,19 +232,6 @@ Map View adds an Obsidian command named "New geolocation note", which you can ma
 
 This opens a dialog on which you can search (address or location based on your [configured geocoding provider](#changing-a-geocoding-provider)) or paste a URL using the built-in or custom [URL parsing rules](#url-parsing-rules).
 
-When using Google Maps Places API, templates can extract additional result data.
-For instance, templates that match `googleMapsPlaceData.some.path` will be replaced with the value found at `some.path` in the [JSON serach result](https://developers.google.com/maps/documentation/places/web-service/text-search#fieldmask).
-For instance, the following template would set a [place_id](https://developers.google.com/maps/documentation/places/web-service/place-id) property and tags the note with the [type](https://developers.google.com/maps/documentation/places/web-service/supported_types) of the place:
-
-```
----
-place_id: "{{googleMapsPlaceData.place_id}}"
----
-#{{googleMapsPlaceData.types.0}}
-```
-
-Currently only Google Maps Places API supports this advanced templating feature.
-
 ![](img/new-note-popup.gif)
 
 ### In an Existing Note
@@ -451,6 +438,19 @@ If you want, you can add to your API key the slightly more expensive [Places API
 For most reasonable note-taking usage, you will not likely go beyond the Places API free tier.
 
 **Note:** usage of any geocoding provider is at your own risk, and it's your own responsibility to verify you are not violating the service's terms of usage.
+
+When using Google Maps Places API, templates can extract additional result data.
+For instance, templates that match `googleMapsPlaceData.some.path` will be replaced with the value found at `some.path` in the [JSON serach result](https://developers.google.com/maps/documentation/places/web-service/text-search#fieldmask).
+For instance, the following template would set a [place_id](https://developers.google.com/maps/documentation/places/web-service/place-id) property and tags the note with the [type](https://developers.google.com/maps/documentation/places/web-service/supported_types) of the place:
+
+```
+---
+place_id: "{{googleMapsPlaceData.place_id}}"
+---
+#{{googleMapsPlaceData.types.0}}
+```
+
+Currently only Google Maps Places API supports this advanced templating feature.
 
 ### Migrating to Google Places API (New)
 
@@ -696,6 +696,8 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Badges
 - Context menu 'open in' fix for Reading View (https://github.com/esm7/obsidian-map-view/issues/326)
 - Fixed file-menu event not registered to plugin (https://github.com/esm7/obsidian-map-view/issues/327)
+- Fix to the `autoFit` state flag of embedded maps to work more consistently.
+- Map View now sets the type of the 'location' property to List, to prevent issues of Obsidian corrupting it.
 
 ### 5.5.0
 

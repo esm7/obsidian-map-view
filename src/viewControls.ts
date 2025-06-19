@@ -1,4 +1,4 @@
-import { App, getIcon, TFile } from 'obsidian';
+import { App, getIcon, TFile, type HeadingCache } from 'obsidian';
 import { askForLocation } from 'src/realTimeLocation';
 
 import { type PluginSettings } from 'src/settings';
@@ -13,7 +13,7 @@ import * as leaflet from 'leaflet';
 import { mount, unmount } from 'svelte';
 import ViewControlsPanel from './components/ViewControlsPanel.svelte';
 
-export type EditModeTools = { noteToEdit: TFile };
+export type EditModeTools = { noteToEdit: TFile; noteHeading: string | null };
 
 export class ViewControls {
     private parentElement: HTMLElement;
@@ -25,7 +25,10 @@ export class ViewControls {
 
     private controlPanel: any;
 
-    public editModeTools: EditModeTools = { noteToEdit: null };
+    public editModeTools: EditModeTools = {
+        noteToEdit: null,
+        noteHeading: null,
+    };
 
     constructor(
         parentElement: HTMLElement,

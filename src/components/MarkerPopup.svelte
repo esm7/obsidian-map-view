@@ -5,22 +5,31 @@
     import { type PluginSettings } from '../settings';
     import { MapContainer } from '../mapContainer';
     import { BaseGeoLayer } from '../baseGeoLayer';
+    import { FileMarker } from '../fileMarker';
+    import { FloatingMarker } from '../floatingMarker';
     import * as utils from '../utils';
     import * as consts from '../consts';
+    import * as leaflet from 'leaflet';
 
-    let { plugin, app, settings, view, layer, mapMarker, doClose } = $props<{
+    let { plugin, app, settings, view, layer, leafletLayer, doClose } = $props<{
         plugin: MapViewPlugin;
         app: App;
         settings: PluginSettings;
         view: MapContainer;
         layer: BaseGeoLayer;
+        leafletLayer: leaflet.Layer;
         doClose: () => void;
     }>();
 
-    const fileName = layer.file.name;
-    const fileNameWithoutExtension = fileName.endsWith('.md')
-        ? fileName.substring(0, fileName.lastIndexOf('.md'))
-        : fileName;
+    let header = $state('');
+    if (layer instanceof FileMarker) {
+        const fileName = layer.file.name;
+        header = fileName.endsWith('.md')
+            ? fileName.substring(0, fileName.lastIndexOf('.md'))
+            : fileName;
+    } else if (layer instanceof FloatingMarker) {
+        header = layer.header;
+    }
 
     const showLinkSetting = settings.showLinkNameInPopup;
     const showExtraName =
@@ -40,15 +49,22 @@
         settings: PluginSettings,
         app: App,
     ) {
-        const content = await app.vault.read(layer.file);
-        const snippet = extractSnippet(content, 15, layer.fileLine);
-        MarkdownRenderer.render(
-            app,
-            snippet,
-            element,
-            layer.file.path,
-            new Component(),
-        );
+        let snippet = '';
+        if (layer instanceof FileMarker) {
+            const content = await app.vault.read(layer.file);
+            snippet = extractSnippet(content, 15, layer.fileLine);
+        } else if (layer instanceof FloatingMarker) {
+            snippet = layer.description;
+        }
+        if (snippet) {
+            MarkdownRenderer.render(
+                app,
+                snippet,
+                element,
+                layer.file.path,
+                new Component(),
+            );
+        }
     }
 
     /**
@@ -102,7 +118,7 @@
     });
 
     function openMenu(ev: MouseEvent) {
-        const markerElement = layer.geoLayer.getElement();
+        const markerElement = leafletLayer.getElement();
         if (markerElement) {
             markerElement.dispatchEvent(
                 new MouseEvent('contextmenu', {
@@ -134,7 +150,7 @@
         <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
         <div class="headlines clickable" onclick={openNote}>
             <p class="map-view-marker-name">
-                {fileNameWithoutExtension}
+                {header}
             </p>
             {#if showExtraName}
                 <p class="map-view-marker-sub-name">

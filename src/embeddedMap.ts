@@ -125,7 +125,14 @@ export class EmbeddedMap {
     }
 
     onResize() {
-        if (this.mapContainer.display.mapDiv)
+        if (this.mapContainer.display.mapDiv) {
             this.mapContainer.display.map.invalidateSize();
+            const mapSize = this.mapContainer.display.map.getSize();
+            if (mapSize.x > 0 && mapSize.y > 0) {
+                // On a size invalidation, if the state requires us to auto-fit, we must run it again
+                if (this.mapContainer.getState().autoFit)
+                    this.mapContainer.autoFitMapToMarkers();
+            }
+        }
     }
 }

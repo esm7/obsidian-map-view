@@ -95,6 +95,12 @@ export default class MapViewPlugin extends Plugin {
             return new MainMapView(leaf, this.settings, this);
         });
 
+        // An undocumented API (suggested by @liam) to set the type Obsidian stores for the 'location' property to
+        // 'multitext' (displayed in Obsidian as 'List').
+        // If users change the type of the 'location' property to something else, Obsidian may not only not properly display
+        // this property on geolocation notes, but may corrupt it.
+        (this.app as any).metadataTypeManager.setType('location', 'multitext');
+
         this.editorLinkReplacePlugin = getLinkReplaceEditorPlugin(this);
         this.registerEditorExtension(this.editorLinkReplacePlugin);
 
@@ -252,6 +258,37 @@ export default class MapViewPlugin extends Plugin {
                 }
             },
         );
+
+        if (this.settings.handleGeoJsonCodeBlocks) {
+            this.registerMarkdownCodeBlockProcessor(
+                'geojson',
+                async (
+                    source: string,
+                    el: HTMLElement,
+                    ctx: MarkdownPostProcessorContext,
+                ) => {
+                    const sectionInfo = ctx.getSectionInfo(el);
+                    if (sectionInfo) {
+                        const lineStart = sectionInfo.lineStart;
+                        const query = `path:"${ctx.sourcePath}" AND lines:${lineStart}-${lineStart}`;
+                        let map = new EmbeddedMap(
+                            el,
+                            ctx,
+                            this.app,
+                            this.settings,
+                            this,
+                            // The 'Save' button is extremely unwelcome in a geojson
+                            { showEmbeddedControls: false },
+                        );
+                        const fullState = mergeStates(
+                            this.settings.defaultState,
+                            { query, autoFit: true },
+                        );
+                        await map.open(fullState);
+                    }
+                },
+            );
+        }
 
         this.registerMarkdownPostProcessor(replaceLinksPostProcessor(this));
 
@@ -590,7 +627,7 @@ export default class MapViewPlugin extends Plugin {
         // events need to be global.
         // This one closes the map preview popup on mouse leave.
         (window as any).closeMapPopup = (event: PointerEvent) => {
-            this.mapPreviewPopup.close(event);
+            this.mapPreviewPopup?.close(event);
         };
 
         // Add items to the file context menu (run when the context menu is built)
@@ -657,9 +694,13 @@ export default class MapViewPlugin extends Plugin {
         );
 
         if (this.settings.loadLayersAhead)
-            this.app.workspace.onLayoutReady(() =>
-                this.buildInitialLayersCache(),
-            );
+            this.app.workspace.onLayoutReady(() => {
+                this.buildInitialLayersCache();
+                // Register the 'create' event only on layout ready, since we don't want it fired on the initial vault scan
+                this.app.vault.on('create', (file) => {
+                    this.updateMarkersWithRelationToFile(null, file, false);
+                });
+            });
         this.registerEvent(
             this.app.vault.on('delete', (file) =>
                 this.updateMarkersWithRelationToFile(file.path, null, true),

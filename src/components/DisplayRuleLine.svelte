@@ -39,8 +39,9 @@
                 allRules,
                 app,
                 plugin,
-                // TODO TEMP if this work explain why we do assign
                 onSave: (newRule: DisplayRule) => {
+                    // We use Object.assign to change the object in-place, which is needed for Svelte
+                    // reactivity to work well
                     Object.assign(displayRule, newRule);
                 },
                 makePreview: makePreview,

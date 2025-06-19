@@ -22,9 +22,9 @@ import { BaseGeoLayer, verifyLocation } from 'src/baseGeoLayer';
 import { type IconOptions } from 'src/markerIcons';
 import {
     djb2Hash,
-    getHeadingAndBlockForFilePosition,
     hasFrontMatterLocations,
     verifyOrAddFrontMatterForInline,
+    appendToNoteAtHeadingOrEnd,
 } from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
@@ -32,7 +32,10 @@ import MapViewPlugin from 'src/main';
 
 export const GEOJSON_FILE_FILTER = ['gpx', 'geojson', 'md', 'kml', 'tcx'];
 
-/** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
+/*
+ * An object that represents a GeoJSON layer, e.g. a path or a shape.
+ * The GeoJSON may contain internal markers, which will be treated as "floating" markers.
+ */
 export class GeoJsonLayer extends BaseGeoLayer {
     public geoLayers: Map<number, leaflet.Layer> = new Map();
     public location: leaflet.LatLng;
@@ -59,7 +62,13 @@ export class GeoJsonLayer extends BaseGeoLayer {
     }
 
     getBounds(): leaflet.LatLng[] {
-        return [this.location];
+        if (this.geoLayers.size > 0) {
+            const firstLayer = this.geoLayers.values().next().value;
+            if (firstLayer) {
+                return [firstLayer.getBounds()];
+            }
+        }
+        return [];
     }
 
     isSame(other: BaseGeoLayer): boolean {
@@ -183,6 +192,7 @@ export async function buildGeoJsonLayers(
 export async function createGeoJsonInFile(
     layer: GeoJSON,
     file: TFile,
+    heading: HeadingCache | null,
     app: App,
     settings: PluginSettings,
 ) {
@@ -190,6 +200,6 @@ export async function createGeoJsonInFile(
 \`\`\`geojson
 ${JSON.stringify(layer)}
 \`\`\`\n`;
-    await app.vault.append(file, geoJsonString);
+    await appendToNoteAtHeadingOrEnd(file, heading, geoJsonString, app);
     await verifyOrAddFrontMatterForInline(app, null, file, settings);
 }

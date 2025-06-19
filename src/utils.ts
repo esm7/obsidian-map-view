@@ -12,6 +12,7 @@ import {
     type HeadingCache,
     type BlockCache,
     type FrontMatterCache,
+    Notice,
 } from 'obsidian';
 
 import * as moment_ from 'moment';
@@ -534,12 +535,51 @@ export function hasFrontMatterLocations(
 
 export async function appendGeolocationToNote(
     file: TFile,
+    heading: string | null,
     label: string,
     location: leaflet.LatLng,
     app: App,
     settings: settings.PluginSettings,
 ) {
     const locationString = `\n[${label}](geo:${location.lat},${location.lng})\n`;
-    await app.vault.append(file, locationString);
+    await appendToNoteAtHeadingOrEnd(file, heading, locationString, app);
     await verifyOrAddFrontMatterForInline(app, null, file, settings);
+}
+
+export async function appendToNoteAtHeadingOrEnd(
+    file: TFile,
+    heading: string | null, // When null, appending to the end of the file
+    text: string,
+    app: App,
+) {
+    let nextHeading: HeadingCache | null = null;
+    // If a heading is given, try to locate it.
+    // If we managed to, our goal is to find the *next* heading in the file, and append right before it.
+    if (heading) {
+        const fileHeadings = app.metadataCache.getFileCache(file)
+            ?.headings as HeadingCache[];
+        const headingObject =
+            fileHeadings?.findIndex((h) => h.heading === heading) ?? null;
+        if (headingObject > -1) nextHeading = fileHeadings[headingObject + 1];
+        else {
+            new Notice(
+                `Can't find heading ${heading}, file may have changed after you selected it.`,
+            );
+            return;
+        }
+    }
+    // If we found a next heading, we append right before it.
+    // If we haven't, or if heading was not given in the first place, append at the end of the file.
+    if (nextHeading) {
+        const fileContent = await app.vault.read(file);
+        const posToAppend = nextHeading.position.start.offset - 1;
+        const newContent =
+            fileContent.slice(0, posToAppend) +
+            text +
+            fileContent.slice(posToAppend);
+        await app.vault.modify(file, newContent);
+    } else {
+        // Append at the end of file
+        await app.vault.append(file, text);
+    }
 }

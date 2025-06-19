@@ -569,6 +569,7 @@ export async function moveFileMarker(
 export async function createMarkerInFile(
     marker: leaflet.Marker,
     file: TFile,
+    heading: string | null,
     app: App,
     settings: PluginSettings,
     plugin: MapViewPlugin,
@@ -579,6 +580,7 @@ export async function createMarkerInFile(
         onOk: (text: string) => {
             appendGeolocationToNote(
                 file,
+                heading,
                 text,
                 marker.getLatLng(),
                 app,
