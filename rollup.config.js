@@ -6,7 +6,8 @@ import postcss_url from 'postcss-url';
 import copy from 'rollup-plugin-copy';
 import image from '@rollup/plugin-image';
 import svelte from 'rollup-plugin-svelte';
-import { sveltePreprocess } from 'svelte-preprocess';
+// Not using sveltePreprocess anymore, seeming not needed: https://github.com/sveltejs/svelte-preprocess?tab=readme-ov-file#when-to-use-it
+// import { sveltePreprocess } from 'svelte-preprocess';
 
 const isProd = process.env.BUILD === 'production';
 
@@ -35,7 +36,6 @@ export default {
     plugins: [
         image(),
         svelte({
-            preprocess: sveltePreprocess(),
             compilerOptions: {
                 css: true,
             },

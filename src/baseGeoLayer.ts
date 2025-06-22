@@ -3,6 +3,8 @@ import * as leaflet from 'leaflet';
 import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 import * as consts from 'src/consts';
+import * as regex from 'src/regex';
+import type MapViewPlugin from './main';
 
 type MarkerId = string;
 
@@ -58,6 +60,8 @@ export abstract class BaseGeoLayer {
 
     /** Get the bounds of the data */
     abstract getBounds(): leaflet.LatLng[];
+
+    public runDisplayRules(plugin: MapViewPlugin) {}
 }
 
 // TODO change class name to LayersMap
@@ -94,4 +98,14 @@ export function cacheTagsFromLayers(
     for (const marker of layers) {
         marker.tags.forEach((tag) => tagsSet.add(tag));
     }
+}
+
+/**
+ * Parse a list of inline tags (`tag:abc tag:bcd`) and add it to layer.tags in the form of ['#abc', '#bcd'].
+ */
+export function addTagsToLayer(layer: BaseGeoLayer, tagsString: string) {
+    const tagRegex = regex.INLINE_TAG_IN_NOTE;
+    const tags = tagsString.matchAll(tagRegex);
+    for (const tag of tags)
+        if (tag.groups.tag) layer.tags.push('#' + tag.groups.tag);
 }

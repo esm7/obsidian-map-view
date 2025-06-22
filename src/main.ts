@@ -1236,6 +1236,13 @@ export default class MapViewPlugin extends Plugin {
         }
     }
 
+    public refreshDisplayRules() {
+        this.displayRulesCache.build(this.settings.displayRules);
+        for (const layer of this.layerCache.layers) {
+            layer.runDisplayRules(this);
+        }
+    }
+
     public refreshAllMapViews() {
         for (const mapContainer of this.allMapContainers) {
             mapContainer.refreshMap();

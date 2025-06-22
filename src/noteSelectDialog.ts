@@ -1,15 +1,7 @@
 import { Editor, App, SuggestModal, TFile, type Instruction } from 'obsidian';
-import * as leaflet from 'leaflet';
 
 import MapViewPlugin from 'src/main';
 import { type PluginSettings } from 'src/settings';
-import {
-    getIconFromOptions,
-    createIconElement,
-    type IconOptions,
-} from 'src/markerIcons';
-import * as utils from 'src/utils';
-import * as consts from 'src/consts';
 
 export class SuggestInfo {
     file: TFile;
@@ -18,13 +10,6 @@ export class SuggestInfo {
 export class NoteSelectDialog extends SuggestModal<SuggestInfo> {
     private plugin: MapViewPlugin;
     private settings: PluginSettings;
-    private lastSearchTime = 0;
-    private lastSearch = '';
-    private lastSearchResults: SuggestInfo[] = [];
-    private includeResults: SuggestInfo[] = [];
-    private hasIcons: boolean = false;
-
-    private dialogAction: NoteSelectDialog;
 
     // If dialogAction is 'custom', this will launch upon selection
     public customOnSelect: (

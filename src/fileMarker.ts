@@ -13,8 +13,9 @@ import {
     type FrontmatterLinkCache,
     type ReferenceCache,
 } from 'obsidian';
+import * as path from 'path';
 
-import { BaseGeoLayer, verifyLocation } from 'src/baseGeoLayer';
+import { BaseGeoLayer, verifyLocation, addTagsToLayer } from 'src/baseGeoLayer';
 import { type IconOptions } from 'src/markerIcons';
 import {
     djb2Hash,
@@ -48,6 +49,10 @@ export class FileMarker extends BaseGeoLayer {
         this.layerType = 'fileMarker';
         this.location = location;
         this.generateId();
+    }
+
+    get name() {
+        return this.extraName ?? this.file.basename;
     }
 
     get isFrontmatterMarker(): boolean {
@@ -129,6 +134,14 @@ export class FileMarker extends BaseGeoLayer {
     getBounds(): leaflet.LatLng[] {
         return [this.location];
     }
+
+    runDisplayRules(plugin: MapViewPlugin) {
+        this.icon = getIconFromRules(
+            this,
+            plugin.displayRulesCache,
+            plugin.iconFactory,
+        );
+    }
 }
 
 export type FileWithMarkers = {
@@ -204,13 +217,7 @@ export async function getMarkersFromFileContent(
             const marker = new FileMarker(file, location);
             if (match.groups.name && match.groups.name.length > 0)
                 marker.extraName = match.groups.name;
-            if (match.groups.tags) {
-                // Parse the list of tags
-                const tagRegex = regex.INLINE_TAG_IN_NOTE;
-                const tags = match.groups.tags.matchAll(tagRegex);
-                for (const tag of tags)
-                    if (tag.groups.tag) marker.tags.push('#' + tag.groups.tag);
-            }
+            if (match.groups.tags) addTagsToLayer(marker, match.groups.tags);
             marker.tags = marker.tags.concat(fileTags);
             marker.fileLocation = match.index;
             marker.geolocationMatch = match;
@@ -511,15 +518,8 @@ export async function buildAndAppendFileMarkers(
         }
     }
 
-    // Apply display rules
     for (const layer of layers) {
-        if (layer instanceof FileMarker) {
-            layer.icon = getIconFromRules(
-                layer,
-                plugin.displayRulesCache,
-                plugin.iconFactory,
-            );
-        }
+        layer.runDisplayRules(plugin);
     }
 
     return layers;
@@ -545,7 +545,7 @@ export async function moveFileMarker(
         newLng = consts.LNG_LIMITS[1];
     }
     // We will now change the content of the note containing the marker. This will trigger Map View to rebuild
-    // the marker, causing the actual marker object to be replaced
+    // the marker, causing the actual marker object to be replaced.
     if (marker.isFrontmatterMarker) {
         await utils.verifyOrAddFrontMatter(
             app,
@@ -560,10 +560,44 @@ export async function moveFileMarker(
             marker.file,
             marker.fileLocation,
             marker.geolocationMatch,
-            newLat,
-            newLng,
+            marker.location,
+            null,
         );
     }
+}
+
+export async function renameMarker(
+    marker: FileMarker,
+    settings: PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+) {
+    const dialog = new SvelteModal(TextBoxDialog, app, plugin, settings, {
+        label: 'Select a name for the new marker:',
+        description: marker.isFrontmatterMarker
+            ? 'This will rename the file the marker is stored at.'
+            : undefined,
+        existingText: marker.name,
+        onOk: (text: string) => {
+            if (marker.isFrontmatterMarker) {
+                const newPath = path.join(
+                    marker.file.parent.name,
+                    text + '.' + marker.file.extension,
+                );
+                app.vault.rename(marker.file, newPath);
+            } else if (marker.geolocationMatch?.groups) {
+                utils.updateInlineGeolocation(
+                    app,
+                    marker.file,
+                    marker.fileLocation,
+                    marker.geolocationMatch,
+                    marker.location,
+                    text,
+                );
+            }
+        },
+    });
+    dialog.open();
 }
 
 export async function createMarkerInFile(

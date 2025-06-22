@@ -12,7 +12,7 @@ import { type MapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import { MapContainer } from 'src/mapContainer';
 import { type PluginSettings } from 'src/settings';
-import { FileMarker } from 'src/fileMarker';
+import { FileMarker, renameMarker } from 'src/fileMarker';
 import { getIconFromOptions } from 'src/markerIcons';
 import { SvelteModal } from 'src/svelte';
 import ImportDialog from './components/ImportDialog.svelte';
@@ -378,6 +378,24 @@ export function populateOpenNote(
                 utils.mouseEventToOpenMode(settings, evt, 'openNote'),
                 true,
             );
+        });
+    });
+}
+
+export function populateRename(
+    mapContainer: MapContainer,
+    fileMarker: FileMarker,
+    menu: Menu,
+    settings: PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+) {
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('Rename...');
+        item.setIcon('folder-pen');
+        item.setSection('open-note');
+        item.onClick(async (_evt: MouseEvent) => {
+            renameMarker(fileMarker, settings, app, plugin);
         });
     });
 }

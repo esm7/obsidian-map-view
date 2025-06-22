@@ -1,11 +1,14 @@
 <script lang="ts">
-    import { untrack } from 'svelte';
+    import { untrack, onMount } from 'svelte';
     import { Notice, App, getIcon, TFile, type HeadingCache } from 'obsidian';
     import { type PluginSettings } from '../settings';
     import { type ViewSettings, MapContainer } from '../mapContainer';
     import MapViewPlugin from '../main';
     import ViewCollapsibleSection from './ViewCollapsibleSection.svelte';
     import QueryTextField from './QueryTextField.svelte';
+    import { SvelteModal } from 'src/svelte';
+    import TextBoxDialog from './TextBoxDialog.svelte';
+    import { SimpleInputSuggest } from '../simpleInputSuggest';
     import {
         type MapState,
         areStatesEqual,
@@ -13,10 +16,10 @@
         copyState,
     } from 'src/mapState';
     import { NewPresetDialog } from 'src/newPresetDialog';
-    import { QuerySuggest } from 'src/query';
     import * as utils from 'src/utils';
     import { NoteSelectDialog } from 'src/noteSelectDialog';
     import { type EditModeTools } from 'src/viewControls';
+    import ChipsList from './ChipsList.svelte';
 
     let {
         plugin,
@@ -47,6 +50,9 @@
     let noteToEdit: TFile = $state(null);
     let noteHeading: string | null = $state(null);
     let allNoteHeadings: string[] = $state([]);
+    let editTags: string[] = $state([]);
+    let allTags: string[] = $state(utils.getAllTagNames(app, plugin));
+    let addTagInputElement: HTMLInputElement = $state();
 
     $effect(() => {
         const considerAutoFit = statesDifferOnlyInQuery(
@@ -128,6 +134,21 @@
     // Initialize lastSavedState to the initial map state (this is not a reactive assignment, i.e. it does not update every time mapState changes).
     // svelte-ignore state_referenced_locally
     lastSavedState = mapState;
+
+    onMount(() => {
+        const suggestor = new SimpleInputSuggest(
+            app,
+            addTagInputElement,
+            allTags,
+            (selection: string) => {
+                if (editTags.findIndex((tag) => tag === selection) === -1)
+                    editTags.push(selection);
+                suggestor.close();
+                addTagInputElement.value = '';
+                addTagInputElement.blur();
+            },
+        );
+    });
 
     // Finds in the presets array a preset that matches the current map state and returns its index, or -1 if none was found
     function findPresetIndexForCurrentState() {
@@ -502,6 +523,19 @@
                             <option value={heading}>{heading}</option>
                         {/each}
                     </select>
+                    <div class="mv-edit-tags">
+                        {@html getIcon('tag').outerHTML}
+                        <div class="mv-tag-chips">
+                            <ChipsList bind:chips={editTags}></ChipsList>
+                        </div>
+                        <input
+                            type="text"
+                            bind:this={addTagInputElement}
+                            class="text-input-inline"
+                            placeholder="#tag"
+                            style="width: 4em;"
+                        />
+                    </div>
                 </ViewCollapsibleSection>
             {/if}
         </div>

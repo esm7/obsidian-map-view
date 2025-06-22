@@ -969,7 +969,7 @@ export class MapContainer {
         });
 
         if (this.state.markerLabels && this.state.markerLabels != 'off')
-            newMarker.bindTooltip(marker.extraName ?? marker.file.basename, {
+            newMarker.bindTooltip(marker.name, {
                 permanent: true,
                 direction: this.state.markerLabels,
                 className: 'mv-marker-label',
@@ -1045,41 +1045,6 @@ export class MapContainer {
                     }
                 });
         });
-        newMarker.on('moveend', async (_event: leaflet.LeafletEvent) => {
-            marker.location = newMarker.getLatLng().clone();
-            let newLat = marker.location.lat;
-            // If the user drags the marker too far, the longitude will exceed the threshold, an
-            // exception will be thrown, and the marker will disappear.
-            // If the threshold is exceeded, set the longitude back to the max (back in bounds).
-            // leaflet seems to protect against drags beyond the latitude threshold.
-            let newLng = marker.location.lng;
-            if (newLng < consts.LNG_LIMITS[0]) {
-                newLng = consts.LNG_LIMITS[0];
-            }
-            if (newLng > consts.LNG_LIMITS[1]) {
-                newLng = consts.LNG_LIMITS[1];
-            }
-            // We will now change the content of the note containing the marker. This will trigger Map View to rebuild
-            // the marker, causing the actual marker object to be replaced
-            if (marker.isFrontmatterMarker) {
-                await utils.verifyOrAddFrontMatter(
-                    this.app,
-                    marker.file,
-                    this.settings.frontMatterKey,
-                    `${newLat},${newLng}`,
-                    false,
-                );
-            } else if (marker.geolocationMatch?.groups) {
-                await utils.updateInlineGeolocation(
-                    this.app,
-                    marker.file,
-                    marker.fileLocation,
-                    marker.geolocationMatch,
-                    newLat,
-                    newLng,
-                );
-            }
-        });
         newMarker.on(
             'pm:edit',
             (e: {
@@ -1109,13 +1074,22 @@ export class MapContainer {
         let mapPopup = new Menu();
         if (marker instanceof FileMarker) {
             menus.populateOpenNote(this, marker, mapPopup, this.settings);
+            if (this.state.editMode)
+                menus.populateRename(
+                    this,
+                    marker,
+                    mapPopup,
+                    this.settings,
+                    this.app,
+                    this.plugin,
+                );
             menus.populateRouting(
                 this,
                 marker.location,
                 mapPopup,
                 this.settings,
             );
-            const name = marker.extraName ?? marker.file.basename;
+            const name = marker.name;
             menus.populateOpenInItems(
                 mapPopup,
                 marker.location,

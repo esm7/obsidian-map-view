@@ -2,6 +2,18 @@
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/esm7)
 
+TODO:
+GeoJSON:
+
+- Inline
+- File
+- GPX and other files support
+- Inline tags
+- How to change display rules - via name, linkedfrom
+
+Rewrite display rules section
+Add overlays (and warn about performance if adding too many)
+
 ## Intro
 
 This plugin introduces an **interactive map view** for [Obsidian.md](https://obsidian.md/).
@@ -690,7 +702,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Inline location bug on iOS (https://github.com/esm7/obsidian-map-view/issues/301)
 - Places API (New)
 - TODO: Fix places API templates
-- Major performance optimizations to filtering
+- Major performance optimizations, especially to filtering, preview popups, embedded maps, Map View starts instantly, price is that it loads on startup and keeps the memory (but if you use lots of embedded maps, it's well worth it)
 - Filtering now reapplies properly when modifying notes
 - Paths
 - Badges

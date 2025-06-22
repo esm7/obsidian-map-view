@@ -24,8 +24,8 @@
 
     async function save() {
         plugin.settings.displayRules = rulesCopy;
-        plugin.displayRulesCache.build(plugin.settings.displayRules);
         await plugin.saveSettings();
+        plugin.refreshDisplayRules();
         plugin.refreshAllMapViews();
         close();
     }

@@ -270,23 +270,22 @@ export async function verifyOrAddFrontMatterForInline(
  * Update the inline geolocation
  * @param app The Obsidian Editor instance
  * @param file The TFile containing the location to update
- * @param newLocation The new location to set
  * @param geolocationMatch Regex match info related to the inline geolocation
- * @param newLat The new latitude to set
- * @param newLng The new longitude to set
+ * @param newLocation - a new location to use
+ * @param newName - a new name to use or null if unchanged
  */
 export async function updateInlineGeolocation(
     app: App,
     file: TFile,
     fileLocation: number,
     geolocationMatch: RegExpMatchArray,
-    newLat: number,
-    newLng: number,
+    newLocation: leaflet.LatLng,
+    newName: string | null,
 ): Promise<void> {
     const content = await app.vault.read(file);
     let groups = geolocationMatch?.groups;
     if (groups) {
-        const newGeoLocationText = `[${groups.name}](geo:${newLat},${newLng})`;
+        const newGeoLocationText = `[${newName ?? groups.name}](geo:${newLocation.lat},${newLocation.lng})`;
         // We want to replace just the part containing the coordinates, not optional tags that follow and are
         // included in geolocationMatch. So we do a re-match without any tags, to know the length of the part
         // we want to replace.

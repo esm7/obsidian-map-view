@@ -18,7 +18,7 @@ import { type GeoJSON } from 'geojson';
 import * as toGeoJson from '@tmcw/togeojson';
 import { DOMParser } from '@xmldom/xmldom';
 
-import { BaseGeoLayer, verifyLocation } from 'src/baseGeoLayer';
+import { BaseGeoLayer, addTagsToLayer } from 'src/baseGeoLayer';
 import { type IconOptions } from 'src/markerIcons';
 import {
     djb2Hash,
@@ -78,6 +78,11 @@ export class GeoJsonLayer extends BaseGeoLayer {
             this.fileLocation === other.fileLocation &&
             this.fileLine === other.fileLine
         );
+    }
+
+    runDisplayRules(plugin: MapViewPlugin) {
+        const [_, pathOptions] = plugin.displayRulesCache.runOn(this);
+        this.pathOptions = pathOptions;
     }
 }
 
@@ -143,6 +148,8 @@ export async function buildGeoJsonLayers(
                                         .split('\n').length - 1;
                                 // TODO add file block and heading
                                 layer.generateId();
+                                if (match.groups.tags)
+                                    addTagsToLayer(layer, match.groups.tags);
                                 layers.push(layer);
                             }
                         }
@@ -182,8 +189,7 @@ export async function buildGeoJsonLayers(
     if (settings.debug) console.timeLog('buildGeoJsonLayers');
     // Calculate display rules
     for (const layer of layers) {
-        const [_, pathOptions] = plugin.displayRulesCache.runOn(layer);
-        (layer as GeoJsonLayer).pathOptions = pathOptions;
+        layer.runDisplayRules(plugin);
     }
     if (settings.debug) console.timeEnd('buildGeoJsonLayers');
     return layers;
