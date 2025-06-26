@@ -51,10 +51,6 @@ export class FileMarker extends BaseGeoLayer {
         this.generateId();
     }
 
-    get name() {
-        return this.extraName ?? this.file.basename;
-    }
-
     get isFrontmatterMarker(): boolean {
         return !this.fileLine;
     }
@@ -604,6 +600,7 @@ export async function createMarkerInFile(
     marker: leaflet.Marker,
     file: TFile,
     heading: string | null,
+    tags: string[],
     app: App,
     settings: PluginSettings,
     plugin: MapViewPlugin,
@@ -617,6 +614,7 @@ export async function createMarkerInFile(
                 heading,
                 text,
                 marker.getLatLng(),
+                tags,
                 app,
                 settings,
             );

@@ -13,7 +13,11 @@ import * as leaflet from 'leaflet';
 import { mount, unmount } from 'svelte';
 import ViewControlsPanel from './components/ViewControlsPanel.svelte';
 
-export type EditModeTools = { noteToEdit: TFile; noteHeading: string | null };
+export type EditModeTools = {
+    noteToEdit: TFile;
+    noteHeading: string | null;
+    tags: string[];
+};
 
 export class ViewControls {
     private parentElement: HTMLElement;
@@ -28,6 +32,7 @@ export class ViewControls {
     public editModeTools: EditModeTools = {
         noteToEdit: null,
         noteHeading: null,
+        tags: [],
     };
 
     constructor(

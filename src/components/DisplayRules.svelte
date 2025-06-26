@@ -6,7 +6,9 @@
     import { Query } from '../query';
     import { DisplayRulesCache } from '../displayRulesCache';
     import { getIconFromOptions } from '../markerIcons';
+    import { SimpleInputSuggest } from '../simpleInputSuggest';
     import { tick } from 'svelte';
+    import { BaseGeoLayer } from '../baseGeoLayer';
 
     let { close, app, plugin, settings } = $props<{
         close: () => void;
@@ -20,7 +22,24 @@
     );
     let allOk: boolean = $derived(sanityCheck(rulesCopy));
     let previewLayerName: string = $state('');
+    let previewInputControl: HTMLInputElement = $state();
     let rulesGroup: HTMLElement = $state();
+
+    $effect(() => {
+        if (previewInputControl) {
+            const suggestor = new SimpleInputSuggest(
+                app,
+                previewInputControl,
+                Array.from(plugin.layerCache.layers).map(
+                    (layer: BaseGeoLayer) => layer.name,
+                ),
+                (selection: string) => {
+                    previewLayerName = selection;
+                    suggestor.close();
+                },
+            );
+        }
+    });
 
     async function save() {
         plugin.settings.displayRules = rulesCopy;
@@ -150,15 +169,10 @@
             <input
                 class="input"
                 type="text"
-                list="layerSuggestions"
                 bind:value={previewLayerName}
+                bind:this={previewInputControl}
                 contenteditable="true"
             />
-            <datalist id="layerSuggestions">
-                {#each plugin.layerCache.layers as layer}
-                    <option>{layer.extraName ?? layer.file.basename}</option>
-                {/each}
-            </datalist>
             <div class="icon-preview">
                 {@html layerPreview(previewLayerName)?.outerHTML}
             </div>

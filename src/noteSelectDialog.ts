@@ -66,7 +66,7 @@ export class NoteSelectDialog extends SuggestModal<SuggestInfo> {
                 results.push({ file });
             }
         }
-
+        results.sort((a, b) => b.file.stat.mtime - a.file.stat.mtime);
         return results;
     }
 

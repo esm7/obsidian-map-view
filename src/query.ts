@@ -232,7 +232,6 @@ type Suggestion = {
 
 export class QuerySuggest extends PopoverSuggest<Suggestion> {
     suggestionsDiv: HTMLDivElement;
-    app: App;
     plugin: MapViewPlugin;
     sourceElement: HTMLInputElement;
     selection: Suggestion = null;
@@ -247,7 +246,6 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
         scope?: Scope,
     ) {
         super(app, scope);
-        this.app = app;
         this.plugin = plugin;
         this.sourceElement = sourceElement;
     }
@@ -361,13 +359,12 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
                 return tagName.startsWith('#') ? tagName.substring(1) : tagName;
             };
             // Find all tags that include the query, with the pound sign removed, case insensitive
-            const allTagNames = utils
-                .getAllTagNames(this.app, this.plugin)
-                .filter((value) =>
+            const allTagNames = Array.from(this.plugin.allTags).filter(
+                (value) =>
                     value
                         .toLowerCase()
                         .includes(noPound(tagQuery).toLowerCase()),
-                );
+            );
             let toReturn: Suggestion[] = [{ text: 'TAGS', group: true }];
             for (const tagName of allTagNames) {
                 toReturn.push({

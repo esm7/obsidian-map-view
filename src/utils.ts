@@ -537,10 +537,12 @@ export async function appendGeolocationToNote(
     heading: string | null,
     label: string,
     location: leaflet.LatLng,
+    tags: string[],
     app: App,
     settings: settings.PluginSettings,
 ) {
-    const locationString = `\n[${label}](geo:${location.lat},${location.lng})\n`;
+    const tagsString = tags.length > 0 ? ' ' + makeInlineTagsList(tags) : '';
+    const locationString = `\n[${label}](geo:${location.lat},${location.lng})${tagsString}\n`;
     await appendToNoteAtHeadingOrEnd(file, heading, locationString, app);
     await verifyOrAddFrontMatterForInline(app, null, file, settings);
 }
@@ -581,4 +583,17 @@ export async function appendToNoteAtHeadingOrEnd(
         // Append at the end of file
         await app.vault.append(file, text);
     }
+}
+
+/*
+ * Given a list of tags ['#abc', '#def'], returns a string `tag:abc tag:def` (without the '#' sign)
+ */
+export function makeInlineTagsList(tags: string[]) {
+    // Remove the '#' symbols
+    const rawTags = tags.map((tag) => tag.replace('#', ''));
+    return rawTags
+        .map((tag) => {
+            return `tag:${tag}`;
+        })
+        .join(' ');
 }

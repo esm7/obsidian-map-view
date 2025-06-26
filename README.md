@@ -710,6 +710,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Fixed file-menu event not registered to plugin (https://github.com/esm7/obsidian-map-view/issues/327)
 - Fix to the `autoFit` state flag of embedded maps to work more consistently.
 - Map View now sets the type of the 'location' property to List, to prevent issues of Obsidian corrupting it.
+- Query tag suggestions now only show tags present on the map
 
 ### 5.5.0
 

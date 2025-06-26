@@ -6,28 +6,25 @@
     }>();
 
     function remove(chipName: string) {
-        const index = chips.indexOf(chipName);
-        chips.splice(index, 1);
+        chips = (chips as string[]).filter((chip) => chip !== chipName);
     }
 </script>
 
-<!-- Class used for Obsidian chips container -->
-<div class="setting-command-hotkeys">
-    {#each chips as chipName}
-        <span class="setting-hotkey mv-edit-tag-name">
-            {chipName}
-            <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-            <span
-                class="setting-hotkey-icon"
-                onclick={() => {
-                    remove(chipName);
-                }}
-            >
-                {@html getIcon('x').outerHTML}
-            </span>
+<!-- To make the chips behave in one group, wrap this element in a setting-command-hotkeys div -->
+{#each chips as chipName}
+    <span class="setting-hotkey mv-edit-tag-name">
+        {chipName}
+        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+        <span
+            class="setting-hotkey-icon"
+            onclick={() => {
+                remove(chipName);
+            }}
+        >
+            {@html getIcon('x').outerHTML}
         </span>
-    {/each}
-</div>
+    </span>
+{/each}
 
 <style>
     .mv-edit-tag-name {

@@ -48,7 +48,11 @@ import {
     createMarkerInFile,
 } from 'src/fileMarker';
 import { FloatingMarker } from 'src/floatingMarker';
-import { GeoJsonLayer, createGeoJsonInFile } from 'src/geojsonLayer';
+import {
+    GeoJsonLayer,
+    createGeoJsonInFile,
+    editGeoJson,
+} from 'src/geojsonLayer';
 import { BaseGeoLayer } from 'src/baseGeoLayer';
 import { LayerCache } from 'src/layerCache';
 import { getIconFromOptions, type IconOptions } from 'src/markerIcons';
@@ -622,6 +626,7 @@ export class MapContainer {
             }) => {
                 const file = this.display.controls.editModeTools.noteToEdit;
                 const heading = this.display.controls.editModeTools.noteHeading;
+                const tags = this.display.controls.editModeTools.tags;
                 if (
                     e.shape === 'Line' ||
                     e.shape === 'Rectangle' ||
@@ -631,6 +636,7 @@ export class MapContainer {
                         (e.layer as leaflet.Polyline).toGeoJSON(),
                         file,
                         heading,
+                        tags,
                         this.app,
                         this.settings,
                     );
@@ -642,6 +648,7 @@ export class MapContainer {
                         e.layer,
                         file,
                         heading,
+                        tags,
                         this.app,
                         this.settings,
                         this.plugin,
@@ -710,22 +717,6 @@ export class MapContainer {
                 this.setHighlight(this.display.highlight);
                 this.updateRealTimeLocationMarkers();
             });
-
-            // // TODO an attempt to make PM (Leaflet-Geoman) work
-            // Maybe not needed!
-            // const pmDragEnd = (e: any) => {
-            // 	if (this.display.map.pm.globalDragModeEnabled()) {
-            // 		this.display.map.pm.disableGlobalDragMode();
-            // 		this.display.map.pm.enableGlobalDragMode();
-            // 	} else if (this.display.map.pm.globalEditModeEnabled()) {
-            // 		this.display.map.pm.toggleGlobalEditMode();
-            // 		this.display.map.pm.toggleGlobalEditMode();
-            // 	}
-            // 	console.log('TODO TEMP dragend');
-            // };
-            // this.display.clusterGroup.on('layeradd',(e)=>{
-            // 	e.layer.on('pm:dragend', pmDragEnd);
-            // });
         }
 
         this.display.map.on('click', (_event: leaflet.LeafletMouseEvent) => {
@@ -1051,7 +1042,6 @@ export class MapContainer {
                 shape: leaflet.PM.SUPPORTED_SHAPES;
                 layer: leaflet.Layer;
             }) => {
-                console.log('PM Edit:', e.shape, e.layer);
                 if (e.layer instanceof leaflet.Marker) {
                     moveFileMarker(
                         marker,
@@ -1059,6 +1049,9 @@ export class MapContainer {
                         this.settings,
                         this.app,
                     );
+                } else {
+                    new Notice('Cannot edit this path.');
+                    console.error('Cannot edit unknown object:', e);
                 }
             },
         );
@@ -1707,7 +1700,6 @@ export class MapContainer {
 
     private newLeafletGeoJson(marker: GeoJsonLayer): leaflet.GeoJSON {
         // TODO: use the marker popup component here, and less code repetition.
-        // Maybe show the relevant embeds if it's a file?
         const geoJsonLayer = leaflet.geoJSON(marker.geojson, {
             style: marker.pathOptions,
             onEachFeature: (feature: any, layer: leaflet.Layer) => {
@@ -1787,6 +1779,27 @@ export class MapContainer {
                 return leafletMarker;
             },
         });
+
+        geoJsonLayer.on(
+            'pm:edit',
+            async (e: {
+                shape: leaflet.PM.SUPPORTED_SHAPES;
+                layer: leaflet.Layer;
+            }) => {
+                if (e.layer instanceof leaflet.Polyline) {
+                    await editGeoJson(
+                        marker,
+                        (e.layer as leaflet.Polyline).toGeoJSON(),
+                        this.settings,
+                        this.app,
+                    );
+                } else {
+                    new Notice('Cannot edit this path.');
+                    console.error('Cannot edit unknown object:', e);
+                }
+            },
+        );
+
         return geoJsonLayer;
     }
 

@@ -74,6 +74,7 @@
 
     $effect(() => {
         editModeTools.noteHeading = noteHeading;
+        editModeTools.tags = editTags;
     });
 
     export function updateControlsToState() {
@@ -135,19 +136,22 @@
     // svelte-ignore state_referenced_locally
     lastSavedState = mapState;
 
-    onMount(() => {
-        const suggestor = new SimpleInputSuggest(
-            app,
-            addTagInputElement,
-            allTags,
-            (selection: string) => {
-                if (editTags.findIndex((tag) => tag === selection) === -1)
-                    editTags.push(selection);
-                suggestor.close();
-                addTagInputElement.value = '';
-                addTagInputElement.blur();
-            },
-        );
+    $effect(() => {
+        if (addTagInputElement) {
+            const suggestor = new SimpleInputSuggest(
+                app,
+                addTagInputElement,
+                allTags,
+                (selection: string) => {
+                    if (editTags.findIndex((tag) => tag === selection) === -1)
+                        // Pushing while reassigning the array helps reactivity here
+                        editTags = [...editTags, selection];
+                    suggestor.close();
+                    addTagInputElement.value = '';
+                    addTagInputElement.blur();
+                },
+            );
+        }
     });
 
     // Finds in the presets array a preset that matches the current map state and returns its index, or -1 if none was found
@@ -476,65 +480,81 @@
                     afterToggle={(expanded) =>
                         setMapControl('editDisplayed', expanded)}
                 >
-                    <div class="graph-control-edit">
-                        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-                        <div
-                            class="checkbox-container"
-                            class:is-enabled={mapState.editMode}
-                            onclick={() => {
-                                mapState.editMode = !mapState.editMode;
-                            }}
+                    <div class="graph-control-edit-section">
+                        <div class="graph-control-edit-button">
+                            <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+                            <div
+                                class="checkbox-container"
+                                class:is-enabled={mapState.editMode}
+                                onclick={() => {
+                                    mapState.editMode = !mapState.editMode;
+                                }}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={mapState.editMode}
+                                    id="edit-active"
+                                />
+                            </div>
+                            <label class="edit-label" for="edit-active"
+                                >Edit Mode</label
+                            >
+                        </div>
+
+                        <div class="note-chooser">
+                            <button
+                                class="button"
+                                class:mod-warning={mapState.editMode &&
+                                    noteToEdit === null}
+                                title={noteToEdit
+                                    ? noteToEdit.basename
+                                    : 'Choose the note to use for adding markers and paths'}
+                                onclick={() => {
+                                    openChooseNote();
+                                }}
+                            >
+                                {noteToEdit
+                                    ? "Adding to '" +
+                                      (noteToEdit.basename.length > 10
+                                          ? noteToEdit.basename.substring(
+                                                0,
+                                                10,
+                                            ) + '...'
+                                          : noteToEdit.basename) +
+                                      "'"
+                                    : 'Choose Note...'}
+                            </button>
+                            {#if noteToEdit !== null}
+                                <span
+                                    title={noteToEdit.basename}
+                                    style="display: flex;"
+                                >
+                                    {@html getIcon('check').outerHTML}
+                                </span>
+                            {/if}
+                        </div>
+
+                        <select
+                            class="dropdown mv-map-control edit-section-dropdown"
+                            bind:value={noteHeading}
+                            title="Choose where in the selected note you wish markers and paths to be added."
+                            disabled={noteToEdit === null}
                         >
+                            <option value={null}>Append to end</option>
+                            {#each allNoteHeadings as heading}
+                                <option value={heading}>{heading}</option>
+                            {/each}
+                        </select>
+                        <div class="mv-edit-tags">
+                            {@html getIcon('tag').outerHTML}
+                            <ChipsList bind:chips={editTags}></ChipsList>
                             <input
-                                type="checkbox"
-                                checked={mapState.editMode}
-                                id="edit-active"
+                                type="text"
+                                bind:this={addTagInputElement}
+                                class="text-input-inline mv-tag-input"
+                                placeholder="#tag"
                             />
                         </div>
-                        <label class="edit-label" for="edit-active"
-                            >Edit Mode</label
-                        >
-                    </div>
-
-                    <button
-                        class="button"
-                        class:mod-warning={mapState.editMode &&
-                            noteToEdit === null}
-                        title="Choose the note to use for adding markers and paths"
-                        onclick={() => {
-                            openChooseNote();
-                        }}
-                    >
-                        Choose Note...
-                    </button>
-                    {#if noteToEdit !== null}
-                        <span title={noteToEdit.basename}>
-                            {@html getIcon('check').outerHTML}
-                        </span>
-                    {/if}
-                    <select
-                        class="dropdown mv-map-control"
-                        bind:value={noteHeading}
-                        title="Choose where in the selected note you wish markers and paths to be added."
-                        disabled={noteToEdit === null}
-                    >
-                        <option value={null}>Append to end</option>
-                        {#each allNoteHeadings as heading}
-                            <option value={heading}>{heading}</option>
-                        {/each}
-                    </select>
-                    <div class="mv-edit-tags">
-                        {@html getIcon('tag').outerHTML}
-                        <div class="mv-tag-chips">
-                            <ChipsList bind:chips={editTags}></ChipsList>
-                        </div>
-                        <input
-                            type="text"
-                            bind:this={addTagInputElement}
-                            class="text-input-inline"
-                            placeholder="#tag"
-                            style="width: 4em;"
-                        />
                     </div>
                 </ViewCollapsibleSection>
             {/if}
@@ -585,6 +605,16 @@
         padding-right: 25px;
     }
 
+    .edit-section-dropdown {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .graph-control-div {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
     .minimize-button:hover {
         color: var(--text-normal);
     }
@@ -599,5 +629,52 @@
     .follow-label {
         margin-left: 2px;
         line-height: 1;
+    }
+
+    .mv-edit-tags {
+        padding: 2px;
+        padding-top: 4px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .mv-tag-input {
+        width: 4em;
+        min-width: 4em;
+        font-size: var(--font-ui-small);
+        height: auto;
+        padding: 2px 4px 2px 8px;
+    }
+
+    .graph-control-edit-section {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .graph-control-edit-button {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 0;
+        width: 100%;
+    }
+    .note-chooser {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        width: 100%;
+    }
+    .note-chooser button {
+        flex: 1;
+        min-width: 0;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
     }
 </style>

@@ -711,6 +711,27 @@ export default class MapViewPlugin extends Plugin {
                 this.updateMarkersWithRelationToFile(file.path, file, false),
             ),
         );
+        this.registerEvent(
+            this.app.vault.on('rename', (file, oldPath) => {
+                this.updateMarkersWithRelationToFile(oldPath, file, false);
+            }),
+        );
+        this.registerEvent(
+            // This event handler is meant only for files that are not notes, but we still care about their 'modify' events.
+            // For notes we use the metadataCache.on('changed') above.
+            // However the above does not work on stand-alone files that Map View reads, e.g. geojson, gpx etc.
+            this.app.vault.on('modify', (file: TAbstractFile) => {
+                if (file instanceof TFile) {
+                    if (file.extension === 'md') return;
+                    if (GEOJSON_FILE_FILTER.includes(file.extension))
+                        this.updateMarkersWithRelationToFile(
+                            file.path,
+                            file,
+                            false,
+                        );
+                }
+            }),
+        );
 
         purgeTilesBySettings(this.settings);
     }
@@ -1187,7 +1208,11 @@ export default class MapViewPlugin extends Plugin {
                 newLayers.push(...geoJsonLayers);
             }
             cacheTagsFromLayers(newLayers, this.allTags);
-        }
+        } else
+            console.error(
+                'File instance error, file is still abstract:',
+                fileAddedOrChanged,
+            );
         for (const layer of newLayers) {
             if (this.layerCache.get(layer.id))
                 console.error(`Layer ID ${layer.id} already in map!`);

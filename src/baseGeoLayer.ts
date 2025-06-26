@@ -51,6 +51,10 @@ export abstract class BaseGeoLayer {
     /** Generate a unique identifier for this layer */
     abstract generateId(): void;
 
+    get name() {
+        return this.extraName ?? this.file.basename;
+    }
+
     /**
      * Is this geographic layer identical to the other object.
      * Used to compare to existing data to minimise creation.

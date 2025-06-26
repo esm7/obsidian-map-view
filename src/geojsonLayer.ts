@@ -2,18 +2,7 @@ import * as leaflet from 'leaflet';
 import { type PathOptions } from 'leaflet';
 import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
-import {
-    App,
-    TFile,
-    getAllTags,
-    type HeadingCache,
-    type BlockCache,
-    type LinkCache,
-    parseLinktext,
-    resolveSubpath,
-    type FrontmatterLinkCache,
-} from 'obsidian';
-import wildcard from 'wildcard';
+import { App, TFile, Notice } from 'obsidian';
 import { type GeoJSON } from 'geojson';
 import * as toGeoJson from '@tmcw/togeojson';
 import { DOMParser } from '@xmldom/xmldom';
@@ -25,6 +14,7 @@ import {
     hasFrontMatterLocations,
     verifyOrAddFrontMatterForInline,
     appendToNoteAtHeadingOrEnd,
+    makeInlineTagsList,
 } from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
@@ -41,6 +31,7 @@ export class GeoJsonLayer extends BaseGeoLayer {
     public location: leaflet.LatLng;
     public geojson: GeoJSON;
     public pathOptions: PathOptions = {};
+    public sourceType: 'geojson' | 'gpx';
 
     /**
      * Construct a new GeoJsonLayer object
@@ -122,6 +113,7 @@ export async function buildGeoJsonLayers(
                 const content = await app.vault.read(file);
                 const layer = new GeoJsonLayer(file);
                 layer.geojson = JSON.parse(content);
+                layer.sourceType = 'geojson';
                 layers.push(layer);
             } catch (e) {
                 console.log(`Error parsing geojson in ${file.name}`, e);
@@ -150,6 +142,7 @@ export async function buildGeoJsonLayers(
                                 layer.generateId();
                                 if (match.groups.tags)
                                     addTagsToLayer(layer, match.groups.tags);
+                                layer.sourceType = 'geojson';
                                 layers.push(layer);
                             }
                         }
@@ -180,6 +173,7 @@ export async function buildGeoJsonLayers(
                 const layer = new GeoJsonLayer(file);
                 layer.geojson = geoJson;
                 layer.generateId();
+                layer.sourceType = 'gpx';
                 layers.push(layer);
             } catch (e) {
                 console.log(`Error reading path from ${file.name}:`, e);
@@ -195,17 +189,68 @@ export async function buildGeoJsonLayers(
     return layers;
 }
 
+function geoJsonString(geojson: GeoJSON, tags: string[]) {
+    let geoJsonString = `\`\`\`geojson
+${JSON.stringify(geojson)}
+\`\`\`\n`;
+    if (tags.length > 0) {
+        geoJsonString += makeInlineTagsList(tags) + '\n';
+    }
+    return geoJsonString;
+}
+
 export async function createGeoJsonInFile(
-    layer: GeoJSON,
+    geojson: GeoJSON,
     file: TFile,
-    heading: HeadingCache | null,
+    heading: string | null,
+    tags: string[],
     app: App,
     settings: PluginSettings,
 ) {
-    const geoJsonString = `
-\`\`\`geojson
-${JSON.stringify(layer)}
-\`\`\`\n`;
-    await appendToNoteAtHeadingOrEnd(file, heading, geoJsonString, app);
+    await appendToNoteAtHeadingOrEnd(
+        file,
+        heading,
+        '\n' + geoJsonString(geojson, tags),
+        app,
+    );
     await verifyOrAddFrontMatterForInline(app, null, file, settings);
+}
+
+export async function editGeoJson(
+    layer: GeoJsonLayer,
+    geojson: GeoJSON,
+    settings: PluginSettings,
+    app: App,
+) {
+    if (layer.sourceType !== 'geojson') {
+        new Notice(
+            'The edit tool currently supports only GeoJSON objects. Your changes will not be saved.',
+        );
+        return;
+    }
+    if (layer.fileLocation) {
+        // Step 1: delete the GeoJson from the file
+        const fileContent = await app.vault.read(layer.file);
+        const contentBeforeGeoJson = fileContent.substring(
+            0,
+            layer.fileLocation,
+        );
+        const contentAfterGeoJson = fileContent.substring(layer.fileLocation);
+        // Find the GeoJSON to remove
+        const match = contentAfterGeoJson.match(regex.INLINE_GEOJSON);
+        if (!match) {
+            console.log(
+                `No GeoJSON block found at the specified location in ${layer.file.name}`,
+            );
+            return;
+        }
+        const matchEnd = match[0].length;
+        const newContent =
+            contentBeforeGeoJson +
+            geoJsonString(geojson, layer.tags) +
+            contentAfterGeoJson.substring(matchEnd);
+        await app.vault.modify(layer.file, newContent);
+    } else {
+        await app.vault.modify(layer.file, JSON.stringify(geojson));
+    }
 }
