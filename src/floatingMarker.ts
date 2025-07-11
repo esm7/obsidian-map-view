@@ -1,34 +1,9 @@
 import * as leaflet from 'leaflet';
-import { type PathOptions } from 'leaflet';
 import 'leaflet-extra-markers';
 import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
-import {
-    App,
-    TFile,
-    getAllTags,
-    type HeadingCache,
-    type BlockCache,
-    type LinkCache,
-    parseLinktext,
-    resolveSubpath,
-    type FrontmatterLinkCache,
-} from 'obsidian';
-import wildcard from 'wildcard';
-import { type GeoJSON } from 'geojson';
-import * as toGeoJson from '@tmcw/togeojson';
-import { DOMParser } from '@xmldom/xmldom';
+import { TFile } from 'obsidian';
 
 import { BaseGeoLayer } from 'src/baseGeoLayer';
-import { type IconOptions } from 'src/markerIcons';
-import {
-    djb2Hash,
-    getHeadingAndBlockForFilePosition,
-    hasFrontMatterLocations,
-    verifyOrAddFrontMatterForInline,
-} from 'src/utils';
-import { type PluginSettings } from 'src/settings';
-import * as regex from 'src/regex';
-import MapViewPlugin from 'src/main';
 
 /*
  * An object that represents a marker that is not stored in a note in the regular Map View manner,
@@ -36,7 +11,7 @@ import MapViewPlugin from 'src/main';
  */
 export class FloatingMarker extends BaseGeoLayer {
     // A floating marker corresponds to a specific leaflet.Layer object, and therefore does not
-    // use this map
+    // use this map.
     public geoLayers: Map<number, leaflet.Layer> = null;
     public geoLayer: leaflet.Layer;
     public location: leaflet.LatLng;

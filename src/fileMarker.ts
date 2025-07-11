@@ -597,7 +597,7 @@ export async function renameMarker(
 }
 
 export async function createMarkerInFile(
-    marker: leaflet.Marker,
+    location: leaflet.LatLng,
     file: TFile,
     heading: string | null,
     tags: string[],
@@ -613,7 +613,7 @@ export async function createMarkerInFile(
                 file,
                 heading,
                 text,
-                marker.getLatLng(),
+                location,
                 tags,
                 app,
                 settings,

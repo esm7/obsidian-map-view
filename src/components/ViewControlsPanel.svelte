@@ -27,6 +27,8 @@
         settings,
         viewSettings,
         view,
+        // For whatever sad reason, the fields of editModeTools duplicate the states of noteToEdit, noteHeading etc, and these
+        // are synced manually
         editModeTools = $bindable(),
     } = $props<{
         plugin: MapViewPlugin;
@@ -45,12 +47,16 @@
     ]);
     let selectedPreset = $state('-1');
     let lastSavedState: MapState = $state();
-    let minimized = $state(settings.mapControls.minimized);
+    let minimized = $state(settings.mapControlsMinimized);
     let previousState: MapState = null;
+
+    // For whatever sad reason, the fields of editModeTools duplicate the states of noteToEdit, noteHeading etc, and these
+    // are synced manually
     let noteToEdit: TFile = $state(null);
     let noteHeading: string | null = $state(null);
-    let allNoteHeadings: string[] = $state([]);
     let editTags: string[] = $state([]);
+
+    let allNoteHeadings: string[] = $state([]);
     let allTags: string[] = $state(utils.getAllTagNames(app, plugin));
     let addTagInputElement: HTMLInputElement = $state();
 
@@ -77,14 +83,29 @@
         editModeTools.tags = editTags;
     });
 
+    $effect(() => {
+        if (noteToEdit) {
+            const headings = app.metadataCache.getFileCache(noteToEdit)
+                ?.headings as HeadingCache[];
+            // TODO bug here, heading positions change as note changes
+            allNoteHeadings = headings
+                ? headings.map((heading) => heading.heading)
+                : [];
+        }
+    });
+
     export function updateControlsToState() {
         mapState = view.getState();
     }
 
-    export function openEditSection() {
-        setMapControl('editDisplayed', true);
-        setMapControl('minimized', false);
+    export function openEditSection(file?: TFile) {
+        settings.mapControlsMinimized = false;
         minimized = false;
+        setMapControl('editDisplayed', true);
+        if (file) {
+            noteToEdit = file;
+            editModeTools.noteToEdit = noteToEdit;
+        }
         // Trigger reactivity
         settings = { ...settings };
     }
@@ -99,13 +120,6 @@
                     noteToEdit = selection.file;
                     editModeTools.noteToEdit = noteToEdit;
                     mapState.editMode = true;
-                    const headings = app.metadataCache.getFileCache(
-                        selection.file,
-                    )?.headings as HeadingCache[];
-                    // TODO bug here, heading positions change as note changes
-                    allNoteHeadings = headings
-                        ? headings.map((heading) => heading.heading)
-                        : [];
                 }
             },
             'Choose a note to edit or press Shift+Enter to create new',
@@ -113,12 +127,20 @@
         dialog.open();
     }
 
-    // Update settings.mapControls.<path> about whether a collapsible section of the accordion is open or not
+    // Update settings.mapControlsSections.<path> about whether a collapsible section of the accordion is open or not.
     function setMapControl(
-        path: keyof typeof settings.mapControls,
+        path: keyof typeof settings.mapControlsSections,
         value: boolean,
     ) {
-        settings.mapControls[path] = value;
+        if (value && settings.onlyOneExpanded) {
+            // Close all sections
+            for (const key in settings.mapControlsSections) {
+                settings.mapControlsSections[key] = false;
+            }
+            // Trigger reactivity
+            settings = { ...settings };
+        }
+        settings.mapControlsSections[path] = value;
         plugin.saveSettings();
     }
 
@@ -237,7 +259,7 @@
     function statesDifferOnlyInQuery(state1: MapState, state2: MapState) {
         if (state1.query == state2.query) return false;
         const state2WithQuery1 = { ...state2, query: state1.query };
-        return areStatesEqual(state1, state2WithQuery1);
+        return areStatesEqual(state1, state2WithQuery1, view.display?.map);
     }
 </script>
 
@@ -255,13 +277,13 @@
                 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
                 <div
                     class="minimize-button"
-                    title={settings.mapControls.minimized
+                    title={settings.mapControlsMinimized
                         ? 'Expand controls'
                         : 'Minimize controls'}
                     onclick={() => {
                         setMapControl(
                             'minimized',
-                            !settings.mapControls.minimized,
+                            !settings.mapControlsMinimized,
                         );
                         minimized = !minimized;
                     }}
@@ -296,7 +318,7 @@
             {#if viewSettings.showFilters}
                 <ViewCollapsibleSection
                     headerText="Filters"
-                    expanded={settings.mapControls.filtersDisplayed}
+                    expanded={settings.mapControlsSections.filtersDisplayed}
                     afterToggle={(expanded) =>
                         setMapControl('filtersDisplayed', expanded)}
                 >
@@ -311,7 +333,7 @@
             {#if viewSettings.showView}
                 <ViewCollapsibleSection
                     headerText="View"
-                    expanded={settings.mapControls.viewDisplayed}
+                    expanded={settings.mapControlsSections.viewDisplayed}
                     afterToggle={(expanded) =>
                         setMapControl('viewDisplayed', expanded)}
                 >
@@ -383,7 +405,7 @@
             {#if viewSettings.showLinks}
                 <ViewCollapsibleSection
                     headerText="Links"
-                    expanded={settings.mapControls.linksDisplayed}
+                    expanded={settings.mapControlsSections.linksDisplayed}
                     afterToggle={(expanded) =>
                         setMapControl('linksDisplayed', expanded)}
                 >
@@ -411,7 +433,7 @@
             {#if viewSettings.showPresets}
                 <ViewCollapsibleSection
                     headerText="Presets"
-                    expanded={settings.mapControls.presetsDisplayed}
+                    expanded={settings.mapControlsSections.presetsDisplayed}
                     afterToggle={(expanded) =>
                         setMapControl('presetsDisplayed', expanded)}
                 >
@@ -476,7 +498,7 @@
             {#if viewSettings.showEdit}
                 <ViewCollapsibleSection
                     headerText="Edit"
-                    expanded={settings.mapControls.editDisplayed}
+                    expanded={settings.mapControlsSections.editDisplayed}
                     afterToggle={(expanded) =>
                         setMapControl('editDisplayed', expanded)}
                 >

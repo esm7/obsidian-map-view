@@ -25,6 +25,10 @@ export class LayerCache {
         return this.layersMap.values();
     }
 
+    public getLayersByFile(filePath: string): MapIterator<BaseGeoLayer> {
+        return this.layersByFilePath[filePath]?.values() ?? [].values();
+    }
+
     get map(): MarkersMap {
         return this.layersMap;
     }
@@ -78,6 +82,13 @@ export class LayerCache {
             for (const layer of layersOfFile) this.layersMap.delete(layer.id);
             this.layersByFilePath[filePath] = [];
         }
+    }
+
+    // Called when Obsidian signals us that a file has been renamed. See the event in main.ts for some more light on
+    // this flow.
+    public renameFile(oldPath: string, newPath: string) {
+        this.layersByFilePath[newPath] = this.layersByFilePath[oldPath];
+        this.layersByFilePath[oldPath] = [];
     }
 
     public hasLayersFromFile(filePath: string) {

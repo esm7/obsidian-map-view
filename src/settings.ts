@@ -26,6 +26,7 @@ export type PluginSettings = {
     frontMatterKey: string;
     chosenMapMode?: MapLightDark;
     autoZoom: boolean;
+    onlyOneExpanded: boolean;
     letZoomBeyondMax: boolean;
     markerClickBehavior: OpenBehavior;
     markerCtrlClickBehavior: OpenBehavior;
@@ -45,7 +46,8 @@ export type PluginSettings = {
     debug: boolean;
     openIn: OpenInSettings[];
     urlParsingRules: UrlParsingRule[];
-    mapControls: MapControls;
+    mapControlsSections: MapControlsSections;
+    mapControlsMinimized: boolean;
     maxClusterRadiusPixels: number;
     searchProvider: 'osm' | 'google';
     searchDelayMs: number;
@@ -65,6 +67,9 @@ export type PluginSettings = {
     zoomOnGeolinkPreview: number;
     handleGeolinkContextMenu: boolean;
     routingUrl: string;
+    routingGraphHopperApiKey: string;
+    routingGraphHopperProfiles: string;
+    routingGraphHopperExtra: any;
     cacheAllTiles: boolean;
     offlineMaxTileAgeMonths: number;
     offlineMaxStorageGb: number;
@@ -117,8 +122,7 @@ export type LegacyUrlParsingRule = UrlParsingRule & {
     order: 'latFirst' | 'lngFirst';
 };
 
-export type MapControls = {
-    minimized: boolean;
+export type MapControlsSections = {
     filtersDisplayed: boolean;
     viewDisplayed: boolean;
     linksDisplayed: boolean;
@@ -218,6 +222,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     ],
     zoomOnGoFromNote: 15,
     autoZoom: true,
+    onlyOneExpanded: true,
     markerClickBehavior: 'replaceCurrent',
     markerCtrlClickBehavior: 'dedicatedPane',
     markerMiddleClickBehavior: 'dedicatedTab',
@@ -261,14 +266,14 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             preset: true,
         },
     ],
-    mapControls: {
-        minimized: false,
+    mapControlsSections: {
         filtersDisplayed: true,
         viewDisplayed: true,
         linksDisplayed: false,
         presetsDisplayed: false,
         editDisplayed: false,
     },
+    mapControlsMinimized: false,
     maxClusterRadiusPixels: 25,
     searchProvider: 'osm',
     searchDelayMs: 250,
@@ -300,6 +305,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     handleGeolinkContextMenu: true,
     routingUrl:
         'https://www.google.com/maps/dir/?api=1&origin={x0},{y0}&destination={x1},{y1}',
+    routingGraphHopperApiKey: '',
+    routingGraphHopperProfiles: 'foot, bike, car',
+    routingGraphHopperExtra: {},
     cacheAllTiles: true,
     // 0 means never automatically purge
     offlineMaxTileAgeMonths: 6,

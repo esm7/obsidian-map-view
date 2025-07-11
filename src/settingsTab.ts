@@ -70,6 +70,20 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
 
+        new Setting(containerEl)
+            .setName('Only one controls section expanded at a time')
+            .setDesc(
+                'Keep only one controls section expanded at a time, i.e. collapse the currently-expanded section when you click another one. (Restart Map View for this to take effect.)',
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.onlyOneExpanded)
+                    .onChange(async (value) => {
+                        this.plugin.settings.onlyOneExpanded = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
         let apiKeyControl: Setting = null;
         new Setting(containerEl)
             .setName('Geocoding search provider')
@@ -322,22 +336,6 @@ export class SettingsTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.tagForGeolocationNotes ?? '')
                     .onChange(async (value: string) => {
                         this.plugin.settings.tagForGeolocationNotes = value;
-                        this.plugin.saveSettings();
-                    });
-            });
-        new Setting(containerEl)
-            .setName('Routing service URL')
-            .setDesc(
-                'URL to use for calculating and showing routes and directions, used for "route to point". {x0},{y0} are the source lat,lng and {x1},{y1} are the destination lat,lng.',
-            )
-            .addText((component) => {
-                component
-                    .setValue(
-                        this.plugin.settings.routingUrl ??
-                            DEFAULT_SETTINGS.routingUrl,
-                    )
-                    .onChange(async (value: string) => {
-                        this.plugin.settings.routingUrl = value;
                         this.plugin.saveSettings();
                     });
             });
@@ -738,6 +736,73 @@ export class SettingsTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.handleGeoJsonCodeBlocks = value;
                         await this.plugin.saveSettings();
+                    });
+            });
+
+        new Setting(containerEl).setHeading().setName('Routing');
+        new Setting(containerEl)
+            .setName('External routing service URL')
+            .setDesc(
+                'URL to use for an external routing service, used for "route to point". {x0},{y0} are the source lat,lng and {x1},{y1} are the destination lat,lng.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.routingUrl ??
+                            DEFAULT_SETTINGS.routingUrl,
+                    )
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.routingUrl = value;
+                        this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('GraphHopper API key')
+            .setDesc(
+                'You may obtain a free or a paid key from GraphHopper to enable native routing in Map View.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(this.plugin.settings.routingGraphHopperApiKey)
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.routingGraphHopperApiKey = value;
+                        this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('GraphHopper profiles')
+            .setDesc(
+                'A comma-delimited list of profiles to support. Note that the free plan supports only the default values listed here.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(this.plugin.settings.routingGraphHopperProfiles)
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.routingGraphHopperProfiles = value;
+                        this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('GraphHopper extra parameters (advanced)')
+            .setDesc(
+                'Paste here a JSON (wrapped in {...}) of valid GraphHopper parameters. See the GraphHopper routing POST documentation for more details.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        JSON.stringify(
+                            this.plugin.settings.routingGraphHopperExtra ?? {},
+                        ),
+                    )
+                    .onChange(async (value: string) => {
+                        try {
+                            this.plugin.settings.routingGraphHopperExtra =
+                                JSON.parse(value);
+                        } catch (e) {
+                            this.plugin.settings.routingGraphHopperExtra =
+                                DEFAULT_SETTINGS.routingGraphHopperExtra;
+                        }
+                        this.plugin.saveSettings();
                     });
             });
 

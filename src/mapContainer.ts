@@ -76,6 +76,7 @@ import * as menus from 'src/menus';
 import { createPopper, type Instance as PopperInstance } from '@popperjs/core';
 import * as offlineTiles from 'src/offlineTiles.svelte';
 import MarkerPopup from './components/MarkerPopup.svelte';
+import { type RoutingResult } from 'src/routing';
 
 export type ViewSettings = {
     showMinimizeButton: boolean;
@@ -151,11 +152,18 @@ export class MapContainer {
         actualHighlight: leaflet.Marker = null;
         /** The marker used to denote a routing source if any */
         routingSource: leaflet.Marker = null;
+        /** The routes added to the map */
+        calculatedRoutes: leaflet.GeoJSON[] = [];
         realTimeLocationMarker: leaflet.Marker = null;
         realTimeLocationRadius: leaflet.Circle = null;
         /** Part of an ugly mechanism that's required to cache loaded tiles */
         offlineHelperCanvas: HTMLCanvasElement = null;
     })();
+    /*
+     * An array of one-time actions to be done in the next time the map is updated and valid (has a size).
+     * The doPostUpdateActions method clears the array after they are done.
+     */
+    public postUpdateActions: (() => void)[] = [];
     public ongoingChanges = 0;
     public freezeMap: boolean = false;
     private plugin: MapViewPlugin;
@@ -430,7 +438,7 @@ export class MapContainer {
      */
     public updateStateAfterMapChange(partialState: Partial<MapState>) {
         const mergedState = mergeStates(this.state, partialState);
-        if (!areStatesEqual(this.state, mergedState)) {
+        if (!areStatesEqual(this.state, mergedState, this.display?.map)) {
             this.state = mergedState;
             this.freezeMap = true;
             this.highLevelSetViewState(partialState);
@@ -573,6 +581,7 @@ export class MapContainer {
             });
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
+            this.doPostUpdateActions();
         });
         this.display.map.on('moveend', async (_event: leaflet.LeafletEvent) => {
             this.ongoingChanges -= 1;
@@ -582,6 +591,7 @@ export class MapContainer {
             });
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
+            this.doPostUpdateActions();
         });
         this.display.map.on('movestart', (_event: leaflet.LeafletEvent) => {
             this.ongoingChanges += 1;
@@ -645,7 +655,7 @@ export class MapContainer {
                     e.layer instanceof leaflet.Marker
                 ) {
                     createMarkerInFile(
-                        e.layer,
+                        e.layer.getLatLng(),
                         file,
                         heading,
                         tags,
@@ -665,6 +675,7 @@ export class MapContainer {
         this.display.map.on('viewreset', () => {
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
+            this.doPostUpdateActions();
         });
 
         if (this.viewSettings.showSearch) {
@@ -735,6 +746,7 @@ export class MapContainer {
                     this,
                     this.settings,
                     this.app,
+                    this.plugin,
                 );
                 mapPopup.showAtPosition(event.originalEvent);
             },
@@ -1067,7 +1079,7 @@ export class MapContainer {
         let mapPopup = new Menu();
         if (marker instanceof FileMarker) {
             menus.populateOpenNote(this, marker, mapPopup, this.settings);
-            if (this.state.editMode)
+            if (this.state.editMode) {
                 menus.populateRename(
                     this,
                     marker,
@@ -1076,6 +1088,16 @@ export class MapContainer {
                     this.app,
                     this.plugin,
                 );
+            } else {
+                menus.addStartEditMode(
+                    this,
+                    marker,
+                    mapPopup,
+                    this.settings,
+                    this.app,
+                    this.plugin,
+                );
+            }
             menus.populateRouting(
                 this,
                 marker.location,
@@ -1205,6 +1227,14 @@ export class MapContainer {
 
     /** Zoom the map to fit all markers on the screen */
     public async autoFitMapToMarkers() {
+        const mapSize = this.display?.map?.getSize();
+        if (!(mapSize && mapSize.x > 0 && mapSize.y > 0)) {
+            // The map is not ready for an auto-fit.
+            // Add a call to this method for when the map finished updating.
+            this.postUpdateActions.push(() => {
+                this.autoFitMapToMarkers();
+            });
+        }
         if (this.display.markers.size > 0) {
             const locations: leaflet.LatLng[] = [];
             for (const marker of this.display.markers.layers) {
@@ -1298,19 +1328,21 @@ export class MapContainer {
 
     /**
      * Open and go to the editor location represented by the marker
-     * @param marker The FileMarker to open
+     * @param marker The marker to open
      * @param openBehavior the required type of action
      * @param highlight If true will highlight the line
+     * @param fileLocationOffset Go before or after the marker in the file
      */
     async goToMarker(
-        marker: FileMarker,
+        marker: BaseGeoLayer,
         openBehavior: OpenBehavior,
         highlight: boolean,
+        fileLocationOffset: number = 0,
     ) {
         return this.goToFile(marker.file, openBehavior, async (editor) => {
             await utils.goToEditorLocation(
                 editor,
-                marker.fileLocation,
+                marker.fileLocation + fileLocationOffset,
                 highlight,
             );
         });
@@ -1346,11 +1378,75 @@ export class MapContainer {
                 this,
                 this.settings,
                 this.app,
+                this.plugin,
             );
             mapPopup.showAtPosition(event.originalEvent);
         });
         marker.addTo(this.display.map);
         this.goToSearchResult(details.location, marker, keepZoom);
+    }
+
+    addFloatingRoute(route: RoutingResult) {
+        const distanceKmStr = (route.distanceMeters / 1000).toFixed(1);
+        const timeMinutesStr = Math.round(route.timeMinutes);
+        const geoJsonLayer = leaflet.geoJSON(route.path, {
+            style: {
+                ...consts.ROUTING_PATH_OPTIONS,
+                bubblingMouseEvents: false,
+            },
+            onEachFeature: (feature: any, layer: leaflet.Layer) => {
+                const popupContent = `
+					<b>Routing with '${route.profileUsed}':</b> <br>
+					Distance: ${distanceKmStr}km <br>
+					Time: ${timeMinutesStr} minutes
+				`;
+                layer.bindPopup(popupContent, { autoClose: true });
+                layer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+                    layer.openPopup(event.latlng);
+                });
+                layer.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
+                    layer.closePopup();
+                });
+            },
+        });
+        geoJsonLayer.on('contextmenu', (event: leaflet.LeafletMouseEvent) => {
+            let menu = new Menu();
+            menus.addPathAddToNote(
+                menu,
+                route.path,
+                this,
+                this.settings,
+                this.app,
+                this.plugin,
+                () => {
+                    this.display.map.removeLayer(geoJsonLayer);
+                    this.display.calculatedRoutes.remove(geoJsonLayer);
+                },
+            );
+            menu.addItem((item: MenuItem) => {
+                item.setTitle('Remove calculated route');
+                item.setIcon('trash');
+                item.onClick(() => {
+                    this.display.map.removeLayer(geoJsonLayer);
+                    this.display.calculatedRoutes.remove(geoJsonLayer);
+                });
+            });
+            menu.addItem((item: MenuItem) => {
+                item.setTitle('Remove all calculated routes');
+                item.setIcon('trash');
+                item.onClick(() => {
+                    for (const route of this.display.calculatedRoutes)
+                        this.display.map.removeLayer(route);
+                    this.display.calculatedRoutes = [];
+                });
+            });
+            menu.showAtPosition(event.originalEvent);
+        });
+        geoJsonLayer.addTo(this.display.map);
+        this.display.calculatedRoutes.push(geoJsonLayer);
+        new Notice(
+            `Routing with '${route.profileUsed}': ${distanceKmStr}km, ${timeMinutesStr} minutes`,
+        );
     }
 
     goToSearchResult(
@@ -1473,6 +1569,7 @@ export class MapContainer {
                     this,
                     this.settings,
                     this.app,
+                    this.plugin,
                 );
                 mapPopup.showAtPosition(event.originalEvent);
             },
@@ -1722,24 +1819,41 @@ export class MapContainer {
                             layer.closePopup();
                         },
                     );
-                    layer.on('click', () => {
+                    layer.on('click', (event: leaflet.LeafletMouseEvent) => {
                         // TODO proper mobile support
                         if (
-                            !(this.app.vault as any)?.config
-                                ?.showUnsupportedFiles
-                        )
-                            new Notice(
-                                'Some file types can only be displayed if you turn on "detect all file extensions" in the Obsidian "Files and links" settings.',
-                                60 * 1000,
+                            marker.sourceType === 'geojson' &&
+                            marker.fileLocation > 0
+                        ) {
+                            // Go to note
+                            this.goToMarker(
+                                marker,
+                                utils.mouseEventToOpenMode(
+                                    this.settings,
+                                    event.originalEvent,
+                                    'openNote',
+                                ),
+                                false,
+                                // Move the cursor right before the GeoJSON in the file, so it will show the map preview and not the source code
+                                -1,
                             );
-                        const fileExplorer = (
-                            this.app as any
-                        )?.internalPlugins?.getEnabledPluginById(
-                            'file-explorer',
-                        );
-                        // TODO reveal inline when relevant
-                        // TODO context menu that allows viewing embeds?
-                        fileExplorer?.revealInFolder(marker.file);
+                        } else {
+                            // The path is an independent file, reveal it
+                            if (
+                                !(this.app.vault as any)?.config
+                                    ?.showUnsupportedFiles
+                            )
+                                new Notice(
+                                    'Some file types can only be displayed if you turn on "detect all file extensions" in the Obsidian "Files and links" settings.',
+                                    60 * 1000,
+                                );
+                            const fileExplorer = (
+                                this.app as any
+                            )?.internalPlugins?.getEnabledPluginById(
+                                'file-explorer',
+                            );
+                            fileExplorer?.revealInFolder(marker.file);
+                        }
                     });
                 }
             },
@@ -1807,5 +1921,23 @@ export class MapContainer {
         layer: T,
     ): T extends FileMarker ? leaflet.Marker : leaflet.Layer {
         return layer.geoLayers.get(this.mapContainerId) as any;
+    }
+
+    private doPostUpdateActions() {
+        const mapSize = this.display?.map?.getSize();
+        if (
+            mapSize &&
+            mapSize.x > 0 &&
+            mapSize.y > 0 &&
+            this.postUpdateActions.length > 0
+        ) {
+            // We clear the list of actions before running them because the action themselves may recursively trigger this method
+            // (e.g. an auto-fit causes zoom and pan events).
+            const actions = this.postUpdateActions;
+            this.postUpdateActions = [];
+            for (const action of actions) {
+                action();
+            }
+        }
     }
 }

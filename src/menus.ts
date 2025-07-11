@@ -12,10 +12,12 @@ import { type MapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import { MapContainer } from 'src/mapContainer';
 import { type PluginSettings } from 'src/settings';
-import { FileMarker, renameMarker } from 'src/fileMarker';
-import { getIconFromOptions } from 'src/markerIcons';
+import { FileMarker, renameMarker, createMarkerInFile } from 'src/fileMarker';
+import { createGeoJsonInFile } from 'src/geojsonLayer';
 import { SvelteModal } from 'src/svelte';
 import ImportDialog from './components/ImportDialog.svelte';
+import { doRouting } from 'src/routing';
+import { type GeoJSON } from 'geojson';
 
 export function addShowOnMap(
     menu: Menu,
@@ -400,6 +402,27 @@ export function populateRename(
     });
 }
 
+export function addStartEditMode(
+    mapContainer: MapContainer,
+    fileMarker: FileMarker,
+    menu: Menu,
+    settings: PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+) {
+    if (!fileMarker.file) return;
+    if (!mapContainer.viewSettings.showEdit) return;
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('Start Edit Mode');
+        item.setIcon('pencil');
+        item.setSection('open-note');
+        item.onClick(async (_evt: MouseEvent) => {
+            mapContainer.highLevelSetViewState({ editMode: true });
+            mapContainer.display.controls.openEditSection(fileMarker.file);
+        });
+    });
+}
+
 // The MenuItem object in the Obsidian API doesn't let us listen to a middle-click, so we patch around it
 function addPatchyMiddleClickHandler(
     item: MenuItem,
@@ -434,29 +457,114 @@ export function populateRouting(
         });
 
         if (mapContainer.display.routingSource) {
+            const origin = mapContainer.display.routingSource.getLatLng();
             menu.addItem((item: MenuItem) => {
                 item.setTitle('Route to point');
                 item.setSection('mapview');
                 item.setIcon('milestone');
-                item.onClick(() => {
-                    const origin =
-                        mapContainer.display.routingSource.getLatLng();
-                    const routingTemplate = settings.routingUrl;
-                    const url = routingTemplate
-                        .replace('{x0}', origin.lat.toString())
-                        .replace('{y0}', origin.lng.toString())
-                        .replace('{x1}', geolocation.lat.toString())
-                        .replace('{y1}', geolocation.lng.toString());
-                    open(url);
-                });
+                const submenu = (item as any)
+                    .setSubmenu()
+                    .addItem((item: MenuItem) => {
+                        item.setTitle('With external service');
+                        item.onClick(() => {
+                            const routingTemplate = settings.routingUrl;
+                            const url = routingTemplate
+                                .replace('{x0}', origin.lat.toString())
+                                .replace('{y0}', origin.lng.toString())
+                                .replace('{x1}', geolocation.lat.toString())
+                                .replace('{y1}', geolocation.lng.toString());
+                            open(url);
+                        });
+                    });
+                const profiles = settings.routingGraphHopperProfiles.split(',');
+                for (const profile of profiles) {
+                    const cleanedProfile = profile.trim();
+                    submenu.addItem((item: MenuItem) => {
+                        item.setTitle(`GraphHopper: ${cleanedProfile}`);
+                        item.onClick(() => {
+                            doRouting(
+                                origin,
+                                geolocation,
+                                'graphhopper',
+                                { profile: cleanedProfile },
+                                mapContainer,
+                                settings,
+                            );
+                        });
+                    });
+                }
             });
         }
     }
 }
 
-/* The context menu on an area of the map where there is no existing marker, showing mostly options to add
+/*
+ * The function's confusing name is because it adds an "add to edited note" menu item when Edit Mode, or "add to note" when not.
+ */
+export function addMarkerAddToNote(
+    menu: Menu,
+    geolocation: leaflet.LatLng,
+    mapContainer: MapContainer,
+    settings: settings.PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+) {
+    const enabled =
+        mapContainer.getState().editMode &&
+        mapContainer.display.controls.editModeTools.noteToEdit;
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('Add to Edit Mode note');
+        item.setIcon('edit');
+        item.setSection('new');
+        item.setDisabled(!enabled);
+        item.onClick(() => {
+            const file = mapContainer.display.controls.editModeTools.noteToEdit;
+            const heading =
+                mapContainer.display.controls.editModeTools.noteHeading;
+            const tags = mapContainer.display.controls.editModeTools.tags;
+            createMarkerInFile(
+                geolocation,
+                file,
+                heading,
+                tags,
+                app,
+                settings,
+                plugin,
+            );
+        });
+    });
+}
+
+export function addPathAddToNote(
+    menu: Menu,
+    geojson: GeoJSON,
+    mapContainer: MapContainer,
+    settings: settings.PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+    doAfterAdd: () => void,
+) {
+    const enabled =
+        mapContainer.getState().editMode &&
+        mapContainer.display.controls.editModeTools.noteToEdit;
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('Add to Edit Mode note');
+        item.setIcon('edit');
+        item.setDisabled(!enabled);
+        item.onClick(() => {
+            const file = mapContainer.display.controls.editModeTools.noteToEdit;
+            const heading =
+                mapContainer.display.controls.editModeTools.noteHeading;
+            const tags = mapContainer.display.controls.editModeTools.tags;
+            createGeoJsonInFile(geojson, file, heading, tags, app, settings);
+            if (doAfterAdd) doAfterAdd();
+        });
+    });
+}
+
+/*
+ * The context menu on an area of the map where there is no existing marker or a search result, showing mostly options to add
  * a new marker or open this geolocation elsewhere.
- * This can also be used on a search result.
  */
 export function addMapContextMenuItems(
     mapPopup: Menu,
@@ -464,8 +572,17 @@ export function addMapContextMenuItems(
     mapContainer: MapContainer,
     settings: settings.PluginSettings,
     app: App,
+    plugin: MapViewPlugin,
 ) {
     addNewNoteItems(mapPopup, geolocation, mapContainer, settings, app);
+    addMarkerAddToNote(
+        mapPopup,
+        geolocation,
+        mapContainer,
+        settings,
+        app,
+        plugin,
+    );
     addCopyGeolocationItems(mapPopup, geolocation);
     populateRouting(mapContainer, geolocation, mapPopup, settings);
     addOpenWith(mapPopup, geolocation, null, settings);

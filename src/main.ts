@@ -407,6 +407,26 @@ export default class MapViewPlugin extends Plugin {
             },
         });
 
+        this.addCommand({
+            id: 'focus-note-in-map-view',
+            name: 'Focus current note in Map View',
+            editorCallback: (
+                editor: Editor,
+                ctx: MarkdownView | MarkdownFileInfo,
+            ) => {
+                this.openMapWithState(
+                    {
+                        query: utils.replaceFollowActiveNoteQuery(
+                            ctx.file,
+                            this.settings,
+                        ),
+                    } as MapState,
+                    this.settings.openMapBehavior,
+                    true,
+                );
+            },
+        });
+
         if (this.settings.supportRealTimeGeolocation) {
             this.addCommand({
                 id: 'gps-focus-in-map-view',
@@ -702,18 +722,18 @@ export default class MapViewPlugin extends Plugin {
                 });
             });
         this.registerEvent(
-            this.app.vault.on('delete', (file) =>
-                this.updateMarkersWithRelationToFile(file.path, null, true),
-            ),
+            this.app.vault.on('delete', (file) => {
+                this.updateMarkersWithRelationToFile(file.path, null, true);
+            }),
         );
         this.registerEvent(
-            this.app.metadataCache.on('changed', (file) =>
-                this.updateMarkersWithRelationToFile(file.path, file, false),
-            ),
+            this.app.metadataCache.on('changed', (file) => {
+                this.updateMarkersWithRelationToFile(file.path, file, false);
+            }),
         );
         this.registerEvent(
             this.app.vault.on('rename', (file, oldPath) => {
-                this.updateMarkersWithRelationToFile(oldPath, file, false);
+                this.renameFile(oldPath, file);
             }),
         );
         this.registerEvent(
@@ -1208,19 +1228,20 @@ export default class MapViewPlugin extends Plugin {
                 newLayers.push(...geoJsonLayers);
             }
             cacheTagsFromLayers(newLayers, this.allTags);
-        } else
-            console.error(
-                'File instance error, file is still abstract:',
-                fileAddedOrChanged,
-            );
+        }
         for (const layer of newLayers) {
             if (this.layerCache.get(layer.id))
                 console.error(`Layer ID ${layer.id} already in map!`);
             this.layerCache.add(layer);
         }
-        // TODO document
         this.maintainMapContainersList();
         for (const mapContainer of this.allMapContainers) {
+            // We want to update each map container about the updated list of layers.
+            // To do this, we take all its layers, remove the ones that belong to fileRemoved if any, and add
+            // those from newLayers.
+            // The mapContainer then compares this list to what it has internally and updates the map markers.
+            // As an optimization, if we don't remove any layers, we'll use the mapContainer.display.markers object as-is.
+            // If we do, we'll copy it aside, because we don't want to modify the mapContainer's internal structure here.
             const existingLayers =
                 fileRemoved &&
                 mapContainer.display.markers.hasLayersFromFile(fileRemoved)
@@ -1251,6 +1272,28 @@ export default class MapViewPlugin extends Plugin {
             }
         }
         return newLayers;
+    }
+
+    /*
+     * What I would have liked to do in the case a file is renamed, is to handle it with the updateMarkersWithRelationToFile
+     * method above.
+     * In theory, we could remove the old path and re-add the markers from 'file'.
+     * However, Obsidian puts us in an awkward position: the 'file' object does not yet have metadata built for it, and
+     * there is no way to register for a metadata change event in the case of a rename (as of 2025-07). Seems like the API
+     * was built under the assumption that handling rename is straight-forward.
+     * So, we are left with no choice but to create a special flow for rename, which is basically simple: we need to iterate
+     * over all the layer cache structures (both the main one and the mapContainer internal ones) and update them.
+     */
+    public async renameFile(oldPath: string, file: TAbstractFile) {
+        if (file instanceof TFile) {
+            this.layerCache.renameFile(oldPath, file.path);
+            this.maintainMapContainersList();
+            for (const mapContainer of this.allMapContainers) {
+                mapContainer.display.markers.renameFile(oldPath, file.path);
+            }
+            const fileLayers = this.layerCache.getLayersByFile(file.path);
+            for (const layer of fileLayers) layer.renameContainingFile(file);
+        }
     }
 
     public async waitForInitialization() {

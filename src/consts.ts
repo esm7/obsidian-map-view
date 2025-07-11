@@ -10,6 +10,10 @@ export const SEARCH_RESULT_MARKER = {
     icon: 'fa-search',
     markerColor: 'blue',
 } as leaflet.ExtraMarkers.IconOptions;
+export const ROUTING_PATH_OPTIONS = {
+    color: 'red',
+    weight: 6,
+} as leaflet.PathOptions;
 export const CURRENT_LOCATION_MARKER = {
     prefix: 'fas',
     icon: 'fa-location-crosshairs',

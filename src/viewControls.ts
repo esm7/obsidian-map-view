@@ -76,8 +76,8 @@ export class ViewControls {
         if (this.controlPanel) this.controlPanel.updateControlsToState();
     }
 
-    public openEditSection() {
-        if (this.controlPanel) this.controlPanel.openEditSection();
+    public openEditSection(file?: TFile) {
+        if (this.controlPanel) this.controlPanel.openEditSection(file);
     }
 }
 

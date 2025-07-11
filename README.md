@@ -17,11 +17,29 @@ Add overlays (and warn about performance if adding too many)
 ## Intro
 
 This plugin introduces an **interactive map view** for [Obsidian.md](https://obsidian.md/).
-It searches your notes for encoded geolocations (see below), places them as markers on a map and offers many tools to interact with them.
+It searches your notes for encoded geolocations and paths in various formats (see below), places them on a map and offers many tools to interact with them.
 
 It effectively turns your Obsidian vault into a **personal GIS system** that adds a geographical layer to your notes, journals, trip planning and pretty much anything you use Obsidian for.
 
-You can set different icons for different note types according to custom rules, save geolocations from a variety of sources (Google Maps and many others), save custom views, embed maps in notes, switch between map layers, run powerful queries, save map tiles for offline usage and so much more.
+You can...
+
+- Add locations using a built-in search (optionally utilizing Google Places).
+- Save geolocations from a variety of sources.
+- View paths in GeoJSON, GPX, KML and TCX formats.
+- Draw locations and shapes on the map.
+- Instantly calculate routes between points and get driving/cycling/walking estimations.
+
+Plus...
+
+- Customize marker icons, badges, shapes, colors, path properties and more using sophisticated display rules.
+- Use a powerful query system.
+- Embed maps in notes with great level of control.
+- Quickly switch between map layers and save presets.
+- Save maps for offline usage.
+
+And much, **much** more -- this is quite a powerful tool.
+
+TODO update screenshots
 
 ![](img/sample.png)
 
@@ -61,17 +79,27 @@ Here are a few examples for logging a favorite location you want to see in a map
 
 **Option 1: from a Note**
 
-Starting from a note, e.g. your daily note, a note referring to a trip plan or anywhere else, launch the Obsidian Command Palette and choose "Map View: add inline geolocation link".
-A link in the format of `[](geo:)` will be added where your cursor is.
-Start typing a location name inside the bracket, and some geolocation results will pop up. Choose one and your _inline location_ is complete.
+- Starting from a note, e.g. your daily note or a note referring to a trip plan, launch the Obsidian Command Palette and choose "Map View: add inline geolocation link".
+- A link in the format of `[](geo:)` will be added where your cursor is.
+- Start typing a location name inside the bracket, and some geolocation results will pop up. Choose one and your _inline location_ is complete.
 
 ![](img/quick1.gif)
 
 **Option 2: from the Map**
 
-Open Map View (e.g. from the Obsidian ribbon icon).
-Search or locate a location, e.g. using the search tool.
-Right-click the map and choose "new note here (front matter)" to create a note logging the selection point, or choose "copy geolocation" to copy an inline location to paste in some other note.
+- Open Map View (e.g. from the Obsidian ribbon icon).
+- Search or locate a location, e.g. using the search tool.
+- Right-click the map and choose "new note here (front matter)" to create a note logging the selection point.
+
+**Option 3: from the Map using Edit Mode**
+
+- Open Map View.
+- Switch to Edit Mode using the pencil icon on the right.
+- Click the red "Choose Note" button to select which note you want to add items to.
+- Place markers or other shapes on the map using the tools that appeared below the pencil icon.
+- When in Edit Mode you can move or edit other markers and paths as well.
+
+TODO add screenshot
 
 **There are many other ways to log geolocations in Map View**, see [here](#adding-a-location-to-a-note) for more details.
 
@@ -158,7 +186,7 @@ See also [this](https://www.reddit.com/r/ObsidianMD/comments/xi42pt/planning_a_v
 Map View provides [several methods to log locations in notes](#adding-a-location-to-a-note) and can manage the technicalities for you.
 You can skip to that section if you want to just get started, or continue reading the more technical explanation below.
 
-**To clarify, you can use Map View without entering geolocations manually at all.**
+**To clarify, the best way to use Map View is to never enter a geolocation manually.**
 You will, however, need to understand the difference between the front matter and the inline formats, and decide when to use which.
 
 So, the plugin works by scanning your notes and parsing two types of location data.
@@ -260,7 +288,7 @@ To make this more streamlined, Map View adds to Obsidian a command named 'Add in
 
 ### From the Map
 
-The map offers several tools to create notes.
+The map offers several tools to create notes or add markers to existing notes.
 
 1. Use "new note here" when right-clicking the map. This will create a new note (based on the template you can change in the settings) with the location that you clicked. You can create either an empty note with a front matter (single geolocation) or an empty note with an inline geolocation.
 
@@ -271,7 +299,9 @@ The map can be searched using the tool on the upper-right side, so you can quick
 
 ![](img/search.gif)
 
-2. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map and paste them in a note.
+2. Using Edit Mode: click the pencil icon on the right, choose a note to edit by clicking the red button on the left, then add markers (or other shapes) using the marker tool below the pencil icon. Alternatively, when in Edit Mode, you can right-click anywhere on the map and select "Add to Edit Mode note".
+
+3. If you prefer to enter geolocations as text, use one of the "copy geolocation" options when you right-click the map and paste them in a note.
 
 ![](img/copy.png)
 
@@ -325,9 +355,13 @@ Embeds also work really nicely in Canvas including live updates.
 
 **Known annoyance:** the `$filename$` replacement is currently performed when processing the code block and sent to Map View as a final result. Therefore, if you edit the embed interactively (e.g. by zoom or pan and clicking Save), the `query` field will be overwritten with the actual file name rather than the template.
 
-- The JSON in the embedded map code block supports a still-rather-raw `autoFit` boolean flag. When set to `true` (i.e. add `"autoFit":true` to the code block's JSON), the map will load with the given pan and zoom, but will then perform an auto-fit and override further zoom and pan changes. This has the annoyance of animating zoom/pan if the saved state is different than the auto-fitted one (click Save to freeze a new state in such a case). I eventually want to bake this nicely to the UI with some more reasonable behaviors.
+- The JSON in the embedded map code block supports an `autoFit` boolean flag. When set to `true` (i.e. add `"autoFit":true` to the code block's JSON), the map will load with the given pan and zoom, but will then perform an auto-fit and override further zoom and pan changes. This has the annoyance of animating zoom/pan if the saved state is different than the auto-fitted one (click Save to freeze a new state in such a case). I eventually want to bake this nicely to the UI with some more reasonable behaviors.
 
 - The embedded map code block also supports an optional `customViewSettings` object, which allows for some adjustments to the map's UI. Properties and their defaults are defined in [`embeddedMap.ts`](https://github.com/esm7/obsidian-map-view/blob/master/src/embeddedMap.ts#L31-L47).
+
+## Paths
+
+TODO write this section
 
 ## Queries
 
@@ -425,6 +459,10 @@ Then, a note that has both the `#trip` and `#trip-water` tags will have a `fa-hi
 Tag rules also support wildcards, e.g. a rule in the form of `"#food*": {...}` will match notes with the tag `#food`, `#food/pizza`, `#food/vegan`, `#food-to-try` etc.
 
 The settings also allow advanced users to manually edit the configuration tree, and there you can use more properties based on the [Leaflet.ExtraMarkers](https://github.com/coryasilva/Leaflet.ExtraMarkers#properties) properties. Manual edits update the GUI in real-time.
+
+## Badges
+
+TODO write
 
 ## In-Note Location Search & Auto-Complete
 
@@ -537,6 +575,10 @@ Popular choices may be:
 - Waze (online dropped pin): `https://ul.waze.com/ul?ll={x}%2C{y}&navigate=yes&zoom=17` (replace `17` with your preferred zoom level)
 
 And you can figure out many other mapping services just by inspecting the URL.
+
+## Routing
+
+TODO write
 
 ## URL Parsing Rules
 
@@ -711,6 +753,9 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Fix to the `autoFit` state flag of embedded maps to work more consistently.
 - Map View now sets the type of the 'location' property to List, to prevent issues of Obsidian corrupting it.
 - Query tag suggestions now only show tags present on the map
+- Added a "focus current note in Map View" command.
+- Only one controls section expanded at a time (default)
+- Routing with GraphHopper
 
 ### 5.5.0
 

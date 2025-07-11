@@ -1,13 +1,9 @@
 import {
-    App,
-    TAbstractFile,
-    Editor,
     ItemView,
     MenuItem,
     Menu,
     TFile,
     WorkspaceLeaf,
-    Notice,
     MarkdownView,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
@@ -21,12 +17,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
-import {
-    type MapState,
-    mergeStates,
-    stateToUrl,
-    copyState,
-} from 'src/mapState';
+import { type MapState, mergeStates, copyState } from 'src/mapState';
 import { type PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';

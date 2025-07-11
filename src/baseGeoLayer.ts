@@ -55,6 +55,13 @@ export abstract class BaseGeoLayer {
         return this.extraName ?? this.file.basename;
     }
 
+    /*
+     * This is to be called when Obsidian signals us that a file has been renamed.
+     */
+    public renameContainingFile(file: TFile) {
+        this.file = file;
+    }
+
     /**
      * Is this geographic layer identical to the other object.
      * Used to compare to existing data to minimise creation.
