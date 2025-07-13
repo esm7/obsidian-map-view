@@ -48,6 +48,7 @@ import {
     createMarkerInFile,
 } from 'src/fileMarker';
 import { FloatingMarker } from 'src/floatingMarker';
+import { FloatingPath } from 'src/floatingPath';
 import {
     GeoJsonLayer,
     createGeoJsonInFile,
@@ -119,7 +120,7 @@ export class MapContainer {
         /** The element holding map marker popups */
         popupDiv: HTMLDivElement;
         popperInstance: PopperInstance;
-        popupElement: leaflet.Marker;
+        popupElement: leaflet.Layer;
         popupElementUnmount: () => void;
         popupClickEventListener: (ev: MouseEvent) => void;
         /** The leaflet map instance */
@@ -766,7 +767,8 @@ export class MapContainer {
                 // If the popup is displayed, we're not on mobile (so it should be only displayed on hover) but
                 // there's no popup element, close the popup
                 if (!this.display.popupElement) this.closeMarkerPopup(false);
-                if (this.display.popupElement) {
+                if (this.display.popupElement instanceof leaflet.Marker) {
+                    // This is doable only for markers and not paths
                     const mousePosition = await utils.getMousePosition();
                     const element = this.display.popupElement?.getElement();
                     const rect = element?.getBoundingClientRect();
@@ -958,6 +960,19 @@ export class MapContainer {
         }
     }
 
+    private addPopupHandlingEvents(
+        leafletLayer: leaflet.Layer,
+        layer: BaseGeoLayer,
+        popupPlacement: 'element' | 'mouse',
+    ) {
+        leafletLayer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+            this.showMarkerPopups(layer, leafletLayer, event, popupPlacement);
+        });
+        leafletLayer.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
+            this.closeMarkerPopup(false);
+        });
+    }
+
     private newLeafletMarker(marker: FileMarker): leaflet.Marker {
         let icon: leaflet.Icon<IconOptions> | leaflet.DivIcon;
         if (marker.icon) {
@@ -1007,16 +1022,7 @@ export class MapContainer {
                 );
         });
 
-        newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
-            if (!utils.isMobile(this.app)) {
-                this.showMarkerPopups(marker, newMarker, event);
-            }
-        });
-        newMarker.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
-            if (!utils.isMobile(this.app)) {
-                this.closeMarkerPopup(false);
-            }
-        });
+        this.addPopupHandlingEvents(newMarker, marker, 'element');
         newMarker.on('remove', (_event: leaflet.LeafletMouseEvent) => {
             this.closeMarkerPopup(true);
         });
@@ -1119,6 +1125,7 @@ export class MapContainer {
         layer: BaseGeoLayer,
         leafletLayer: leaflet.Layer,
         event: leaflet.LeafletMouseEvent,
+        placement: 'element' | 'mouse' = 'element',
     ) {
         // Popups based on the layers below the cursor shouldn't be opened while animations
         // are occuring
@@ -1142,14 +1149,32 @@ export class MapContainer {
                 unmount(component);
             };
 
-            const markerElement = event.target.getElement();
+            let refElement = null;
+            if (placement === 'mouse') {
+                // If we wish Popper to open where the mouse is, it requires a "virtual element", as explained in the Popper
+                // documentation here: https://popper.js.org/docs/v2/virtual-elements/
+                function generateGetBoundingClientRect(x = 0, y = 0) {
+                    return () => ({
+                        width: 0,
+                        height: 0,
+                        top: event.originalEvent.y,
+                        right: event.originalEvent.x,
+                        bottom: event.originalEvent.y,
+                        left: event.originalEvent.x,
+                    });
+                }
+                refElement = {
+                    getBoundingClientRect: generateGetBoundingClientRect(),
+                };
+            } else if (placement === 'element')
+                refElement = event.target.getElement();
             // Make the popup visible
             this.display.popupDiv.addClass('visible');
             // If we're using Popper (non-mobile), update the Popper instance about which marker it should follow.
             // Otherwise, use a more naive placement
             if (this.display.popperInstance) {
                 this.display.popperInstance.state.elements.reference =
-                    markerElement;
+                    refElement;
                 this.display.popperInstance.update();
             } else {
                 this.display.popupDiv.addClass('simple-placement');
@@ -1184,8 +1209,7 @@ export class MapContainer {
             );
         }
         this.startHoverHighlight(layer);
-        if (leafletLayer instanceof leaflet.Marker)
-            this.display.popupElement = leafletLayer;
+        this.display.popupElement = leafletLayer;
     }
 
     /*
@@ -1389,26 +1413,33 @@ export class MapContainer {
     addFloatingRoute(route: RoutingResult) {
         const distanceKmStr = (route.distanceMeters / 1000).toFixed(1);
         const timeMinutesStr = Math.round(route.timeMinutes);
+        const floatingPath = new FloatingPath(null, route.path);
+        floatingPath.routingResult = route;
         const geoJsonLayer = leaflet.geoJSON(route.path, {
             style: {
                 ...consts.ROUTING_PATH_OPTIONS,
                 bubblingMouseEvents: false,
             },
             onEachFeature: (feature: any, layer: leaflet.Layer) => {
-                const popupContent = `
-					<b>Routing with '${route.profileUsed}':</b> <br>
-					Distance: ${distanceKmStr}km <br>
-					Time: ${timeMinutesStr} minutes
-				`;
-                layer.bindPopup(popupContent, { autoClose: true });
-                layer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
-                    layer.openPopup(event.latlng);
-                });
-                layer.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
-                    layer.closePopup();
-                });
+                if (feature?.geometry?.type !== 'Point') {
+                    this.addPopupHandlingEvents(layer, floatingPath, 'mouse');
+                    layer.on(
+                        'click',
+                        async (event: leaflet.LeafletMouseEvent) => {
+                            if (utils.isMobile(this.app)) {
+                                await this.showMarkerPopups(
+                                    floatingPath,
+                                    layer,
+                                    event,
+                                );
+                            }
+                        },
+                    );
+                }
             },
         });
+        floatingPath.geoLayer = geoJsonLayer;
+
         geoJsonLayer.on('contextmenu', (event: leaflet.LeafletMouseEvent) => {
             let menu = new Menu();
             menus.addPathAddToNote(
@@ -1802,25 +1833,9 @@ export class MapContainer {
             onEachFeature: (feature: any, layer: leaflet.Layer) => {
                 // Features of type 'Point' are handled below
                 if (feature?.geometry?.type !== 'Point') {
-                    const name = (feature as any)?.properties?.name;
-                    let header = name
-                        ? `${name} (in '${marker.file.name}')`
-                        : marker.file.name;
-                    layer.bindPopup(header, { autoClose: true });
-                    layer.on(
-                        'mouseover',
-                        (event: leaflet.LeafletMouseEvent) => {
-                            layer.openPopup(event.latlng);
-                        },
-                    );
-                    layer.on(
-                        'mouseout',
-                        (_event: leaflet.LeafletMouseEvent) => {
-                            layer.closePopup();
-                        },
-                    );
+                    this.addPopupHandlingEvents(layer, marker, 'mouse');
                     layer.on('click', (event: leaflet.LeafletMouseEvent) => {
-                        // TODO proper mobile support
+                        // TODO proper mobile support - show popup
                         if (
                             marker.sourceType === 'geojson' &&
                             marker.fileLocation > 0
@@ -1874,21 +1889,10 @@ export class MapContainer {
                 floatingMarker.description = feature?.properties?.desc ?? '';
                 floatingMarker.extraName = `Stored in '${marker.file.name}'`;
                 // TODO proper mobile support
-                leafletMarker.on(
-                    'mouseover',
-                    (event: leaflet.LeafletMouseEvent) => {
-                        this.showMarkerPopups(
-                            floatingMarker,
-                            leafletMarker,
-                            event,
-                        );
-                    },
-                );
-                leafletMarker.on(
-                    'mouseout',
-                    (_event: leaflet.LeafletMouseEvent) => {
-                        this.closeMarkerPopup(false);
-                    },
+                this.addPopupHandlingEvents(
+                    leafletMarker,
+                    floatingMarker,
+                    'element',
                 );
                 return leafletMarker;
             },

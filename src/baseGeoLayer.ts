@@ -9,7 +9,11 @@ import type MapViewPlugin from './main';
 type MarkerId = string;
 
 export abstract class BaseGeoLayer {
-    public layerType: 'fileMarker' | 'geojson' | 'floatingMarker';
+    public layerType:
+        | 'fileMarker'
+        | 'geojson'
+        | 'floatingMarker'
+        | 'floatingPath';
     /** The file object on which this location was found */
     public file: TFile;
     /** An ID to recognize the marker */

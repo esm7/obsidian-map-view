@@ -31,6 +31,7 @@ export class GeoJsonLayer extends BaseGeoLayer {
     public location: leaflet.LatLng;
     public geojson: GeoJSON;
     public pathOptions: PathOptions = {};
+    public text: string = '';
     public sourceType: 'geojson' | 'gpx';
 
     /**
@@ -75,6 +76,21 @@ export class GeoJsonLayer extends BaseGeoLayer {
         const [_, pathOptions] = plugin.displayRulesCache.runOn(this);
         this.pathOptions = pathOptions;
     }
+
+    populateMetadata() {
+        let properties: any = (this.geojson as any)?.properties;
+        if (
+            !properties &&
+            (this.geojson as any)?.features &&
+            (this.geojson as any).features.length > 0
+        ) {
+            properties = (this.geojson as any).features[0]?.properties;
+        }
+        if (properties) {
+            this.extraName = properties?.name ?? '';
+            this.text = properties?.desc ?? '';
+        }
+    }
 }
 
 export type FileWithGeoJsons = {
@@ -114,6 +130,7 @@ export async function buildGeoJsonLayers(
                 const layer = new GeoJsonLayer(file);
                 layer.geojson = JSON.parse(content);
                 layer.sourceType = 'geojson';
+                layer.populateMetadata();
                 layers.push(layer);
             } catch (e) {
                 console.log(`Error parsing geojson in ${file.name}`, e);
@@ -139,6 +156,7 @@ export async function buildGeoJsonLayers(
                                         .substring(0, layer.fileLocation)
                                         .split('\n').length - 1;
                                 // TODO add file block and heading
+                                layer.populateMetadata();
                                 layer.generateId();
                                 if (match.groups.tags)
                                     addTagsToLayer(layer, match.groups.tags);
@@ -172,6 +190,7 @@ export async function buildGeoJsonLayers(
                             : null;
                 const layer = new GeoJsonLayer(file);
                 layer.geojson = geoJson;
+                layer.populateMetadata();
                 layer.generateId();
                 layer.sourceType = 'gpx';
                 layers.push(layer);

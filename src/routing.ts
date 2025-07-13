@@ -43,6 +43,7 @@ export async function doRouting(
             ],
             instructions: false,
             points_encoded: false,
+            elevation: true,
             ...settings.routingGraphHopperExtra,
         };
         const resultContent: any = await request({
@@ -70,7 +71,7 @@ export async function doRouting(
             distanceMeters: path?.distance,
             timeMinutes: path?.time / 1000 / 60,
             totalAscentMeters: path?.ascend,
-            totalDescentMeters: path?.descent,
+            totalDescentMeters: path?.descend,
             path: path.points as GeoJSON,
         };
         map.addFloatingRoute(routingResult);
