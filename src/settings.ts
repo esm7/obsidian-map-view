@@ -154,7 +154,7 @@ export type DisplayRule = {
 };
 
 export const EMPTY_DISPLAY_RULE: Partial<DisplayRule> = {
-    iconDetails: { icon: '', markerColor: '', shape: '' },
+    iconDetails: { icon: '', markerColor: '', shape: '', opacity: 1.0 },
     pathOptions: { color: '', weight: 0, opacity: 0 },
     badgeOptions: {
         badge: '',
@@ -192,6 +192,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
                 prefix: 'fas',
                 icon: 'fa-circle',
                 markerColor: 'blue',
+                opacity: 1.0,
             },
             pathOptions: {
                 color: 'blue',

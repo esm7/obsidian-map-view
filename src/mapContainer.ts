@@ -62,9 +62,11 @@ import * as utils from 'src/utils';
 import {
     ViewControls,
     SearchControl,
+    RoutingControl,
     RealTimeControl,
     LockControl,
     EditControl,
+    AddFileControl,
 } from 'src/viewControls';
 import { Query } from 'src/query';
 import { GeoSearchResult } from 'src/geosearch';
@@ -78,6 +80,7 @@ import { createPopper, type Instance as PopperInstance } from '@popperjs/core';
 import * as offlineTiles from 'src/offlineTiles.svelte';
 import MarkerPopup from './components/MarkerPopup.svelte';
 import { type RoutingResult } from 'src/routing';
+import { getMarkerFromUser } from 'src/markerSelectDialog';
 
 export type ViewSettings = {
     showMinimizeButton: boolean;
@@ -91,6 +94,7 @@ export type ViewSettings = {
     showPresets: boolean;
     showEdit: boolean;
     showSearch: boolean;
+    showRouting: boolean;
     showOpenButton: boolean;
     showRealTimeButton: boolean;
     showLockButton: boolean;
@@ -139,10 +143,14 @@ export class MapContainer {
         zoomControls: leaflet.Control.Zoom;
         /** The search controls (search & clear buttons) */
         searchControls: SearchControl = null;
+        /** The routing controls */
+        routingControls: RoutingControl = null;
         /** The real-time geolocation controls */
         realTimeControls: RealTimeControl = null;
         /** The pencil button for showing edit controls */
         editControl: EditControl = null;
+        /** The "add file" button that appears in Edit Mode below the edit tools */
+        addFileControl: AddFileControl = null;
         /** The lock control */
         lockControl: LockControl = null;
         /** A marker of the last search result */
@@ -191,6 +199,7 @@ export class MapContainer {
     public updateCodeBlockFromMapViewCallback: () => Promise<void>;
     /** Internal URL for a pre-generated "error" tile */
     private errorTileUrl = '';
+    private inDragMode = false;
 
     /**
      * Construct a new map instance
@@ -381,10 +390,24 @@ export class MapContainer {
                         drawText: false,
                         removalMode: false,
                     });
-                    // this.display.map.pm.enableGlobalEditMode({});
+                    if (!this.display.addFileControl) {
+                        this.display.addFileControl = new AddFileControl(
+                            { position: 'topright' },
+                            this,
+                            this.app,
+                            this.plugin,
+                            this.settings,
+                        );
+                        this.display.map.addControl(
+                            this.display.addFileControl,
+                        );
+                    }
                 } else {
                     this.display.map.pm.removeControls();
-                    // this.display.map.pm.disableGlobalEditMode();
+                    if (this.display.addFileControl) {
+                        this.display.addFileControl.remove();
+                        this.display.addFileControl = null;
+                    }
                 }
             }
             if (this.display.lockControl)
@@ -629,6 +652,14 @@ export class MapContainer {
                 this.display.controls.openEditSection();
             }
         });
+        this.display.map.on('pm:dragenable', (e) => {
+            this.inDragMode = true;
+            console.log('TODO TEMP drag');
+        });
+        this.display.map.on('pm:dragdisable', (e) => {
+            this.inDragMode = false;
+            console.log('TODO TEMP dragend');
+        });
         this.display.map.on(
             'pm:create',
             (e: {
@@ -688,6 +719,17 @@ export class MapContainer {
                 this.settings,
             );
             this.display.map.addControl(this.display.searchControls);
+        }
+
+        if (this.viewSettings.showRouting) {
+            this.display.routingControls = new RoutingControl(
+                { position: 'topright' },
+                this,
+                this.app,
+                this.plugin,
+                this.settings,
+            );
+            this.display.map.addControl(this.display.routingControls);
         }
 
         if (
@@ -984,6 +1026,7 @@ export class MapContainer {
         let newMarker = leaflet.marker(marker.location, {
             icon: icon,
             autoPan: true,
+            opacity: marker.opacity,
         });
 
         if (this.state.markerLabels && this.state.markerLabels != 'off')
@@ -1109,6 +1152,7 @@ export class MapContainer {
                 marker.location,
                 mapPopup,
                 this.settings,
+                marker,
             );
             const name = marker.name;
             menus.populateOpenInItems(
@@ -1127,6 +1171,8 @@ export class MapContainer {
         event: leaflet.LeafletMouseEvent,
         placement: 'element' | 'mouse' = 'element',
     ) {
+        // Not showing popups in drag mode so they won't interfere
+        if (this.inDragMode) return;
         // Popups based on the layers below the cursor shouldn't be opened while animations
         // are occuring
         if (this.settings.showNoteNamePopup || this.settings.showNotePreview) {
@@ -1412,7 +1458,6 @@ export class MapContainer {
 
     addFloatingRoute(route: RoutingResult) {
         const distanceKmStr = (route.distanceMeters / 1000).toFixed(1);
-        const timeMinutesStr = Math.round(route.timeMinutes);
         const floatingPath = new FloatingPath(null, route.path);
         floatingPath.routingResult = route;
         const geoJsonLayer = leaflet.geoJSON(route.path, {
@@ -1466,9 +1511,7 @@ export class MapContainer {
                 item.setTitle('Remove all calculated routes');
                 item.setIcon('trash');
                 item.onClick(() => {
-                    for (const route of this.display.calculatedRoutes)
-                        this.display.map.removeLayer(route);
-                    this.display.calculatedRoutes = [];
+                    this.clearAllRouting(false);
                 });
             });
             menu.showAtPosition(event.originalEvent);
@@ -1476,7 +1519,7 @@ export class MapContainer {
         geoJsonLayer.addTo(this.display.map);
         this.display.calculatedRoutes.push(geoJsonLayer);
         new Notice(
-            `Routing with '${route.profileUsed}': ${distanceKmStr}km, ${timeMinutesStr} minutes`,
+            `Routing with '${route.profileUsed}': ${distanceKmStr}km, ${utils.formatTime(route.timeMinutes)}`,
         );
     }
 
@@ -1648,7 +1691,7 @@ export class MapContainer {
         }
     }
 
-    setRoutingSource(location: leaflet.LatLng) {
+    setRoutingSource(location: leaflet.LatLng, name?: string) {
         if (this.display.routingSource) {
             this.display.routingSource.removeFrom(this.display.map);
             this.display.routingSource = null;
@@ -1661,23 +1704,65 @@ export class MapContainer {
                         [],
                         this.plugin.iconFactory,
                     ),
+                    zIndexOffset: 1000, // Ensure this marker appears on top of others
                 })
                 .addTo(this.display.map);
-            this.display.routingSource.on(
-                'contextmenu',
-                (ev: leaflet.LeafletMouseEvent) => {
-                    let routingSourcePopup = new Menu();
-                    routingSourcePopup.addItem((item: MenuItem) => {
-                        item.setTitle('Remove routing source');
-                        item.setIcon('trash');
-                        item.onClick(() => {
-                            this.setRoutingSource(null);
-                        });
+
+            const marker = this.display.routingSource;
+            marker.on('mouseover', (_event: leaflet.LeafletMouseEvent) => {
+                this.display.routingSource
+                    .bindPopup(
+                        name ? `Routing source: ${name}` : 'Routing source',
+                        { autoClose: true },
+                    )
+                    .openPopup();
+            });
+            marker.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
+                marker.closePopup();
+            });
+            marker.on('contextmenu', (ev: leaflet.LeafletMouseEvent) => {
+                let routingSourcePopup = new Menu();
+                routingSourcePopup.addItem((item: MenuItem) => {
+                    item.setTitle('Remove routing source');
+                    item.setIcon('trash');
+                    item.onClick(() => {
+                        this.setRoutingSource(null);
                     });
-                    routingSourcePopup.showAtPosition(ev.originalEvent);
-                },
-            );
+                });
+                routingSourcePopup.addItem((item: MenuItem) => {
+                    item.setTitle('Route to...');
+                    item.setIcon('milestone');
+                    item.onClick(async () => {
+                        const marker = await getMarkerFromUser(
+                            this.getState().mapCenter,
+                            'Select a marker for routing',
+                            this.app,
+                            this.plugin,
+                            this.settings,
+                        );
+                        if (marker && marker instanceof FileMarker) {
+                            const menu = new Menu();
+                            menus.populateRouteToPoint(
+                                this,
+                                marker.location,
+                                menu,
+                                this.settings,
+                            );
+                            menu.showAtMouseEvent(ev.originalEvent);
+                        }
+                    });
+                });
+                routingSourcePopup.showAtPosition(ev.originalEvent);
+            });
         }
+        this.display.routingControls?.updateControlsToState();
+    }
+
+    clearAllRouting(alsoSource: boolean) {
+        for (const route of this.display.calculatedRoutes)
+            this.display.map.removeLayer(route);
+        this.display.calculatedRoutes = [];
+        if (alsoSource) this.setRoutingSource(null);
     }
 
     setLock(lock: boolean) {

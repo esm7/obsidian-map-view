@@ -25,6 +25,7 @@ export class MiniMapView extends BaseMapView {
             showPresets: false,
             showEdit: false,
             showSearch: true,
+            showRouting: false,
             showRealTimeButton: true,
             showLockButton: false,
             showOpenButton: true,

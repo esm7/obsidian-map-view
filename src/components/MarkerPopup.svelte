@@ -297,7 +297,7 @@
             {#if layer instanceof FloatingPath && layer.routingResult}
                 {@const route = layer.routingResult}
                 Distance: {(route.distanceMeters / 1000).toFixed(1)}km <br />
-                Time: {Math.round(route.timeMinutes)} minutes
+                Time: {utils.formatTime(route.timeMinutes)}
                 {@const ascent = route?.totalAscentMeters}
                 {@const descent = route?.totalDescentMeters}
                 {#if ascent > 0 || descent > 0}

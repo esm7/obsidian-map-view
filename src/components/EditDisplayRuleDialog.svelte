@@ -147,6 +147,17 @@
                         class="rule-input"
                     />
                 </div>
+                <div class="rule-input">
+                    {@render fieldName(
+                        'Opacity',
+                        'A value between 0 (fully transparent) and 1 (fully opaque)',
+                    )}
+                    <input
+                        type="text"
+                        bind:value={ruleCopy.iconDetails.opacity}
+                        class="rule-input"
+                    />
+                </div>
             </div>
         </div>
 

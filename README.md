@@ -756,6 +756,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Added a "focus current note in Map View" command.
 - Only one controls section expanded at a time (default)
 - Routing with GraphHopper
+- Added 'opacity' as an icon property
 
 ### 5.5.0
 

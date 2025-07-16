@@ -28,7 +28,7 @@ import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
 import { EmbeddedMap } from 'src/embeddedMap';
 import { MapContainer } from 'src/mapContainer';
-import { getIconFromRules, IconFactory } from 'src/markerIcons';
+import { IconFactory } from 'src/markerIcons';
 import { DisplayRulesCache } from 'src/displayRulesCache';
 import {
     askForLocation,

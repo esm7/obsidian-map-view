@@ -247,6 +247,10 @@ div.map-view-highlight.marker-cluster {
     padding: 0;
 }
 
+.mv-hidden {
+    display: none !important;
+}
+
 @media print {
     .map-view-graph-controls {
         display: none;

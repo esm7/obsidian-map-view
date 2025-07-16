@@ -597,3 +597,16 @@ export function makeInlineTagsList(tags: string[]) {
         })
         .join(' ');
 }
+
+/*
+ * Output a string that is either in the form of "45 minutes" or "1:12 hours".
+ */
+export function formatTime(minutes: number) {
+    if (minutes < 60) {
+        return `${Math.floor(minutes)} minutes`;
+    } else {
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = Math.floor(minutes % 60);
+        return `${hours}:${remainingMinutes.toString().padStart(2, '0')} hours`;
+    }
+}

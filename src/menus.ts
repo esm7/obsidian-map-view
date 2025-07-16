@@ -18,6 +18,7 @@ import { SvelteModal } from 'src/svelte';
 import ImportDialog from './components/ImportDialog.svelte';
 import { doRouting } from 'src/routing';
 import { type GeoJSON } from 'geojson';
+import { BaseGeoLayer } from 'src/baseGeoLayer';
 
 export function addShowOnMap(
     menu: Menu,
@@ -445,6 +446,7 @@ export function populateRouting(
     geolocation: leaflet.LatLng,
     menu: Menu,
     settings: settings.PluginSettings,
+    existingLayer?: BaseGeoLayer,
 ) {
     if (geolocation) {
         menu.addItem((item: MenuItem) => {
@@ -452,49 +454,62 @@ export function populateRouting(
             item.setSection('mapview');
             item.setIcon('flag');
             item.onClick(() => {
-                mapContainer.setRoutingSource(geolocation);
+                mapContainer.setRoutingSource(geolocation, existingLayer?.name);
             });
         });
 
         if (mapContainer.display.routingSource) {
-            const origin = mapContainer.display.routingSource.getLatLng();
             menu.addItem((item: MenuItem) => {
                 item.setTitle('Route to point');
                 item.setSection('mapview');
                 item.setIcon('milestone');
-                const submenu = (item as any)
-                    .setSubmenu()
-                    .addItem((item: MenuItem) => {
-                        item.setTitle('With external service');
-                        item.onClick(() => {
-                            const routingTemplate = settings.routingUrl;
-                            const url = routingTemplate
-                                .replace('{x0}', origin.lat.toString())
-                                .replace('{y0}', origin.lng.toString())
-                                .replace('{x1}', geolocation.lat.toString())
-                                .replace('{y1}', geolocation.lng.toString());
-                            open(url);
-                        });
-                    });
-                const profiles = settings.routingGraphHopperProfiles.split(',');
-                for (const profile of profiles) {
-                    const cleanedProfile = profile.trim();
-                    submenu.addItem((item: MenuItem) => {
-                        item.setTitle(`GraphHopper: ${cleanedProfile}`);
-                        item.onClick(() => {
-                            doRouting(
-                                origin,
-                                geolocation,
-                                'graphhopper',
-                                { profile: cleanedProfile },
-                                mapContainer,
-                                settings,
-                            );
-                        });
-                    });
-                }
+                const submenu = (item as any).setSubmenu();
+                populateRouteToPoint(
+                    mapContainer,
+                    geolocation,
+                    submenu,
+                    settings,
+                );
             });
         }
+    }
+}
+
+export function populateRouteToPoint(
+    mapContainer: MapContainer,
+    geolocation: leaflet.LatLng,
+    menu: Menu,
+    settings: settings.PluginSettings,
+) {
+    const origin = mapContainer.display.routingSource.getLatLng();
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('With external service');
+        item.onClick(() => {
+            const routingTemplate = settings.routingUrl;
+            const url = routingTemplate
+                .replace('{x0}', origin.lat.toString())
+                .replace('{y0}', origin.lng.toString())
+                .replace('{x1}', geolocation.lat.toString())
+                .replace('{y1}', geolocation.lng.toString());
+            open(url);
+        });
+    });
+    const profiles = settings.routingGraphHopperProfiles.split(',');
+    for (const profile of profiles) {
+        const cleanedProfile = profile.trim();
+        menu.addItem((item: MenuItem) => {
+            item.setTitle(`GraphHopper: ${cleanedProfile}`);
+            item.onClick(() => {
+                doRouting(
+                    origin,
+                    geolocation,
+                    'graphhopper',
+                    { profile: cleanedProfile },
+                    mapContainer,
+                    settings,
+                );
+            });
+        });
     }
 }
 

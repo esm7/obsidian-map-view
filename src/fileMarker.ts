@@ -37,6 +37,7 @@ export class FileMarker extends BaseGeoLayer {
     public geoLayers: Map<number, leaflet.Marker> = new Map();
     public location: leaflet.LatLng;
     public icon?: leaflet.Icon<IconOptions>;
+    public opacity: number = 1.0;
     private _edges: Edge[] = [];
 
     /**
@@ -113,7 +114,9 @@ export class FileMarker extends BaseGeoLayer {
             // @ts-ignore
             this.icon?.options?.iconColor === other.icon?.options?.iconColor &&
             // @ts-ignore
-            this.icon?.options?.markerColor === other.icon?.options?.markerColor
+            this.icon?.options?.markerColor ===
+                other.icon?.options?.markerColor &&
+            this.opacity === other.opacity
         );
     }
 
@@ -132,7 +135,7 @@ export class FileMarker extends BaseGeoLayer {
     }
 
     runDisplayRules(plugin: MapViewPlugin) {
-        this.icon = getIconFromRules(
+        [this.icon, this.opacity] = getIconFromRules(
             this,
             plugin.displayRulesCache,
             plugin.iconFactory,

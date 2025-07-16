@@ -42,6 +42,7 @@ export class EmbeddedMap {
             showPresets: false,
             showEdit: false,
             showSearch: false,
+            showRouting: false,
             showRealTimeButton: false,
             showLockButton: true,
             showOpenButton: true,

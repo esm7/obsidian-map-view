@@ -114,6 +114,32 @@ function generateLayerId(
     );
 }
 
+/*
+ * Conver the content of a path file in one of the supported formats into a GeoJSON object
+ */
+export function convertToGeoJson(content: string, extension: string): GeoJSON {
+    let geojson: GeoJSON = null;
+    try {
+        if (extension === 'geojson') {
+            geojson = JSON.parse(content);
+        } else {
+            const domParser = new DOMParser();
+            const doc = domParser.parseFromString(content, 'text/xml');
+            geojson =
+                extension === 'gpx'
+                    ? toGeoJson.gpx(doc)
+                    : extension === 'kml'
+                      ? toGeoJson.kml(doc)
+                      : extension === 'tcx'
+                        ? toGeoJson.tcx(doc)
+                        : null;
+        }
+    } catch (e) {
+        console.error(`Error parsing path of type ${extension}:`, e);
+    }
+    return geojson;
+}
+
 export async function buildGeoJsonLayers(
     files: TFile[],
     settings: PluginSettings,
@@ -122,20 +148,8 @@ export async function buildGeoJsonLayers(
 ): Promise<BaseGeoLayer[]> {
     let layers: BaseGeoLayer[] = [];
     if (settings.debug) console.time('buildGeoJsonLayers');
-    const domParser = new DOMParser();
     for (const file of files) {
-        if (file.extension === 'geojson') {
-            try {
-                const content = await app.vault.read(file);
-                const layer = new GeoJsonLayer(file);
-                layer.geojson = JSON.parse(content);
-                layer.sourceType = 'geojson';
-                layer.populateMetadata();
-                layers.push(layer);
-            } catch (e) {
-                console.log(`Error parsing geojson in ${file.name}`, e);
-            }
-        } else if (file.extension === 'md') {
+        if (file.extension === 'md') {
             const fileCache = app.metadataCache.getFileCache(file);
             const frontMatter = fileCache?.frontmatter;
             if (hasFrontMatterLocations(frontMatter, fileCache, settings)) {
@@ -172,6 +186,17 @@ export async function buildGeoJsonLayers(
                     }
                 }
             }
+        } else if (file.extension === 'geojson') {
+            try {
+                const content = await app.vault.read(file);
+                const layer = new GeoJsonLayer(file);
+                layer.geojson = convertToGeoJson(content, 'geojson');
+                layer.sourceType = 'geojson';
+                layer.populateMetadata();
+                layers.push(layer);
+            } catch (e) {
+                console.log(`Error parsing geojson in ${file.name}`, e);
+            }
         } else if (
             file.extension === 'gpx' ||
             file.extension === 'kml' ||
@@ -179,17 +204,9 @@ export async function buildGeoJsonLayers(
         ) {
             const content = await app.vault.read(file);
             try {
-                const doc = domParser.parseFromString(content, 'text/xml');
-                const geoJson =
-                    file.extension === 'gpx'
-                        ? toGeoJson.gpx(doc)
-                        : file.extension === 'kml'
-                          ? toGeoJson.kml(doc)
-                          : file.extension === 'tcx'
-                            ? toGeoJson.tcx(doc)
-                            : null;
+                const geojson = convertToGeoJson(content, file.extension);
                 const layer = new GeoJsonLayer(file);
-                layer.geojson = geoJson;
+                layer.geojson = geojson;
                 layer.populateMetadata();
                 layer.generateId();
                 layer.sourceType = 'gpx';
@@ -199,7 +216,6 @@ export async function buildGeoJsonLayers(
             }
         }
     }
-    if (settings.debug) console.timeLog('buildGeoJsonLayers');
     // Calculate display rules
     for (const layer of layers) {
         layer.runDisplayRules(plugin);

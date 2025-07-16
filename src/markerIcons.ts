@@ -30,14 +30,18 @@ export interface IconOptions
     shape?: leaflet.ExtraMarkers.IconOptions['shape'] | 'simple-circle';
 }
 
+// Returns the icon element and an opacity number which is not part of the Icon itself but a marker property in Leaflet.js
 export function getIconFromRules(
     marker: FileMarker,
     displayRulesCache: DisplayRulesCache,
     iconFactory: IconFactory,
-) {
+): [leaflet.Icon | leaflet.DivIcon, number] {
     // We iterate over the rules and apply them one by one, so later rules override earlier ones
     const [iconOptions, _, badgeOptions] = displayRulesCache.runOn(marker);
-    return getIconFromOptions(iconOptions, badgeOptions, iconFactory);
+    return [
+        getIconFromOptions(iconOptions, badgeOptions, iconFactory),
+        iconOptions.opacity,
+    ];
 }
 
 export function getIconFromOptions(
