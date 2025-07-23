@@ -71,7 +71,7 @@ a.mv-icon-button.on {
 }
 
 .leaflet-container {
-    background-color: var(--titlebar-background-focused) !important;
+    background-color: var(--background-primary) !important;
 }
 
 .newPresetDialogGrid {

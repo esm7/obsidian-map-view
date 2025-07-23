@@ -3,8 +3,8 @@ import { App, TFile, TextComponent, PopoverSuggest, Scope } from 'obsidian';
 import * as consts from 'src/consts';
 import { matchByPosition, getTagUnderCursor } from 'src/utils';
 import * as regex from 'src/regex';
+import { isLayerLinkedFrom } from 'src/fileMarker';
 import { BaseGeoLayer } from 'src/baseGeoLayer';
-import { FileMarker, isMarkerLinkedFrom } from 'src/fileMarker';
 import * as utils from 'src/utils';
 import { checkTagPatternMatch } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
@@ -49,7 +49,7 @@ export class Query {
         return newString;
     }
 
-    testMarker(layer: BaseGeoLayer): boolean {
+    testLayer(layer: BaseGeoLayer): boolean {
         if (this.queryEmpty) return true;
         const toBool = (s: string) => {
             return s === 'true';
@@ -85,24 +85,24 @@ export class Query {
         return toBool(booleanStack[0]);
     }
 
-    private testIdentifier(marker: BaseGeoLayer, value: string): boolean {
+    private testIdentifier(layer: BaseGeoLayer, value: string): boolean {
         if (value.startsWith('tag:#')) {
             const queryTag = value.replace('tag:', '');
             if (queryTag.length === 0) return false;
-            if (checkTagPatternMatch(queryTag, marker.tags)) return true;
+            if (checkTagPatternMatch(queryTag, layer.tags)) return true;
             return false;
         } else if (value.startsWith('name:')) {
             const query = value.replace('name:', '').toLowerCase();
             if (query.length === 0) return false;
             // For inline geolocations, completely ignore the file name and use only the link name
-            if (marker.extraName)
-                return marker.extraName.toLowerCase().includes(query);
+            if (layer.extraName)
+                return layer.extraName.toLowerCase().includes(query);
             // For front matter geolocations, use the file name
-            return marker.file.name.toLowerCase().includes(query);
+            return layer.file.name.toLowerCase().includes(query);
         } else if (value.startsWith('path:')) {
             const queryPath = value.replace('path:', '').toLowerCase();
             if (queryPath.length === 0) return false;
-            return marker.file.path.toLowerCase().includes(queryPath);
+            return layer.file.path.toLowerCase().includes(queryPath);
         } else if (value.startsWith('linkedto:')) {
             const query = value.replace('linkedto:', '').toLowerCase();
             const linkedToDest = this.app.metadataCache.getFirstLinkpathDest(
@@ -110,7 +110,7 @@ export class Query {
                 '',
             );
             if (!linkedToDest) return false;
-            const fileCache = this.app.metadataCache.getFileCache(marker.file);
+            const fileCache = this.app.metadataCache.getFileCache(layer.file);
             const allLinks = [
                 ...(fileCache?.links ?? []),
                 ...(fileCache?.frontmatterLinks ?? []),
@@ -139,12 +139,12 @@ export class Query {
                     ...(linksFrom?.frontmatterLinks ?? []),
                     ...(linksFrom?.embeds ?? []),
                 ];
-                // Check if the given marker is linked from 'fileMatch'
+                // Check if the given layer is linked from 'fileMatch'
                 for (const link of allLinks) {
-                    if (isMarkerLinkedFrom(marker, link, this.app)) return true;
+                    if (isLayerLinkedFrom(layer, link, this.app)) return true;
                 }
                 // Also include the 'linked from' file itself
-                if (fileMatch.basename === marker.file.basename) return true;
+                if (fileMatch.basename === layer.file.basename) return true;
             }
         } else if (value.startsWith('lines:')) {
             const linesQueryMatch = value.match(/(lines:)([0-9]+)-([0-9]+)/);
@@ -152,9 +152,9 @@ export class Query {
                 const fromLine = parseInt(linesQueryMatch[2]);
                 const toLine = parseInt(linesQueryMatch[3]);
                 return (
-                    marker.fileLine &&
-                    marker.fileLine >= fromLine &&
-                    marker.fileLine <= toLine
+                    layer.fileLine &&
+                    layer.fileLine >= fromLine &&
+                    layer.fileLine <= toLine
                 );
             }
         } else if (value.startsWith('[')) {
@@ -166,7 +166,7 @@ export class Query {
             const [isExactName, propertyName] = unquote(propertyNameRaw);
             const [isExactQuery, propertyQuery] = unquote(propertyQueryRaw);
 
-            const fileCache = this.app.metadataCache.getFileCache(marker.file);
+            const fileCache = this.app.metadataCache.getFileCache(layer.file);
             let propertyValues: string[] = [];
             if (isExactName) {
                 const property = fileCache.frontmatter?.[propertyName];

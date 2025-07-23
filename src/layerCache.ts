@@ -1,7 +1,7 @@
-import { BaseGeoLayer, type MarkersMap } from 'src/baseGeoLayer';
+import { BaseGeoLayer, type LayersMap } from 'src/baseGeoLayer';
 
 export class LayerCache {
-    private layersMap: MarkersMap = new Map();
+    private layersMap: LayersMap = new Map();
     private layersByFilePath: Record<string, BaseGeoLayer[]> = {};
 
     /*
@@ -29,7 +29,7 @@ export class LayerCache {
         return this.layersByFilePath[filePath]?.values() ?? [].values();
     }
 
-    get map(): MarkersMap {
+    get map(): LayersMap {
         return this.layersMap;
     }
 

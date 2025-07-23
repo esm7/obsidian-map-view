@@ -512,7 +512,10 @@ export function getTagUnderCursor(
     return matchByPosition(line, regex.TAG_NAME_WITH_HEADER, cursorPosition);
 }
 
-// TODO document
+// This takes multiple iterables (that can be of different types, e.g. an iterator of a map and an iterator of an array)
+// and returns an iterator that will iterate over all the structures without copying them.
+// Note that like iterators in general, the result of this function can be used only once, and the iterator will need to be
+// re-created if another pass on the combined structure is needed.
 export function* combineIterables<T>(...iterables: Iterable<T>[]): Iterable<T> {
     for (const iterable of iterables) {
         yield* iterable;

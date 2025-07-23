@@ -15,6 +15,7 @@ import {
     verifyOrAddFrontMatterForInline,
     appendToNoteAtHeadingOrEnd,
     makeInlineTagsList,
+    getHeadingAndBlockForFilePosition,
 } from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
@@ -150,9 +151,9 @@ export async function buildGeoJsonLayers(
     if (settings.debug) console.time('buildGeoJsonLayers');
     for (const file of files) {
         if (file.extension === 'md') {
-            const fileCache = app.metadataCache.getFileCache(file);
-            const frontMatter = fileCache?.frontmatter;
-            if (hasFrontMatterLocations(frontMatter, fileCache, settings)) {
+            const metadata = app.metadataCache.getFileCache(file);
+            const frontMatter = metadata?.frontmatter;
+            if (hasFrontMatterLocations(frontMatter, metadata, settings)) {
                 // Search for an inline GeoJSON
                 const content = await app.vault.read(file);
                 const matches = content.matchAll(regex.INLINE_GEOJSON);
@@ -169,7 +170,13 @@ export async function buildGeoJsonLayers(
                                     content
                                         .substring(0, layer.fileLocation)
                                         .split('\n').length - 1;
-                                // TODO add file block and heading
+                                const [heading, block] =
+                                    getHeadingAndBlockForFilePosition(
+                                        metadata,
+                                        layer.fileLocation,
+                                    );
+                                layer.fileHeading = heading;
+                                layer.fileBlock = block;
                                 layer.populateMetadata();
                                 layer.generateId();
                                 if (match.groups.tags)

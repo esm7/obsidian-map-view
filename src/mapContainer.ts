@@ -132,9 +132,8 @@ export class MapContainer {
         tileLayer: TileLayerOffline;
         /** The cluster management class */
         clusterGroup: leaflet.MarkerClusterGroup;
-        /** The markers currently on the map */
-        // TODO change name
-        markers: LayerCache = new LayerCache();
+        /** The layers currently on the map */
+        layers: LayerCache = new LayerCache();
         /** The polylines currently on the map */
         polylines: leaflet.Polyline[] = [];
         /** The view controls */
@@ -190,7 +189,8 @@ export class MapContainer {
     private lastTabLeaf: WorkspaceLeaf;
     /** Is the view currently open */
     private isOpen: boolean = false;
-    // TODO document
+    // MapContainer objects have an increasing ID for the purpose of being able to identify themselves in the BaseGeoLayer.geoLayers
+    // maps
     private mapContainerId: number;
     private static staticMaxMapContainerId: number = 0;
     /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
@@ -255,7 +255,7 @@ export class MapContainer {
     }
 
     getMarkers() {
-        return this.display.markers;
+        return this.display.layers;
     }
 
     isDarkMode(settings: PluginSettings): boolean {
@@ -555,7 +555,7 @@ export class MapContainer {
         this.display.tileLayer = null;
         this.display?.map?.off();
         this.display?.map?.remove();
-        this.display?.markers?.clear();
+        this.display?.layers?.clear();
         this.display?.controls?.reload();
         await this.createMap();
         this.updateMarkersToState(this.state, true);
@@ -796,7 +796,7 @@ export class MapContainer {
         );
 
         // This is an ugly work-around for an issue of marker popups sometimes not closing when they should,
-        // seemingly due to a race condition of closing and opening the popup from multiple markers upon
+        // seemingly due to a race condition of closing and opening the popup from multiple layers upon
         // rapid mouse movements.
         // I couldn't find a better solution to this edge case rather than check once in a while if a popup
         // happens to be open when it shouldn't.
@@ -856,9 +856,9 @@ export class MapContainer {
         const forceRecreate = state.markerLabels != this.state.markerLabels;
         this.state = structuredClone(state);
 
-        // TODO TEMP change names
-        if (forceRecreate) this.updateMapMarkers([]);
-        this.updateMapMarkers(allLayers);
+        // forceRecreate means we want to reset the layers before calling the real updateMapLayers
+        if (forceRecreate) this.updateMapLayers([]);
+        this.updateMapLayers(allLayers);
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
         // of interactions and async updates compete over the map.
         // See the comment in internalSetViewState to get more context
@@ -907,23 +907,23 @@ export class MapContainer {
         let results: BaseGeoLayer[] = [];
         const query = new Query(this.app, queryString);
         for (const marker of allMarkers)
-            if (query.testMarker(marker)) results.push(marker);
+            if (query.testLayer(marker)) results.push(marker);
         return results;
     }
 
     /**
-     * Update the actual Leaflet markers of the map according to a new list of logical markers.
-     * Unchanged markers are not touched, new markers are created and old markers that are not in the updated list are removed.
+     * Update the actual Leaflet layers of the map according to a new list of logical layers.
+     * Unchanged layers are not touched, new layers are created and old layers that are not in the updated list are removed.
      * Also, all the polylines (edge lines representing links) are cleared and redrawn, which is inefficient and can
      * be optimized in the future.
      * @param newLayer The new array of layers
      */
-    updateMapMarkers(newLayers: Iterable<BaseGeoLayer>) {
-        for (const layer of this.display.markers.layers) layer.touched = false;
+    updateMapLayers(newLayers: Iterable<BaseGeoLayer>) {
+        for (const layer of this.display.layers.layers) layer.touched = false;
         let layersToAdd: BaseGeoLayer[] = [];
         let totalLayers = 0;
         for (let layer of newLayers) {
-            const existingLayer = this.display.markers.get(layer.id);
+            const existingLayer = this.display.layers.get(layer.id);
             if (existingLayer && existingLayer.isSame(layer)) {
                 // This layer exists, so just keep it
                 existingLayer.touched = true;
@@ -944,11 +944,11 @@ export class MapContainer {
             totalLayers++;
         }
         let layersToRemove: BaseGeoLayer[] = [];
-        for (const layer of this.display.markers.layers) {
+        for (const layer of this.display.layers.layers) {
             if (!layer.touched) {
                 layersToRemove.push(layer);
-                this.display.markers.delete(layer.id);
-                // Remove the edges that connect the markers we are removing, together with their polylines
+                this.display.layers.delete(layer.id);
+                // Remove the edges that connect the layers we are removing, together with their polylines
                 if (layer instanceof FileMarker)
                     layer.removeEdges(this.display.polylines);
             }
@@ -956,31 +956,31 @@ export class MapContainer {
         this.display.clusterGroup.removeLayers(
             layersToRemove.map((layer) => this.getGeoLayer(layer)),
         );
-        for (const layer of layersToAdd) this.display.markers.add(layer);
-        // Now add the actual markers & paths on the map
+        for (const layer of layersToAdd) this.display.layers.add(layer);
+        // Now add the actual layers & paths on the map
         this.display.clusterGroup.addLayers(
             layersToAdd.map((layer) => this.getGeoLayer(layer)),
         );
         this.buildPolylines();
         // Just a cheap sanity check
-        if (totalLayers != this.display.markers.size)
+        if (totalLayers != this.display.layers.size)
             console.error(
                 'Something went wrong building the map, it has',
-                this.display.markers.size,
+                this.display.layers.size,
                 'items instead of',
                 totalLayers,
             );
     }
 
     /**
-     * Builds all the non-existing polylines according to the edges stored in the markers, and adds them to the map.
+     * Builds all the non-existing polylines according to the edges stored in the layers, and adds them to the map.
      */
     private buildPolylines() {
         if (this.state.showLinks) {
-            for (const marker of this.display.markers.layers) {
-                if (marker instanceof FileMarker) {
-                    // Draw edges between markers
-                    for (const edge of marker.edges) {
+            for (const layer of this.display.layers.layers) {
+                if (layer instanceof FileMarker) {
+                    // Draw edges between layers
+                    for (const edge of layer.edges) {
                         // Since an edge is linked from both of its sides, we want to make sure we create
                         // the polyline just once
                         if (edge.polyline) {
@@ -1295,7 +1295,7 @@ export class MapContainer {
         event.propagatedFrom.activePopup = content;
     }
 
-    /** Zoom the map to fit all markers on the screen */
+    /** Zoom the map to fit all layers on the screen */
     public async autoFitMapToMarkers() {
         const mapSize = this.display?.map?.getSize();
         if (!(mapSize && mapSize.x > 0 && mapSize.y > 0)) {
@@ -1305,9 +1305,9 @@ export class MapContainer {
                 this.autoFitMapToMarkers();
             });
         }
-        if (this.display.markers.size > 0) {
+        if (this.display.layers.size > 0) {
             const locations: leaflet.LatLng[] = [];
-            for (const marker of this.display.markers.layers) {
+            for (const marker of this.display.layers.layers) {
                 locations.push(...marker.getBounds());
             }
             this.display.map.fitBounds(leaflet.latLngBounds(locations), {
@@ -1555,7 +1555,7 @@ export class MapContainer {
 
     openSearch() {
         if (this.display.searchControls)
-            this.display.searchControls.openSearch(this.display.markers);
+            this.display.searchControls.openSearch(this.display.layers);
     }
 
     setHighlight(mapOrFileMarker: leaflet.Layer | BaseGeoLayer) {
@@ -1601,7 +1601,7 @@ export class MapContainer {
         file: TAbstractFile,
         fileLine: number | null = null,
     ): BaseGeoLayer | null {
-        for (let [_, fileMarker] of this.display.markers.map) {
+        for (let [_, fileMarker] of this.display.layers.map) {
             if (fileMarker.file == file) {
                 if (!fileLine) return fileMarker;
                 if (fileLine == fileMarker.fileLine) return fileMarker;
@@ -1611,7 +1611,7 @@ export class MapContainer {
     }
 
     findMarkerById(markerId: string): BaseGeoLayer | undefined {
-        return this.display.markers.get(markerId);
+        return this.display.layers.get(markerId);
     }
 
     updateRealTimeLocationMarkers() {
@@ -1813,7 +1813,7 @@ export class MapContainer {
     startHoverHighlight(markerToFocus: BaseGeoLayer) {
         if (!this.state.showLinks) return;
         this.display.mapDiv.addClass('mv-fade-active');
-        for (const marker of this.display.markers.layers) {
+        for (const marker of this.display.layers.layers) {
             if (
                 markerToFocus &&
                 marker instanceof FileMarker &&
@@ -1831,7 +1831,7 @@ export class MapContainer {
                 if (element) {
                     // We add two classes, one denoting that generally a fade is active and another to denote
                     // that a specific marker should be shown. It is done this way because of cluster groups.
-                    // We want a cluster group to be shown if *at least one* of its markers should be shown
+                    // We want a cluster group to be shown if *at least one* of its layers should be shown
                     if (shouldBeVisible)
                         element.addClass('mv-fade-marker-shown');
                 }
@@ -1850,7 +1850,7 @@ export class MapContainer {
 
     endHoverHighlight() {
         this.display.mapDiv.removeClass('mv-fade-active');
-        for (const marker of this.display.markers.layers) {
+        for (const marker of this.display.layers.layers) {
             const geoLayer = this.getGeoLayer(marker);
             if (geoLayer && geoLayer instanceof leaflet.Marker) {
                 const parent =
@@ -2028,5 +2028,9 @@ export class MapContainer {
                 action();
             }
         }
+    }
+
+    get containerId() {
+        return this.mapContainerId;
     }
 }

@@ -33,10 +33,7 @@ export class NoteSelectDialog extends SuggestModal<SuggestInfo> {
         this.customOnSelect = action;
 
         this.setPlaceholder(title);
-        let instructions = [
-            { command: 'enter', purpose: 'to use' },
-            { command: 'shift+enter', purpose: 'create a new note' },
-        ];
+        let instructions = [{ command: 'enter', purpose: 'to use' }];
         this.setInstructions(instructions);
         this.inputEl.addEventListener('keypress', (ev: KeyboardEvent) => {
             // In the case of a custom select function, trigger it also for Shift+Enter.
@@ -50,7 +47,6 @@ export class NoteSelectDialog extends SuggestModal<SuggestInfo> {
                 const chooser = (this as any).chooser;
                 const selectedItem = chooser?.selectedItem;
                 const values = chooser?.values;
-                // TODO support create new note
                 if (chooser && values) {
                     this.onChooseSuggestion(values[selectedItem], ev);
                     this.close();

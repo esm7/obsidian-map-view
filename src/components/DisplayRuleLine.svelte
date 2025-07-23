@@ -52,7 +52,6 @@
     }
 
     function makePreview() {
-        // TODO unify with the edit dialog
         const defaultRule = allRules.find(
             (rule: DisplayRule) => rule.preset === true,
         );
@@ -87,7 +86,7 @@
                 const queryObject = new Query(app, displayRule.query);
                 let matches = 0;
                 for (const layer of plugin.layerCache.map.values()) {
-                    if (queryObject.testMarker(layer)) matches += 1;
+                    if (queryObject.testLayer(layer)) matches += 1;
                 }
                 queryError = false;
                 if (matches === 0) zeroMatchWarning = true;

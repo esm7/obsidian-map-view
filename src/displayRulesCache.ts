@@ -35,8 +35,14 @@ export class DisplayRulesCache {
         return [iconDetails, pathOptions, badgeOptions];
     }
 
-    // TODO document
-    public runOn(marker: BaseGeoLayer): [any, PathOptions, IconBadgeOptions[]] {
+    /*
+     * Run the list of display rules on the given layer.
+     * Starting from the default marker/path options (default icon, path, badge options etc), it iterates over all the rules,
+     * and any rule that matches the layer overwrites whatever settings that it has in iconDetails and pathOptions,
+     * and adds additional badge options.
+     * The result (=the accumulated icon details, accumulated path options and list of badge options) is returned.
+     */
+    public runOn(layer: BaseGeoLayer): [any, PathOptions, IconBadgeOptions[]] {
         let [iconDetails, pathOptions, badgeOptions] = this.getDefaults();
         if (this.displayRuleQueries.length != this.displayRules.length)
             throw new Error(
@@ -47,7 +53,7 @@ export class DisplayRulesCache {
             // Test & apply the rules one by one, except the preset one, which is always first
             if (!rule.preset) {
                 const query = this.displayRuleQueries[i];
-                if (query.testMarker(marker)) {
+                if (query.testLayer(layer)) {
                     if (rule.iconDetails)
                         iconDetails = Object.assign(
                             {},
@@ -60,7 +66,7 @@ export class DisplayRulesCache {
                             pathOptions,
                             rule.pathOptions,
                         );
-                    // TODO overwrite existing overlay options with the same overlay
+                    // Possible future improvement: allow adding up properties of badges like in icons and paths.
                     if (rule.badgeOptions) badgeOptions.push(rule.badgeOptions);
                 }
             }

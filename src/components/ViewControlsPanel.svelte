@@ -87,7 +87,6 @@
         if (noteToEdit) {
             const headings = app.metadataCache.getFileCache(noteToEdit)
                 ?.headings as HeadingCache[];
-            // TODO bug here, heading positions change as note changes
             allNoteHeadings = headings
                 ? headings.map((heading) => heading.heading)
                 : [];

@@ -3,7 +3,7 @@
     "compilerOptions": {
         "types": ["svelte", "node"],
         "verbatimModuleSyntax": true,
-        "strict": false, // TODO fix
+        "strict": false,
         "baseUrl": ".",
         "inlineSources": true,
         "module": "ESNext",

@@ -327,6 +327,10 @@
         font-weight: bold;
     }
 
+    .setting-item-description {
+        padding-bottom: 5px;
+    }
+
     .section {
         padding-bottom: 20px;
         padding-right: 5px;

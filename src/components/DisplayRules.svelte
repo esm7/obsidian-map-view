@@ -72,7 +72,7 @@
             for (const rule of rules) {
                 const queryObject = new Query(app, rule.query);
                 for (const layer of plugin.layerCache.map.values()) {
-                    queryObject.testMarker(layer);
+                    queryObject.testLayer(layer);
                 }
             }
         } catch (e) {

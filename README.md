@@ -410,59 +410,60 @@ And/or you can have notes to plan a trip and link to places from it, then use `l
 
 In all cases you can [save presets](#Presets) that include the filter or sub-filters of it.
 
-## Marker Icons
+## Marker & Path Display Rules
 
-TODO - this requires a major update and also updating the links that lead here, including from the code!
+TODO - update links that go here, from the document and code!
 
-Map View allows you to customize notes' map marker icons based on a powerful rules system.
-These rules can be edited using the plugin's settings pane or edited as JSON for some even more fine-grained control.
+Map View includes a powerful mechanism that allows you to customize map markers and path display properties based on a powerful rules system. These are called Display Rules.
+
+Display rules are made of a **query**, which is the same as discussed [here](#queries), and various properties to apply to a marker or a path that match the query.
+When Map View tries to decide how to display a marker or a path, it starts from the Default display rule, which has a certain set of properties (e.g. a blue marker with a circle). It then tests the rest of the display rules by order, and for each rule with a matching query, overwrites whatever properties that rule sets.
+
+For example, the default rule for markers may be a blue marker color with an `fa-circle` icon. If the marker also matches a rule below the default one (e.g. a rule like `tag:#food`), and that rule sets just the icon to `fa-utensils`, the resulting marker will be blue (because the 2nd rule did not override the color) with an `fa-utensils` icon.
+
+(Note to Map View users prior to version 6.0.0: this is the same way Marker Icons worked before, except that rules use _queries_ rather than tags, allowing more flexibility.)
+
+To edit display rules, open the plugin settings, and click the button under the "Marker & Path Display Rules" section.
+You will see the list of the currently-active rules. You can add new rules, change the order of rules (except the default which must be first), and edit existing rules.
+When editing a rule, you will be able to set various properties that the rule can apply. All these properties are optional, and the rule will overwrite the default (or prior matching rules) for every marker or path that will match its query.
+
+### Marker Icon Properties
 
 Icons are based on either [emojis](https://emojipedia.org) or [Font Awesome](https://fontawesome.com/), so to add a marker icon you'll need to copy the emoji or find the name in the Font Awesome catalog.
 Additionally, there are various marker properties (shape, color and more) that are based on [Leaflet.ExtraMarkers](https://github.com/coryasilva/Leaflet.ExtraMarkers#properties).
 An additional shape of `simple-circle`, that draws a circle at the given color without a pin shape, is supported on top of these.
 
-To change the map marker icons for your notes, go to the Map View settings and scroll to Marker Icon Rules.
+For example, if you want markers with the `#travel` tag to have a bus icon, add a display rule with the query `tag:#travel`. Then click Edit, search the Font Awesome catalog for the appropriate icon (in this case `fa-bus`), and enter that in the 'icon' box.
 
-A single marker is defined with a _tag pattern_ and _icon details_.
-The tag pattern is usually a tag name (e.g. `#dogs`), but it can also be with a wildcard (e.g. `#trips/*`).
-Icon details are a few properties: icon name (taken from the Font Awesome catalog), color and shape.
-
-![](img/marker-rules.png)
-
-A single marker is defined in the following JSON structure:
-`{"prefix": "fas", "icon": "fa-bus", "shape": "circle", "color": "red"}`
-
-To add a marker with a bus icon, click New Icon Rule, search Font Awesome (in the link above) for 'bus', choose [this icon](https://fontawesome.com/v5.15/icons/bus?style=solid), then see that its name is `fa-bus`.
-Once you enter `fa-bus` in the icon name, you should immediately see your icon in the preview.
-To make this icon apply for notes with the `#travel` tag, type `#travel` in the Tag Name box.
 Alternatively, just paste an emoji of a bus (e.g. from [Emojipedia](https://emojipedia.org)) into the icon name box.
 
-### Tag Rules
+### Marker Badge
 
-To apply an icon to a note with geolocation data, Map View scans the complete list of rules by their order, always starting from `default`.
-A rule matches if the tag that it lists is included in the note, and then the rule's fields will overwrite the corresponding fields of the previous matching rules, until all rules were scanned.
-This allows you to set rules that change just some properties of the icons, e.g. some rules change the shape according to some tags, some change the color etc.
+You can add more information to markers using **badges**, which are little circles that are added in the corners of markers based on criteria that you choose.
+Up to 4 badges are supported per marker.
 
-Here's the example I provide as a probably-not-useful default in the plugin:
+Display rules can mix icon properties with badges in any way you see fit.
 
-```
-	{ruleName: "default", preset: true, iconDetails: {"prefix": "fas", "icon": "fa-circle", "markerColor": "blue"}},
-	{ruleName: "#trip", preset: false, iconDetails: {"prefix": "fas", "icon": "fa-hiking", "markerColor": "green"}},
-	{ruleName: "#trip-water", preset: false, iconDetails: {"prefix": "fas", "markerColor": "blue"}},
-	{ruleName: "#dogs", preset: false, iconDetails: {"prefix": "fas", "icon": "fa-paw"}},
-```
+To add a badge to a display rule, in the display rule edit dialog, paste an emoji or up to 2 characters into the Symbol box. Markers that match the rule will have that badge, and possibly other badges from other matching display rules, starting from the top-left corner clockwise.
 
-This means that all notes will have a blue `fa-circle` icon by default.
-However, a note with the `#trip` tag will have a green `fa-hiking` icon.
-Then, a note that has both the `#trip` and `#trip-water` tags will have a `fa-hiking` marker (when the `#trip` rule is applied), but a **blue** marker, because the `#trip-water` overwrites the `markerColor` that the previous `#trip` rule has set.
+Badges can have a symbol, a text color, a background color, and a border in the syntax of a CSS [border](https://developer.mozilla.org/en-US/docs/Web/CSS/border) property, e.g. `1px solid black`.
 
-Tag rules also support wildcards, e.g. a rule in the form of `"#food*": {...}` will match notes with the tag `#food`, `#food/pizza`, `#food/vegan`, `#food-to-try` etc.
+### Path Properties
 
-The settings also allow advanced users to manually edit the configuration tree, and there you can use more properties based on the [Leaflet.ExtraMarkers](https://github.com/coryasilva/Leaflet.ExtraMarkers#properties) properties. Manual edits update the GUI in real-time.
+Paths work exactly like markers, in the way that their style starts from the default rule, and properties of matching rules overwrite each other.
+Similarly to markers, you can set a rule like `tag:#hike` to a path and set to rule to have `red` for color.
 
-## Badges
+One difference is that some types of paths (e.g. GPX attachments to the vault) do not have a way to attach a tag to them; if you want to style some paths differently than others, you can use other query types, like name or `linkedfrom`. For example, you can have a central note named "My Runs" that will link to all the GPX files you want styled differently, and use a `linkedfrom` query in a display rule that will set these to red. See more about how to write such queries [here](#queries).
 
-TODO write
+Also, paths do not supported badges.
+
+### Advanced: Editing Rules as JSON
+
+The Edit Rule dialog allows you to directly edit a display rule as JSON, allowing a few more options and control than the GUI provides.
+
+- More options for marker icons can be found in [Leaflet.ExtraMarkers](https://github.com/coryasilva/Leaflet.ExtraMarkers#properties) properties. Note that some of these properties are known to not work with Map View.
+- Path options reference can be found [here](https://leafletjs.com/reference.html#path).
+- Marker badges have one more advanced property that is not present in the UI, `cssFilters`. This accepts a valid CSS `filter` string as defined [here](https://developer.mozilla.org/en-US/docs/Web/CSS/filter). For example, `"cssFilters": "grayscale(100%) brightness(0.8)"` can make an emoji grayscale and slightly dimmer.
 
 ## In-Note Location Search & Auto-Complete
 

@@ -52,11 +52,12 @@ export function getIconFromOptions(
     // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
     // @ts-ignore
     const backupL = L;
+    let icon: leaflet.Icon | leaflet.DivIcon;
     try {
         // @ts-ignore
         L = localL;
         if (iconSpec?.shape == 'simple-circle') {
-            return createSimpleCircleMarker(iconSpec, iconFactory);
+            icon = createSimpleCircleMarker(iconSpec, iconFactory);
         } else {
             // We check for iconSpec.icon to allow a custom innerHTML specification for some rules,
             // and in such a case, do not wish to override the innerHTML by the icon rendition. See getIconFromRules above
@@ -68,30 +69,30 @@ export function getIconFromOptions(
                 );
                 iconSpec.innerHTML = internalIcon;
             }
-            return addBadges(
-                leaflet.ExtraMarkers.icon(
-                    iconSpec as leaflet.ExtraMarkers.IconOptions,
-                ),
-                badgeOptions,
+            icon = leaflet.ExtraMarkers.icon(
+                iconSpec as leaflet.ExtraMarkers.IconOptions,
             );
         }
     } finally {
         // @ts-ignore
         L = backupL;
     }
+    return addBadges(icon, badgeOptions);
 }
 
 function addBadges(
-    leafletIcon: leaflet.Icon,
+    leafletIcon: leaflet.Icon | leaflet.DivIcon,
     badgeOptions: IconBadgeOptions[],
 ) {
-    // TODO support this in simpleCircleMarker too
     if (!badgeOptions || badgeOptions.length === 0) return leafletIcon;
     const oldCreator = leafletIcon.createIcon;
+    // The following wraps the createIcon function with one that adds a badge div if such exists.
     leafletIcon.createIcon = function (oldIcon: HTMLElement) {
         const iconDiv = oldCreator.call(this, oldIcon);
         if (iconDiv) {
-            // TODO document
+            // We support up to 4 badges, at the 4 corners of the icon, starting from the top left.
+            // So we iterate over the badges required for this marker and cycle between the badge locations.
+            // If there are more than 4 badges, the 5th will overwrite the 1st in the top-left corner.
             const CLASS_NAMES = [
                 'mv-badge-tl',
                 'mv-badge-tr',

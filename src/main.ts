@@ -65,8 +65,12 @@ import { BaseGeoLayer, cacheTagsFromLayers } from 'src/baseGeoLayer';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
-    // TODO document
-    // If null it means that the map is not yet initialized.
+    /*
+     * This object keeps a single global repository of the layers (markers & paths) that are known to Map View.
+     * These layers are mapped to files they belong to, and they have a mapping from a container ID to
+     * "physical" leaflet.Layer objects on the various map containers that are currently active, if any.
+     * If null, it means that the layer cache was not yet initialized.
+     */
     public layerCache: LayerCache | null = null;
     private layerCacheInitStarted: boolean = false;
     public iconFactory: IconFactory;
@@ -76,7 +80,7 @@ export default class MapViewPlugin extends Plugin {
     private urlConvertor: UrlConvertor;
     private mapPreviewPopup: MapPreviewPopup;
     public editorLinkReplacePlugin: ViewPlugin<GeoLinkReplacePlugin>;
-    // Includes all the known tags that are within markers, both inline (which are not necessarily known to Obsidian)
+    // Includes all the known tags that are within layers, both inline (which are not necessarily known to Obsidian)
     // and actual Obsidian tags
     public allTags: Set<string>;
     private allMapContainers: MapContainer[] = [];
@@ -762,7 +766,11 @@ export default class MapViewPlugin extends Plugin {
         else return null;
     }
 
-    // TODO document
+    /*
+     * The plugin needs to keep track of which map containers are active.
+     * This is tricky, and even more when it comes to EmbeddedMap objects, as Obsidian doesn't give any tools to do that
+     * reliably.
+     */
     public registerMapContainer(mapContainer: MapContainer) {
         this.allMapContainers.push(mapContainer);
     }
@@ -1191,7 +1199,7 @@ export default class MapViewPlugin extends Plugin {
 
     /**
      * Run when a file is deleted, renamed or *changed*.
-     * When a file is changed, the same is populated in fileRemoved and fileAddedOrChanged, so its markers are removed and then re-added.
+     * When a file is changed, the same is populated in fileRemoved and fileAddedOrChanged, so its layers are removed and then re-added.
      * WARNING: THIS METHOD RUNS A LOT. When a Map View is open and a note is edited anywhere in Obsidian,
      * this method can be called repeatedly during typing, and thus must be very efficient to not cause
      * delays for the user.
@@ -1209,7 +1217,7 @@ export default class MapViewPlugin extends Plugin {
         }
         let newLayers: BaseGeoLayer[] = [];
         if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
-            // Add file markers from the added/modified file. These markers may be (and usually are) identical
+            // Add file layers from the added/modified file. These layers may be (and usually are) identical
             // to the ones already on the map
             newLayers = await buildAndAppendFileMarkers(
                 [fileAddedOrChanged],
@@ -1239,14 +1247,14 @@ export default class MapViewPlugin extends Plugin {
             // We want to update each map container about the updated list of layers.
             // To do this, we take all its layers, remove the ones that belong to fileRemoved if any, and add
             // those from newLayers.
-            // The mapContainer then compares this list to what it has internally and updates the map markers.
-            // As an optimization, if we don't remove any layers, we'll use the mapContainer.display.markers object as-is.
+            // The mapContainer then compares this list to what it has internally and updates the map layers.
+            // As an optimization, if we don't remove any layers, we'll use the mapContainer.display.layers object as-is.
             // If we do, we'll copy it aside, because we don't want to modify the mapContainer's internal structure here.
             const existingLayers =
                 fileRemoved &&
-                mapContainer.display.markers.hasLayersFromFile(fileRemoved)
-                    ? new LayerCache(mapContainer.display.markers)
-                    : mapContainer.display.markers;
+                mapContainer.display.layers.hasLayersFromFile(fileRemoved)
+                    ? new LayerCache(mapContainer.display.layers)
+                    : mapContainer.display.layers;
             if (fileRemoved) existingLayers.deleteAllFromFile(fileRemoved);
             const newMarkers = mapContainer.filterAndPrepareMarkers(
                 newLayers,
@@ -1257,12 +1265,9 @@ export default class MapViewPlugin extends Plugin {
                 newMarkers,
             );
             try {
-                mapContainer.updateMapMarkers(combinedLayersIterator);
+                mapContainer.updateMapLayers(combinedLayersIterator);
             } catch (e) {
-                console.error(
-                    'Error updating markers on file modification:',
-                    e,
-                );
+                console.error('Error updating layers on file modification:', e);
                 console.log(
                     'This happened on container:',
                     mapContainer,
@@ -1277,7 +1282,7 @@ export default class MapViewPlugin extends Plugin {
     /*
      * What I would have liked to do in the case a file is renamed, is to handle it with the updateMarkersWithRelationToFile
      * method above.
-     * In theory, we could remove the old path and re-add the markers from 'file'.
+     * In theory, we could remove the old path and re-add the layers from 'file'.
      * However, Obsidian puts us in an awkward position: the 'file' object does not yet have metadata built for it, and
      * there is no way to register for a metadata change event in the case of a rename (as of 2025-07). Seems like the API
      * was built under the assumption that handling rename is straight-forward.
@@ -1289,7 +1294,7 @@ export default class MapViewPlugin extends Plugin {
             this.layerCache.renameFile(oldPath, file.path);
             this.maintainMapContainersList();
             for (const mapContainer of this.allMapContainers) {
-                mapContainer.display.markers.renameFile(oldPath, file.path);
+                mapContainer.display.layers.renameFile(oldPath, file.path);
             }
             const fileLayers = this.layerCache.getLayersByFile(file.path);
             for (const layer of fileLayers) layer.renameContainingFile(file);
@@ -1317,10 +1322,41 @@ export default class MapViewPlugin extends Plugin {
         }
     }
 
+    /*
+     * Try to find map containers that are no longer used (i.e. not displayed or loaded anywhere) and clean their references
+     * from the layer maps.
+     * Since map containers can exist in many forms (full Map View instances, embedded maps, map previews...), there is no
+     * reliable way that Obsidian provides to track them, so we make a best effort here.
+     * This method needs to be pretty fast (as it's called from editor updates).
+     */
     private maintainMapContainersList() {
-        this.allMapContainers = this.allMapContainers.filter((mapContainer) => {
-            return document.contains(mapContainer.display.mapDiv);
-        });
-        // TODO clear containers from layers
+        const cleanedContainers = this.allMapContainers.filter(
+            (mapContainer) => {
+                return document.contains(mapContainer.display.mapDiv);
+            },
+        );
+
+        // If containers were removed, remove their references from all geoLayers
+        if (cleanedContainers.length < this.allMapContainers.length) {
+            const remainingIds = new Set(
+                cleanedContainers.map(
+                    (container: MapContainer) => container.containerId,
+                ),
+            );
+            const removedContainerIds = this.allMapContainers
+                .filter((container) => !remainingIds.has(container.containerId))
+                .map((container) => container.containerId);
+
+            if (removedContainerIds.length > 0) {
+                for (const layer of this.layerCache.layers) {
+                    for (const containerId of removedContainerIds) {
+                        if (layer.geoLayers.has(containerId)) {
+                            layer.geoLayers.delete(containerId);
+                        }
+                    }
+                }
+            }
+        }
+        this.allMapContainers = cleanedContainers;
     }
 }

@@ -20,8 +20,11 @@ export abstract class BaseGeoLayer {
     public id: MarkerId;
     /** In the case of an inline location, the position within the file where the location was found */
     public fileLocation?: number;
-    /** The leaflet layer on the map; overriden by child classes */
-    // TODO document, index by container ID
+    /** The leaflet layer on the map; overriden by child classes.
+     * For every instance of Map View (specifically: every MapContainer), each logical layer has a different leaflet.Layer object.
+     * Some layers may not exist in some MapContainers at all (e.g. if their filter does not include them).
+     * Each map container has an ID, which it can use to find the leaflet.Layer object corresponding to a global BaseGeoLayer.
+     */
     public abstract geoLayers: Map<number, leaflet.Layer>;
     /** In case of an inline location, the line within the file where the geolocation was found */
     public fileLine?: number;
@@ -79,8 +82,7 @@ export abstract class BaseGeoLayer {
     public runDisplayRules(plugin: MapViewPlugin) {}
 }
 
-// TODO change class name to LayersMap
-export type MarkersMap = Map<MarkerId, BaseGeoLayer>;
+export type LayersMap = Map<MarkerId, BaseGeoLayer>;
 
 /**
  * Make sure that the coordinates are valid world coordinates

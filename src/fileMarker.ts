@@ -401,7 +401,7 @@ function addEdgesFromFile(
                 destination.path,
             );
             for (let destinationMarker of destinationFileWithMarkers.markers) {
-                if (isMarkerLinkedFrom(destinationMarker, link, app)) {
+                if (isLayerLinkedFrom(destinationMarker, link, app)) {
                     // The link really points to destinationMarker, therefore all the markers in the source file
                     // are to be linked to this destination marker.
                     for (let sourceMarker of source.markers) {
@@ -425,7 +425,7 @@ function addEdgesFromFile(
  * If the link includes a header or a block reference and the marker is an inline marker, 'true' is returned
  * only if the marker is in that header/block. A front-matter marker is considered link regardless of the block/header.
  */
-export function isMarkerLinkedFrom(
+export function isLayerLinkedFrom(
     marker: BaseGeoLayer,
     linkCache: LinkCache | FrontmatterLinkCache | ReferenceCache,
     app: App,
