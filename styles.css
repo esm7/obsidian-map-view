@@ -134,6 +134,8 @@ a.mv-icon-button.on {
     overflow: hidden;
     opacity: 0;
     visibility: hidden;
+    /* The 'visibility' property just hides the popup, but it's there to interact with the user. */
+    pointer-events: none;
     display: block;
     transition:
         opacity 0.1s ease-out,
@@ -146,6 +148,7 @@ a.mv-icon-button.on {
     opacity: 1;
     visibility: visible;
     transition: opacity 0.1s ease-in;
+    pointer-events: auto;
 }
 .mv-marker-popup-container .markdown-embed {
     border-left: 0;

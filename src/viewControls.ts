@@ -547,21 +547,27 @@ export class RoutingControl extends leaflet.Control {
         this.sourceButton.title = 'Select a routing source';
         this.sourceButton.appendChild(getIcon('flag'));
         this.sourceButton.addEventListener('click', async (ev: MouseEvent) => {
-            const marker = await getMarkerFromUser(
+            const result = await getMarkerFromUser(
                 this.view.getState().mapCenter,
                 'Select a marker for routing',
                 this.app,
                 this.plugin,
                 this.settings,
+                [{ command: 'shift+enter', purpose: 'use without zoom & pan' }],
             );
-            if (marker && marker instanceof FileMarker) {
-                this.view.setRoutingSource(marker.location, marker.name);
-                const keepZoom = ev.shiftKey;
-                this.view.goToSearchResult(
-                    marker.location,
-                    this.view.display.routingSource,
-                    keepZoom,
-                );
+            if (result) {
+                const [marker, ev] = result;
+                if (marker && marker instanceof FileMarker) {
+                    this.view.setRoutingSource(marker.location, marker.name);
+                    if (!ev.shiftKey) {
+                        const keepZoom = ev.shiftKey;
+                        this.view.goToSearchResult(
+                            marker.location,
+                            this.view.display.routingSource,
+                            keepZoom,
+                        );
+                    }
+                }
             }
         });
 
@@ -575,22 +581,25 @@ export class RoutingControl extends leaflet.Control {
                     new Notice('You must select a routing source first.');
                     return;
                 }
-                const marker = await getMarkerFromUser(
+                const result = await getMarkerFromUser(
                     this.view.getState().mapCenter,
                     'Select a marker for routing',
                     this.app,
                     this.plugin,
                     this.settings,
                 );
-                if (marker && marker instanceof FileMarker) {
-                    const menu = new Menu();
-                    menus.populateRouteToPoint(
-                        this.view,
-                        marker.location,
-                        menu,
-                        this.settings,
-                    );
-                    menu.showAtMouseEvent(ev);
+                if (result) {
+                    const [marker, _] = result;
+                    if (marker && marker instanceof FileMarker) {
+                        const menu = new Menu();
+                        menus.populateRouteToPoint(
+                            this.view,
+                            marker.location,
+                            menu,
+                            this.settings,
+                        );
+                        menu.showAtMouseEvent(ev);
+                    }
                 }
             },
         );

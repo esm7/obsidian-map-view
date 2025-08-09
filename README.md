@@ -12,7 +12,6 @@ GeoJSON:
 - How to change display rules - via name, linkedfrom
 
 Rewrite display rules section
-Add overlays (and warn about performance if adding too many)
 
 ## Intro
 
@@ -414,7 +413,8 @@ In all cases you can [save presets](#Presets) that include the filter or sub-fil
 
 TODO - update links that go here, from the document and code!
 
-Map View includes a powerful mechanism that allows you to customize map markers and path display properties based on a powerful rules system. These are called Display Rules.
+Map View includes a powerful mechanism that allows you to customize map markers and path display properties based on a flexible rules system.
+These are called Display Rules.
 
 Display rules are made of a **query**, which is the same as discussed [here](#queries), and various properties to apply to a marker or a path that match the query.
 When Map View tries to decide how to display a marker or a path, it starts from the Default display rule, which has a certain set of properties (e.g. a blue marker with a circle). It then tests the rest of the display rules by order, and for each rule with a matching query, overwrites whatever properties that rule sets.
@@ -425,7 +425,7 @@ For example, the default rule for markers may be a blue marker color with an `fa
 
 To edit display rules, open the plugin settings, and click the button under the "Marker & Path Display Rules" section.
 You will see the list of the currently-active rules. You can add new rules, change the order of rules (except the default which must be first), and edit existing rules.
-When editing a rule, you will be able to set various properties that the rule can apply. All these properties are optional, and the rule will overwrite the default (or prior matching rules) for every marker or path that will match its query.
+When editing a rule, you will be able to set various properties that the rule can apply. All these properties are optional, and will overwrite the default (or prior matching rules) for every marker or path that will match its query.
 
 ### Marker Icon Properties
 
@@ -441,12 +441,15 @@ Alternatively, just paste an emoji of a bus (e.g. from [Emojipedia](https://emoj
 
 You can add more information to markers using **badges**, which are little circles that are added in the corners of markers based on criteria that you choose.
 Up to 4 badges are supported per marker.
+**The natural use case for badges is when you can add additional information on top of a marker.** For example, if you have an icon for `#food` markers, you can add badges that would apply to restaurants with vegan options, gluten-free, dog-friendly, etc.
 
 Display rules can mix icon properties with badges in any way you see fit.
 
 To add a badge to a display rule, in the display rule edit dialog, paste an emoji or up to 2 characters into the Symbol box. Markers that match the rule will have that badge, and possibly other badges from other matching display rules, starting from the top-left corner clockwise.
 
 Badges can have a symbol, a text color, a background color, and a border in the syntax of a CSS [border](https://developer.mozilla.org/en-US/docs/Web/CSS/border) property, e.g. `1px solid black`.
+
+**Warning:** having hundreds or thousands of badges displayed at once on the map can be resource-intensive for the rendering engine, especially on mobile. In this case, consider increasing the "max cluster size in pixels" setting to display less markers at once.
 
 ### Path Properties
 
@@ -459,7 +462,7 @@ Also, paths do not supported badges.
 
 ### Advanced: Editing Rules as JSON
 
-The Edit Rule dialog allows you to directly edit a display rule as JSON, allowing a few more options and control than the GUI provides.
+The Edit Rule dialog allows you to directly edit a display rule as JSON, opening a few more options and control than the GUI provides.
 
 - More options for marker icons can be found in [Leaflet.ExtraMarkers](https://github.com/coryasilva/Leaflet.ExtraMarkers#properties) properties. Note that some of these properties are known to not work with Map View.
 - Path options reference can be found [here](https://leafletjs.com/reference.html#path).
@@ -579,7 +582,31 @@ And you can figure out many other mapping services just by inspecting the URL.
 
 ## Routing
 
-TODO write
+You can use Map View to calculate routes between points on the map, either directly (using the GraphHopper API) or by launching an external tool like Google maps.
+
+1. **Choose a starting point** by right-clicking a marker or a map location and choose "mark as routing source". Alternatively, click the flag icon on the right side of the map and select a marker from the list.
+2. **Choose a destination** by right-clicking a marker or a map location and choose "route to point". Alternatively, after selecting a routing source, you can also select a destination using the "select a routing destination" button on the right side of the map (below the flag from step 1).
+3. In the menu that opens, choose between routing using an external service (by default Google Maps) or through the GraphHopper API.
+4. If one of the GraphHopper options are selected, the route is displayed on the map with a time and distance estimation.
+
+![](img/routing.gif)
+
+### External Tool Configuration
+
+By default Map View is configured to use Google Maps as the external routing service.
+You can change this in the settings under Routing -> External routing service URL.
+
+### GraphHopper Configuration
+
+[GraphHopper](https://www.graphhopper.com/) is an open-source-based service that provides a routing API with a generous free tier (as of mid-2025, the [free tier](https://www.graphhopper.com/pricing/) provides 500 route requests per day).
+
+You can sign up [here](https://graphhopper.com/dashboard/signup), obtain an API key, and fill it in the "GraphHopper API key" field under the Map View -> Routing settings.
+
+The free plan offers 3 **routing profiles**: `foot`, `bike` and `car`.
+The paid plans have more profiles (see [here](https://docs.graphhopper.com/openapi/map-data-and-routing-profiles/openstreetmap/geographical-coverage)) and allow further flexibility.
+
+For advanced users who want fine-grained control over GraphHopper routing, you may specify "extra parameters" that will be added to GraphHopper requests. For example, the `snap_preventions` parameter may be added to fine-tune which points the routing engine uses as the start and end points.
+See [here](https://docs.graphhopper.com/openapi/routing/postroute) for a full documentation of the API.
 
 ## URL Parsing Rules
 

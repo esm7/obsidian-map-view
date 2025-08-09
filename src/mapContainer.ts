@@ -1011,7 +1011,9 @@ export class MapContainer {
             this.showMarkerPopups(layer, leafletLayer, event, popupPlacement);
         });
         leafletLayer.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
-            this.closeMarkerPopup(false);
+            if (!utils.isMobile(this.app)) {
+                this.closeMarkerPopup(false);
+            }
         });
     }
 
@@ -1733,22 +1735,25 @@ export class MapContainer {
                     item.setTitle('Route to...');
                     item.setIcon('milestone');
                     item.onClick(async () => {
-                        const marker = await getMarkerFromUser(
+                        const result = await getMarkerFromUser(
                             this.getState().mapCenter,
                             'Select a marker for routing',
                             this.app,
                             this.plugin,
                             this.settings,
                         );
-                        if (marker && marker instanceof FileMarker) {
-                            const menu = new Menu();
-                            menus.populateRouteToPoint(
-                                this,
-                                marker.location,
-                                menu,
-                                this.settings,
-                            );
-                            menu.showAtMouseEvent(ev.originalEvent);
+                        if (result) {
+                            const [marker, _] = result;
+                            if (marker && marker instanceof FileMarker) {
+                                const menu = new Menu();
+                                menus.populateRouteToPoint(
+                                    this,
+                                    marker.location,
+                                    menu,
+                                    this.settings,
+                                );
+                                menu.showAtMouseEvent(ev.originalEvent);
+                            }
                         }
                     });
                 });

@@ -1,4 +1,4 @@
-import { Editor, App, SuggestModal, type Instruction } from 'obsidian';
+import { App, SuggestModal, type Instruction } from 'obsidian';
 
 import MapViewPlugin from 'src/main';
 import { type PluginSettings } from 'src/settings';
@@ -13,7 +13,8 @@ export async function getMarkerFromUser(
     app: App,
     plugin: MapViewPlugin,
     settings: PluginSettings,
-): Promise<BaseGeoLayer | null> {
+    customInstuctions: Instruction[] = [],
+): Promise<[BaseGeoLayer, MouseEvent | KeyboardEvent] | null> {
     return new Promise((resolve) => {
         const dialog = new MarkerSelectDialog(
             app,
@@ -21,13 +22,14 @@ export async function getMarkerFromUser(
             settings,
             (selection: any, evt: MouseEvent | KeyboardEvent) => {
                 if (selection && selection.layer) {
-                    resolve(selection.layer);
+                    resolve([selection.layer, evt]);
                 } else {
                     resolve(null);
                 }
             },
             title,
             center,
+            customInstuctions,
         );
         dialog.open();
     });
@@ -58,6 +60,7 @@ export class MarkerSelectDialog extends SuggestModal<SuggestInfo> {
         ) => void,
         title: string,
         sortByCenter: leaflet.LatLng | null = null,
+        customInstuctions: Instruction[] = [],
     ) {
         super(app);
         this.plugin = plugin;
@@ -66,7 +69,9 @@ export class MarkerSelectDialog extends SuggestModal<SuggestInfo> {
         this.sortByCenter = sortByCenter;
 
         this.setPlaceholder(title);
-        let instructions = [{ command: 'enter', purpose: 'to use' }];
+        let instructions = [{ command: 'enter', purpose: 'to use' }].concat(
+            customInstuctions,
+        );
         this.setInstructions(instructions);
         this.inputEl.addEventListener('keypress', (ev: KeyboardEvent) => {
             // In the case of a custom select function, trigger it also for Shift+Enter.
