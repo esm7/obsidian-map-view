@@ -85,6 +85,7 @@ export class SettingsTab extends PluginSettingTab {
             });
 
         let apiKeyControl: Setting = null;
+        let osmUser: Setting = null;
         new Setting(containerEl)
             .setName('Geocoding search provider')
             .setDesc(
@@ -102,6 +103,8 @@ export class SettingsTab extends PluginSettingTab {
                         this.plugin.settings.searchProvider = value;
                         await this.plugin.saveSettings();
                         this.refreshPluginOnHide = true;
+                        osmUser.settingEl.style.display =
+                            value === 'osm' ? '' : 'none';
                         apiKeyControl.settingEl.style.display =
                             value === 'google' ? '' : 'none';
                         googlePlacesControl.settingEl.style.display =
@@ -109,6 +112,27 @@ export class SettingsTab extends PluginSettingTab {
                                 ? ''
                                 : 'none';
                     });
+            });
+
+        osmUser = new Setting(containerEl)
+            .setName('OpenStreetMap user e-mail')
+            .setDesc(
+                'The OpenStreetMap Nominatim provider requires a user email. Restart Map View after setting it.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(this.plugin.settings.osmUser)
+                    .onChange(async (value) => {
+                        this.plugin.settings.osmUser = value;
+                        await this.plugin.saveSettings();
+                        component.inputEl.style.borderColor = value
+                            ? ''
+                            : 'red';
+                    });
+                component.inputEl.style.borderColor = this.plugin.settings
+                    .osmUser
+                    ? ''
+                    : 'red';
             });
 
         apiKeyControl = new Setting(containerEl)
@@ -148,7 +172,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
 
-        // Display the API key control only if the search provider requires it
+        // Display the user or API key control only if the search provider requires it
+        osmUser.settingEl.style.display =
+            this.plugin.settings.searchProvider === 'osm' ? '' : 'none';
         apiKeyControl.settingEl.style.display =
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
         googlePlacesControl.settingEl.style.display =

@@ -790,6 +790,7 @@ export class MapContainer {
                     this.settings,
                     this.app,
                     this.plugin,
+                    event.originalEvent,
                 );
                 mapPopup.showAtPosition(event.originalEvent);
             },
@@ -1154,6 +1155,9 @@ export class MapContainer {
                 marker.location,
                 mapPopup,
                 this.settings,
+                this.app,
+                this.plugin,
+                ev,
                 marker,
             );
             const name = marker.name;
@@ -1451,6 +1455,7 @@ export class MapContainer {
                 this.settings,
                 this.app,
                 this.plugin,
+                event.originalEvent,
             );
             mapPopup.showAtPosition(event.originalEvent);
         });
@@ -1646,6 +1651,7 @@ export class MapContainer {
                     this.settings,
                     this.app,
                     this.plugin,
+                    event.originalEvent,
                 );
                 mapPopup.showAtPosition(event.originalEvent);
             },

@@ -19,6 +19,7 @@ import ImportDialog from './components/ImportDialog.svelte';
 import { doRouting } from 'src/routing';
 import { type GeoJSON } from 'geojson';
 import { BaseGeoLayer } from 'src/baseGeoLayer';
+import { getMarkerFromUser } from 'src/markerSelectDialog';
 
 export function addShowOnMap(
     menu: Menu,
@@ -446,6 +447,9 @@ export function populateRouting(
     geolocation: leaflet.LatLng,
     menu: Menu,
     settings: settings.PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+    originalEvent: MouseEvent,
     existingLayer?: BaseGeoLayer,
 ) {
     if (geolocation) {
@@ -470,6 +474,38 @@ export function populateRouting(
                     submenu,
                     settings,
                 );
+            });
+        } else {
+            menu.addItem((item: MenuItem) => {
+                item.setTitle('Route from...');
+                item.setSection('mapview');
+                item.setIcon('milestone');
+                item.onClick(async () => {
+                    const result = await getMarkerFromUser(
+                        mapContainer.getState().mapCenter,
+                        'Select a marker for routing',
+                        app,
+                        plugin,
+                        settings,
+                    );
+                    if (result) {
+                        const [newSource, _] = result;
+                        if (newSource && newSource instanceof FileMarker) {
+                            mapContainer.setRoutingSource(
+                                newSource.location,
+                                newSource.name,
+                            );
+                            const menu = new Menu();
+                            populateRouteToPoint(
+                                mapContainer,
+                                geolocation,
+                                menu,
+                                settings,
+                            );
+                            menu.showAtMouseEvent(originalEvent);
+                        }
+                    }
+                });
             });
         }
     }
@@ -588,6 +624,7 @@ export function addMapContextMenuItems(
     settings: settings.PluginSettings,
     app: App,
     plugin: MapViewPlugin,
+    originalEvent: MouseEvent,
 ) {
     addNewNoteItems(mapPopup, geolocation, mapContainer, settings, app);
     addMarkerAddToNote(
@@ -599,6 +636,14 @@ export function addMapContextMenuItems(
         plugin,
     );
     addCopyGeolocationItems(mapPopup, geolocation);
-    populateRouting(mapContainer, geolocation, mapPopup, settings);
+    populateRouting(
+        mapContainer,
+        geolocation,
+        mapPopup,
+        settings,
+        app,
+        plugin,
+        originalEvent,
+    );
     addOpenWith(mapPopup, geolocation, null, settings);
 }
