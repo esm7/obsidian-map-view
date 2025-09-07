@@ -1,4 +1,4 @@
-import { request, App } from 'obsidian';
+import { request, App, Notice } from 'obsidian';
 import * as geosearch from 'leaflet-geosearch';
 import * as leaflet from 'leaflet';
 import queryString from 'query-string';
@@ -31,9 +31,20 @@ export class GeoSearcher {
     constructor(app: App, settings: PluginSettings) {
         this.settings = settings;
         this.urlConvertor = new UrlConvertor(app, settings);
-        if (settings.searchProvider == 'osm')
-            this.searchProvider = new geosearch.OpenStreetMapProvider();
-        else if (settings.searchProvider == 'google') {
+        if (settings.searchProvider == 'osm') {
+            if (!settings.osmUser) {
+                new Notice(
+                    'Map View: the OpenStreetMap geosearch requires a user email address. Set one in the settings to be able to use this feature.',
+                    5000,
+                );
+                return;
+            }
+            this.searchProvider = new geosearch.OpenStreetMapProvider({
+                params: {
+                    email: settings.osmUser,
+                },
+            });
+        } else if (settings.searchProvider == 'google') {
             this.searchProvider = new geosearch.GoogleProvider({
                 apiKey: settings.geocodingApiKey,
             });
