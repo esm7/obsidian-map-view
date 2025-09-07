@@ -51,7 +51,7 @@
         dialog.open();
     }
 
-    function makePreview() {
+    function makePreview(rule: DisplayRule) {
         const defaultRule = allRules.find(
             (rule: DisplayRule) => rule.preset === true,
         );
@@ -59,12 +59,12 @@
         let options = Object.assign(
             {},
             defaultRule.iconDetails,
-            displayRule.iconDetails,
+            rule.iconDetails,
         );
         let badgeOptions = Object.assign(
             {},
             defaultRule.badgeOptions,
-            displayRule.badgeOptions,
+            rule.badgeOptions,
         );
         const compiledIcon = getIconFromOptions(
             options,
@@ -131,7 +131,7 @@
             </div>
         {/if}
         <div class="icon-preview">
-            {@html makePreview().outerHTML}
+            {@html makePreview(displayRule).outerHTML}
         </div>
         <button class="settings-dense-button" onclick={openEdit}>
             Edit...

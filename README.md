@@ -785,13 +785,13 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Only one controls section expanded at a time (default)
 - Routing with GraphHopper
 - Added 'opacity' as an icon property
+- Min search time for OSM is now 1s
 
 ### 5.5.0
 
 **The Big Stuff:**
 
 - A mechanism and various tools for **offline usage**. This includes:
-
     - The ability to batch-download map tiles for offline usage.
     - Manage downloaded tiles, e.g. selectively purge old tiles, add or delete downloaded data etc.
     - Auto-cache tiles locally as part of the plugin's normal usage, with a configurable auto-purge after a certain age and storage size.

@@ -17,7 +17,7 @@
             plugin: MapViewPlugin;
             app: App;
             onSave: (newRule: DisplayRule) => void;
-            makePreview: () => void;
+            makePreview: (rule: DisplayRule) => void;
         }>();
 
     let ruleCopy: DisplayRule = $state(

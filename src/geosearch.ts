@@ -204,3 +204,13 @@ export async function googlePlacesSearch(
         return [];
     }
 }
+
+export function searchDelayMs(settings: PluginSettings) {
+    const MIN_OSM_DELAY_MS = 1000;
+    if (
+        settings.searchProvider === 'osm' &&
+        settings.searchDelayMs < MIN_OSM_DELAY_MS
+    )
+        return MIN_OSM_DELAY_MS;
+    else return settings.searchDelayMs;
+}

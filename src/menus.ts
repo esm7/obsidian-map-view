@@ -1,4 +1,13 @@
-import { Editor, MenuItem, Menu, App, TFile, TAbstractFile } from 'obsidian';
+import {
+    Editor,
+    MenuItem,
+    Menu,
+    App,
+    TFile,
+    TAbstractFile,
+    Notice,
+    type Pos,
+} from 'obsidian';
 
 import * as leaflet from 'leaflet';
 
@@ -19,6 +28,7 @@ import ImportDialog from './components/ImportDialog.svelte';
 import { doRouting } from 'src/routing';
 import { type GeoJSON } from 'geojson';
 import { BaseGeoLayer } from 'src/baseGeoLayer';
+import { GeoJsonLayer } from 'src/geojsonLayer';
 import { getMarkerFromUser } from 'src/markerSelectDialog';
 
 export function addShowOnMap(
@@ -646,4 +656,127 @@ export function addMapContextMenuItems(
         originalEvent,
     );
     addOpenWith(mapPopup, geolocation, null, settings);
+}
+
+export function addPathContextMenuItems(
+    menu: Menu,
+    layer: GeoJsonLayer,
+    leafletLayer: leaflet.Layer,
+    mouseEvent: MouseEvent,
+    mapContainer: MapContainer,
+    settings: settings.PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+) {
+    // In the case of an embedded JSON...
+    if (layer.sourceType === 'geojson' && layer.fileLocation > 0) {
+        menu.addItem((item: MenuItem) => {
+            item.setTitle('Go to path definition');
+            item.onClick(() => {
+                mapContainer.goToMarker(
+                    layer,
+                    utils.mouseEventToOpenMode(
+                        settings,
+                        mouseEvent,
+                        'openNote',
+                    ),
+                    false,
+                    // Move the cursor right before the GeoJSON in the file, so it will show the map preview and not the source code
+                    -1,
+                );
+            });
+        });
+    }
+
+    // In the case of a stand-alone file, try to list references to it
+    if (layer.file && !layer.fileLocation) {
+        const target = layer.file;
+        type FoundFile = {
+            file: TFile;
+            position: Pos | null;
+        };
+        let results: FoundFile[] = [];
+        for (const file of app.vault.getFiles()) {
+            const linksFrom = app.metadataCache.getFileCache(file);
+            const linksWithPosition = [
+                ...(linksFrom?.links ?? []),
+                ...(linksFrom?.embeds ?? []),
+            ];
+            for (const link of linksWithPosition) {
+                if (link.link === target.name) {
+                    results.push({ file: file, position: link.position });
+                }
+            }
+            for (const link of [...(linksFrom?.frontmatterLinks ?? [])]) {
+                if (link.link === target.name) {
+                    results.push({ file: file, position: null });
+                }
+            }
+        }
+        if (results.length > 0) {
+            const addRefernece = (
+                menu: Menu,
+                reference: FoundFile,
+                isSingle: boolean,
+            ) => {
+                menu.addItem((item: MenuItem) => {
+                    item.setTitle(
+                        isSingle
+                            ? `Open '${reference.file.basename}'`
+                            : reference.file.basename,
+                    );
+                    item.onClick((evt) => {
+                        const openMode = utils.mouseEventToOpenMode(
+                            settings,
+                            evt as MouseEvent,
+                            'openNote',
+                        );
+                        mapContainer.goToFile(
+                            reference.file,
+                            openMode,
+                            async (editor) => {
+                                await utils.goToEditorLocation(
+                                    editor,
+                                    reference.position
+                                        ? reference.position.start.offset
+                                        : null,
+                                    false,
+                                );
+                            },
+                        );
+                    });
+                });
+            };
+            // If there's just one reference to the file -- list it.
+            // If there are more, show a submenu.
+            if (results.length === 1) {
+                addRefernece(menu, results[0], true);
+            } else {
+                menu.addItem((item: MenuItem) => {
+                    item.setTitle('Go to reference...');
+                    const submenu = (item as any).setSubmenu();
+                    for (const reference of results)
+                        addRefernece(submenu, reference, false);
+                });
+            }
+        }
+    }
+
+    // Finally, add an option to reveal non-notes in the file explorer
+    if (layer.file && layer.file.extension !== 'md') {
+        menu.addItem((item: MenuItem) => {
+            item.setTitle('Reveal in file explorer');
+            item.onClick(() => {
+                if (!(app.vault as any)?.config?.showUnsupportedFiles)
+                    new Notice(
+                        'Some file types can only be displayed if you turn on "detect all file extensions" in the Obsidian "Files and links" settings.',
+                        60 * 1000,
+                    );
+                const fileExplorer = (
+                    app as any
+                )?.internalPlugins?.getEnabledPluginById('file-explorer');
+                fileExplorer?.revealInFolder(layer.file);
+            });
+        });
+    }
 }

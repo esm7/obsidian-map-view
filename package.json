@@ -64,6 +64,7 @@
         "moment": "^2.30.1",
         "open": "^10.1.0",
         "query-string": "^9.1.1",
+        "ts-debounce": "^4.0.0",
         "wildcard": "^2.0.1"
     }
 }

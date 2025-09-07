@@ -182,11 +182,11 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Search delay while typing')
             .setDesc(
-                'Delay in ms to wait before searching while you type (required to not flood the search provider with every key).',
+                'Delay in ms to wait before searching while you type (required to not flood the search provider with every key). In the OSM search provider, a minimum of 1 second is required and enforced.',
             )
             .addSlider((slider) => {
                 slider
-                    .setLimits(100, 500, 50)
+                    .setLimits(100, 2000, 50)
                     .setDynamicTooltip()
                     .setValue(
                         this.plugin.settings.searchDelayMs ??

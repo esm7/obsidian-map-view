@@ -3,7 +3,7 @@ import * as leaflet from 'leaflet';
 
 import MapViewPlugin from 'src/main';
 import { type PluginSettings } from 'src/settings';
-import { GeoSearcher, GeoSearchResult } from 'src/geosearch';
+import { GeoSearcher, GeoSearchResult, searchDelayMs } from 'src/geosearch';
 import {
     getIconFromOptions,
     createIconElement,
@@ -11,6 +11,7 @@ import {
 } from 'src/markerIcons';
 import * as utils from 'src/utils';
 import * as consts from 'src/consts';
+import { debounce } from 'ts-debounce';
 
 export class SuggestInfo extends GeoSearchResult {
     icon?: IconOptions;
@@ -22,7 +23,6 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
     private plugin: MapViewPlugin;
     private settings: PluginSettings;
     private searcher: GeoSearcher;
-    private lastSearchTime = 0;
     private lastSearch = '';
     private lastSearchResults: SuggestInfo[] = [];
     private includeResults: SuggestInfo[] = [];
@@ -31,6 +31,7 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
     private dialogAction: DialogAction;
     private editor: Editor = null;
     private file: TFile = null;
+    private debouncedSearch: (query: string) => void;
 
     // If dialogAction is 'custom', this will launch upon selection
     public customOnSelect: (
@@ -62,6 +63,9 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         this.file = file;
         this.includeResults = includeResults;
         this.hasIcons = hasIcons;
+        this.debouncedSearch = debounce((query: string) => {
+            this.doSearch(query);
+        }, searchDelayMs(this.settings));
 
         this.setPlaceholder(
             title + ': type a place name or paste a string to parse',
@@ -112,7 +116,8 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         if (query == this.lastSearch) {
             result = result.concat(this.lastSearchResults);
         }
-        this.getSearchResultsWithDelay(query);
+        if (query.length > 3 && query != this.lastSearch)
+            this.debouncedSearch(query);
         return result;
     }
 
@@ -167,18 +172,8 @@ export class LocationSearchDialog extends SuggestModal<SuggestInfo> {
         );
     }
 
-    async getSearchResultsWithDelay(query: string) {
-        if (query === this.lastSearch || query.length < 3) return;
-        const timestamp = Date.now();
-        this.lastSearchTime = timestamp;
-        const Sleep = (ms: number) =>
-            new Promise((resolve) => setTimeout(resolve, ms));
-        await Sleep(this.settings.searchDelayMs);
-        if (this.lastSearchTime != timestamp) {
-            // Search is canceled by a newer search
-            return;
-        }
-        // After the sleep our search is still the last -- so the user stopped and we can go on
+    // Do not call directly! We use the debounced version of this method (see usage)
+    async doSearch(query: string) {
         this.lastSearch = query;
         this.lastSearchResults = await this.searcher.search(
             query,

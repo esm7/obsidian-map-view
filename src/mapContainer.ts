@@ -1470,7 +1470,7 @@ export class MapContainer {
         const geoJsonLayer = leaflet.geoJSON(route.path, {
             style: {
                 ...consts.ROUTING_PATH_OPTIONS,
-                bubblingMouseEvents: false,
+                bubblingMouseEvents: false, // This lets stuff like the 'contextmenu' event work
             },
             onEachFeature: (feature: any, layer: leaflet.Layer) => {
                 if (feature?.geometry?.type !== 'Point') {
@@ -1923,49 +1923,32 @@ export class MapContainer {
     }
 
     private newLeafletGeoJson(marker: GeoJsonLayer): leaflet.GeoJSON {
-        // TODO: use the marker popup component here, and less code repetition.
         const geoJsonLayer = leaflet.geoJSON(marker.geojson, {
-            style: marker.pathOptions,
+            style: {
+                ...marker.pathOptions,
+                bubblingMouseEvents: false, // This lets stuff like the 'contextmenu' event work
+            },
             onEachFeature: (feature: any, layer: leaflet.Layer) => {
                 // Features of type 'Point' are handled below
                 if (feature?.geometry?.type !== 'Point') {
                     this.addPopupHandlingEvents(layer, marker, 'mouse');
-                    layer.on('click', (event: leaflet.LeafletMouseEvent) => {
-                        // TODO proper mobile support - show popup
-                        if (
-                            marker.sourceType === 'geojson' &&
-                            marker.fileLocation > 0
-                        ) {
-                            // Go to note
-                            this.goToMarker(
+                    layer.on(
+                        'contextmenu',
+                        (event: leaflet.LeafletMouseEvent) => {
+                            let menu = new Menu();
+                            menus.addPathContextMenuItems(
+                                menu,
                                 marker,
-                                utils.mouseEventToOpenMode(
-                                    this.settings,
-                                    event.originalEvent,
-                                    'openNote',
-                                ),
-                                false,
-                                // Move the cursor right before the GeoJSON in the file, so it will show the map preview and not the source code
-                                -1,
+                                layer,
+                                event.originalEvent,
+                                this,
+                                this.settings,
+                                this.app,
+                                this.plugin,
                             );
-                        } else {
-                            // The path is an independent file, reveal it
-                            if (
-                                !(this.app.vault as any)?.config
-                                    ?.showUnsupportedFiles
-                            )
-                                new Notice(
-                                    'Some file types can only be displayed if you turn on "detect all file extensions" in the Obsidian "Files and links" settings.',
-                                    60 * 1000,
-                                );
-                            const fileExplorer = (
-                                this.app as any
-                            )?.internalPlugins?.getEnabledPluginById(
-                                'file-explorer',
-                            );
-                            fileExplorer?.revealInFolder(marker.file);
-                        }
-                    });
+                            menu.showAtPosition(event.originalEvent);
+                        },
+                    );
                 }
             },
             pointToLayer: (feature: any, latlng: leaflet.LatLng) => {
