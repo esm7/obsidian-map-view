@@ -654,11 +654,9 @@ export class MapContainer {
         });
         this.display.map.on('pm:dragenable', (e) => {
             this.inDragMode = true;
-            console.log('TODO TEMP drag');
         });
         this.display.map.on('pm:dragdisable', (e) => {
             this.inDragMode = false;
-            console.log('TODO TEMP dragend');
         });
         this.display.map.on(
             'pm:create',
@@ -1016,6 +1014,24 @@ export class MapContainer {
                 this.closeMarkerPopup(false);
             }
         });
+        if (utils.isMobile(this.app)) {
+            leafletLayer.on(
+                'click',
+                async (event: leaflet.LeafletMouseEvent) => {
+                    if (
+                        layer.layerType === 'fileMarker' ||
+                        layer.layerType === 'floatingMarker'
+                    )
+                        this.setHighlight(layer);
+                    this.showMarkerPopups(
+                        layer,
+                        leafletLayer,
+                        event,
+                        popupPlacement,
+                    );
+                },
+            );
+        }
     }
 
     private newLeafletMarker(marker: FileMarker): leaflet.Marker {
@@ -1040,10 +1056,7 @@ export class MapContainer {
             });
 
         newMarker.on('click', async (event: leaflet.LeafletMouseEvent) => {
-            if (utils.isMobile(this.app)) {
-                this.setHighlight(marker);
-                await this.showMarkerPopups(marker, newMarker, event);
-            } else
+            if (!utils.isMobile(this.app)) {
                 this.goToMarker(
                     marker,
                     utils.mouseEventToOpenMode(
@@ -1053,6 +1066,8 @@ export class MapContainer {
                     ),
                     true,
                 );
+            }
+            // The other case, of a click while in mobile, is handled in addPopupHandlingEvents
         });
         newMarker.on('mousedown', (event: leaflet.LeafletMouseEvent) => {
             // Middle click is supported only on mousedown and not on click, so we're checking for it here
@@ -1967,11 +1982,27 @@ export class MapContainer {
                     feature?.properties?.name ?? marker.file.name;
                 floatingMarker.description = feature?.properties?.desc ?? '';
                 floatingMarker.extraName = `Stored in '${marker.file.name}'`;
-                // TODO proper mobile support
                 this.addPopupHandlingEvents(
                     leafletMarker,
                     floatingMarker,
                     'element',
+                );
+                leafletMarker.on(
+                    'contextmenu',
+                    (event: leaflet.LeafletMouseEvent) => {
+                        let menu = new Menu();
+                        menus.addPathContextMenuItems(
+                            menu,
+                            marker,
+                            leafletMarker,
+                            event.originalEvent,
+                            this,
+                            this.settings,
+                            this.app,
+                            this.plugin,
+                        );
+                        menu.showAtPosition(event.originalEvent);
+                    },
                 );
                 return leafletMarker;
             },
