@@ -670,17 +670,16 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ### Not yet Released
 
-- Fixes to respect Obsidian's new "always focus new tab" setting.
-- Fix for https://github.com/esm7/obsidian-map-view/issues/308 (thanks @edzillion!).
-- Comeback of "Show native Obsidian popup on marker hover" due to user request (https://github.com/esm7/obsidian-map-view/issues/235).
-- Inline location bug on iOS (https://github.com/esm7/obsidian-map-view/issues/301)
+### 5.5.1
+
+- A fix to OSM search issues: https://github.com/esm7/obsidian-map-view/issues/336
+    - **IMPORTANT:** this requires setting an e-mail address to identify the user performing the queries.
 
 ### 5.5.0
 
 **The Big Stuff:**
 
 - A mechanism and various tools for **offline usage**. This includes:
-
     - The ability to batch-download map tiles for offline usage.
     - Manage downloaded tiles, e.g. selectively purge old tiles, add or delete downloaded data etc.
     - Auto-cache tiles locally as part of the plugin's normal usage, with a configurable auto-purge after a certain age and storage size.
