@@ -360,6 +360,8 @@ Embeds also work really nicely in Canvas including live updates.
 
 ## Paths
 
+TODO screenshot here
+
 Map View supports paths in a variety of formats and usage patterns.
 Somewhat similarly to markers, there is a distinction between **stand-alone path files** and **inline paths**.
 
@@ -368,7 +370,7 @@ Somewhat similarly to markers, there is a distinction between **stand-alone path
 TODO check links
 
 Stand-alone path files can be any GPX, KML, TCX or GeoJSON files in your vault.
-Somewhat similarly to front matter geolocations, Map View collects everything from your vault and displays paths based on [display rules](#marker-path-display-rules) and [filters](#queries).
+Somewhat similarly to front matter geolocations, Map View collects everything from your vault and displays paths based on [display rules](#marker--path-display-rules) and [filters](#queries).
 
 Without any filters present, with the default settings, any supported path file in your vault will be displayed using the default path display style.
 
@@ -399,6 +401,7 @@ Inline paths are the native way Map View adds paths you draw on your own, see be
 
 ### Drawing Paths
 
+TODO video here
 TODO continue to write this section
 
 ### Styling Paths

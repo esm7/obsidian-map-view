@@ -69,7 +69,8 @@ export class GeoJsonLayer extends BaseGeoLayer {
             other instanceof GeoJsonLayer &&
             this.file.name === other.file.name &&
             this.fileLocation === other.fileLocation &&
-            this.fileLine === other.fileLine
+            this.fileLine === other.fileLine &&
+            this.tags === other.tags
         );
     }
 
