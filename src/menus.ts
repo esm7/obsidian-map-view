@@ -24,6 +24,7 @@ import { type PluginSettings } from 'src/settings';
 import { FileMarker, renameMarker, createMarkerInFile } from 'src/fileMarker';
 import { createGeoJsonInFile } from 'src/geojsonLayer';
 import { SvelteModal } from 'src/svelte';
+import TextBoxDialog from './components/TextBoxDialog.svelte';
 import ImportDialog from './components/ImportDialog.svelte';
 import { doRouting } from 'src/routing';
 import { type GeoJSON } from 'geojson';
@@ -292,6 +293,9 @@ export function addNewNoteItems(
 export function addCopyGeolocationItems(
     menu: Menu,
     geolocation: leaflet.LatLng,
+    app: App,
+    plugin: MapViewPlugin,
+    settings: PluginSettings,
 ) {
     const locationString = `${geolocation.lat},${geolocation.lng}`;
     menu.addItem((item: MenuItem) => {
@@ -299,7 +303,22 @@ export function addCopyGeolocationItems(
         item.setIcon('copy');
         item.setSection('copy');
         item.onClick((_ev) => {
-            navigator.clipboard.writeText(`[](geo:${locationString})`);
+            const dialog = new SvelteModal(
+                TextBoxDialog,
+                app,
+                plugin,
+                settings,
+                {
+                    label: 'Select a name for the new marker:',
+                    existingText: '',
+                    onOk: (text: string) => {
+                        navigator.clipboard.writeText(
+                            `[${text}](geo:${locationString})`,
+                        );
+                    },
+                },
+            );
+            dialog.open();
         });
     });
     menu.addItem((item: MenuItem) => {
@@ -645,7 +664,7 @@ export function addMapContextMenuItems(
         app,
         plugin,
     );
-    addCopyGeolocationItems(mapPopup, geolocation);
+    addCopyGeolocationItems(mapPopup, geolocation, app, plugin, settings);
     populateRouting(
         mapContainer,
         geolocation,

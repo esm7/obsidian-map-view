@@ -360,7 +360,48 @@ Embeds also work really nicely in Canvas including live updates.
 
 ## Paths
 
-TODO write this section
+Map View supports paths in a variety of formats and usage patterns.
+Somewhat similarly to markers, there is a distinction between **stand-alone path files** and **inline paths**.
+
+### Stand-Alone Path Files
+
+TODO check links
+
+Stand-alone path files can be any GPX, KML, TCX or GeoJSON files in your vault.
+Somewhat similarly to front matter geolocations, Map View collects everything from your vault and displays paths based on [display rules](#marker-path-display-rules) and [filters](#queries).
+
+Without any filters present, with the default settings, any supported path file in your vault will be displayed using the default path display style.
+
+Stand-alone paths can be included or excluded using many of the query operators like `path`, `name` and `linkedfrom`.
+
+There is no notion of tags for stand-alone paths, so in order to apply display rules to them, you have a couple of other options:
+
+- Include a relevant string in the file name and use the `path` or `name` operators.
+- Use the `linkedfrom` operator, e.g. have a note "my runs" that links to all your GPX tracks, and use `linkedfrom:"my runs"` to apply display rules to these paths.
+
+### Inline Paths
+
+Map View supports GeoJSON paths stored in notes using a code block of type `geojson`.
+By default, a fenced code block with type `geojson` will be rendered by Map View inside the note.
+
+Unlike stand-alone path files, inline paths support tags by adding a line of the form `tag:a tag:b` right below the code block.
+
+For example, the following code block defines a line with the tag `#hike`:
+
+````
+```geojson
+{"type":"Feature","properties":{},"geometry":{"type":"LineString","coordinates":[[13.754839,42.030225],[14.033704,42.045011]]}}
+```
+tag:hike
+````
+
+Inline paths are the native way Map View adds paths you draw on your own, see below.
+
+### Drawing Paths
+
+TODO continue to write this section
+
+### Styling Paths
 
 ## Queries
 
