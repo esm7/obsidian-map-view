@@ -829,6 +829,8 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 This is a very big release with a long list of new features, fixes and **breaking changes**.
 
+After reading below, while this version is in beta, you can download it from [here](https://github.com/esm7/obsidian-map-view/releases). Download the 3 files and place them in `VAULT_DIR/.obsidian/plugins/obsidian-map-view`. Do not skip backing-up your `data.json` file!
+
 **Important Breaking Changes - DO NOT SKIP:**
 
 - If you are using Google Places API for geosearches, this version upgrades to the new API introduced in 2025. This API is not backwards-compatible with the previous one, and to use it, you may need to update your credentials in Google. See migration guide [here](#migrating-to-google-places-api-new).
