@@ -233,7 +233,7 @@ Map View adds an Obsidian command named "New geolocation note", which you can ma
 This opens a dialog on which you can search (address or location based on your [configured geocoding provider](#changing-a-geocoding-provider)) or paste a URL using the built-in or custom [URL parsing rules](#url-parsing-rules).
 
 When using Google Maps Places API, templates can extract additional result data.
-For instance, templates that match `googleMapsPlaceData.some.path` will be replaced with the value found at `some.path` in the [JSON serach result](https://developers.google.com/maps/documentation/places/web-service/place-data-fields).
+For instance, templates that match `googleMapsPlaceData.some.path` will be replaced with the value found at `some.path` in the [JSON search result](https://developers.google.com/maps/documentation/places/web-service/place-data-fields).
 For instance, the following template would set a [place_id](https://developers.google.com/maps/documentation/places/web-service/place-id) property and tags the note with the [type](https://developers.google.com/maps/documentation/places/web-service/supported_types) of the place:
 
 ```
