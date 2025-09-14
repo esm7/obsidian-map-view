@@ -84,13 +84,14 @@ export class GeoSearcher {
                     this.settings,
                     searchArea?.getCenter(),
                 );
-                for (const result of placesResults)
+                for (const result of placesResults) {
                     results.push({
                         name: result.name,
                         location: result.location,
                         resultType: 'searchResult',
                         extraLocationData: result.extraLocationData,
                     });
+                }
             } catch (e) {
                 console.log(
                     'Map View: Google Places search failed: ',
@@ -154,6 +155,16 @@ export async function googlePlacesSearch(
     const googleUrl = 'https://places.googleapis.com/v1/places:searchText';
 
     try {
+        const ALWAYS_FIELDS = ['displayName', 'formattedAddress', 'location'];
+        // For the query, prepare the fields in the format of places.displayName, places.formattedAddress etc.
+        // Add the user fields to the ones we always need.
+        const userFields = settings.googlePlacesDataFields
+            .split(',')
+            .map((field) => field.trim())
+            .filter((field) => field !== '');
+        let queryFields = ALWAYS_FIELDS.concat(userFields).map(
+            (fieldName) => `places.${fieldName}`,
+        );
         const googleContent = await request({
             url: googleUrl,
             method: 'POST',
@@ -161,8 +172,7 @@ export async function googlePlacesSearch(
             headers: {
                 'Content-Type': 'application/json',
                 'X-Goog-Api-Key': googleApiKey,
-                'X-Goog-FieldMask':
-                    'places.displayName,places.formattedAddress,places.location',
+                'X-Goog-FieldMask': queryFields.join(','),
             },
         });
 

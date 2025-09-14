@@ -74,7 +74,9 @@ export class FileMarker extends BaseGeoLayer {
         }
     }
 
-    // Removes the edges that belong to this marker. This requires removing both sides of the edge
+    // Removes the edges that belong to this marker. This requires removing both sides of the edge.
+    // Note that since markers are plugin-global, in different open map views with different filters,
+    // a marker may have different polylines, with different markers it connects to!
     removeEdges(listToRemoveFrom: leaflet.Polyline[]) {
         for (const edge of this._edges) {
             // Make sure the 2nd marker of the edge doesn't keep holding the edge
@@ -335,6 +337,12 @@ export function addEdgesToMarkers(
 ) {
     if (!showLinks) return;
 
+    // The given list of markers above resides in some set of files, and we want to transverse just these files and figure out the
+    // links between them.
+    // Step 1: build a map of the markers we received with the files they belong to.
+    // (along the way we clear the edges from the markers, rebuilding them soon)
+    // Note: the map between layers and files already exists, in LayerCache. However what we want here is a map that includes
+    // *only the markers we just received*. It might be a filtered, much smaller group than all the markers in the system.
     let filesWithMarkersMap: Map<string, FileWithMarkers> = new Map();
     for (const marker of markers) {
         if (marker instanceof FileMarker) {
@@ -349,6 +357,7 @@ export function addEdgesToMarkers(
             filesWithMarkersMap.get(path).markers.push(marker);
         }
     }
+    // Step 2: add edges between markers of linked files, keeping a map of visited notes to avoid cycles.
     let nodesSeen: Set<string> = new Set();
     for (let fileWithMarkers of filesWithMarkersMap.values()) {
         addEdgesFromFile(

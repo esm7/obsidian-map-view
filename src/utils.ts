@@ -15,7 +15,6 @@ import {
     Notice,
 } from 'obsidian';
 
-import * as moment_ from 'moment';
 import * as leaflet from 'leaflet';
 import * as path from 'path';
 import * as settings from './settings';
@@ -24,6 +23,7 @@ import * as regex from './regex';
 import { BaseMapView } from './baseMapView';
 import MapViewPlugin from 'src/main';
 import wildcard from 'wildcard';
+import dayjs from 'dayjs';
 
 /**
  * An ordered stack (latest first) of the latest used leaves.
@@ -79,8 +79,7 @@ export function formatWithTemplates(
     const queryPattern = /{{query}}/g;
     let replaced = s
         .replace(datePattern, (_, pattern) => {
-            // @ts-ignore
-            return moment().format(pattern);
+            return dayjs().format(pattern);
         })
         .replace(queryPattern, query);
 

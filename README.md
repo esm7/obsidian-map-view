@@ -2,17 +2,6 @@
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/esm7)
 
-TODO:
-GeoJSON:
-
-- Inline
-- File
-- GPX and other files support
-- Inline tags
-- How to change display rules - via name, linkedfrom
-
-Rewrite display rules section
-
 ## Intro
 
 This plugin introduces an **interactive map view** for [Obsidian.md](https://obsidian.md/).
@@ -277,7 +266,7 @@ This opens a dialog on which you can search (address or location based on your [
 
 There are multiple ways to add a geolocation to an existing note.
 
-1. Create an inline geolocation link in the format of `[](geo:)`, and if you start typing inside the link name (the brackets), Map View will initiate a location search. If you confirm one of the options, it will fill-in the location's coordinates. See more on this in the ["In-Note Location Search"](#in-note-location-search--auto-complete) section below.
+1. Create an inline geolocation link in the format of `[](geo:)`, and if you start typing inside the link name (the brackets), Map View will initiate a location search. If you confirm one of the options, it will fill-in the location's coordinates. See more on this in the ["In-Note Location Search"](#location-search--auto-complete) section below.
 
 To make this more streamlined, Map View adds to Obsidian a command named 'Add inline geolocation link' which you can map to a keyboard shortcut.
 
@@ -381,12 +370,19 @@ There is no notion of tags for stand-alone paths, so in order to apply display r
 - Include a relevant string in the file name and use the `path` or `name` operators.
 - Use the `linkedfrom` operator, e.g. have a note "my runs" that links to all your GPX tracks, and use `linkedfrom:"my runs"` to apply display rules to these paths.
 
+Here are a few options for how to add stand-alone paths to your vault:
+
+1. Use Obsidian's "insert attachment" command to insert a path file (e.g. a GPX) as an embed to a note you are working on. Although a path does not need to be referenced from a note to be shown in the map, it is often useful to put paths in contexts, and this command copies the file into the vault and adds it to a note in one step.
+2. From Map View, enter Edit Mode by clicking the pencil icon on the right side, click the file icon, then click "import a path as vault attachment". The selected file will be added to the vault under your default attachments folder.
+3. Just copy the file into your vault using your system's file explorer. It should be automatically recognized and appear.
+
 ### Inline Paths
 
 Map View supports GeoJSON paths stored in notes using a code block of type `geojson`.
 By default, a fenced code block with type `geojson` will be rendered by Map View inside the note.
 
 Unlike stand-alone path files, inline paths support tags by adding a line of the form `tag:a tag:b` right below the code block.
+Also, another advantage of inline paths is that they can be modified using the Edit Mode tools.
 
 For example, the following code block defines a line with the tag `#hike`:
 
@@ -397,14 +393,26 @@ For example, the following code block defines a line with the tag `#hike`:
 tag:hike
 ````
 
-Inline paths are the native way Map View adds paths you draw on your own, see below.
+The easiest way to add an inline path to a note is using Map View's Edit Mode.
+To enter Edit Mode, click the pencil button on the right, or the "Edit" drop-down on the left. Then choose a note to edit.
+From there you can either:
 
-### Drawing Paths
+1. Draw a path on the map using the Edit Mode tools on the right. When done, the path will be added to the selected note.
+2. From the edit mode tools on the right, click the file icon, then click "import a path and add to Edit Mode note". The path will be converted to GeoJSON and added as an inline path to your selected note.
+
+(Note: You will not see the path appear when done if it is excluded from the current filter.)
 
 TODO video here
-TODO continue to write this section
 
 ### Styling Paths
+
+Similarly to markers, the way paths are displayed on the map can be heavily customized using powerful [display rules](#marker--path-display-rules).
+There are two main differences between markers and paths in this regard:
+
+1. Paths have different properties available for styling.
+2. Stand-alone path files do not support tags, so in order to reference them with display rules, you will need to use names or `linkedto` queries.
+
+See [here](#path-properties) for more details.
 
 ## Queries
 
@@ -497,12 +505,14 @@ Badges can have a symbol, a text color, a background color, and a border in the 
 
 ### Path Properties
 
-Paths work exactly like markers, in the way that their style starts from the default rule, and properties of matching rules overwrite each other.
-Similarly to markers, you can set a rule like `tag:#hike` to a path and set to rule to have `red` for color.
+Paths work similarly to markers, in the way that their style starts from the default rule, and properties of matching rules overwrite each other.
+Like markers, you can set a rule like `tag:#hike` to a path and set to rule to have `red` for color.
 
-One difference is that some types of paths (e.g. GPX attachments to the vault) do not have a way to attach a tag to them; if you want to style some paths differently than others, you can use other query types, like name or `linkedfrom`. For example, you can have a central note named "My Runs" that will link to all the GPX files you want styled differently, and use a `linkedfrom` query in a display rule that will set these to red. See more about how to write such queries [here](#queries).
+The most useful properties to set for paths are `color`, `weight` and `opacity`, and a full list for advanced users (editable via JSON, see below) can be found [here](https://leafletjs.com/reference.html#path).
 
-Also, paths do not supported badges.
+One key difference from markers is that stand-alone path files do not have a way to attach a tag to them; if you want to style some paths differently than others, you can use other query types, like name or `linkedfrom`. For example, you can have a central note named "My Runs" that will link to all the GPX files you want styled differently, and use a `linkedfrom` query in a display rule that will set these to red. See more about how to write such queries [here](#queries).
+
+Also, paths do not supported badges, and there is no preview available for them at the moment in the edit dialog.
 
 ### Advanced: Editing Rules as JSON
 
@@ -512,7 +522,7 @@ The Edit Rule dialog allows you to directly edit a display rule as JSON, opening
 - Path options reference can be found [here](https://leafletjs.com/reference.html#path).
 - Marker badges have one more advanced property that is not present in the UI, `cssFilters`. This accepts a valid CSS `filter` string as defined [here](https://developer.mozilla.org/en-US/docs/Web/CSS/filter). For example, `"cssFilters": "grayscale(100%) brightness(0.8)"` can make an emoji grayscale and slightly dimmer.
 
-## In-Note Location Search & Auto-Complete
+## Search & Auto-Complete
 
 Map View adds an Obsidian command named 'Add inline geolocation link', that you can (and encouraged) to map to a keyboard shortcut, e.g. `Ctrl+L` or `Ctrl+Shift+L`.
 This command inserts an empty inline location template: `[](geo:)`.
@@ -523,6 +533,10 @@ Selecting one of the suggestions will fill-in the coordinates of the chosen loca
 ![](img/geosearch-suggest.gif)
 
 If your note is not yet marked as one including locations (by a `locations:`) tag in the front matter, this is added automatically.
+
+**Important:** in order to use the default search provider (OSM Nominatim), you need to specify an e-mail address in the plugin settings.
+**This does not require any registration.**
+It is only because this free provider has limited resources and they need to be able to make sure no single user taxes the system.
 
 ### Changing a Geocoding Provider
 
@@ -536,14 +550,20 @@ If you want, you can add to your API key the slightly more expensive [Places API
 For most reasonable note-taking usage, you will not likely go beyond the Places API free tier.
 
 **Note:** usage of any geocoding provider is at your own risk, and it's your own responsibility to verify you are not violating the service's terms of usage.
+The free OpenStreetMap provider (Nominatim) has limited resources, therefore Map View limits the rate of queries you can send to it, and requires per-user identification by e-mail as stated above.
+
+### Google Places Templates
 
 When using Google Maps Places API, templates can extract additional result data.
-For instance, templates that match `googleMapsPlaceData.some.path` will be replaced with the value found at `some.path` in the [JSON serach result](https://developers.google.com/maps/documentation/places/web-service/text-search#fieldmask).
-For instance, the following template would set a [place_id](https://developers.google.com/maps/documentation/places/web-service/place-id) property and tags the note with the [type](https://developers.google.com/maps/documentation/places/web-service/supported_types) of the place:
+
+This has two steps:
+
+1. Under "Google Places data fields to query", you need to specify in the plugin configuration what fields you want to be received in the Google Places search results. See [here](https://developers.google.com/maps/documentation/places/web-service/place-details#fieldmask) the list of available fields. Enlist any fields you want returned in queries using a comma-delimited list, e.g. `id,types,businessStatus`.
+2. You can refer to these fields in the Map View "new note template" using the syntax `{{googleMapsPlacesData.fieldName}}`. For example, the following template will populate a `place_id` YAML field in your note's front matter with the `id` field returned from Google places, and add a tag like `#gym` using the `types` field (this assumes you defined the query fields in step 1 by the given example):
 
 ```
 ---
-place_id: "{{googleMapsPlaceData.place_id}}"
+place_id: "{{googleMapsPlaceData.id}}"
 ---
 #{{googleMapsPlaceData.types.0}}
 ```
@@ -815,7 +835,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Comeback of "Show native Obsidian popup on marker hover" due to user request (https://github.com/esm7/obsidian-map-view/issues/235).
 - Inline location bug on iOS (https://github.com/esm7/obsidian-map-view/issues/301)
 - Places API (New)
-- TODO: Fix places API templates
+    - Breaking change: template arguments (TODO put a link)
 - Major performance optimizations, especially to filtering, preview popups, embedded maps, Map View starts instantly, price is that it loads on startup and keeps the memory (but if you use lots of embedded maps, it's well worth it)
 - Filtering now reapplies properly when modifying notes
 - Paths

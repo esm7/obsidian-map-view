@@ -111,6 +111,8 @@ export class SettingsTab extends PluginSettingTab {
                             this.plugin.settings.searchProvider === 'google'
                                 ? ''
                                 : 'none';
+                        googlePlacesDataFields.settingEl.style.display =
+                            googlePlacesControl.settingEl.style.display;
                     });
             });
 
@@ -171,6 +173,22 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
+        let googlePlacesDataFields = new Setting(containerEl)
+            .setName('Google Places data fields to query')
+            .setDesc(
+                'To use Places API templates (see the documentation -- i.e. "googleMapsPlaceData.place_id"), enlist here the fields you are interested to query, separated by commas, e.g. place_id,business_status.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.googlePlacesDataFields ||
+                            DEFAULT_SETTINGS.googlePlacesDataFields,
+                    )
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.googlePlacesDataFields = value;
+                        this.plugin.saveSettings();
+                    });
+            });
 
         // Display the user or API key control only if the search provider requires it
         osmUser.settingEl.style.display =
@@ -179,6 +197,8 @@ export class SettingsTab extends PluginSettingTab {
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
         googlePlacesControl.settingEl.style.display =
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
+        googlePlacesDataFields.settingEl.style.display =
+            googlePlacesControl.settingEl.style.display;
         new Setting(containerEl)
             .setName('Search delay while typing')
             .setDesc(
@@ -761,6 +781,22 @@ export class SettingsTab extends PluginSettingTab {
                     )
                     .onChange(async (value) => {
                         this.plugin.settings.handleGeoJsonCodeBlocks = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Handle supported path embeds')
+            .setDesc(
+                'Display an embedded map for embeds (e.g. `![[my path.gpx]]`) of supported path files.',
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.handlePathEmbeds ??
+                            DEFAULT_SETTINGS.handlePathEmbeds,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.handlePathEmbeds = value;
                         await this.plugin.saveSettings();
                     });
             });

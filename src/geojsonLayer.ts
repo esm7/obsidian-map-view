@@ -21,7 +21,10 @@ import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
 import MapViewPlugin from 'src/main';
 
-export const GEOJSON_FILE_FILTER = ['gpx', 'geojson', 'md', 'kml', 'tcx'];
+// File extensions supported for paths
+export const GEOJSON_FILE_FILTER = ['gpx', 'geojson', 'kml', 'tcx'];
+// All file extensions that can have path: adding 'md' because of inline paths
+export const GEOJSON_EVERYTHING = GEOJSON_FILE_FILTER.concat(['md']);
 
 /*
  * An object that represents a GeoJSON layer, e.g. a path or a shape.
@@ -267,7 +270,7 @@ export async function editGeoJson(
 ) {
     if (layer.sourceType !== 'geojson') {
         new Notice(
-            'The edit tool currently supports only GeoJSON objects. Your changes will not be saved.',
+            'The edit tool currently supports only inline GeoJSON paths. Your changes will not be saved.',
         );
         return;
     }

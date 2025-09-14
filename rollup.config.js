@@ -6,6 +6,8 @@ import postcss_url from 'postcss-url';
 import copy from 'rollup-plugin-copy';
 import image from '@rollup/plugin-image';
 import svelte from 'rollup-plugin-svelte';
+import analyze from 'rollup-plugin-analyzer';
+import filesize from 'rollup-plugin-filesize';
 // Not using sveltePreprocess anymore, seeming not needed: https://github.com/sveltejs/svelte-preprocess?tab=readme-ov-file#when-to-use-it
 // import { sveltePreprocess } from 'svelte-preprocess';
 
@@ -52,6 +54,8 @@ export default {
             extensions: ['.css'],
             plugins: [postcss_url({ url: 'inline' })],
         }),
+        // analyze({ summaryOnly: true, limit: 20 }), // top 20 modules
+        // filesize({ showBrotliSize: true }),
         ...(process.env.BUILD !== 'development'
             ? [
                   copy({

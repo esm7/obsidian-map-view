@@ -413,7 +413,9 @@ export class AddFileControl extends leaflet.Control {
                 });
             });
             menu.addItem((item: MenuItem) => {
-                item.setTitle('Import a path and add to Edit Mode note...');
+                item.setTitle(
+                    'Import a path and add to Edit Mode note (as inline)...',
+                );
                 item.onClick(async () => {
                     const result = await getFileFromUser();
                     if (result) {

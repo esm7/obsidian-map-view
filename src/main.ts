@@ -23,6 +23,8 @@ import { UrlConvertor } from 'src/urlConvertor';
 import { mergeStates, stateFromParsedUrl, getCodeBlock } from 'src/mapState';
 import * as menus from 'src/menus';
 import { purgeTilesBySettings } from 'src/offlineTiles.svelte';
+import type { EmbedRegistry, EmbedContext } from 'obsidian-typings';
+import { EmbeddedComponent } from 'src/embeddedComponent';
 
 import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
@@ -52,7 +54,11 @@ import {
     matchInlineLocation,
     buildAndAppendFileMarkers,
 } from 'src/fileMarker';
-import { buildGeoJsonLayers, GEOJSON_FILE_FILTER } from 'src/geojsonLayer';
+import {
+    buildGeoJsonLayers,
+    GEOJSON_FILE_FILTER,
+    GEOJSON_EVERYTHING,
+} from 'src/geojsonLayer';
 import { verifyLocation } from 'src/baseGeoLayer';
 import { FileMarker } from 'src/fileMarker';
 import { SettingsTab } from 'src/settingsTab';
@@ -286,12 +292,35 @@ export default class MapViewPlugin extends Plugin {
                         );
                         const fullState = mergeStates(
                             this.settings.defaultState,
-                            { query, autoFit: true },
+                            { query, lock: true, autoFit: true },
                         );
                         await map.open(fullState);
                     }
                 },
             );
+        }
+
+        if (this.settings.handlePathEmbeds) {
+            const embedRegistry: EmbedRegistry = this.app.embedRegistry;
+            if (embedRegistry) {
+                embedRegistry.registerExtensions(
+                    GEOJSON_FILE_FILTER,
+                    (context: EmbedContext, file: TFile, _) => {
+                        const component = new EmbeddedComponent(
+                            context.containerEl,
+                            this,
+                            this.app,
+                            this.settings,
+                            file,
+                            '',
+                        );
+                        return component;
+                    },
+                );
+            } else
+                console.error(
+                    'Cannot register Map View embeds: embed registry not found.',
+                );
         }
 
         this.registerMarkdownPostProcessor(replaceLinksPostProcessor(this));
@@ -1169,7 +1198,7 @@ export default class MapViewPlugin extends Plugin {
         let files = this.app.vault.getMarkdownFiles();
         let geoJsonFiles = this.app.vault
             .getFiles()
-            .filter((file) => GEOJSON_FILE_FILTER.includes(file.extension));
+            .filter((file) => GEOJSON_EVERYTHING.includes(file.extension));
         let newMarkers = await buildAndAppendFileMarkers(
             files,
             this.settings,
@@ -1226,7 +1255,7 @@ export default class MapViewPlugin extends Plugin {
                 this,
             );
 
-            if (GEOJSON_FILE_FILTER.includes(fileAddedOrChanged.extension)) {
+            if (GEOJSON_EVERYTHING.includes(fileAddedOrChanged.extension)) {
                 let geoJsonLayers = await buildGeoJsonLayers(
                     [fileAddedOrChanged],
                     this.settings,

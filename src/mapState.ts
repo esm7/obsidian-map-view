@@ -130,7 +130,10 @@ export function stateFromParsedUrl(obj: any) {
             obj.chosenMapSource != null ? parseInt(obj.chosenMapSource) : null,
         autoFit: obj?.autoFit,
         lock: obj?.lock,
-        showLinks: obj.showLinks != null ? obj.showLinks === 'true' : false,
+        showLinks:
+            obj.showLinks != null
+                ? obj.showLinks === 'true' || obj.showLinks === true
+                : false,
         linkColor: obj?.linkColor,
         markerLabels: obj?.markerLabels,
         ...(obj.embeddedHeight && {

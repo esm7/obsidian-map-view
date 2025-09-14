@@ -54,6 +54,7 @@ export type PluginSettings = {
     searchDelayMs: number;
     geocodingApiKey: string;
     useGooglePlacesNew2025: boolean;
+    googlePlacesDataFields: string;
     saveHistory: boolean;
     queryForFollowActiveNote: string;
     supportRealTimeGeolocation: boolean;
@@ -64,6 +65,7 @@ export type PluginSettings = {
     geoHelperUrl: string;
     tagForGeolocationNotes: string;
     handleGeolinksInNotes: boolean;
+    handlePathEmbeds: boolean;
     showGeolinkPreview: boolean;
     zoomOnGeolinkPreview: number;
     handleGeolinkContextMenu: boolean;
@@ -282,6 +284,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     searchDelayMs: 250,
     geocodingApiKey: '',
     useGooglePlacesNew2025: false,
+    googlePlacesDataFields: '',
     mapSources: [
         {
             name: 'CartoDB',
@@ -303,6 +306,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     geoHelperUrl: 'https://esm7.github.io/obsidian-geo-helper/',
     tagForGeolocationNotes: '',
     handleGeolinksInNotes: true,
+    handlePathEmbeds: true,
     showGeolinkPreview: false,
     zoomOnGeolinkPreview: 10,
     handleGeolinkContextMenu: true,

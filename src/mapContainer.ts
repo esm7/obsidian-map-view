@@ -1007,7 +1007,13 @@ export class MapContainer {
         popupPlacement: 'element' | 'mouse',
     ) {
         leafletLayer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
-            this.showMarkerPopups(layer, leafletLayer, event, popupPlacement);
+            if (!utils.isMobile(this.app))
+                this.showMarkerPopups(
+                    layer,
+                    leafletLayer,
+                    event,
+                    popupPlacement,
+                );
         });
         leafletLayer.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
             if (!utils.isMobile(this.app)) {
@@ -1023,6 +1029,9 @@ export class MapContainer {
                         layer.layerType === 'floatingMarker'
                     )
                         this.setHighlight(layer);
+                    // We need to stop the click event here so the popup won't accidentally get clicked
+                    event.originalEvent.stopPropagation();
+                    event.originalEvent.preventDefault();
                     this.showMarkerPopups(
                         layer,
                         leafletLayer,
@@ -1494,6 +1503,9 @@ export class MapContainer {
                         'click',
                         async (event: leaflet.LeafletMouseEvent) => {
                             if (utils.isMobile(this.app)) {
+                                // We need to stop the click event here so the popup won't accidentally get clicked
+                                event.originalEvent.stopPropagation();
+                                event.originalEvent.preventDefault();
                                 await this.showMarkerPopups(
                                     floatingPath,
                                     layer,
