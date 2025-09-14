@@ -1,6 +1,6 @@
 {
     "name": "obsidian-map-view",
-    "version": "6.0.0",
+    "version": "6.0.0.b1",
     "description": "An interactive map view for Obsidian.md",
     "main": "main.js",
     "type": "module",
