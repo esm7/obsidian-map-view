@@ -132,7 +132,7 @@
                     Each marker or path starts from the default setting, then
                     matched by order, potentially overwriting some properties on
                     every rule match. See <a
-                        href="https://github.com/esm7/obsidian-map-view?tab=readme-ov-file#marker-icons"
+                        href="https://github.com/esm7/obsidian-map-view?tab=readme-ov-file#marker--path-display-rules"
                         >here</a
                     > for details and examples.
                 </p>

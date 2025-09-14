@@ -166,8 +166,10 @@
                 <div class="setting-item-info">
                     <div class="setting-item-name">Marker Badge</div>
                     <div class="setting-item-description">
-                        TODO add documentation, and refer from there to the
-                        cssFilters field too
+                        See documentation <a
+                            href="https://github.com/esm7/obsidian-map-view?tab=readme-ov-file#marker-badge"
+                            >here</a
+                        >.
                     </div>
                 </div>
                 <div class="rule-group">
@@ -222,7 +224,12 @@
         <div class="section">
             <div class="setting-item-info">
                 <div class="setting-item-name">Path Properties</div>
-                <div class="setting-item-description">TODO description</div>
+                <div class="setting-item-description">
+                    See documentation <a
+                        href="https://github.com/esm7/obsidian-map-view?tab=readme-ov-file#path-properties"
+                        >here</a
+                    >.
+                </div>
             </div>
             <div class="rule-group">
                 <div class="rule-input">

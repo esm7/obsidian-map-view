@@ -27,9 +27,9 @@ Plus...
 
 And much, **much** more -- this is quite a powerful tool.
 
-TODO update screenshots
-
 ![](img/sample.png)
+
+![](img/edit-mode.png)
 
 ![](img/intro.gif)
 
@@ -73,6 +73,8 @@ Here are a few examples for logging a favorite location you want to see in a map
 
 ![](img/quick1.gif)
 
+(Note: the default geosearch provider requires you fill-in your email address, see [here](#location-search--auto-complete) for more details.)
+
 **Option 2: from the Map**
 
 - Open Map View (e.g. from the Obsidian ribbon icon).
@@ -86,8 +88,6 @@ Here are a few examples for logging a favorite location you want to see in a map
 - Click the red "Choose Note" button to select which note you want to add items to.
 - Place markers or other shapes on the map using the tools that appeared below the pencil icon.
 - When in Edit Mode you can move or edit other markers and paths as well.
-
-TODO add screenshot
 
 **There are many other ways to log geolocations in Map View**, see [here](#adding-a-location-to-a-note) for more details.
 
@@ -212,9 +212,6 @@ Point 2: [New Haven](geo:41.2982672,-72.9991356)
 ```
 
 Notes with multiple markers will contain multiple markers on the map with the same note name, and clicking on the marker will jump to the correct location within the note.
-
-For many cases inline locations are superior because `geo:` is a [native URL scheme](https://en.wikipedia.org/wiki/Geo_URI_scheme), so if you click it in Obsidian (including mobile), your default maps app (or an app selector for a location) will be triggered.
-The front matter method, however, is currently better if you want interoperability with plugins that use it, if you want to store lots of filterable meta-data on a location, or if you heavily express yourself with links.
 
 Inline locations also support **inline tags** in the format of `tag:dogs` (without the `#` sign). For example:
 
@@ -349,7 +346,7 @@ Embeds also work really nicely in Canvas including live updates.
 
 ## Paths
 
-TODO screenshot here
+![](img/paths-basic.png)
 
 Map View supports paths in a variety of formats and usage patterns.
 Somewhat similarly to markers, there is a distinction between **stand-alone path files** and **inline paths**.
@@ -401,8 +398,6 @@ From there you can either:
 2. From the edit mode tools on the right, click the file icon, then click "import a path and add to Edit Mode note". The path will be converted to GeoJSON and added as an inline path to your selected note.
 
 (Note: You will not see the path appear when done if it is excluded from the current filter.)
-
-TODO video here
 
 ### Styling Paths
 
@@ -463,7 +458,7 @@ In all cases you can [save presets](#Presets) that include the filter or sub-fil
 
 ## Marker & Path Display Rules
 
-TODO - update links that go here, from the document and code!
+![](img/display-rules.png)
 
 Map View includes a powerful mechanism that allows you to customize map markers and path display properties based on a flexible rules system.
 These are called Display Rules.
@@ -478,6 +473,8 @@ For example, the default rule for markers may be a blue marker color with an `fa
 To edit display rules, open the plugin settings, and click the button under the "Marker & Path Display Rules" section.
 You will see the list of the currently-active rules. You can add new rules, change the order of rules (except the default which must be first), and edit existing rules.
 When editing a rule, you will be able to set various properties that the rule can apply. All these properties are optional, and will overwrite the default (or prior matching rules) for every marker or path that will match its query.
+
+![](img/edit-display-rule.png)
 
 ### Marker Icon Properties
 
