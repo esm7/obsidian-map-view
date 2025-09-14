@@ -353,8 +353,6 @@ Somewhat similarly to markers, there is a distinction between **stand-alone path
 
 ### Stand-Alone Path Files
 
-TODO check links
-
 Stand-alone path files can be any GPX, KML, TCX or GeoJSON files in your vault.
 Somewhat similarly to front matter geolocations, Map View collects everything from your vault and displays paths based on [display rules](#marker--path-display-rules) and [filters](#queries).
 
@@ -578,6 +576,8 @@ To migrate your existing API key to Google Places API (New):
 3. Go to APIs & Services on the left. Search for "Places API (New)" and click Enable.
 4. Go back, then click Keys & Credentials. Find your existing Places API key, and in its Actions menu, choose "Edit API key".
 5. If under "API restrictions" you selected "Don't restrict key" -- you should be good to go. If you have "Restrict key", add "Places API (New)" that should be available after enabling it in step 3. Save the edited key.
+
+Additionally, if you are using Google Places Templates (see above), field names were changed from the old API, and you need to explicitly add them in the plugin settings.
 
 ## Map Sources
 
@@ -832,6 +832,7 @@ This is a very big release with a long list of new features, fixes and **breakin
 **Important Breaking Changes - DO NOT SKIP:**
 
 - If you are using Google Places API for geosearches, this version upgrades to the new API introduced in 2025. This API is not backwards-compatible with the previous one, and to use it, you may need to update your credentials in Google. See migration guide [here](#migrating-to-google-places-api-new).
+    - If you are using [Google Places templates](#google-places-templates), the names of fields were changed in the new Places API, and you need to explicitly add them in the plugin settings.
 - If you are using the OpenStreetMap geocoding provider (which is the default), you now need to provide an email address in the plugin configuration -- due to enforcement of usage restrictions from the OSM side.
 
 **IMPORTANT NOTE: the v6.0 configuration file is not backwards-compatible.** While this version is in beta stage, it's recommended to backup your config file by copying `VAULT_DIR/.obsidian/plugins/obsidian-map-view/data.json`.
@@ -979,175 +980,3 @@ Many important bug fixes are waiting for me to have a little spare time, in the 
 - Map View now requires Obsidian 1.5.6 or newer, and uses the formal front matter API.
 - Tab icons of map views now have the proper map pin icon (https://github.com/esm7/obsidian-map-view/issues/227).
 - Fixed a bug of the cursor not jumping forward after an inline location suggestion.
-
-### 4.0.1
-
-- Fixed support for innerHTML in icon rules (https://github.com/esm7/obsidian-map-view/issues/183).
-- Fixed some Android issues
-
-### 4.0.0
-
-- **GPS support** (to some extent!)
-    - Map View now supports a companion app that can help receive a precise location and use it in the map or within your notes.
-    - This is experimental and will not work smoothly for everyone right away.
-    - See [here](#gps-location-support) for more details.
-- Routing: when right-clicking the map you now have a "mark as routing source", and once such a source is marked, you can launch an external tool for driving directions or ETAs (by default Google Maps) for various destinations. This is really useful for assessing distances or travel times in trip planning.
-- Embedded maps now have a 'lock' control that disables accidental changes to the map (https://github.com/esm7/obsidian-map-view/issues/178).
-- Added a not-fully-baked `autoFit` flag, with no proper UI yet (https://github.com/esm7/obsidian-map-view/issues/171). See [here](#advanced-additional-options) for details.
-- Added a `$filename$` template parameter to embedded map code blocks (https://github.com/esm7/obsidian-map-view/issues/146).
-- The `linkedto:` query operator now actually resolves Obsidian links instead of doing textual comparison (https://github.com/esm7/obsidian-map-view/issues/162).
-    - Note: this might break existing queries that counted on it to work on text comparison rather than an actual note path.
-- Fixed various major issues with presets (https://github.com/esm7/obsidian-map-view/issues/175).
-- Fix to blank or malformed inline geolocations throwing exceptions when opening notes (https://github.com/esm7/obsidian-map-view/issues/172).
-- Fixed issues with Map View trying to process non-Markdown files in the vault (https://github.com/esm7/obsidian-map-view/issues/181).
-- The "open in last-used pane" setting now respects pinned panes (https://github.com/esm7/obsidian-map-view/issues/134).
-
-### 3.1.1
-
-- Geolinks in notes, and also front matter geolocations, are now internal Map View links! (https://github.com/esm7/obsidian-map-view/issues/144)
-    - It means that by default, when you click a geolink in Map View, it will open inside Map View.
-    - This can be turned off in the settings.
-- There are now optional **map preview hovers** for geolinks in notes (if the above feature is turned on).
-    - This is currently off by default, and will probably become on by default while I gain confidence in its performance and stability.
-- Wildcard support for "tag that denotes inline locations" (https://github.com/esm7/obsidian-map-view/issues/164).
-- Fixed background in the wrong color on dark mode (https://github.com/esm7/obsidian-map-view/issues/163).
-
-### 3.0.2
-
-Many small improvements and fixes:
-
-- New ribbon icon, based on Lucide, to be consistent with the Obsidian design guidelines (thanks @huy-vuong!)
-- Added a setting to always show the link name on map view popup (and organized the relevant settings into their own section). (https://github.com/esm7/obsidian-map-view/issues/149)
-- Added support for wildcards in tag queries (https://github.com/esm7/obsidian-map-view/issues/159).
-- Fixed a bug with queries set in "query format for follow active note" that include multiple `$PATH$` items (https://github.com/esm7/obsidian-map-view/issues/158).
-- Added the ability to use a custom tag instead of an empty `locations:` YAML tag (https://github.com/esm7/obsidian-map-view/issues/135).
-- The `linkedfrom` query filter now requires an exact match (https://github.com/esm7/obsidian-map-view/issues/152).
-- Fixed a bug where the "save" button didn't pop up on embedded maps if only the zoom was changed (https://github.com/esm7/obsidian-map-view/issues/156).
-
-### 3.0.1
-
-**Fixes:**
-
-- The ampersand character `&` now works in queries.
-- Embeds added not through a map (aka "quick embeds") now open with a minimum zoom value of 7, so they won't show the entire world if this is the user's default view.
-
-### 3.0.0
-
-**New:**
-
-- **Map embeds are finally here!**
-    - Map View now supports embedding maps in notes.
-    - This works really well also in Canvas!
-    - See [here](#embedding-maps-in-notes) for more details.
-- Major performance improvements, especially when displaying hundreds of markers or more. Map View now opens and interacts instantly even with thousands of markers and dozens of icon rules.
-    - **IMPORTANT:** this might break some very custom marker icon rules (especially ones that use properties that I didn't think to test).
-    - If you experience such breakage, please open an issue and use version 2.2.0 in the meantime.
-- Major overhaul to the settings of "default action for map marker click". There are now fine-grained settings for fine-tuning what happens when clicking, Ctrl+clicking and middle-clicking markers (and other actions that open a note from the map), and tabs are supported as well as panes.
-- Similarly to the above, new settings were added for all actions that open Map View, so different behaviors can be configured for a click, Ctrl+click and middle-click.
-- When pasting an inline geolocation from the clipboard, a "locations:" front-matter is automatically added (unless turned off in the plugin settings).
-
-**Fixes:**
-
-- Parenthesis now work in queries (https://github.com/esm7/obsidian-map-view/issues/124).
-- Commas now work in queries (https://github.com/esm7/obsidian-map-view/issues/125).
-- Fixed weird pane selection logic for "Open in Map View" and "Show on Map View" caused by the Obsidian 1.1 UI changes (https://github.com/esm7/obsidian-map-view/issues/127).
-- Fixed the annoying `$CURSOR` that was added to some notes for some people (https://github.com/esm7/obsidian-map-view/issues/21).
-- Fixes to "follow active note" (https://github.com/esm7/obsidian-map-view/issues/113).
-
-### 2.2.0
-
-**New:**
-
-- Selecting a range of lines in the editor that have multiple geolocations will show a new "focus X geolocations in Map View" context menu item.
-- A new `name` query filter (to filter for a geolocation name) and a `lines` filter (to filter for a line range within a file).
-- Small UI improvements, e.g. icons in pop-ups.
-- "Focus Note in Map View" is now shown also for notes that have no geolocations, since the "follow active note" query format may look into links.
-- Some behind-the-scenes work for exciting big features that are cooking...
-
-**Fixes:**
-
-- **Various fixes and tweaks required for Obsidian 0.16.x.**
-    - As part of this, "paste as geolocation" is now always shown in the editor context menu, regardless of whether a string that can be parsed was found in the clipboard. This is due to a change of how menus in Obsidian work, which doesn't allow to inspect the clipboard while populating the menu.
-- Fixed Google Places search not working on Mobile due to `querystring` not being present for some reason.
-- Fixed pop-ups not always clickable on mobile.
-- Fixed a problem in parsing link names on lines that contain other links.
-
-### 2.1.1
-
-Fix for OpenStreetMap geolocation search stopped working for some users.
-
-### 2.1.0
-
-**BREAKING:** this release requires Obsidian 0.15.3 or newer.
-
-**New:**
-
-- The results of a search, or a focused geolocation, is now highlighted by a blue glow on the map.
-    - The glow can be customized via CSS.
-- Made the graph controls more compact when minimized and properly positioned in more cases.
-- "Follow active note" now works using a customizable query, see [here](#follow-active-note) for details.
-- Clearing "follow active note" now resets the query.
-- Search results are now shown sorted by distance from the center of the map.
-- Shift+Enter on an existing marker in the search result will go to that marker without zooming. This goes hand-in-hand with the highlighting introduced above, so you can easily highlight various markers without the map view changing.
-- When using Google Places as the search provider, geosearch results now give priority to the displayed area.
-- Adapted the various menus to utilize the Obsidian 0.15.x sections.
-- Upgrade the Font Awesome library to 6.1, making more icons available.
-- On mobile, some map interactions are custom-tailored for tapping (tapping a marker shows its name, long-tapping opens the menu).
-
-**Fixes:**
-
-- Fixed misbehavior of the controls in the case of multiple Map View instances.
-- Fixed Map View interfering with the Graph View controls in some themes.
-- Fixed inline tags not recognized when followed by a comma.
-- Various fixes to the internal state update mechanism, hopefully allowing smoother zoom/pan operations with no unexpected jumps.
-    - As part of this, zoom/pan animations are back on state transitions.
-- Fixes for "follow active note" on Obsidian 0.15.x.
-- Fixed a duplication bug if a file contains multiple markers in the same geolocation (https://github.com/esm7/obsidian-map-view/issues/85).
-
-### 2.0.5
-
-- Improved the logic of saving "back/forward" history in a few cases, and optimized the state update logic to make transitions faster.
-- More fixes to "follow active note" when "map follows search results" is set (https://github.com/esm7/obsidian-map-view/issues/92).
-- Fixed "add geolocation (frontmatter)" to notes that contain `---` as a content separator (https://github.com/esm7/obsidian-map-view/issues/98). Thanks @MattWilcox!
-- Fixed paths with backslashes not working in "new note path" (https://github.com/esm7/obsidian-map-view/issues/97).
-- Fix to new note map action not working on Android (https://github.com/esm7/obsidian-map-view/issues/96).
-- The default zoom for "show on map" action, as set in the settings, is now also used as a max zoom in "map follows search results".
-- In-note tag suggestions no longer include the pound sign (which should not be there for inline tags).
-
-### 2.0.4
-
-- Fixed an issue with cluster expansion not working.
-- Improved "copy URL" handling between different devices.
-- Added a clear button to the new query box.
-- Fixed touch move & zoom that stopped working due to an unintended upgrade to Leaflet 1.8.0.
-- Fixed inconsistent moves and jumps during fast series of events.
-
-### 2.0.3
-
-- Fixed searched stopped working in some cases which are not the new Google Places (https://github.com/esm7/obsidian-map-view/issues/93).
-- Fixes to "follow active note" (https://github.com/esm7/obsidian-map-view/issues/92).
-
-### 2.0.0
-
-This is a massive version with a huge number of updates, pushing Map View to the next level of functionality!
-
-- Instead of the previous simplistic tag filtering, Map View now has a powerful [Queries](#queries) mechanism with multiple search and logical operators.
-    - Queries are marker-based and not file-based. This will be a breaking change for some users.
-- Under the View control, turn on "follow active note" for Map View to focus on any note that is opened or changed (https://github.com/esm7/obsidian-map-view/issues/71).
-- Showing the note name is now optional (https://github.com/esm7/obsidian-map-view/issues/75). I wish this could be in the same popup as the preview, but currently I don't see how to do this.
-- Fixed issues with front matter tag support (https://github.com/esm7/obsidian-map-view/issues/72) (thanks @gentlegiantJGC!)
-- Added a configuration for the max zoom of a tile layer (thanks @gentlegiantJGC!).
-    - This also includes a new "zoom beyond max" setting, which will not limit you to the highest zoom level of a tile source.
-- The map search tool now uses the same search window as "New geolocation note", which beyond the configured geocoding service, also does URL parsing.
-    - It also includes existing markers, so you can quickly jump to an existing name on the map.
-    - Except the bonus of making the UI more uniform, this is very important for usability, especially on mobile. e.g. you can use it to get your location from another app and use it to create notes or explore around.
-    - A "search active map view" command was added (available when a map view is focused) so a keyboard shortcut can be assigned to the map search.
-- Auto-completion for inline tags. If you type `tag:` in a line that includes a valid geolocation, you will get suggestions for tag names.
-- In the context menu of a map view, or in the Presets controls section, you can copy the active view as a link.
-    - Clicking this link from another app should launch Obsidian and open Map View with the exact same view (including the query, zoom, pan and map source).
-    - To use this in Obsidian notes paste the URL inside a link, e.g. `[Link name](obsidian://...)`
-- All the geolocation searches now support the Google Places API, and will prefer results from Places API over the simpler Google Geolocation API.
-    - This requires your Google API key to include credentials for Google Places, see the documentation above.
-- Several UI improvements:
-    - The map control panel is now prettier and smaller when unused.
-    - The note name and cluster popups now follow the Obsidian theme.

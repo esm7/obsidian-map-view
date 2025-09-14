@@ -143,7 +143,6 @@ export type IconBadgeOptions = {
     badge?: string;
     textColor?: string;
     backColor?: string;
-    // TODO put this in the documentation
     cssFilters?: string;
     border?: string;
 };
