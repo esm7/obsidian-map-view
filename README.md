@@ -29,7 +29,7 @@ And much, **much** more -- this is quite a powerful tool.
 
 ![](img/sample.png)
 
-![](img/edit-mode.png)
+![](img/edit-mode.gif)
 
 ![](img/intro.gif)
 
@@ -825,28 +825,44 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
-### Not yet Released
+### 6.0.0
+
+This is a very big release with a long list of new features, fixes and **breaking changes**.
+
+**Important Breaking Changes - DO NOT SKIP:**
+
+- If you are using Google Places API for geosearches, this version upgrades to the new API introduced in 2025. This API is not backwards-compatible with the previous one, and to use it, you may need to update your credentials in Google. See migration guide [here](#migrating-to-google-places-api-new).
+- If you are using the OpenStreetMap geocoding provider (which is the default), you now need to provide an email address in the plugin configuration -- due to enforcement of usage restrictions from the OSM side.
+
+**IMPORTANT NOTE: the v6.0 configuration file is not backwards-compatible.** While this version is in beta stage, it's recommended to backup your config file by copying `VAULT_DIR/.obsidian/plugins/obsidian-map-view/data.json`.
+
+**Big New Stuff:**
+
+- Support for [paths](#paths), either in stand-alone files (GPX etc) or inline within notes.
+- A complete redo of what used to be called "marker rules" into a more powerful "display rules" idea, see [here](#marker--path-display-rules).
+- Routing -- built-in tools for calculating driving, cycling and walking paths using the GraphHopper API, see [here](#routing).
+- Badges -- cute little icons that can be added to markers with display rules. See [here](#marker-badge).
+- Edit Mode -- a complete new interface for adding and modifying markers and paths directly from the map.
+
+**Smaller New Stuff:**
+
+- Major performance improvements, Map View should now open instantly after an initial load, and filtering works much faster.
+- Added `opacity` as a marker icon property.
+- A (default) new setting for only one controls section to be expanded at a time.
+- Comeback of "Show native Obsidian popup on marker hover" due to user request (https://github.com/esm7/obsidian-map-view/issues/235).
+- Modifying notes now properly update according to the active filter.
+- Query tag suggestions now only show tags present on the map
+- Added a "focus current note in Map View" command.
+
+**Bug Fixes (some long overdue)**:
 
 - Fixes to respect Obsidian's new "always focus new tab" setting.
 - Fix for https://github.com/esm7/obsidian-map-view/issues/308 (thanks @edzillion!).
-- Comeback of "Show native Obsidian popup on marker hover" due to user request (https://github.com/esm7/obsidian-map-view/issues/235).
-- Inline location bug on iOS (https://github.com/esm7/obsidian-map-view/issues/301)
-- Places API (New)
-    - Breaking change: template arguments (TODO put a link)
-- Major performance optimizations, especially to filtering, preview popups, embedded maps, Map View starts instantly, price is that it loads on startup and keeps the memory (but if you use lots of embedded maps, it's well worth it)
-- Filtering now reapplies properly when modifying notes
-- Paths
-- Badges
-- Context menu 'open in' fix for Reading View (https://github.com/esm7/obsidian-map-view/issues/326)
-- Fixed file-menu event not registered to plugin (https://github.com/esm7/obsidian-map-view/issues/327)
+- Inline location bug on iOS (https://github.com/esm7/obsidian-map-view/issues/301).
+- Context menu 'open in' fix for Reading View (https://github.com/esm7/obsidian-map-view/issues/326).
+- Fixed file-menu event not properly registered to the plugin (https://github.com/esm7/obsidian-map-view/issues/327).
 - Fix to the `autoFit` state flag of embedded maps to work more consistently.
 - Map View now sets the type of the 'location' property to List, to prevent issues of Obsidian corrupting it.
-- Query tag suggestions now only show tags present on the map
-- Added a "focus current note in Map View" command.
-- Only one controls section expanded at a time (default)
-- Routing with GraphHopper
-- Added 'opacity' as an icon property
-- Min search time for OSM is now 1s
 
 ### 5.5.0
 
