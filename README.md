@@ -2,10 +2,6 @@
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/esm7)
 
-> [!NOTE]
-> Map View 6.0.0 is in beta, introducting tons of new features.
-> If you want to try it, see more information [here](https://github.com/esm7/obsidian-map-view/tree/v6.0?tab=readme-ov-file#600).
-
 ## Intro
 
 This plugin introduces an **interactive map view** for [Obsidian.md](https://obsidian.md/).
