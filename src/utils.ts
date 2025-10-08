@@ -11,9 +11,10 @@ import {
     type CachedMetadata,
     type HeadingCache,
     type BlockCache,
+    type FrontMatterCache,
+    Notice,
 } from 'obsidian';
 
-import * as moment_ from 'moment';
 import * as leaflet from 'leaflet';
 import * as path from 'path';
 import * as settings from './settings';
@@ -21,6 +22,8 @@ import * as consts from './consts';
 import * as regex from './regex';
 import { BaseMapView } from './baseMapView';
 import MapViewPlugin from 'src/main';
+import wildcard from 'wildcard';
+import dayjs from 'dayjs';
 
 /**
  * An ordered stack (latest first) of the latest used leaves.
@@ -76,8 +79,7 @@ export function formatWithTemplates(
     const queryPattern = /{{query}}/g;
     let replaced = s
         .replace(datePattern, (_, pattern) => {
-            // @ts-ignore
-            return moment().format(pattern);
+            return dayjs().format(pattern);
         })
         .replace(queryPattern, query);
 
@@ -241,18 +243,24 @@ export async function verifyOrAddFrontMatter(
 
 export async function verifyOrAddFrontMatterForInline(
     app: App,
-    editor: Editor,
+    // If no editor, the content of the file is used instead
+    editor: Editor | null,
     file: TFile,
     settings: settings.PluginSettings,
 ): Promise<boolean> {
     // If the user has a custom tag to denote a location, and this tag exists in the note, there's no need to add
     // a front-matter
     const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
-    if (
-        tagNameToSearch?.length > 0 &&
-        editor.getValue()?.contains(tagNameToSearch)
-    )
-        return false;
+    if (tagNameToSearch?.length > 0) {
+        if (editor) {
+            // If the user supplied an editor, use it to search for the tag name
+            if (editor.getValue()?.contains(tagNameToSearch)) return false;
+        } else {
+            // Otherwise we need to open the file
+            const content = await app.vault.read(file);
+            if (content.includes(tagNameToSearch)) return false;
+        }
+    }
     // Otherwise, verify this note has a front matter with an empty 'locations' tag
     return await verifyOrAddFrontMatter(app, file, 'locations', '');
 }
@@ -261,23 +269,22 @@ export async function verifyOrAddFrontMatterForInline(
  * Update the inline geolocation
  * @param app The Obsidian Editor instance
  * @param file The TFile containing the location to update
- * @param newLocation The new location to set
  * @param geolocationMatch Regex match info related to the inline geolocation
- * @param newLat The new latitude to set
- * @param newLng The new longitude to set
+ * @param newLocation - a new location to use
+ * @param newName - a new name to use or null if unchanged
  */
 export async function updateInlineGeolocation(
     app: App,
     file: TFile,
     fileLocation: number,
     geolocationMatch: RegExpMatchArray,
-    newLat: number,
-    newLng: number,
+    newLocation: leaflet.LatLng,
+    newName: string | null,
 ): Promise<void> {
     const content = await app.vault.read(file);
     let groups = geolocationMatch?.groups;
     if (groups) {
-        const newGeoLocationText = `[${groups.name}](geo:${newLat},${newLng})`;
+        const newGeoLocationText = `[${newName ?? groups.name}](geo:${newLocation.lat},${newLocation.lng})`;
         // We want to replace just the part containing the coordinates, not optional tags that follow and are
         // included in geolocationMatch. So we do a re-match without any tags, to know the length of the part
         // we want to replace.
@@ -502,4 +509,106 @@ export function getTagUnderCursor(
     cursorPosition: number,
 ): RegExpMatchArray {
     return matchByPosition(line, regex.TAG_NAME_WITH_HEADER, cursorPosition);
+}
+
+// This takes multiple iterables (that can be of different types, e.g. an iterator of a map and an iterator of an array)
+// and returns an iterator that will iterate over all the structures without copying them.
+// Note that like iterators in general, the result of this function can be used only once, and the iterator will need to be
+// re-created if another pass on the combined structure is needed.
+export function* combineIterables<T>(...iterables: Iterable<T>[]): Iterable<T> {
+    for (const iterable of iterables) {
+        yield* iterable;
+    }
+}
+
+export function hasFrontMatterLocations(
+    frontMatter: FrontMatterCache,
+    fileCache: CachedMetadata,
+    settings: settings.PluginSettings,
+) {
+    const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
+    return (
+        (frontMatter && 'locations' in frontMatter) ||
+        (tagNameToSearch?.length > 0 &&
+            wildcard(tagNameToSearch, getAllTags(fileCache)))
+    );
+}
+
+export async function appendGeolocationToNote(
+    file: TFile,
+    heading: string | null,
+    label: string,
+    location: leaflet.LatLng,
+    tags: string[],
+    app: App,
+    settings: settings.PluginSettings,
+) {
+    const tagsString = tags.length > 0 ? ' ' + makeInlineTagsList(tags) : '';
+    const locationString = `\n[${label}](geo:${location.lat},${location.lng})${tagsString}\n`;
+    await appendToNoteAtHeadingOrEnd(file, heading, locationString, app);
+    await verifyOrAddFrontMatterForInline(app, null, file, settings);
+}
+
+export async function appendToNoteAtHeadingOrEnd(
+    file: TFile,
+    heading: string | null, // When null, appending to the end of the file
+    text: string,
+    app: App,
+) {
+    let nextHeading: HeadingCache | null = null;
+    // If a heading is given, try to locate it.
+    // If we managed to, our goal is to find the *next* heading in the file, and append right before it.
+    if (heading) {
+        const fileHeadings = app.metadataCache.getFileCache(file)
+            ?.headings as HeadingCache[];
+        const headingObject =
+            fileHeadings?.findIndex((h) => h.heading === heading) ?? null;
+        if (headingObject > -1) nextHeading = fileHeadings[headingObject + 1];
+        else {
+            new Notice(
+                `Can't find heading ${heading}, file may have changed after you selected it.`,
+            );
+            return;
+        }
+    }
+    // If we found a next heading, we append right before it.
+    // If we haven't, or if heading was not given in the first place, append at the end of the file.
+    if (nextHeading) {
+        const fileContent = await app.vault.read(file);
+        const posToAppend = nextHeading.position.start.offset - 1;
+        const newContent =
+            fileContent.slice(0, posToAppend) +
+            text +
+            fileContent.slice(posToAppend);
+        await app.vault.modify(file, newContent);
+    } else {
+        // Append at the end of file
+        await app.vault.append(file, text);
+    }
+}
+
+/*
+ * Given a list of tags ['#abc', '#def'], returns a string `tag:abc tag:def` (without the '#' sign)
+ */
+export function makeInlineTagsList(tags: string[]) {
+    // Remove the '#' symbols
+    const rawTags = tags.map((tag) => tag.replace('#', ''));
+    return rawTags
+        .map((tag) => {
+            return `tag:${tag}`;
+        })
+        .join(' ');
+}
+
+/*
+ * Output a string that is either in the form of "45 minutes" or "1:12 hours".
+ */
+export function formatTime(minutes: number) {
+    if (minutes < 60) {
+        return `${Math.floor(minutes)} minutes`;
+    } else {
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = Math.floor(minutes % 60);
+        return `${hours}:${remainingMinutes.toString().padStart(2, '0')} hours`;
+    }
 }

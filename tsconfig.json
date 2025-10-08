@@ -3,11 +3,11 @@
     "compilerOptions": {
         "types": ["svelte", "node"],
         "verbatimModuleSyntax": true,
-        "strict": false, // TODO fix
+        "strict": false,
         "baseUrl": ".",
         "inlineSources": true,
         "module": "ESNext",
-        "target": "ES2018",
+        "target": "ES2022",
         "allowJs": true,
         "noImplicitAny": true,
         "moduleResolution": "node",

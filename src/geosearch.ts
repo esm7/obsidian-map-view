@@ -5,7 +5,7 @@ import queryString from 'query-string';
 
 import { type PluginSettings } from 'src/settings';
 import { UrlConvertor } from 'src/urlConvertor';
-import { FileMarker } from 'src/markers';
+import { FileMarker } from 'src/fileMarker';
 import * as consts from 'src/consts';
 import * as utils from 'src/utils';
 
@@ -75,7 +75,7 @@ export class GeoSearcher {
         // Google Place results
         if (
             this.settings.searchProvider == 'google' &&
-            this.settings.useGooglePlaces &&
+            this.settings.useGooglePlacesNew2025 &&
             this.settings.geocodingApiKey
         ) {
             try {
@@ -84,18 +84,20 @@ export class GeoSearcher {
                     this.settings,
                     searchArea?.getCenter(),
                 );
-                for (const result of placesResults)
+                for (const result of placesResults) {
                     results.push({
                         name: result.name,
                         location: result.location,
                         resultType: 'searchResult',
                         extraLocationData: result.extraLocationData,
                     });
+                }
             } catch (e) {
                 console.log(
                     'Map View: Google Places search failed: ',
                     e.message,
                 );
+                console.log(e);
             }
         } else {
             const areaSW = searchArea?.getSouthWest() || null;
@@ -128,42 +130,97 @@ export async function googlePlacesSearch(
     settings: PluginSettings,
     centerOfSearch: leaflet.LatLng | null,
 ): Promise<GeoSearchResult[]> {
-    if (settings.searchProvider != 'google' || !settings.useGooglePlaces)
+    if (settings.searchProvider != 'google' || !settings.useGooglePlacesNew2025)
         return [];
     const googleApiKey = settings.geocodingApiKey;
-    const params = {
-        query: query,
-        key: googleApiKey,
+
+    // Request body for the new Places API
+    const requestBody = {
+        textQuery: query,
+        // Include locationBias if we have a center of search
+        ...(centerOfSearch && {
+            locationBias: {
+                circle: {
+                    center: {
+                        latitude: centerOfSearch.lat,
+                        longitude: centerOfSearch.lng,
+                    },
+                    radius: 5000.0, // 5km radius
+                },
+            },
+        }),
     };
-    if (centerOfSearch)
-        (params as any)['location'] =
-            `${centerOfSearch.lat},${centerOfSearch.lng}`;
-    const googleUrl =
-        'https://maps.googleapis.com/maps/api/place/textsearch/json?' +
-        queryString.stringify(params);
-    const googleContent = await request({ url: googleUrl });
-    const jsonContent = JSON.parse(googleContent);
-    let results: GeoSearchResult[] = [];
-    if (
-        jsonContent &&
-        'results' in jsonContent &&
-        jsonContent?.results.length > 0
-    ) {
-        for (const result of jsonContent.results) {
-            const location = result.geometry?.location;
-            if (location && location.lat && location.lng) {
-                const geolocation = new leaflet.LatLng(
-                    location.lat,
-                    location.lng,
-                );
-                results.push({
-                    name: `${result?.name} (${result?.formatted_address})`,
-                    location: geolocation,
-                    resultType: 'searchResult',
-                    extraLocationData: { googleMapsPlaceData: result },
-                } as GeoSearchResult);
+
+    // Places API ("New" - 2025)
+    const googleUrl = 'https://places.googleapis.com/v1/places:searchText';
+
+    try {
+        const ALWAYS_FIELDS = ['displayName', 'formattedAddress', 'location'];
+        // For the query, prepare the fields in the format of places.displayName, places.formattedAddress etc.
+        // Add the user fields to the ones we always need.
+        const userFields = settings.googlePlacesDataFields
+            .split(',')
+            .map((field) => field.trim())
+            .filter((field) => field !== '');
+        let queryFields = ALWAYS_FIELDS.concat(userFields).map(
+            (fieldName) => `places.${fieldName}`,
+        );
+        const googleContent = await request({
+            url: googleUrl,
+            method: 'POST',
+            body: JSON.stringify(requestBody),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Goog-Api-Key': googleApiKey,
+                'X-Goog-FieldMask': queryFields.join(','),
+            },
+        });
+
+        const jsonContent = JSON.parse(googleContent);
+
+        let results: GeoSearchResult[] = [];
+        if (
+            jsonContent &&
+            'places' in jsonContent &&
+            jsonContent.places.length > 0
+        ) {
+            for (const place of jsonContent.places) {
+                if (
+                    place.location &&
+                    place.location.latitude &&
+                    place.location.longitude
+                ) {
+                    const geolocation = new leaflet.LatLng(
+                        place.location.latitude,
+                        place.location.longitude,
+                    );
+
+                    const displayName =
+                        place.displayName?.text || 'Unknown Place';
+                    const address = place.formattedAddress || '';
+
+                    results.push({
+                        name: `${displayName} (${address})`,
+                        location: geolocation,
+                        resultType: 'searchResult',
+                        extraLocationData: { googleMapsPlaceData: place },
+                    } as GeoSearchResult);
+                }
             }
         }
+        return results;
+    } catch (e) {
+        console.log('Map View: Google Places API error:', e);
+        return [];
     }
-    return results;
+}
+
+export function searchDelayMs(settings: PluginSettings) {
+    const MIN_OSM_DELAY_MS = 1000;
+    if (
+        settings.searchProvider === 'osm' &&
+        settings.searchDelayMs < MIN_OSM_DELAY_MS
+    )
+        return MIN_OSM_DELAY_MS;
+    else return settings.searchDelayMs;
 }

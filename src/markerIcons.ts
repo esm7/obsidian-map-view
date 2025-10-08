@@ -20,7 +20,9 @@ import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 let localL = L;
 import wildcard from 'wildcard';
 
-import { type MarkerIconRule } from 'src/settings';
+import { type IconBadgeOptions } from 'src/settings';
+import { FileMarker } from 'src/fileMarker';
+import type { DisplayRulesCache } from './displayRulesCache';
 
 // An extended Map View icon options, adding 'simple-circle' to the options of the 'shape' field.
 export interface IconOptions
@@ -28,33 +30,34 @@ export interface IconOptions
     shape?: leaflet.ExtraMarkers.IconOptions['shape'] | 'simple-circle';
 }
 
+// Returns the icon element and an opacity number which is not part of the Icon itself but a marker property in Leaflet.js
 export function getIconFromRules(
-    tags: string[],
-    rules: MarkerIconRule[],
+    marker: FileMarker,
+    displayRulesCache: DisplayRulesCache,
     iconFactory: IconFactory,
-) {
+): [leaflet.Icon | leaflet.DivIcon, number] {
     // We iterate over the rules and apply them one by one, so later rules override earlier ones
-    let result = rules.find((item) => item.ruleName === 'default').iconDetails;
-    for (const rule of rules) {
-        if (checkTagPatternMatch(rule.ruleName, tags)) {
-            result = Object.assign({}, result, rule.iconDetails);
-        }
-    }
-    return getIconFromOptions(result, iconFactory);
+    const [iconOptions, _, badgeOptions] = displayRulesCache.runOn(marker);
+    return [
+        getIconFromOptions(iconOptions, badgeOptions, iconFactory),
+        iconOptions.opacity,
+    ];
 }
 
 export function getIconFromOptions(
     iconSpec: IconOptions,
+    badgeOptions: IconBadgeOptions[],
     iconFactory: IconFactory,
 ): leaflet.Icon | leaflet.DivIcon {
     // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
     // @ts-ignore
     const backupL = L;
+    let icon: leaflet.Icon | leaflet.DivIcon;
     try {
         // @ts-ignore
         L = localL;
         if (iconSpec?.shape == 'simple-circle') {
-            return createSimpleCircleMarker(iconSpec, iconFactory);
+            icon = createSimpleCircleMarker(iconSpec, iconFactory);
         } else {
             // We check for iconSpec.icon to allow a custom innerHTML specification for some rules,
             // and in such a case, do not wish to override the innerHTML by the icon rendition. See getIconFromRules above
@@ -66,7 +69,7 @@ export function getIconFromOptions(
                 );
                 iconSpec.innerHTML = internalIcon;
             }
-            return leaflet.ExtraMarkers.icon(
+            icon = leaflet.ExtraMarkers.icon(
                 iconSpec as leaflet.ExtraMarkers.IconOptions,
             );
         }
@@ -74,6 +77,60 @@ export function getIconFromOptions(
         // @ts-ignore
         L = backupL;
     }
+    return addBadges(icon, badgeOptions);
+}
+
+function addBadges(
+    leafletIcon: leaflet.Icon | leaflet.DivIcon,
+    badgeOptions: IconBadgeOptions[],
+) {
+    if (!badgeOptions || badgeOptions.length === 0) return leafletIcon;
+    const oldCreator = leafletIcon.createIcon;
+    // The following wraps the createIcon function with one that adds a badge div if such exists.
+    leafletIcon.createIcon = function (oldIcon: HTMLElement) {
+        const iconDiv = oldCreator.call(this, oldIcon);
+        if (iconDiv) {
+            // We support up to 4 badges, at the 4 corners of the icon, starting from the top left.
+            // So we iterate over the badges required for this marker and cycle between the badge locations.
+            // If there are more than 4 badges, the 5th will overwrite the 1st in the top-left corner.
+            const CLASS_NAMES = [
+                'mv-badge-tl',
+                'mv-badge-tr',
+                'mv-badge-bl',
+                'mv-badge-br',
+            ];
+            let index = 0;
+            for (const badge of badgeOptions) {
+                if (badge.badge) {
+                    createBadge(
+                        iconDiv,
+                        badge,
+                        CLASS_NAMES[index % CLASS_NAMES.length],
+                    );
+                    index++;
+                }
+            }
+        }
+        return iconDiv;
+    };
+    return leafletIcon;
+}
+
+function createBadge(
+    iconDiv: HTMLDivElement,
+    badgeOptions: IconBadgeOptions,
+    badgePositionClass: string,
+) {
+    const badgeDiv = iconDiv.createDiv();
+    badgeDiv.classList.add('mv-badge', badgePositionClass);
+    badgeDiv.style.backgroundColor = badgeOptions.backColor;
+    badgeDiv.style.color = badgeOptions.textColor;
+    if (badgeOptions.border) badgeDiv.style.border = badgeOptions.border;
+    const textSpan = createEl('span', 'mv-badge-text');
+    textSpan.innerHTML = badgeOptions.badge;
+    if (badgeOptions.cssFilters)
+        textSpan.style.filter = badgeOptions.cssFilters;
+    badgeDiv.appendChild(textSpan);
 }
 
 export function createIconElement(

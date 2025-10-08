@@ -1,4 +1,4 @@
-import { LatLng } from 'leaflet';
+import { LatLng, type PathOptions } from 'leaflet';
 import { type SplitDirection, Notice } from 'obsidian';
 import { type MapState, type LegacyMapState, mergeStates } from 'src/mapState';
 import MapViewPlugin from 'src/main';
@@ -20,12 +20,13 @@ export type PluginSettings = {
     // Since the plugin evolves with time, we assume saved states to be partial, i.e. they may not include
     // all the fields of a full map state.
     savedStates: Partial<MapState[]>;
-    markerIconRules: MarkerIconRule[];
+    displayRules: DisplayRule[];
     zoomOnGoFromNote: number;
     mapSources: TileSource[];
     frontMatterKey: string;
     chosenMapMode?: MapLightDark;
     autoZoom: boolean;
+    onlyOneExpanded: boolean;
     letZoomBeyondMax: boolean;
     markerClickBehavior: OpenBehavior;
     markerCtrlClickBehavior: OpenBehavior;
@@ -45,13 +46,15 @@ export type PluginSettings = {
     debug: boolean;
     openIn: OpenInSettings[];
     urlParsingRules: UrlParsingRule[];
-    mapControls: MapControls;
+    mapControlsSections: MapControlsSections;
+    mapControlsMinimized: boolean;
     maxClusterRadiusPixels: number;
     searchProvider: 'osm' | 'google';
     osmUser: string;
     searchDelayMs: number;
     geocodingApiKey: string;
-    useGooglePlaces: boolean;
+    useGooglePlacesNew2025: boolean;
+    googlePlacesDataFields: string;
     saveHistory: boolean;
     queryForFollowActiveNote: string;
     supportRealTimeGeolocation: boolean;
@@ -62,23 +65,31 @@ export type PluginSettings = {
     geoHelperUrl: string;
     tagForGeolocationNotes: string;
     handleGeolinksInNotes: boolean;
+    handlePathEmbeds: boolean;
     showGeolinkPreview: boolean;
     zoomOnGeolinkPreview: number;
     handleGeolinkContextMenu: boolean;
     routingUrl: string;
+    routingGraphHopperApiKey: string;
+    routingGraphHopperProfiles: string;
+    routingGraphHopperExtra: any;
     cacheAllTiles: boolean;
     offlineMaxTileAgeMonths: number;
     offlineMaxStorageGb: number;
+    loadLayersAhead: boolean;
+    handleGeoJsonCodeBlocks: boolean;
 };
 
 export type DepracatedFields = {
     markerIcons?: Record<string, any>;
+    markerIconRules?: MarkerIconRule[];
     tilesUrl?: string;
     chosenMapSource?: number;
     defaultMapCenter?: LatLng;
     defaultZoom?: number;
     defaultTags?: string[];
     snippetLines?: number;
+    useGooglePlaces?: boolean;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -114,18 +125,46 @@ export type LegacyUrlParsingRule = UrlParsingRule & {
     order: 'latFirst' | 'lngFirst';
 };
 
-export type MapControls = {
-    minimized: boolean;
+export type MapControlsSections = {
     filtersDisplayed: boolean;
     viewDisplayed: boolean;
     linksDisplayed: boolean;
     presetsDisplayed: boolean;
+    editDisplayed: boolean;
 };
 
 export type MarkerIconRule = {
     ruleName: string;
     preset: boolean;
     iconDetails: any;
+};
+
+export type IconBadgeOptions = {
+    badge?: string;
+    textColor?: string;
+    backColor?: string;
+    cssFilters?: string;
+    border?: string;
+};
+
+export type DisplayRule = {
+    query: string;
+    preset: boolean;
+    iconDetails?: any;
+    pathOptions?: PathOptions;
+    badgeOptions?: IconBadgeOptions;
+};
+
+export const EMPTY_DISPLAY_RULE: Partial<DisplayRule> = {
+    iconDetails: { icon: '', markerColor: '', shape: '', opacity: 1.0 },
+    pathOptions: { color: '', weight: 0, opacity: 0 },
+    badgeOptions: {
+        badge: '',
+        textColor: '',
+        backColor: '',
+        cssFilters: '',
+        border: '',
+    },
 };
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -144,20 +183,28 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         showLinks: false,
         linkColor: 'red',
         markerLabels: 'off',
+        editMode: false,
     },
     savedStates: [],
-    markerIconRules: [
+    displayRules: [
         {
-            ruleName: 'default',
+            query: '',
             preset: true,
             iconDetails: {
                 prefix: 'fas',
                 icon: 'fa-circle',
                 markerColor: 'blue',
+                opacity: 1.0,
             },
+            pathOptions: {
+                color: 'blue',
+                weight: 5,
+                opacity: 0.8,
+            },
+            badgeOptions: {},
         },
         {
-            ruleName: '#trip',
+            query: 'tag:#trip',
             preset: false,
             iconDetails: {
                 prefix: 'fas',
@@ -166,18 +213,19 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             },
         },
         {
-            ruleName: '#trip-water',
+            query: 'tag:#trip-water',
             preset: false,
             iconDetails: { prefix: 'fas', markerColor: 'blue' },
         },
         {
-            ruleName: '#dogs',
+            query: 'tag:#dogs',
             preset: false,
             iconDetails: { prefix: 'fas', icon: 'fa-paw' },
         },
     ],
     zoomOnGoFromNote: 15,
     autoZoom: true,
+    onlyOneExpanded: true,
     markerClickBehavior: 'replaceCurrent',
     markerCtrlClickBehavior: 'dedicatedPane',
     markerMiddleClickBehavior: 'dedicatedTab',
@@ -221,19 +269,21 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             preset: true,
         },
     ],
-    mapControls: {
-        minimized: false,
+    mapControlsSections: {
         filtersDisplayed: true,
         viewDisplayed: true,
         linksDisplayed: false,
         presetsDisplayed: false,
+        editDisplayed: false,
     },
-    maxClusterRadiusPixels: 20,
+    mapControlsMinimized: false,
+    maxClusterRadiusPixels: 25,
     searchProvider: 'osm',
     osmUser: '',
     searchDelayMs: 250,
     geocodingApiKey: '',
-    useGooglePlaces: false,
+    useGooglePlacesNew2025: false,
+    googlePlacesDataFields: '',
     mapSources: [
         {
             name: 'CartoDB',
@@ -255,19 +305,27 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     geoHelperUrl: 'https://esm7.github.io/obsidian-geo-helper/',
     tagForGeolocationNotes: '',
     handleGeolinksInNotes: true,
+    handlePathEmbeds: true,
     showGeolinkPreview: false,
     zoomOnGeolinkPreview: 10,
     handleGeolinkContextMenu: true,
     routingUrl:
         'https://www.google.com/maps/dir/?api=1&origin={x0},{y0}&destination={x1},{y1}',
+    routingGraphHopperApiKey: '',
+    routingGraphHopperProfiles: 'foot, bike, car',
+    routingGraphHopperExtra: {},
     cacheAllTiles: true,
     // 0 means never automatically purge
     offlineMaxTileAgeMonths: 6,
     // 0 means never automatically purge
     offlineMaxStorageGb: 2,
+    loadLayersAhead: true,
+    handleGeoJsonCodeBlocks: true,
 };
 
-export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
+export function convertLegacyMarkerIcons(
+    settings: PluginSettings & DepracatedFields,
+): boolean {
     if (settings.markerIcons) {
         settings.markerIconRules = [];
         for (let key in settings.markerIcons) {
@@ -284,7 +342,9 @@ export function convertLegacyMarkerIcons(settings: PluginSettings): boolean {
     return false;
 }
 
-export function convertLegacyTilesUrl(settings: PluginSettings): boolean {
+export function convertLegacyTilesUrl(
+    settings: PluginSettings & DepracatedFields,
+): boolean {
     if (settings.tilesUrl) {
         settings.mapSources = [
             {
@@ -299,7 +359,9 @@ export function convertLegacyTilesUrl(settings: PluginSettings): boolean {
     return false;
 }
 
-export function convertLegacyDefaultState(settings: PluginSettings): boolean {
+export function convertLegacyDefaultState(
+    settings: PluginSettings & DepracatedFields,
+): boolean {
     if (
         settings.defaultTags ||
         settings.defaultZoom ||
@@ -330,7 +392,9 @@ export function convertLegacyDefaultState(settings: PluginSettings): boolean {
     return false;
 }
 
-export function removeLegacyPresets1(settings: PluginSettings): boolean {
+export function removeLegacyPresets1(
+    settings: PluginSettings & DepracatedFields,
+): boolean {
     const googleMapsParsingRule = settings.urlParsingRules.findIndex(
         (rule) => rule.name == 'Google Maps' && rule.preset,
     );
@@ -401,6 +465,57 @@ export function convertLegacyOpenBehavior(settings: PluginSettings): boolean {
     return changed;
 }
 
+export function convertLegacyGooglePlaces(settings: PluginSettings): boolean {
+    let changed = false;
+    if ((settings as DepracatedFields).useGooglePlaces) {
+        (settings as DepracatedFields).useGooglePlaces = false;
+        settings.useGooglePlacesNew2025 = true;
+        changed = true;
+        new Notice(
+            'IMPORTANT! Map View now uses the new "Google Places (New)" API, which requires that you update your API key. See the "Migrating to Google Places API (New)" section of the README. Your geo searches might fail until you do this update!',
+            0,
+        );
+    }
+    return changed;
+}
+
+export function convertMarkerIconRulesToDisplayRules(
+    settings: PluginSettings & DepracatedFields,
+) {
+    let changed = false;
+    if (settings.markerIconRules) {
+        // Make sure not to add to any defaults
+        settings.displayRules = [];
+        for (const rule of settings.markerIconRules) {
+            let displayRule: DisplayRule;
+            if (rule.preset) {
+                // If it's the user's default rule we're converting, take the icon details, then the path options and the badge options
+                // from the plugin's default (as the user doesn't have any yet)
+                const defaultRule = DEFAULT_SETTINGS.displayRules.find(
+                    (rule) => rule.preset == true,
+                );
+                displayRule = {
+                    query: '',
+                    preset: true,
+                    iconDetails: rule.iconDetails,
+                    pathOptions: defaultRule.pathOptions,
+                    badgeOptions: defaultRule.badgeOptions,
+                };
+            } else {
+                displayRule = {
+                    query: `tag:${rule.ruleName}`,
+                    preset: false,
+                    iconDetails: rule.iconDetails,
+                };
+            }
+            settings.displayRules.push(displayRule);
+            changed = true;
+        }
+    }
+    delete settings.markerIconRules;
+    return changed;
+}
+
 /*
  * The more Map View evolves, fields get added to the MapState class, leading to old saved states having
  * missing fields.
@@ -461,6 +576,13 @@ export async function convertLegacySettings(
         changed = true;
         new Notice(
             'Map View: marker click settings were converted to the new settings format (check the settings for new options!)',
+        );
+    }
+    if (convertLegacyGooglePlaces(settings)) changed = true;
+    if (convertMarkerIconRulesToDisplayRules(settings)) {
+        changed = true;
+        new Notice(
+            'Map View: legacy marker icon rules were converted to the new "display rules" format.',
         );
     }
 

@@ -1,3 +1,6 @@
+import * as leaflet from 'leaflet';
+import 'leaflet-extra-markers';
+import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
 import {
     App,
     TFile,
@@ -8,106 +11,33 @@ import {
     parseLinktext,
     resolveSubpath,
     type FrontmatterLinkCache,
+    type ReferenceCache,
 } from 'obsidian';
-import * as leaflet from 'leaflet';
-import 'leaflet-extra-markers';
-import 'leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css';
+import * as path from 'path';
 
-import { type PluginSettings } from 'src/settings';
+import { BaseGeoLayer, verifyLocation, addTagsToLayer } from 'src/baseGeoLayer';
+import { type IconOptions } from 'src/markerIcons';
 import {
-    getIconFromRules,
-    IconFactory,
-    type IconOptions,
-} from 'src/markerIcons';
-import { type MapState } from 'src/mapState';
-import * as consts from 'src/consts';
+    djb2Hash,
+    getHeadingAndBlockForFilePosition,
+    appendGeolocationToNote,
+} from 'src/utils';
+import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
-import { djb2Hash, getHeadingAndBlockForFilePosition } from 'src/utils';
-import wildcard from 'wildcard';
-
-type MarkerId = string;
-
-export type FileWithMarkers = {
-    file: TFile;
-    markers: FileMarker[];
-};
-
-export class Edge {
-    /** The first location of the edge */
-    public marker1: FileMarker;
-    /** The second location of the edge */
-    public marker2: FileMarker;
-    /** The leaflet polyline of the edge. An edge may exist only logically without a polyline (after being generated
-     * from the map markers) */
-    public polyline?: leaflet.Polyline;
-
-    constructor(
-        marker1: FileMarker,
-        marker2: FileMarker,
-        polyline: leaflet.Polyline = null,
-    ) {
-        this.marker1 = marker1;
-        this.marker2 = marker2;
-        this.polyline = polyline;
-    }
-}
-
-export abstract class BaseGeoLayer {
-    public layerType: 'fileMarker' | 'geojson';
-    /** The file object on which this location was found */
-    public file: TFile;
-    /** An ID to recognize the marker */
-    public id: MarkerId;
-    /** In the case of an inline location, the position within the file where the location was found */
-    public fileLocation?: number;
-    /** The leaflet layer on the map */
-    public geoLayer?: leaflet.Layer;
-    /** In case of an inline location, the line within the file where the geolocation was found */
-    public fileLine?: number;
-    /** In case of an inline location, the file heading where the geolocation was found (if it's within a heading) */
-    public fileHeading?: HeadingCache;
-    /** In case of an inline location, the file block where the geolocation was found (if it's within a block) */
-    public fileBlock?: BlockCache;
-    /** In case of an inline location, geolocation match */
-    public geolocationMatch?: RegExpMatchArray;
-    /** Optional extra name that can be set for geolocation links (this is the link name rather than the file name) */
-    public extraName?: string;
-    /** Tags that this marker includes */
-    public tags: string[] = [];
-
-    /**
-     * Construct a new BaseGeoLayer object
-     * @param file The file the geo data comes from
-     */
-    protected constructor(file: TFile) {
-        this.file = file;
-    }
-
-    // /**
-    //  * Init the leaflet geographic layer from the data
-    //  * @param map
-    //  */
-    // abstract initGeoLayer(map: MapView): void;
-
-    /** Generate a unique identifier for this layer */
-    abstract generateId(): void;
-
-    /**
-     * Is this geographic layer identical to the other object.
-     * Used to compare to existing data to minimise creation.
-     * @param other The other object to compare to
-     */
-    abstract isSame(other: BaseGeoLayer): boolean;
-
-    /** Get the bounds of the data */
-    abstract getBounds(): leaflet.LatLng[];
-}
+import * as consts from 'src/consts';
+import * as utils from 'src/utils';
+import { GeoJsonLayer } from './geojsonLayer';
+import type MapViewPlugin from './main';
+import { getIconFromRules } from 'src/markerIcons';
+import { SvelteModal } from 'src/svelte';
+import TextBoxDialog from './components/TextBoxDialog.svelte';
 
 /** An object that represents a single marker in a file, which is either a complete note with a geolocation, or an inline geolocation inside a note */
 export class FileMarker extends BaseGeoLayer {
-    public geoLayer?: leaflet.Marker;
+    public geoLayers: Map<number, leaflet.Marker> = new Map();
     public location: leaflet.LatLng;
     public icon?: leaflet.Icon<IconOptions>;
+    public opacity: number = 1.0;
     private _edges: Edge[] = [];
 
     /**
@@ -144,7 +74,9 @@ export class FileMarker extends BaseGeoLayer {
         }
     }
 
-    // Removes the edges that belong to this marker. This requires removing both sides of the edge
+    // Removes the edges that belong to this marker. This requires removing both sides of the edge.
+    // Note that since markers are plugin-global, in different open map views with different filters,
+    // a marker may have different polylines, with different markers it connects to!
     removeEdges(listToRemoveFrom: leaflet.Polyline[]) {
         for (const edge of this._edges) {
             // Make sure the 2nd marker of the edge doesn't keep holding the edge
@@ -176,16 +108,17 @@ export class FileMarker extends BaseGeoLayer {
             this.fileLocation === other.fileLocation &&
             this.fileLine === other.fileLine &&
             this.extraName === other.extraName &&
-            // This comparison is heavy when many edges are present, but I'm not sure there's a reasonable way
-            // around it (maybe just an internal optimization for the comparison)
-            this.edges == other.edges &&
+            // TODO: need to compare the edges themselves
+            this.edges.length == other.edges.length &&
             this.icon?.options?.iconUrl === other.icon?.options?.iconUrl &&
             // @ts-ignore
             this.icon?.options?.icon === other.icon?.options?.icon &&
             // @ts-ignore
             this.icon?.options?.iconColor === other.icon?.options?.iconColor &&
             // @ts-ignore
-            this.icon?.options?.markerColor === other.icon?.options?.markerColor
+            this.icon?.options?.markerColor ===
+                other.icon?.options?.markerColor &&
+            this.opacity === other.opacity
         );
     }
 
@@ -201,6 +134,39 @@ export class FileMarker extends BaseGeoLayer {
 
     getBounds(): leaflet.LatLng[] {
         return [this.location];
+    }
+
+    runDisplayRules(plugin: MapViewPlugin) {
+        [this.icon, this.opacity] = getIconFromRules(
+            this,
+            plugin.displayRulesCache,
+            plugin.iconFactory,
+        );
+    }
+}
+
+export type FileWithMarkers = {
+    file: TFile;
+    markers: FileMarker[];
+};
+
+export class Edge {
+    /** The first location of the edge */
+    public marker1: FileMarker;
+    /** The second location of the edge */
+    public marker2: FileMarker;
+    /** The leaflet polyline of the edge. An edge may exist only logically without a polyline (after being generated
+     * from the map markers) */
+    public polyline?: leaflet.Polyline;
+
+    constructor(
+        marker1: FileMarker,
+        marker2: FileMarker,
+        polyline: leaflet.Polyline = null,
+    ) {
+        this.marker1 = marker1;
+        this.marker2 = marker2;
+        this.polyline = polyline;
     }
 }
 
@@ -222,129 +188,6 @@ export function generateMarkerId(
               ? 'nofileloc' + fileLine
               : 'nofileline')
     );
-}
-
-export type MarkersMap = Map<MarkerId, BaseGeoLayer>;
-
-/**
- * Create a FileMarker for every front matter and inline geolocation in the given file.
- * Properties that are not essential for filtering, e.g. marker icons, are not created here yet.
- * @param mapToAppendTo The list of markers to append to
- * @param file The file object to parse
- * @param settings The plugin settings
- * @param app The Obsidian App instance
- * @param skipMetadata If true will not find markers in the front matter
- */
-export async function buildAndAppendFileMarkers(
-    mapToAppendTo: BaseGeoLayer[],
-    file: TFile,
-    settings: PluginSettings,
-    app: App,
-    skipMetadata?: boolean,
-) {
-    const fileCache = app.metadataCache.getFileCache(file);
-    const frontMatter = fileCache?.frontmatter;
-    const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
-    if (frontMatter || tagNameToSearch?.length > 0) {
-        if (frontMatter && !skipMetadata) {
-            const location = getFrontMatterLocation(file, app, settings);
-            if (location) {
-                verifyLocation(location);
-                let marker = new FileMarker(file, location);
-                marker.tags = getAllTags(fileCache);
-                mapToAppendTo.push(marker);
-            }
-        }
-        if (
-            (frontMatter && 'locations' in frontMatter) ||
-            (tagNameToSearch?.length > 0 &&
-                wildcard(tagNameToSearch, getAllTags(fileCache)))
-        ) {
-            const markersFromFile = await getMarkersFromFileContent(
-                file,
-                settings,
-                app,
-            );
-            mapToAppendTo.push(...markersFromFile);
-        }
-    }
-}
-
-/**
- * Create FileMarker instances for all the files in the given list
- * @param files The list of file objects to find geolocations in.
- * @param settings The plugin settings
- * @param app The Obsidian App instance
- */
-export async function buildMarkers(
-    files: TFile[],
-    settings: PluginSettings,
-    app: App,
-): Promise<BaseGeoLayer[]> {
-    if (settings.debug) console.time('buildMarkers');
-    let markers: BaseGeoLayer[] = [];
-    for (const file of files) {
-        await buildAndAppendFileMarkers(markers, file, settings, app);
-    }
-    if (settings.debug) console.timeEnd('buildMarkers');
-    return markers;
-}
-
-/**
- * Add more data to the markers, e.g. icons and other items that were not needed for the stage of filtering
- * them. This includes edges based on links, if active.
- * Modifies the markers in-place.
- */
-export function finalizeMarkers(
-    markers: BaseGeoLayer[],
-    state: MapState,
-    settings: PluginSettings,
-    iconFactory: IconFactory,
-    app: App,
-) {
-    for (const marker of markers) {
-        if (marker instanceof FileMarker) {
-            marker.icon = getIconFromRules(
-                marker.tags,
-                settings.markerIconRules,
-                iconFactory,
-            );
-        } else {
-            throw 'Unsupported object type ' + marker.constructor.name;
-        }
-    }
-}
-
-/**
- * Make sure that the coordinates are valid world coordinates
- * -90 <= latitude <= 90 and -180 <= longitude <= 180
- * @param location
- */
-export function verifyLocation(location: leaflet.LatLng) {
-    if (
-        location.lng < consts.LNG_LIMITS[0] ||
-        location.lng > consts.LNG_LIMITS[1]
-    )
-        throw Error(`Lng ${location.lng} is outside the allowed limits`);
-    if (
-        location.lat < consts.LAT_LIMITS[0] ||
-        location.lat > consts.LAT_LIMITS[1]
-    )
-        throw Error(`Lat ${location.lat} is outside the allowed limits`);
-}
-
-/**
- * Find all inline geolocations in a string
- * @param content The file contents to find the coordinates in
- */
-export function matchInlineLocation(content: string): RegExpMatchArray[] {
-    // Old syntax of ` `location: ... ` `. This syntax doesn't support a name so we leave an empty capture group
-    const locationRegex1 = regex.INLINE_LOCATION_OLD_SYNTAX;
-    // New syntax of `[name](geo:...)` and an optional tags as `tag:tagName` separated by whitespaces
-    const locationRegex2 = regex.INLINE_LOCATION_WITH_TAGS;
-    const matches1 = content.matchAll(locationRegex1);
-    const matches2 = content.matchAll(locationRegex2);
-    return Array.from(matches1).concat(Array.from(matches2));
 }
 
 /**
@@ -375,13 +218,7 @@ export async function getMarkersFromFileContent(
             const marker = new FileMarker(file, location);
             if (match.groups.name && match.groups.name.length > 0)
                 marker.extraName = match.groups.name;
-            if (match.groups.tags) {
-                // Parse the list of tags
-                const tagRegex = regex.INLINE_TAG_IN_NOTE;
-                const tags = match.groups.tags.matchAll(tagRegex);
-                for (const tag of tags)
-                    if (tag.groups.tag) marker.tags.push('#' + tag.groups.tag);
-            }
+            if (match.groups.tags) addTagsToLayer(marker, match.groups.tags);
             marker.tags = marker.tags.concat(fileTags);
             marker.fileLocation = match.index;
             marker.geolocationMatch = match;
@@ -405,6 +242,20 @@ export async function getMarkersFromFileContent(
         }
     }
     return markers;
+}
+
+/**
+ * Find all inline geolocations in a string
+ * @param content The file contents to find the coordinates in
+ */
+export function matchInlineLocation(content: string): RegExpMatchArray[] {
+    // Old syntax of ` `location: ... ` `. This syntax doesn't support a name so we leave an empty capture group
+    const locationRegex1 = regex.INLINE_LOCATION_OLD_SYNTAX;
+    // New syntax of `[name](geo:...)` and an optional tags as `tag:tagName` separated by whitespaces
+    const locationRegex2 = regex.INLINE_LOCATION_WITH_TAGS;
+    const matches1 = content.matchAll(locationRegex1);
+    const matches2 = content.matchAll(locationRegex2);
+    return Array.from(matches1).concat(Array.from(matches2));
 }
 
 /**
@@ -486,6 +337,12 @@ export function addEdgesToMarkers(
 ) {
     if (!showLinks) return;
 
+    // The given list of markers above resides in some set of files, and we want to transverse just these files and figure out the
+    // links between them.
+    // Step 1: build a map of the markers we received with the files they belong to.
+    // (along the way we clear the edges from the markers, rebuilding them soon)
+    // Note: the map between layers and files already exists, in LayerCache. However what we want here is a map that includes
+    // *only the markers we just received*. It might be a filtered, much smaller group than all the markers in the system.
     let filesWithMarkersMap: Map<string, FileWithMarkers> = new Map();
     for (const marker of markers) {
         if (marker instanceof FileMarker) {
@@ -500,6 +357,7 @@ export function addEdgesToMarkers(
             filesWithMarkersMap.get(path).markers.push(marker);
         }
     }
+    // Step 2: add edges between markers of linked files, keeping a map of visited notes to avoid cycles.
     let nodesSeen: Set<string> = new Set();
     for (let fileWithMarkers of filesWithMarkersMap.values()) {
         addEdgesFromFile(
@@ -552,7 +410,7 @@ function addEdgesFromFile(
                 destination.path,
             );
             for (let destinationMarker of destinationFileWithMarkers.markers) {
-                if (isMarkerLinkedFrom(destinationMarker, link, app)) {
+                if (isLayerLinkedFrom(destinationMarker, link, app)) {
                     // The link really points to destinationMarker, therefore all the markers in the source file
                     // are to be linked to this destination marker.
                     for (let sourceMarker of source.markers) {
@@ -572,40 +430,28 @@ function addEdgesFromFile(
 }
 
 /**
- * Maintains a global set of tags.
- * This is needed on top of Obsidian's own tag system because Map View also has inline tags.
- * These can be identical to Obsidian tags, but there may be inline tags that are not Obsidian tags, and
- * we want them to show on suggestions.
- */
-export function cacheTagsFromMarkers(
-    markers: BaseGeoLayer[],
-    tagsSet: Set<string>,
-) {
-    for (const marker of markers) {
-        marker.tags.forEach((tag) => tagsSet.add(tag));
-    }
-}
-
-/**
  * Returns true if the marker is linked from the given link reference.
  * If the link includes a header or a block reference and the marker is an inline marker, 'true' is returned
  * only if the marker is in that header/block. A front-matter marker is considered link regardless of the block/header.
  */
-export function isMarkerLinkedFrom(
-    marker: FileMarker,
-    linkCache: LinkCache | FrontmatterLinkCache,
+export function isLayerLinkedFrom(
+    marker: BaseGeoLayer,
+    linkCache: LinkCache | FrontmatterLinkCache | ReferenceCache,
     app: App,
 ) {
     const parsedLink = parseLinktext(linkCache.link);
     const fileMatches =
         parsedLink.path.toLowerCase() === marker.file.basename.toLowerCase() ||
+        parsedLink.path === marker.file.name ||
         linkCache.displayText.toLowerCase() ===
             marker.file.basename.toLowerCase();
     // If the link is not pointing at the marker's file at all, there's nothing more to talk about
     if (!fileMatches) return false;
 
     // Now if it's a front matter marker, being the right file is all we need
-    if (marker.isFrontmatterMarker) return true;
+    if (marker instanceof FileMarker && marker.isFrontmatterMarker) return true;
+    // Also if it's a GeoJSON marker
+    if (marker instanceof GeoJsonLayer) return true;
     // If the link doesn't have a subpath, being the right file is all we need too
     if (!parsedLink.subpath) return true;
 
@@ -634,4 +480,157 @@ export function isMarkerLinkedFrom(
             return true;
     }
     return false;
+}
+
+/**
+ * Create a FileMarker for every front matter and inline geolocation in the given file.
+ * Properties that are not essential for filtering, e.g. marker icons, are not created here yet.
+ * @param mapToAppendTo The list of markers to append to
+ * @param file The file object to parse
+ * @param settings The plugin settings
+ * @param app The Obsidian App instance
+ * @param skipMetadata If true will not find markers in the front matter
+ */
+export async function buildAndAppendFileMarkers(
+    files: TFile[],
+    settings: PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+    skipMetadata?: boolean,
+): Promise<FileMarker[]> {
+    let layers: FileMarker[] = [];
+    for (const file of files) {
+        const fileCache = app.metadataCache.getFileCache(file);
+        const frontMatter = fileCache?.frontmatter;
+        const tagNameToSearch = settings.tagForGeolocationNotes?.trim();
+        if (frontMatter || tagNameToSearch?.length > 0) {
+            if (frontMatter && !skipMetadata) {
+                const location = getFrontMatterLocation(file, app, settings);
+                if (location) {
+                    verifyLocation(location);
+                    let marker = new FileMarker(file, location);
+                    marker.tags = getAllTags(fileCache);
+                    layers.push(marker);
+                }
+            }
+            if (
+                utils.hasFrontMatterLocations(frontMatter, fileCache, settings)
+            ) {
+                const markersFromFile = await getMarkersFromFileContent(
+                    file,
+                    settings,
+                    app,
+                );
+                layers.push(...markersFromFile);
+            }
+        }
+    }
+
+    for (const layer of layers) {
+        layer.runDisplayRules(plugin);
+    }
+
+    return layers;
+}
+
+export async function moveFileMarker(
+    marker: FileMarker,
+    newLocation: leaflet.LatLng,
+    settings: PluginSettings,
+    app: App,
+) {
+    marker.location = newLocation;
+    let newLat = marker.location.lat;
+    // If the user drags the marker too far, the longitude will exceed the threshold, an
+    // exception will be thrown, and the marker will disappear.
+    // If the threshold is exceeded, set the longitude back to the max (back in bounds).
+    // leaflet seems to protect against drags beyond the latitude threshold.
+    let newLng = marker.location.lng;
+    if (newLng < consts.LNG_LIMITS[0]) {
+        newLng = consts.LNG_LIMITS[0];
+    }
+    if (newLng > consts.LNG_LIMITS[1]) {
+        newLng = consts.LNG_LIMITS[1];
+    }
+    // We will now change the content of the note containing the marker. This will trigger Map View to rebuild
+    // the marker, causing the actual marker object to be replaced.
+    if (marker.isFrontmatterMarker) {
+        await utils.verifyOrAddFrontMatter(
+            app,
+            marker.file,
+            settings.frontMatterKey,
+            `${newLat},${newLng}`,
+            false,
+        );
+    } else if (marker.geolocationMatch?.groups) {
+        await utils.updateInlineGeolocation(
+            app,
+            marker.file,
+            marker.fileLocation,
+            marker.geolocationMatch,
+            marker.location,
+            null,
+        );
+    }
+}
+
+export async function renameMarker(
+    marker: FileMarker,
+    settings: PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+) {
+    const dialog = new SvelteModal(TextBoxDialog, app, plugin, settings, {
+        label: 'Select a name for the new marker:',
+        description: marker.isFrontmatterMarker
+            ? 'This will rename the file the marker is stored at.'
+            : undefined,
+        existingText: marker.name,
+        onOk: (text: string) => {
+            if (marker.isFrontmatterMarker) {
+                const newPath = path.join(
+                    marker.file.parent.name,
+                    text + '.' + marker.file.extension,
+                );
+                app.vault.rename(marker.file, newPath);
+            } else if (marker.geolocationMatch?.groups) {
+                utils.updateInlineGeolocation(
+                    app,
+                    marker.file,
+                    marker.fileLocation,
+                    marker.geolocationMatch,
+                    marker.location,
+                    text,
+                );
+            }
+        },
+    });
+    dialog.open();
+}
+
+export async function createMarkerInFile(
+    location: leaflet.LatLng,
+    file: TFile,
+    heading: string | null,
+    tags: string[],
+    app: App,
+    settings: PluginSettings,
+    plugin: MapViewPlugin,
+) {
+    const dialog = new SvelteModal(TextBoxDialog, app, plugin, settings, {
+        label: 'Select a name for the new marker:',
+        existingText: 'New Marker',
+        onOk: (text: string) => {
+            appendGeolocationToNote(
+                file,
+                heading,
+                text,
+                location,
+                tags,
+                app,
+                settings,
+            );
+        },
+    });
+    dialog.open();
 }

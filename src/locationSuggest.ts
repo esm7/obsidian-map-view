@@ -8,11 +8,12 @@ import {
     type EditorSuggestTriggerInfo,
     type EditorSuggestContext,
 } from 'obsidian';
-import { GeoSearcher } from 'src/geosearch';
+import { GeoSearcher, searchDelayMs } from 'src/geosearch';
 
 import * as utils from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import { GeoSearchResult } from 'src/geosearch';
+import { debounce } from 'ts-debounce';
 
 class SuggestInfo extends GeoSearchResult {
     context: EditorSuggestContext;
@@ -23,14 +24,22 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
     // except '[' and ']')
     private cursorInsideGeolinkFinder = /\[([^\[\]]*?)\]\(geo:.*?\)/g;
     private lastSearchTime = 0;
-    private delayInMs = 250;
     private settings: PluginSettings;
     private searcher: GeoSearcher;
     private initialized: boolean = false;
+    private debouncedSearch: (
+        context: EditorSuggestContext,
+    ) => Promise<Promise<SuggestInfo[]>>;
 
     constructor(app: App, settings: PluginSettings) {
         super(app);
         this.settings = settings;
+        this.debouncedSearch = debounce(
+            async (context: EditorSuggestContext) => {
+                return await this.doSearch(context);
+            },
+            searchDelayMs(this.settings),
+        );
     }
 
     init() {
@@ -60,8 +69,10 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
     async getSuggestions(
         context: EditorSuggestContext,
     ): Promise<SuggestInfo[]> {
-        if (context.query.length < 2) return [];
-        return await this.getSearchResultsWithDelay(context);
+        if (context.query.length < 3) return [];
+        if (!this.initialized) this.init();
+        let suggestions = await this.debouncedSearch(context);
+        return suggestions;
     }
 
     renderSuggestion(value: SuggestInfo, el: HTMLElement) {
@@ -124,22 +135,9 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
         return null;
     }
 
-    async getSearchResultsWithDelay(
-        context: EditorSuggestContext,
-    ): Promise<SuggestInfo[] | null> {
-        if (!this.initialized) this.init();
-        const timestamp = Date.now();
-        this.lastSearchTime = timestamp;
-        const Sleep = (ms: number) =>
-            new Promise((resolve) => setTimeout(resolve, ms));
-        await Sleep(this.delayInMs);
-        if (this.lastSearchTime != timestamp) {
-            // Search is canceled by a newer search
-            return null;
-        }
-        // After the sleep our search is still the last -- so the user stopped and we can go on
-        const searchResults = await this.searcher.search(context.query);
+    async doSearch(context: EditorSuggestContext): Promise<SuggestInfo[]> {
         let suggestions: SuggestInfo[] = [];
+        const searchResults = await this.searcher.search(context.query);
         for (const result of searchResults)
             suggestions.push({
                 ...result,
@@ -150,15 +148,19 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
 
     async selectionToLink(editor: Editor, file: TFile) {
         if (!this.initialized) this.init();
-        const selection = editor.getSelection();
-        const results = await this.searcher.search(selection);
-        if (results && results.length > 0) {
-            const firstResult = results[0];
-            const location = firstResult.location;
-            editor.replaceSelection(
-                `[${selection}](geo:${location.lat},${location.lng})`,
-            );
-            new Notice(firstResult.name, 10 * 1000);
+        let resultString = '';
+        const selectionLines = editor.getSelection().split('\n');
+        for (const line of selectionLines) {
+            const results = await this.searcher.search(line);
+            if (results && results.length > 0) {
+                const firstResult = results[0];
+                const location = firstResult.location;
+                if (resultString.length > 0) resultString += '\n\n';
+                resultString += `[${line.trim()}](geo:${location.lat},${location.lng})`;
+            }
+        }
+        if (resultString) {
+            editor.replaceSelection(resultString);
             if (
                 await utils.verifyOrAddFrontMatterForInline(
                     this.app,
@@ -171,7 +173,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
                     "The note's front matter was updated to denote locations are present",
                 );
         } else {
-            new Notice(`No location found for the term '${selection}'`);
+            new Notice(`No location found for the term '${selectionLines}'`);
         }
     }
 }

@@ -8,7 +8,7 @@ import {
     type EditorSuggestContext,
 } from 'obsidian';
 
-import { matchInlineLocation } from 'src/markers';
+import { matchInlineLocation } from 'src/fileMarker';
 import * as utils from 'src/utils';
 import MapViewPlugin from 'src/main';
 

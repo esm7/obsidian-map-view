@@ -37,3 +37,5 @@ export const FRONT_MATTER_LOCATION_V2 =
 // location: [32.84577588420059,35.36074429750443]
 export const FRONT_MATTER_LOCATION =
     /(?<header>^---.*)(?<loc>location:[ \t]*\[(?<lat>[+-]?([0-9]*[.])?[0-9]+),(?<lng>[+-]?([0-9]*[.])?[0-9]+)\]).*^---/ms;
+export const INLINE_GEOJSON =
+    /```geojson\n(?<content>[^`]*)```\s*\n?(?<tags>(tag:[\p{L}\p{N}_\/\-]+(?:[\s,.]+|$))*)/gu;

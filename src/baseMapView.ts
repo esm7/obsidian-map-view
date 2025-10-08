@@ -1,13 +1,9 @@
 import {
-    App,
-    TAbstractFile,
-    Editor,
     ItemView,
     MenuItem,
     Menu,
     TFile,
     WorkspaceLeaf,
-    Notice,
     MarkdownView,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
@@ -21,12 +17,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
 import * as consts from 'src/consts';
-import {
-    type MapState,
-    mergeStates,
-    stateToUrl,
-    copyState,
-} from 'src/mapState';
+import { type MapState, mergeStates, copyState } from 'src/mapState';
 import { type PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
@@ -34,6 +25,10 @@ import { openManagerDialog } from 'src/offlineTiles.svelte';
 
 import { MapContainer, type ViewSettings } from 'src/mapContainer';
 
+/*
+ * The base class for all of the Map View views.
+ * This is confusing with BasesMapView and should probably be renamed...
+ */
 export abstract class BaseMapView extends ItemView {
     public mapContainer: MapContainer;
     /** The state that was last saved to Obsidian's history stack */

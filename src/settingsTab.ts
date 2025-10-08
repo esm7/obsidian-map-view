@@ -14,13 +14,15 @@ import {
     type UrlParsingContentType,
     type GeoHelperType,
     type LinkNamePopupBehavior,
+    type DisplayRule,
     DEFAULT_SETTINGS,
 } from 'src/settings';
-import { getIconFromOptions, getIconFromRules } from 'src/markerIcons';
 import { BaseMapView } from 'src/baseMapView';
 import * as consts from 'src/consts';
 import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
 import { openManagerDialog } from 'src/offlineTiles.svelte';
+import { SvelteModal } from 'src/svelte';
+import DisplayRules from './components/DisplayRules.svelte';
 
 export class SettingsTab extends PluginSettingTab {
     plugin: MapViewPlugin;
@@ -41,6 +43,20 @@ export class SettingsTab extends PluginSettingTab {
         });
 
         new Setting(containerEl)
+            .setName('Pre-load markers and paths')
+            .setDesc(
+                'Load map markers and paths cache in the background when Obsidian starts. This greatly speeds up Map View but takes memory even when unused. When off, the map content will load only when Map View is first used.',
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.loadLayersAhead)
+                    .onChange(async (value) => {
+                        this.plugin.settings.loadLayersAhead = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
+        new Setting(containerEl)
             .setName('Map follows search results')
             .setDesc(
                 'Auto zoom & pan the map to fit search results, including Follow Active Note.',
@@ -50,6 +66,20 @@ export class SettingsTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.autoZoom)
                     .onChange(async (value) => {
                         this.plugin.settings.autoZoom = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
+        new Setting(containerEl)
+            .setName('Only one controls section expanded at a time')
+            .setDesc(
+                'Keep only one controls section expanded at a time, i.e. collapse the currently-expanded section when you click another one. (Restart Map View for this to take effect.)',
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(this.plugin.settings.onlyOneExpanded)
+                    .onChange(async (value) => {
+                        this.plugin.settings.onlyOneExpanded = value;
                         await this.plugin.saveSettings();
                     });
             });
@@ -81,6 +111,8 @@ export class SettingsTab extends PluginSettingTab {
                             this.plugin.settings.searchProvider === 'google'
                                 ? ''
                                 : 'none';
+                        googlePlacesDataFields.settingEl.style.display =
+                            googlePlacesControl.settingEl.style.display;
                     });
             });
 
@@ -128,17 +160,33 @@ export class SettingsTab extends PluginSettingTab {
         let googlePlacesControl = new Setting(containerEl)
             .setName('Use Google Places for searches')
             .setDesc(
-                'Use Google Places API instead of Google Geocoding to get higher-quality results. Your API key must have a specific Google Places permission turned on! See the plugin documentation for more details.',
+                'Use Google Places API instead of Google Geocoding to get higher-quality results. Your API key must have a specific "Google Places (New)" permission turned on! See the plugin documentation for more details.',
             )
             .addToggle((component) => {
                 component
                     .setValue(
-                        this.plugin.settings.useGooglePlaces ??
-                            DEFAULT_SETTINGS.useGooglePlaces,
+                        this.plugin.settings.useGooglePlacesNew2025 ??
+                            DEFAULT_SETTINGS.useGooglePlacesNew2025,
                     )
                     .onChange(async (value) => {
-                        this.plugin.settings.useGooglePlaces = value;
+                        this.plugin.settings.useGooglePlacesNew2025 = value;
                         await this.plugin.saveSettings();
+                    });
+            });
+        let googlePlacesDataFields = new Setting(containerEl)
+            .setName('Google Places data fields to query')
+            .setDesc(
+                'To use Places API templates (see the documentation -- i.e. "googleMapsPlaceData.place_id"), enlist here the fields you are interested to query, separated by commas, e.g. place_id,business_status.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.googlePlacesDataFields ||
+                            DEFAULT_SETTINGS.googlePlacesDataFields,
+                    )
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.googlePlacesDataFields = value;
+                        this.plugin.saveSettings();
                     });
             });
 
@@ -149,14 +197,16 @@ export class SettingsTab extends PluginSettingTab {
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
         googlePlacesControl.settingEl.style.display =
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
+        googlePlacesDataFields.settingEl.style.display =
+            googlePlacesControl.settingEl.style.display;
         new Setting(containerEl)
             .setName('Search delay while typing')
             .setDesc(
-                'Delay in ms to wait before searching while you type (required to not flood the search provider with every key).',
+                'Delay in ms to wait before searching while you type (required to not flood the search provider with every key). In the OSM search provider, a minimum of 1 second is required and enforced.',
             )
             .addSlider((slider) => {
                 slider
-                    .setLimits(100, 500, 50)
+                    .setLimits(100, 2000, 50)
                     .setDynamicTooltip()
                     .setValue(
                         this.plugin.settings.searchDelayMs ??
@@ -211,7 +261,7 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Max cluster size in pixels')
             .setDesc(
-                'Maximal radius in pixels to cover in a marker cluster. Lower values will produce smaller map clusters. (Requires restart.)',
+                'Maximal radius in pixels to cover in a marker cluster. Higher values will group more markers together, which leads to better performance. (Requires restart.)',
             )
             .addSlider((slider) => {
                 slider
@@ -332,22 +382,6 @@ export class SettingsTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.tagForGeolocationNotes ?? '')
                     .onChange(async (value: string) => {
                         this.plugin.settings.tagForGeolocationNotes = value;
-                        this.plugin.saveSettings();
-                    });
-            });
-        new Setting(containerEl)
-            .setName('Routing service URL')
-            .setDesc(
-                'URL to use for calculating and showing routes and directions, used for "route to point". {x0},{y0} are the source lat,lng and {x1},{y1} are the destination lat,lng.',
-            )
-            .addText((component) => {
-                component
-                    .setValue(
-                        this.plugin.settings.routingUrl ??
-                            DEFAULT_SETTINGS.routingUrl,
-                    )
-                    .onChange(async (value: string) => {
-                        this.plugin.settings.routingUrl = value;
                         this.plugin.saveSettings();
                     });
             });
@@ -709,25 +743,130 @@ export class SettingsTab extends PluginSettingTab {
 
         const iconRulesHeading = new Setting(containerEl)
             .setHeading()
-            .setName('Marker Icon Rules');
+            .setName('Marker & Path Display Rules');
         iconRulesHeading.descEl.innerHTML = `Customize map markers by note tags.
 			Refer to <a href="https://fontawesome.com/">Font Awesome</a> for icon names or use <a href="https://emojipedia.org">emojis</a>, and see <a href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties">here</a> for the other properties.
 			<br>The rules override each other, starting from the default. Refer to the plugin documentation for more details.
 		`;
 
-        let markerIconsDiv: HTMLDivElement = null;
         new Setting(containerEl).addButton((component) =>
-            component.setButtonText('New Icon Rule').onClick(() => {
-                this.plugin.settings.markerIconRules.push({
-                    ruleName: '',
-                    preset: false,
-                    iconDetails: { prefix: 'fas' },
-                });
-                this.refreshMarkerIcons(markerIconsDiv);
-            }),
+            component
+                .setButtonText('Marker & Path Display Rules...')
+                .onClick(() => {
+                    const dialog = new SvelteModal(
+                        DisplayRules,
+                        this.app,
+                        this.plugin,
+                        this.plugin.settings,
+                        {
+                            settings: this.plugin.settings,
+                            app: this.app,
+                            plugin: this.plugin,
+                        },
+                        ['mod-settings'],
+                    );
+                    dialog.open();
+                }),
         );
-        markerIconsDiv = containerEl.createDiv();
-        this.refreshMarkerIcons(markerIconsDiv);
+
+        new Setting(containerEl).setHeading().setName('Paths, GeoJSONs, GPXs');
+        new Setting(containerEl)
+            .setName("Handle 'geojson' code blocks")
+            .setDesc("Display an embedded map for a 'geojson' code block.")
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.handleGeoJsonCodeBlocks ??
+                            DEFAULT_SETTINGS.handleGeoJsonCodeBlocks,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.handleGeoJsonCodeBlocks = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Handle supported path embeds')
+            .setDesc(
+                'Display an embedded map for embeds (e.g. `![[my path.gpx]]`) of supported path files.',
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.handlePathEmbeds ??
+                            DEFAULT_SETTINGS.handlePathEmbeds,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.handlePathEmbeds = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
+        new Setting(containerEl).setHeading().setName('Routing');
+        new Setting(containerEl)
+            .setName('External routing service URL')
+            .setDesc(
+                'URL to use for an external routing service, used for "route to point". {x0},{y0} are the source lat,lng and {x1},{y1} are the destination lat,lng.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.routingUrl ??
+                            DEFAULT_SETTINGS.routingUrl,
+                    )
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.routingUrl = value;
+                        this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('GraphHopper API key')
+            .setDesc(
+                'You may obtain a free or a paid key from GraphHopper to enable native routing in Map View.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(this.plugin.settings.routingGraphHopperApiKey)
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.routingGraphHopperApiKey = value;
+                        this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('GraphHopper profiles')
+            .setDesc(
+                'A comma-delimited list of profiles to support. Note that the free plan supports only the default values listed here.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(this.plugin.settings.routingGraphHopperProfiles)
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.routingGraphHopperProfiles = value;
+                        this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('GraphHopper extra parameters (advanced)')
+            .setDesc(
+                'Paste here a JSON (wrapped in {...}) of valid GraphHopper parameters. See the GraphHopper routing POST documentation for more details.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        JSON.stringify(
+                            this.plugin.settings.routingGraphHopperExtra ?? {},
+                        ),
+                    )
+                    .onChange(async (value: string) => {
+                        try {
+                            this.plugin.settings.routingGraphHopperExtra =
+                                JSON.parse(value);
+                        } catch (e) {
+                            this.plugin.settings.routingGraphHopperExtra =
+                                DEFAULT_SETTINGS.routingGraphHopperExtra;
+                        }
+                        this.plugin.saveSettings();
+                    });
+            });
 
         new Setting(containerEl).setHeading().setName('Offline Maps');
         new Setting(containerEl)
@@ -1117,209 +1256,5 @@ export class SettingsTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 });
         }
-    }
-
-    refreshMarkerIcons(containerEl: HTMLElement) {
-        containerEl.innerHTML = '';
-        let jsonControl: TextAreaComponent = null;
-        let rulesDiv = containerEl.createDiv();
-        // The functions to update all icons, needed when the default rule changes
-        let iconUpdateFunctions: (() => void)[] = [];
-        const createRules = () => {
-            rulesDiv.innerHTML = '';
-            const rules = this.plugin.settings.markerIconRules;
-            for (const rule of rules) {
-                // Assign each icon on the default one, so the preview will show how it looks when the icon properties
-                // override the default one
-                const setting = new Setting(rulesDiv)
-                    .addText(
-                        (component) =>
-                            (component
-                                .setPlaceholder('Tag name')
-                                .setDisabled(rule.preset)
-                                .setValue(rule.ruleName)
-                                .onChange(async (value) => {
-                                    rule.ruleName = value;
-                                    await this.plugin.saveSettings();
-                                    updateIconAndJson();
-                                }).inputEl.style.width = '10em'),
-                    )
-                    .addText(
-                        (component) =>
-                            (component
-                                .setPlaceholder('Icon name')
-                                .setValue(rule.iconDetails.icon ?? '')
-                                .onChange(async (value) => {
-                                    if (value) rule.iconDetails.icon = value;
-                                    else delete rule.iconDetails.icon;
-                                    await this.plugin.saveSettings();
-                                    if (rule.preset)
-                                        iconUpdateFunctions.forEach((update) =>
-                                            update(),
-                                        );
-                                    else updateIconAndJson();
-                                }).inputEl.style.width = '8em'),
-                    )
-                    .addText(
-                        (component) =>
-                            (component
-                                .setPlaceholder('Color name')
-                                .setValue(rule.iconDetails.markerColor ?? '')
-                                .onChange(async (value) => {
-                                    if (value)
-                                        rule.iconDetails.markerColor = value;
-                                    else delete rule.iconDetails.markerColor;
-                                    await this.plugin.saveSettings();
-                                    if (rule.preset)
-                                        iconUpdateFunctions.forEach((update) =>
-                                            update(),
-                                        );
-                                    else updateIconAndJson();
-                                }).inputEl.style.width = '8em'),
-                    )
-                    .addText(
-                        (component) =>
-                            (component
-                                .setPlaceholder('Shape')
-                                .setValue(rule.iconDetails.shape ?? '')
-                                .onChange(async (value) => {
-                                    if (value) rule.iconDetails.shape = value;
-                                    else delete rule.iconDetails.shape;
-                                    await this.plugin.saveSettings();
-                                    if (rule.preset)
-                                        iconUpdateFunctions.forEach((update) =>
-                                            update(),
-                                        );
-                                    else updateIconAndJson();
-                                }).inputEl.style.width = '6em'),
-                    );
-                setting.settingEl.style.padding = '5px';
-                setting.settingEl.style.borderTop = 'none';
-                if (!rule.preset) {
-                    setting.addButton((component) =>
-                        component
-                            .setButtonText('Delete')
-                            .onClick(async () => {
-                                rules.remove(rule);
-                                await this.plugin.saveSettings();
-                                this.refreshMarkerIcons(containerEl);
-                            })
-                            .buttonEl.classList.add('settings-dense-button'),
-                    );
-                    const ruleIndex = rules.indexOf(rule);
-                    setting.addButton((component) =>
-                        component
-                            .setButtonText('\u2191')
-                            .onClick(async () => {
-                                // Move up
-                                if (ruleIndex > 1) {
-                                    rules.splice(ruleIndex, 1);
-                                    rules.splice(ruleIndex - 1, 0, rule);
-                                    await this.plugin.saveSettings();
-                                    this.refreshMarkerIcons(containerEl);
-                                }
-                            })
-                            .buttonEl.classList.add('settings-dense-button'),
-                    );
-                    setting.addButton((component) =>
-                        component
-                            .setButtonText('\u2193')
-                            .onClick(async () => {
-                                // Move down
-                                if (ruleIndex < rules.length - 1) {
-                                    rules.splice(ruleIndex, 1);
-                                    rules.splice(ruleIndex + 1, 0, rule);
-                                    await this.plugin.saveSettings();
-                                    this.refreshMarkerIcons(containerEl);
-                                }
-                            })
-                            .buttonEl.classList.add('settings-dense-button'),
-                    );
-                }
-                let iconElement: HTMLElement = null;
-                const updateIconAndJson = () => {
-                    if (iconElement) setting.controlEl.removeChild(iconElement);
-                    let options = Object.assign(
-                        {},
-                        rules.find((element) => element.ruleName === 'default')
-                            .iconDetails,
-                        rule.iconDetails,
-                    );
-                    const compiledIcon = getIconFromOptions(
-                        options,
-                        this.plugin.iconFactory,
-                    );
-                    iconElement = compiledIcon.createIcon();
-                    let style = iconElement.style;
-                    style.marginLeft = style.marginTop = '0';
-                    style.position = 'relative';
-                    setting.controlEl.append(iconElement);
-                    if (jsonControl)
-                        jsonControl.setValue(
-                            JSON.stringify(
-                                this.plugin.settings.markerIconRules,
-                                null,
-                                2,
-                            ),
-                        );
-                };
-                iconUpdateFunctions.push(updateIconAndJson);
-                updateIconAndJson();
-            }
-
-            let multiTagIconElement: HTMLElement = null;
-            let testTagsBox: TextComponent = null;
-            const ruleTestSetting = new Setting(containerEl)
-                .setName('Marker preview tester')
-                .addText((component) => {
-                    component
-                        .setPlaceholder('#tagOne #tagTwo')
-                        .onChange((value) => {
-                            updateMultiTagPreview();
-                        });
-                    testTagsBox = component;
-                });
-            const updateMultiTagPreview = () => {
-                if (multiTagIconElement)
-                    ruleTestSetting.controlEl.removeChild(multiTagIconElement);
-                const compiledIcon = getIconFromRules(
-                    testTagsBox.getValue().split(' '),
-                    rules,
-                    this.plugin.iconFactory,
-                );
-                multiTagIconElement = compiledIcon.createIcon();
-                let style = multiTagIconElement.style;
-                style.marginLeft = style.marginTop = '0';
-                style.position = 'relative';
-                ruleTestSetting.controlEl.append(multiTagIconElement);
-            };
-            updateMultiTagPreview();
-        };
-        createRules();
-        new Setting(containerEl)
-            .setName('Edit marker icons as JSON (advanced)')
-            .setDesc(
-                'Use this for advanced settings not controllable by the GUI above. Beware - uncareful edits can get Map View to faulty behaviors!',
-            )
-            .addTextArea((component) => {
-                component
-                    .setValue(
-                        JSON.stringify(
-                            this.plugin.settings.markerIconRules,
-                            null,
-                            2,
-                        ),
-                    )
-                    .onChange(async (value) => {
-                        try {
-                            const newMarkerIcons = JSON.parse(value);
-                            this.plugin.settings.markerIconRules =
-                                newMarkerIcons;
-                            await this.plugin.saveSettings();
-                            createRules();
-                        } catch (e) {}
-                    });
-                jsonControl = component;
-            });
     }
 }

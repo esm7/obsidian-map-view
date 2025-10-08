@@ -1,4 +1,13 @@
-import { Editor, MenuItem, Menu, App, TFile, TAbstractFile } from 'obsidian';
+import {
+    Editor,
+    MenuItem,
+    Menu,
+    App,
+    TFile,
+    TAbstractFile,
+    Notice,
+    type Pos,
+} from 'obsidian';
 
 import * as leaflet from 'leaflet';
 
@@ -12,10 +21,16 @@ import { type MapState } from 'src/mapState';
 import MapViewPlugin from 'src/main';
 import { MapContainer } from 'src/mapContainer';
 import { type PluginSettings } from 'src/settings';
-import { FileMarker } from 'src/markers';
-import { getIconFromOptions } from 'src/markerIcons';
+import { FileMarker, renameMarker, createMarkerInFile } from 'src/fileMarker';
+import { createGeoJsonInFile } from 'src/geojsonLayer';
 import { SvelteModal } from 'src/svelte';
+import TextBoxDialog from './components/TextBoxDialog.svelte';
 import ImportDialog from './components/ImportDialog.svelte';
+import { doRouting } from 'src/routing';
+import { type GeoJSON } from 'geojson';
+import { BaseGeoLayer } from 'src/baseGeoLayer';
+import { GeoJsonLayer } from 'src/geojsonLayer';
+import { getMarkerFromUser } from 'src/markerSelectDialog';
 
 export function addShowOnMap(
     menu: Menu,
@@ -278,6 +293,9 @@ export function addNewNoteItems(
 export function addCopyGeolocationItems(
     menu: Menu,
     geolocation: leaflet.LatLng,
+    app: App,
+    plugin: MapViewPlugin,
+    settings: PluginSettings,
 ) {
     const locationString = `${geolocation.lat},${geolocation.lng}`;
     menu.addItem((item: MenuItem) => {
@@ -285,7 +303,22 @@ export function addCopyGeolocationItems(
         item.setIcon('copy');
         item.setSection('copy');
         item.onClick((_ev) => {
-            navigator.clipboard.writeText(`[](geo:${locationString})`);
+            const dialog = new SvelteModal(
+                TextBoxDialog,
+                app,
+                plugin,
+                settings,
+                {
+                    label: 'Select a name for the new marker:',
+                    existingText: '',
+                    onOk: (text: string) => {
+                        navigator.clipboard.writeText(
+                            `[${text}](geo:${locationString})`,
+                        );
+                    },
+                },
+            );
+            dialog.open();
         });
     });
     menu.addItem((item: MenuItem) => {
@@ -382,6 +415,45 @@ export function populateOpenNote(
     });
 }
 
+export function populateRename(
+    mapContainer: MapContainer,
+    fileMarker: FileMarker,
+    menu: Menu,
+    settings: PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+) {
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('Rename...');
+        item.setIcon('folder-pen');
+        item.setSection('open-note');
+        item.onClick(async (_evt: MouseEvent) => {
+            renameMarker(fileMarker, settings, app, plugin);
+        });
+    });
+}
+
+export function addStartEditMode(
+    mapContainer: MapContainer,
+    fileMarker: FileMarker,
+    menu: Menu,
+    settings: PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+) {
+    if (!fileMarker.file) return;
+    if (!mapContainer.viewSettings.showEdit) return;
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('Start Edit Mode');
+        item.setIcon('pencil');
+        item.setSection('open-note');
+        item.onClick(async (_evt: MouseEvent) => {
+            mapContainer.highLevelSetViewState({ editMode: true });
+            mapContainer.display.controls.openEditSection(fileMarker.file);
+        });
+    });
+}
+
 // The MenuItem object in the Obsidian API doesn't let us listen to a middle-click, so we patch around it
 function addPatchyMiddleClickHandler(
     item: MenuItem,
@@ -404,6 +476,10 @@ export function populateRouting(
     geolocation: leaflet.LatLng,
     menu: Menu,
     settings: settings.PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+    originalEvent: MouseEvent,
+    existingLayer?: BaseGeoLayer,
 ) {
     if (geolocation) {
         menu.addItem((item: MenuItem) => {
@@ -411,7 +487,7 @@ export function populateRouting(
             item.setSection('mapview');
             item.setIcon('flag');
             item.onClick(() => {
-                mapContainer.setRoutingSource(geolocation);
+                mapContainer.setRoutingSource(geolocation, existingLayer?.name);
             });
         });
 
@@ -420,57 +496,155 @@ export function populateRouting(
                 item.setTitle('Route to point');
                 item.setSection('mapview');
                 item.setIcon('milestone');
-                item.onClick(() => {
-                    const origin =
-                        mapContainer.display.routingSource.getLatLng();
-                    const routingTemplate = settings.routingUrl;
-                    const url = routingTemplate
-                        .replace('{x0}', origin.lat.toString())
-                        .replace('{y0}', origin.lng.toString())
-                        .replace('{x1}', geolocation.lat.toString())
-                        .replace('{y1}', geolocation.lng.toString());
-                    open(url);
+                const submenu = (item as any).setSubmenu();
+                populateRouteToPoint(
+                    mapContainer,
+                    geolocation,
+                    submenu,
+                    settings,
+                );
+            });
+        } else {
+            menu.addItem((item: MenuItem) => {
+                item.setTitle('Route from...');
+                item.setSection('mapview');
+                item.setIcon('milestone');
+                item.onClick(async () => {
+                    const result = await getMarkerFromUser(
+                        mapContainer.getState().mapCenter,
+                        'Select a marker for routing',
+                        app,
+                        plugin,
+                        settings,
+                    );
+                    if (result) {
+                        const [newSource, _] = result;
+                        if (newSource && newSource instanceof FileMarker) {
+                            mapContainer.setRoutingSource(
+                                newSource.location,
+                                newSource.name,
+                            );
+                            const menu = new Menu();
+                            populateRouteToPoint(
+                                mapContainer,
+                                geolocation,
+                                menu,
+                                settings,
+                            );
+                            menu.showAtMouseEvent(originalEvent);
+                        }
+                    }
                 });
             });
         }
     }
 }
 
-export function populateMoveMarker(
+export function populateRouteToPoint(
+    mapContainer: MapContainer,
+    geolocation: leaflet.LatLng,
     menu: Menu,
-    fileMarker: FileMarker,
+    settings: settings.PluginSettings,
+) {
+    const origin = mapContainer.display.routingSource.getLatLng();
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('With external service');
+        item.onClick(() => {
+            const routingTemplate = settings.routingUrl;
+            const url = routingTemplate
+                .replace('{x0}', origin.lat.toString())
+                .replace('{y0}', origin.lng.toString())
+                .replace('{x1}', geolocation.lat.toString())
+                .replace('{y1}', geolocation.lng.toString());
+            open(url);
+        });
+    });
+    const profiles = settings.routingGraphHopperProfiles.split(',');
+    for (const profile of profiles) {
+        const cleanedProfile = profile.trim();
+        menu.addItem((item: MenuItem) => {
+            item.setTitle(`GraphHopper: ${cleanedProfile}`);
+            item.onClick(() => {
+                doRouting(
+                    origin,
+                    geolocation,
+                    'graphhopper',
+                    { profile: cleanedProfile },
+                    mapContainer,
+                    settings,
+                );
+            });
+        });
+    }
+}
+
+/*
+ * The function's confusing name is because it adds an "add to edited note" menu item when Edit Mode, or "add to note" when not.
+ */
+export function addMarkerAddToNote(
+    menu: Menu,
+    geolocation: leaflet.LatLng,
+    mapContainer: MapContainer,
+    settings: settings.PluginSettings,
+    app: App,
     plugin: MapViewPlugin,
 ) {
-    let title = fileMarker.geoLayer?.dragging?.enabled()
-        ? 'Disable move'
-        : 'Enable move';
-    let icon = fileMarker.geoLayer?.dragging?.enabled() ? 'lock' : 'unlock';
+    const enabled =
+        mapContainer.getState().editMode &&
+        mapContainer.display.controls.editModeTools.noteToEdit;
     menu.addItem((item: MenuItem) => {
-        item.setTitle(title);
-        item.setSection('mapview');
-        item.setIcon(icon);
+        item.setTitle('Add to Edit Mode note');
+        item.setIcon('edit');
+        item.setSection('new');
+        item.setDisabled(!enabled);
         item.onClick(() => {
-            let leafletMarker = fileMarker.geoLayer;
-            if (leafletMarker?.dragging) {
-                if (leafletMarker.dragging.enabled()) {
-                    leafletMarker.dragging.disable();
-                } else {
-                    leafletMarker.dragging.enable();
-                    leafletMarker.setIcon(
-                        getIconFromOptions(
-                            consts.UNLOCKED_MARKER,
-                            plugin.iconFactory,
-                        ),
-                    );
-                }
-            }
+            const file = mapContainer.display.controls.editModeTools.noteToEdit;
+            const heading =
+                mapContainer.display.controls.editModeTools.noteHeading;
+            const tags = mapContainer.display.controls.editModeTools.tags;
+            createMarkerInFile(
+                geolocation,
+                file,
+                heading,
+                tags,
+                app,
+                settings,
+                plugin,
+            );
         });
     });
 }
 
-/* The context menu on an area of the map where there is no existing marker, showing mostly options to add
+export function addPathAddToNote(
+    menu: Menu,
+    geojson: GeoJSON,
+    mapContainer: MapContainer,
+    settings: settings.PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+    doAfterAdd: () => void,
+) {
+    const enabled =
+        mapContainer.getState().editMode &&
+        mapContainer.display.controls.editModeTools.noteToEdit;
+    menu.addItem((item: MenuItem) => {
+        item.setTitle('Add to Edit Mode note');
+        item.setIcon('edit');
+        item.setDisabled(!enabled);
+        item.onClick(() => {
+            const file = mapContainer.display.controls.editModeTools.noteToEdit;
+            const heading =
+                mapContainer.display.controls.editModeTools.noteHeading;
+            const tags = mapContainer.display.controls.editModeTools.tags;
+            createGeoJsonInFile(geojson, file, heading, tags, app, settings);
+            if (doAfterAdd) doAfterAdd();
+        });
+    });
+}
+
+/*
+ * The context menu on an area of the map where there is no existing marker or a search result, showing mostly options to add
  * a new marker or open this geolocation elsewhere.
- * This can also be used on a search result.
  */
 export function addMapContextMenuItems(
     mapPopup: Menu,
@@ -478,9 +652,150 @@ export function addMapContextMenuItems(
     mapContainer: MapContainer,
     settings: settings.PluginSettings,
     app: App,
+    plugin: MapViewPlugin,
+    originalEvent: MouseEvent,
 ) {
     addNewNoteItems(mapPopup, geolocation, mapContainer, settings, app);
-    addCopyGeolocationItems(mapPopup, geolocation);
-    populateRouting(mapContainer, geolocation, mapPopup, settings);
+    addMarkerAddToNote(
+        mapPopup,
+        geolocation,
+        mapContainer,
+        settings,
+        app,
+        plugin,
+    );
+    addCopyGeolocationItems(mapPopup, geolocation, app, plugin, settings);
+    populateRouting(
+        mapContainer,
+        geolocation,
+        mapPopup,
+        settings,
+        app,
+        plugin,
+        originalEvent,
+    );
     addOpenWith(mapPopup, geolocation, null, settings);
+}
+
+export function addPathContextMenuItems(
+    menu: Menu,
+    layer: GeoJsonLayer,
+    leafletLayer: leaflet.Layer,
+    mouseEvent: MouseEvent,
+    mapContainer: MapContainer,
+    settings: settings.PluginSettings,
+    app: App,
+    plugin: MapViewPlugin,
+) {
+    // In the case of an embedded JSON...
+    if (layer.sourceType === 'geojson' && layer.fileLocation > 0) {
+        menu.addItem((item: MenuItem) => {
+            item.setTitle('Go to path definition');
+            item.onClick(() => {
+                mapContainer.goToMarker(
+                    layer,
+                    utils.mouseEventToOpenMode(
+                        settings,
+                        mouseEvent,
+                        'openNote',
+                    ),
+                    false,
+                    // Move the cursor right before the GeoJSON in the file, so it will show the map preview and not the source code
+                    -1,
+                );
+            });
+        });
+    }
+
+    // In the case of a stand-alone file, try to list references to it
+    if (layer.file && !layer.fileLocation) {
+        const target = layer.file;
+        type FoundFile = {
+            file: TFile;
+            position: Pos | null;
+        };
+        let results: FoundFile[] = [];
+        for (const file of app.vault.getFiles()) {
+            const linksFrom = app.metadataCache.getFileCache(file);
+            const linksWithPosition = [
+                ...(linksFrom?.links ?? []),
+                ...(linksFrom?.embeds ?? []),
+            ];
+            for (const link of linksWithPosition) {
+                if (link.link === target.name) {
+                    results.push({ file: file, position: link.position });
+                }
+            }
+            for (const link of [...(linksFrom?.frontmatterLinks ?? [])]) {
+                if (link.link === target.name) {
+                    results.push({ file: file, position: null });
+                }
+            }
+        }
+        if (results.length > 0) {
+            const addRefernece = (
+                menu: Menu,
+                reference: FoundFile,
+                isSingle: boolean,
+            ) => {
+                menu.addItem((item: MenuItem) => {
+                    item.setTitle(
+                        isSingle
+                            ? `Open '${reference.file.basename}'`
+                            : reference.file.basename,
+                    );
+                    item.onClick((evt) => {
+                        const openMode = utils.mouseEventToOpenMode(
+                            settings,
+                            evt as MouseEvent,
+                            'openNote',
+                        );
+                        mapContainer.goToFile(
+                            reference.file,
+                            openMode,
+                            async (editor) => {
+                                await utils.goToEditorLocation(
+                                    editor,
+                                    reference.position
+                                        ? reference.position.start.offset
+                                        : null,
+                                    false,
+                                );
+                            },
+                        );
+                    });
+                });
+            };
+            // If there's just one reference to the file -- list it.
+            // If there are more, show a submenu.
+            if (results.length === 1) {
+                addRefernece(menu, results[0], true);
+            } else {
+                menu.addItem((item: MenuItem) => {
+                    item.setTitle('Go to reference...');
+                    const submenu = (item as any).setSubmenu();
+                    for (const reference of results)
+                        addRefernece(submenu, reference, false);
+                });
+            }
+        }
+    }
+
+    // Finally, add an option to reveal non-notes in the file explorer
+    if (layer.file && layer.file.extension !== 'md') {
+        menu.addItem((item: MenuItem) => {
+            item.setTitle('Reveal in file explorer');
+            item.onClick(() => {
+                if (!(app.vault as any)?.config?.showUnsupportedFiles)
+                    new Notice(
+                        'Some file types can only be displayed if you turn on "detect all file extensions" in the Obsidian "Files and links" settings.',
+                        60 * 1000,
+                    );
+                const fileExplorer = (
+                    app as any
+                )?.internalPlugins?.getEnabledPluginById('file-explorer');
+                fileExplorer?.revealInFolder(layer.file);
+            });
+        });
+    }
 }

@@ -260,13 +260,18 @@ export async function purgeTilesBySettings(settings: PluginSettings) {
     let numPurged = 0;
     let totalSize = 0;
     const sources = settings.mapSources;
-    const now = Date.now();
+    // Use today's midnight as the reference time, rather than the actual time right now, in order to do this purging
+    // just once per day rather than multiple times a day.
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const todayMidnight = now.getTime();
     for (const mapSource of sources) {
         const url = mapSource.urlLight;
         const storageInfo = await getStorageInfo(url);
         for (const tile of storageInfo) {
             const tileTime = tile.createdAt;
-            const monthsAgo = (now - tileTime) / (1000 * 60 * 60 * 24 * 30);
+            const monthsAgo =
+                (todayMidnight - tileTime) / (1000 * 60 * 60 * 24 * 30);
             if (
                 settings.offlineMaxTileAgeMonths > 0 &&
                 monthsAgo > settings.offlineMaxTileAgeMonths

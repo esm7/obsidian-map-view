@@ -40,7 +40,9 @@ export class EmbeddedMap {
             viewTabType: 'mini',
             showEmbeddedControls: true,
             showPresets: false,
+            showEdit: false,
             showSearch: false,
+            showRouting: false,
             showRealTimeButton: false,
             showLockButton: true,
             showOpenButton: true,
@@ -116,7 +118,7 @@ export class EmbeddedMap {
         await this.mapContainer.highLevelSetViewStateAsync(state);
         if (state.embeddedHeight && state.embeddedHeight > 0)
             this.parentEl.style.height = `${state.embeddedHeight}px`;
-        this.settings.mapControls.viewDisplayed = false;
+        this.settings.mapControlsSections.viewDisplayed = false;
     }
 
     async setState(state: Partial<MapState>): Promise<MapState> {
@@ -124,7 +126,14 @@ export class EmbeddedMap {
     }
 
     onResize() {
-        if (this.mapContainer.display.mapDiv)
+        if (this.mapContainer.display.mapDiv) {
             this.mapContainer.display.map.invalidateSize();
+            const mapSize = this.mapContainer.display.map.getSize();
+            if (mapSize.x > 0 && mapSize.y > 0) {
+                // On a size invalidation, if the state requires us to auto-fit, we must run it again
+                if (this.mapContainer.getState().autoFit)
+                    this.mapContainer.autoFitMapToMarkers();
+            }
+        }
     }
 }

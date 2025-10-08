@@ -13,6 +13,7 @@ import {
     type MarkdownPostProcessorContext,
     Notice,
 } from 'obsidian';
+
 import 'core-js/actual/structured-clone';
 import { ViewPlugin } from '@codemirror/view';
 import * as consts from 'src/consts';
@@ -22,11 +23,16 @@ import { UrlConvertor } from 'src/urlConvertor';
 import { mergeStates, stateFromParsedUrl, getCodeBlock } from 'src/mapState';
 import * as menus from 'src/menus';
 import { purgeTilesBySettings } from 'src/offlineTiles.svelte';
+import type { EmbedRegistry, EmbedContext } from 'obsidian-typings';
+import { EmbeddedComponent } from 'src/embeddedComponent';
+import { BasesMapView } from 'src/basesMapView';
 
 import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
 import { EmbeddedMap } from 'src/embeddedMap';
+import { MapContainer } from 'src/mapContainer';
 import { IconFactory } from 'src/markerIcons';
+import { DisplayRulesCache } from 'src/displayRulesCache';
 import {
     askForLocation,
     type RealTimeLocationSource,
@@ -47,25 +53,44 @@ import { type MapState } from 'src/mapState';
 import {
     getFrontMatterLocation,
     matchInlineLocation,
-    verifyLocation,
-} from 'src/markers';
+    buildAndAppendFileMarkers,
+} from 'src/fileMarker';
+import {
+    buildGeoJsonLayers,
+    GEOJSON_FILE_FILTER,
+    GEOJSON_EVERYTHING,
+} from 'src/geojsonLayer';
+import { verifyLocation } from 'src/baseGeoLayer';
+import { FileMarker } from 'src/fileMarker';
 import { SettingsTab } from 'src/settingsTab';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { TagSuggest } from 'src/tagSuggest';
 import * as utils from 'src/utils';
 import { MapPreviewPopup } from 'src/mapPreviewPopup';
+import { LayerCache } from 'src/layerCache';
+import { BaseGeoLayer, cacheTagsFromLayers } from 'src/baseGeoLayer';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
+    /*
+     * This object keeps a single global repository of the layers (markers & paths) that are known to Map View.
+     * These layers are mapped to files they belong to, and they have a mapping from a container ID to
+     * "physical" leaflet.Layer objects on the various map containers that are currently active, if any.
+     * If null, it means that the layer cache was not yet initialized.
+     */
+    public layerCache: LayerCache | null = null;
+    private layerCacheInitStarted: boolean = false;
     public iconFactory: IconFactory;
+    public displayRulesCache: DisplayRulesCache;
     private suggestor: LocationSuggest;
     private tagSuggestor: TagSuggest;
     private urlConvertor: UrlConvertor;
     private mapPreviewPopup: MapPreviewPopup;
     public editorLinkReplacePlugin: ViewPlugin<GeoLinkReplacePlugin>;
-    // Includes all the known tags that are within markers, both inline (which are not necessarily known to Obsidian)
+    // Includes all the known tags that are within layers, both inline (which are not necessarily known to Obsidian)
     // and actual Obsidian tags
     public allTags: Set<string>;
+    private allMapContainers: MapContainer[] = [];
 
     async onload() {
         await this.loadSettings();
@@ -81,8 +106,25 @@ export default class MapViewPlugin extends Plugin {
             return new MainMapView(leaf, this.settings, this);
         });
 
+        this?.registerBasesView('map-view-plugin', {
+            name: 'Map View',
+            icon: 'map-pin',
+            factory: (controller, containerEl) =>
+                new BasesMapView(controller, containerEl, this.settings, this),
+            options: () => BasesMapView.getViewOptions(this.settings),
+        });
+
+        // An undocumented API (suggested by @liam) to set the type Obsidian stores for the 'location' property to
+        // 'multitext' (displayed in Obsidian as 'List').
+        // If users change the type of the 'location' property to something else, Obsidian may not only not properly display
+        // this property on geolocation notes, but may corrupt it.
+        (this.app as any).metadataTypeManager.setType('location', 'multitext');
+
         this.editorLinkReplacePlugin = getLinkReplaceEditorPlugin(this);
         this.registerEditorExtension(this.editorLinkReplacePlugin);
+
+        this.displayRulesCache = new DisplayRulesCache(this.app);
+        this.displayRulesCache.build(this.settings.displayRules);
 
         // Currently not in use; the feature is frozen until I have the time to work on its various quirks
         // this.registerView(consts.MINI_MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
@@ -236,6 +278,60 @@ export default class MapViewPlugin extends Plugin {
             },
         );
 
+        if (this.settings.handleGeoJsonCodeBlocks) {
+            this.registerMarkdownCodeBlockProcessor(
+                'geojson',
+                async (
+                    source: string,
+                    el: HTMLElement,
+                    ctx: MarkdownPostProcessorContext,
+                ) => {
+                    const sectionInfo = ctx.getSectionInfo(el);
+                    if (sectionInfo) {
+                        const lineStart = sectionInfo.lineStart;
+                        const query = `path:"${ctx.sourcePath}" AND lines:${lineStart}-${lineStart}`;
+                        let map = new EmbeddedMap(
+                            el,
+                            ctx,
+                            this.app,
+                            this.settings,
+                            this,
+                            // The 'Save' button is extremely unwelcome in a geojson
+                            { showEmbeddedControls: false },
+                        );
+                        const fullState = mergeStates(
+                            this.settings.defaultState,
+                            { query, lock: true, autoFit: true },
+                        );
+                        await map.open(fullState);
+                    }
+                },
+            );
+        }
+
+        if (this.settings.handlePathEmbeds) {
+            const embedRegistry: EmbedRegistry = this.app.embedRegistry;
+            if (embedRegistry) {
+                embedRegistry.registerExtensions(
+                    GEOJSON_FILE_FILTER,
+                    (context: EmbedContext, file: TFile, _) => {
+                        const component = new EmbeddedComponent(
+                            context.containerEl,
+                            this,
+                            this.app,
+                            this.settings,
+                            file,
+                            '',
+                        );
+                        return component;
+                    },
+                );
+            } else
+                console.error(
+                    'Cannot register Map View embeds: embed registry not found.',
+                );
+        }
+
         this.registerMarkdownPostProcessor(replaceLinksPostProcessor(this));
 
         this.suggestor = new LocationSuggest(this.app, this.settings);
@@ -336,7 +432,11 @@ export default class MapViewPlugin extends Plugin {
                 if (!view)
                     view = await this.openMap(this.settings.openMapBehavior);
                 if (view) {
-                    (view as MainMapView).mapContainer.openSearch();
+                    const mapView = view as MainMapView;
+                    this.app.workspace.setActiveLeaf(mapView.leaf, {
+                        focus: true,
+                    });
+                    mapView.mapContainer.openSearch();
                 }
             },
         });
@@ -346,6 +446,26 @@ export default class MapViewPlugin extends Plugin {
             name: 'Add an embedded map',
             editorCallback: (editor: Editor, ctx) => {
                 this.openQuickEmbed(editor);
+            },
+        });
+
+        this.addCommand({
+            id: 'focus-note-in-map-view',
+            name: 'Focus current note in Map View',
+            editorCallback: (
+                editor: Editor,
+                ctx: MarkdownView | MarkdownFileInfo,
+            ) => {
+                this.openMapWithState(
+                    {
+                        query: utils.replaceFollowActiveNoteQuery(
+                            ctx.file,
+                            this.settings,
+                        ),
+                    } as MapState,
+                    this.settings.openMapBehavior,
+                    true,
+                );
             },
         });
 
@@ -569,21 +689,25 @@ export default class MapViewPlugin extends Plugin {
         // events need to be global.
         // This one closes the map preview popup on mouse leave.
         (window as any).closeMapPopup = (event: PointerEvent) => {
-            this.mapPreviewPopup.close(event);
+            this.mapPreviewPopup?.close(event);
         };
 
         // Add items to the file context menu (run when the context menu is built)
         // This is the context menu in the File Explorer and clicking "More options" (three dots) from within a file.
-        this.app.workspace.on('file-menu', (menu, file, source, leaf) =>
-            this.onFileMenu(menu, file, source, leaf),
+        this.registerEvent(
+            this.app.workspace.on('file-menu', (menu, file, source, leaf) =>
+                this.onFileMenu(menu, file, source, leaf),
+            ),
         );
 
-        this.app.workspace.on('active-leaf-change', (leaf) => {
-            if (utils.lastUsedLeaves.contains(leaf)) {
-                utils.lastUsedLeaves.remove(leaf);
-            }
-            utils.lastUsedLeaves.unshift(leaf);
-        });
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', (leaf) => {
+                if (utils.lastUsedLeaves.contains(leaf)) {
+                    utils.lastUsedLeaves.remove(leaf);
+                }
+                utils.lastUsedLeaves.unshift(leaf);
+            }),
+        );
 
         // Currently frozen until I have time to work on this feature's quirks
         // if (this.app.workspace.layoutReady) this.initMiniMap()
@@ -591,40 +715,84 @@ export default class MapViewPlugin extends Plugin {
 
         // Add items to the editor context menu (run when the context menu is built)
         // This is the context menu when right clicking within an editor view.
-        this.app.workspace.on('editor-menu', (menu, editor, view) => {
-            const file = view.file;
-            if (file) this.onEditorMenu(menu, editor, view as MarkdownView);
-        });
+        this.registerEvent(
+            this.app.workspace.on('editor-menu', (menu, editor, view) => {
+                const file = view.file;
+                if (file) this.onEditorMenu(menu, editor, view as MarkdownView);
+            }),
+        );
 
         // Watch for pasted text and add a 'locations:' front matter where applicable if the user pastes
         // an inline geolocation
-        this.app.workspace.on(
-            'editor-paste',
-            (evt: ClipboardEvent, editor: Editor) => {
-                if (this.settings.fixFrontMatterOnPaste) {
-                    const text = evt.clipboardData.getData('text');
-                    if (text) {
-                        const inlineMatch = matchInlineLocation(text);
-                        if (inlineMatch && inlineMatch.length > 0) {
-                            const file = utils.getFile(this.app);
-                            // The pasted text contains an inline location, so try to help the user by verifying
-                            // a frontmatter exists
-                            if (
-                                utils.verifyOrAddFrontMatterForInline(
-                                    this.app,
-                                    editor,
-                                    file,
-                                    this.settings,
-                                )
-                            ) {
-                                new Notice(
-                                    "The note's front matter was updated to denote locations are present",
-                                );
+        this.registerEvent(
+            this.app.workspace.on(
+                'editor-paste',
+                (evt: ClipboardEvent, editor: Editor) => {
+                    if (this.settings.fixFrontMatterOnPaste) {
+                        const text = evt.clipboardData.getData('text');
+                        if (text) {
+                            const inlineMatch = matchInlineLocation(text);
+                            if (inlineMatch && inlineMatch.length > 0) {
+                                const file = utils.getFile(this.app);
+                                // The pasted text contains an inline location, so try to help the user by verifying
+                                // a frontmatter exists
+                                if (
+                                    utils.verifyOrAddFrontMatterForInline(
+                                        this.app,
+                                        editor,
+                                        file,
+                                        this.settings,
+                                    )
+                                ) {
+                                    new Notice(
+                                        "The note's front matter was updated to denote locations are present",
+                                    );
+                                }
                             }
                         }
                     }
+                },
+            ),
+        );
+
+        if (this.settings.loadLayersAhead)
+            this.app.workspace.onLayoutReady(() => {
+                this.buildInitialLayersCache();
+                // Register the 'create' event only on layout ready, since we don't want it fired on the initial vault scan
+                this.app.vault.on('create', (file) => {
+                    this.updateMarkersWithRelationToFile(null, file, false);
+                });
+            });
+        this.registerEvent(
+            this.app.vault.on('delete', (file) => {
+                this.updateMarkersWithRelationToFile(file.path, null, true);
+            }),
+        );
+        this.registerEvent(
+            this.app.metadataCache.on('changed', (file) => {
+                this.updateMarkersWithRelationToFile(file.path, file, false);
+            }),
+        );
+        this.registerEvent(
+            this.app.vault.on('rename', (file, oldPath) => {
+                this.renameFile(oldPath, file);
+            }),
+        );
+        this.registerEvent(
+            // This event handler is meant only for files that are not notes, but we still care about their 'modify' events.
+            // For notes we use the metadataCache.on('changed') above.
+            // However the above does not work on stand-alone files that Map View reads, e.g. geojson, gpx etc.
+            this.app.vault.on('modify', (file: TAbstractFile) => {
+                if (file instanceof TFile) {
+                    if (file.extension === 'md') return;
+                    if (GEOJSON_FILE_FILTER.includes(file.extension))
+                        this.updateMarkersWithRelationToFile(
+                            file.path,
+                            file,
+                            false,
+                        );
                 }
-            },
+            }),
         );
 
         purgeTilesBySettings(this.settings);
@@ -634,6 +802,15 @@ export default class MapViewPlugin extends Plugin {
         const maps = this.app.workspace.getLeavesOfType(consts.MAP_VIEW_NAME);
         if (maps && maps.length > 0) return maps[0];
         else return null;
+    }
+
+    /*
+     * The plugin needs to keep track of which map containers are active.
+     * This is tricky, and even more when it comes to EmbeddedMap objects, as Obsidian doesn't give any tools to do that
+     * reliably.
+     */
+    public registerMapContainer(mapContainer: MapContainer) {
+        this.allMapContainers.push(mapContainer);
     }
 
     public async openMap(
@@ -1017,5 +1194,207 @@ export default class MapViewPlugin extends Plugin {
             if (editor)
                 await utils.goToEditorLocation(editor, cursorPos, false);
         }
+    }
+
+    private async buildInitialLayersCache() {
+        // This initialization can happen from two places:
+        // 1. From the layout-ready event, if the settings allow it.
+        // 2. From a mapContainer, if it needs to open Map View before the layout-ready event (this happens if Obsidian opens with a
+        //    Map View already).
+        if (this.layerCacheInitStarted) return;
+        if (this.settings.debug) console.time('buildInitialLayersCache');
+        this.layerCacheInitStarted = true;
+        let files = this.app.vault.getMarkdownFiles();
+        let geoJsonFiles = this.app.vault
+            .getFiles()
+            .filter((file) => GEOJSON_EVERYTHING.includes(file.extension));
+        let newMarkers = await buildAndAppendFileMarkers(
+            files,
+            this.settings,
+            this.app,
+            this,
+        );
+        let geoJsonLayers = await buildGeoJsonLayers(
+            geoJsonFiles,
+            this.settings,
+            this.app,
+            this,
+        );
+        const allLayers = Array.combine([newMarkers, geoJsonLayers]);
+        cacheTagsFromLayers(allLayers, this.allTags);
+        let layerCache = new LayerCache();
+        // We do this on a variable rather than directly on the member so Map Views will be able to easily know when the initialization
+        // was done
+        for (const layer of allLayers) layerCache.add(layer);
+        this.layerCache = layerCache;
+        if (this.settings.debug) console.timeEnd('buildInitialLayersCache');
+        console.log(
+            'Map View initialized with',
+            this.layerCache.size,
+            'markers & paths.',
+        );
+    }
+
+    /**
+     * Run when a file is deleted, renamed or *changed*.
+     * When a file is changed, the same is populated in fileRemoved and fileAddedOrChanged, so its layers are removed and then re-added.
+     * WARNING: THIS METHOD RUNS A LOT. When a Map View is open and a note is edited anywhere in Obsidian,
+     * this method can be called repeatedly during typing, and thus must be very efficient to not cause
+     * delays for the user.
+     * @param fileRemoved The old file path
+     * @param fileAddedOrChanged The new file data
+     */
+    public async updateMarkersWithRelationToFile(
+        fileRemoved: string,
+        fileAddedOrChanged: TAbstractFile,
+        skipMetadata: boolean,
+    ): Promise<BaseGeoLayer[]> {
+        if (!this.layerCache) return;
+        if (fileRemoved) {
+            this.layerCache.deleteAllFromFile(fileRemoved);
+        }
+        let newLayers: BaseGeoLayer[] = [];
+        if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
+            // Add file layers from the added/modified file. These layers may be (and usually are) identical
+            // to the ones already on the map
+            newLayers = await buildAndAppendFileMarkers(
+                [fileAddedOrChanged],
+                this.settings,
+                this.app,
+                this,
+            );
+
+            if (GEOJSON_EVERYTHING.includes(fileAddedOrChanged.extension)) {
+                let geoJsonLayers = await buildGeoJsonLayers(
+                    [fileAddedOrChanged],
+                    this.settings,
+                    this.app,
+                    this,
+                );
+                newLayers.push(...geoJsonLayers);
+            }
+            cacheTagsFromLayers(newLayers, this.allTags);
+        }
+        for (const layer of newLayers) {
+            if (this.layerCache.get(layer.id))
+                console.error(`Layer ID ${layer.id} already in map!`);
+            this.layerCache.add(layer);
+        }
+        this.maintainMapContainersList();
+        for (const mapContainer of this.allMapContainers) {
+            // We want to update each map container about the updated list of layers.
+            // To do this, we take all its layers, remove the ones that belong to fileRemoved if any, and add
+            // those from newLayers.
+            // The mapContainer then compares this list to what it has internally and updates the map layers.
+            // As an optimization, if we don't remove any layers, we'll use the mapContainer.display.layers object as-is.
+            // If we do, we'll copy it aside, because we don't want to modify the mapContainer's internal structure here.
+            const existingLayers =
+                fileRemoved &&
+                mapContainer.display.layers.hasLayersFromFile(fileRemoved)
+                    ? new LayerCache(mapContainer.display.layers)
+                    : mapContainer.display.layers;
+            if (fileRemoved) existingLayers.deleteAllFromFile(fileRemoved);
+            const newMarkers = mapContainer.filterAndPrepareMarkers(
+                newLayers,
+                mapContainer.state,
+            );
+            const combinedLayersIterator = utils.combineIterables(
+                existingLayers.layers,
+                newMarkers,
+            );
+            try {
+                mapContainer.updateMapLayers(combinedLayersIterator);
+            } catch (e) {
+                console.error('Error updating layers on file modification:', e);
+                console.log(
+                    'This happened on container:',
+                    mapContainer,
+                    'which:',
+                    document.contains(mapContainer.display.mapDiv),
+                );
+            }
+        }
+        return newLayers;
+    }
+
+    /*
+     * What I would have liked to do in the case a file is renamed, is to handle it with the updateMarkersWithRelationToFile
+     * method above.
+     * In theory, we could remove the old path and re-add the layers from 'file'.
+     * However, Obsidian puts us in an awkward position: the 'file' object does not yet have metadata built for it, and
+     * there is no way to register for a metadata change event in the case of a rename (as of 2025-07). Seems like the API
+     * was built under the assumption that handling rename is straight-forward.
+     * So, we are left with no choice but to create a special flow for rename, which is basically simple: we need to iterate
+     * over all the layer cache structures (both the main one and the mapContainer internal ones) and update them.
+     */
+    public async renameFile(oldPath: string, file: TAbstractFile) {
+        if (file instanceof TFile) {
+            this.layerCache.renameFile(oldPath, file.path);
+            this.maintainMapContainersList();
+            for (const mapContainer of this.allMapContainers) {
+                mapContainer.display.layers.renameFile(oldPath, file.path);
+            }
+            const fileLayers = this.layerCache.getLayersByFile(file.path);
+            for (const layer of fileLayers) layer.renameContainingFile(file);
+        }
+    }
+
+    public async waitForInitialization() {
+        if (!this.layerCacheInitStarted) await this.buildInitialLayersCache();
+        while (true) {
+            if (this.layerCache) break;
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+    }
+
+    public refreshDisplayRules() {
+        this.displayRulesCache.build(this.settings.displayRules);
+        for (const layer of this.layerCache.layers) {
+            layer.runDisplayRules(this);
+        }
+    }
+
+    public refreshAllMapViews() {
+        for (const mapContainer of this.allMapContainers) {
+            mapContainer.refreshMap();
+        }
+    }
+
+    /*
+     * Try to find map containers that are no longer used (i.e. not displayed or loaded anywhere) and clean their references
+     * from the layer maps.
+     * Since map containers can exist in many forms (full Map View instances, embedded maps, map previews...), there is no
+     * reliable way that Obsidian provides to track them, so we make a best effort here.
+     * This method needs to be pretty fast (as it's called from editor updates).
+     */
+    private maintainMapContainersList() {
+        const cleanedContainers = this.allMapContainers.filter(
+            (mapContainer) => {
+                return document.contains(mapContainer.display.mapDiv);
+            },
+        );
+
+        // If containers were removed, remove their references from all geoLayers
+        if (cleanedContainers.length < this.allMapContainers.length) {
+            const remainingIds = new Set(
+                cleanedContainers.map(
+                    (container: MapContainer) => container.containerId,
+                ),
+            );
+            const removedContainerIds = this.allMapContainers
+                .filter((container) => !remainingIds.has(container.containerId))
+                .map((container) => container.containerId);
+
+            if (removedContainerIds.length > 0) {
+                for (const layer of this.layerCache.layers) {
+                    for (const containerId of removedContainerIds) {
+                        if (layer.geoLayers.has(containerId)) {
+                            layer.geoLayers.delete(containerId);
+                        }
+                    }
+                }
+            }
+        }
+        this.allMapContainers = cleanedContainers;
     }
 }

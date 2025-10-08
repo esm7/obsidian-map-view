@@ -7,12 +7,16 @@ import {
     WorkspaceLeaf,
     Notice,
     MenuItem,
+    BasesQueryResult,
     type Loc,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
 // Ugly hack for obsidian-leaflet compatability, see https://github.com/esm7/obsidian-map-view/issues/6
 // @ts-ignore
 import * as leafletFullscreen from 'leaflet-fullscreen';
+import '@geoman-io/leaflet-geoman-free';
+import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
+
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -30,6 +34,7 @@ import {
     mergeStates,
     stateToUrl,
     getCodeBlock,
+    areStatesEqual,
 } from 'src/mapState';
 import {
     type OpenBehavior,
@@ -38,23 +43,31 @@ import {
     DEFAULT_SETTINGS,
 } from 'src/settings';
 import {
-    type MarkersMap,
-    BaseGeoLayer,
     FileMarker,
-    buildMarkers,
-    buildAndAppendFileMarkers,
-    finalizeMarkers,
     addEdgesToMarkers,
-    cacheTagsFromMarkers,
-} from 'src/markers';
+    moveFileMarker,
+    createMarkerInFile,
+} from 'src/fileMarker';
+import { FloatingMarker } from 'src/floatingMarker';
+import { FloatingPath } from 'src/floatingPath';
+import {
+    GeoJsonLayer,
+    createGeoJsonInFile,
+    editGeoJson,
+} from 'src/geojsonLayer';
+import { BaseGeoLayer } from 'src/baseGeoLayer';
+import { LayerCache } from 'src/layerCache';
 import { getIconFromOptions, type IconOptions } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
 import * as utils from 'src/utils';
 import {
     ViewControls,
     SearchControl,
+    RoutingControl,
     RealTimeControl,
     LockControl,
+    EditControl,
+    AddFileControl,
 } from 'src/viewControls';
 import { Query } from 'src/query';
 import { GeoSearchResult } from 'src/geosearch';
@@ -67,6 +80,8 @@ import * as menus from 'src/menus';
 import { createPopper, type Instance as PopperInstance } from '@popperjs/core';
 import * as offlineTiles from 'src/offlineTiles.svelte';
 import MarkerPopup from './components/MarkerPopup.svelte';
+import { type RoutingResult } from 'src/routing';
+import { getMarkerFromUser } from 'src/markerSelectDialog';
 
 export type ViewSettings = {
     showMinimizeButton: boolean;
@@ -78,7 +93,9 @@ export type ViewSettings = {
     viewTabType: 'regular' | 'mini';
     showEmbeddedControls: boolean;
     showPresets: boolean;
+    showEdit: boolean;
     showSearch: boolean;
+    showRouting: boolean;
     showOpenButton: boolean;
     showRealTimeButton: boolean;
     showLockButton: boolean;
@@ -91,15 +108,13 @@ export type ViewSettings = {
     skipAnimations?: boolean;
 };
 
-interface FrontMatterAttributes {
-    [key: string]: any; // This allows any property with string keys
-}
-
 export class MapContainer {
     private app: App;
     public settings: PluginSettings;
     public viewSettings: ViewSettings;
     private parentEl: HTMLElement;
+    /** If this container is based on a Bases query, the query result object. */
+    public basesQueryResult: BasesQueryResult | null = null;
     /** The displayed controls and objects of the map, separated from its logical state.
      * Must only be updated in updateMarkersToState */
     public state: MapState;
@@ -112,7 +127,7 @@ export class MapContainer {
         /** The element holding map marker popups */
         popupDiv: HTMLDivElement;
         popperInstance: PopperInstance;
-        popupElement: leaflet.Marker;
+        popupElement: leaflet.Layer;
         popupElementUnmount: () => void;
         popupClickEventListener: (ev: MouseEvent) => void;
         /** The leaflet map instance */
@@ -120,8 +135,8 @@ export class MapContainer {
         tileLayer: TileLayerOffline;
         /** The cluster management class */
         clusterGroup: leaflet.MarkerClusterGroup;
-        /** The markers currently on the map */
-        markers: MarkersMap = new Map();
+        /** The layers currently on the map */
+        layers: LayerCache = new LayerCache();
         /** The polylines currently on the map */
         polylines: leaflet.Polyline[] = [];
         /** The view controls */
@@ -130,8 +145,14 @@ export class MapContainer {
         zoomControls: leaflet.Control.Zoom;
         /** The search controls (search & clear buttons) */
         searchControls: SearchControl = null;
+        /** The routing controls */
+        routingControls: RoutingControl = null;
         /** The real-time geolocation controls */
         realTimeControls: RealTimeControl = null;
+        /** The pencil button for showing edit controls */
+        editControl: EditControl = null;
+        /** The "add file" button that appears in Edit Mode below the edit tools */
+        addFileControl: AddFileControl = null;
         /** The lock control */
         lockControl: LockControl = null;
         /** A marker of the last search result */
@@ -142,11 +163,18 @@ export class MapContainer {
         actualHighlight: leaflet.Marker = null;
         /** The marker used to denote a routing source if any */
         routingSource: leaflet.Marker = null;
+        /** The routes added to the map */
+        calculatedRoutes: leaflet.GeoJSON[] = [];
         realTimeLocationMarker: leaflet.Marker = null;
         realTimeLocationRadius: leaflet.Circle = null;
         /** Part of an ugly mechanism that's required to cache loaded tiles */
         offlineHelperCanvas: HTMLCanvasElement = null;
     })();
+    /*
+     * An array of one-time actions to be done in the next time the map is updated and valid (has a size).
+     * The doPostUpdateActions method clears the array after they are done.
+     */
+    public postUpdateActions: (() => void)[] = [];
     public ongoingChanges = 0;
     public freezeMap: boolean = false;
     private plugin: MapViewPlugin;
@@ -164,12 +192,19 @@ export class MapContainer {
     private lastTabLeaf: WorkspaceLeaf;
     /** Is the view currently open */
     private isOpen: boolean = false;
+    // MapContainer objects have an increasing ID for the purpose of being able to identify themselves in the BaseGeoLayer.geoLayers
+    // maps
+    private mapContainerId: number;
+    private static staticMaxMapContainerId: number = 0;
     /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
     public updateCodeBlockCallback: () => Promise<void>;
     /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
     public updateCodeBlockFromMapViewCallback: () => Promise<void>;
+    /** On a Bases map view, this is set by the parent view object so it can update view properties according to user-led state changs. */
+    public onStateChangedByUserCallback: (newState: MapState) => void;
     /** Internal URL for a pre-generated "error" tile */
     private errorTileUrl = '';
+    private inDragMode = false;
 
     /**
      * Construct a new map instance
@@ -188,6 +223,9 @@ export class MapContainer {
         this.viewSettings = viewSettings;
         this.plugin = plugin;
         this.app = app;
+        this.plugin.registerMapContainer(this);
+        this.mapContainerId = MapContainer.staticMaxMapContainerId;
+        MapContainer.staticMaxMapContainerId++;
         // Create the default state by the configuration. Since state fields can be added on new plugin versions,
         // we start by applying the state from DEFAULT_SETTINGS, so new fields can get default vaules
         this.defaultState = mergeStates(
@@ -196,16 +234,6 @@ export class MapContainer {
         );
         this.parentEl = parentEl;
 
-        // Listen to file changes so we can update markers accordingly
-        this.app.vault.on('delete', (file) =>
-            this.updateMarkersWithRelationToFile(file.path, null, true),
-        );
-        this.app.metadataCache.on('changed', (file) =>
-            this.updateMarkersWithRelationToFile(file.path, file, false),
-        );
-        // On rename we don't need to do anything because the markers hold a TFile, and the TFile object doesn't change
-        // when the file name changes. Only its internal path field changes accordingly.
-        // this.app.vault.on('rename', (file, oldPath) => this.updateMarkersWithRelationToFile(oldPath, file, true));
         this.app.workspace.on('css-change', () => {
             console.log('Map view: map refresh due to CSS change');
             this.refreshMap();
@@ -232,7 +260,7 @@ export class MapContainer {
     }
 
     getMarkers() {
-        return this.display.markers;
+        return this.display.layers;
     }
 
     isDarkMode(settings: PluginSettings): boolean {
@@ -348,7 +376,7 @@ export class MapContainer {
             // the map during ongoing changes (especially in fast zooms and pans).
             // There are therefore multiple layers of safeguards here, i.e. both the freezeMap boolean,
             // the ongoingChanges counter, and inside updateMarkersToState there are additional safeguards
-            if (!freezeMap && this.ongoingChanges == 0) {
+            if (!freezeMap && !this.freezeMap && this.ongoingChanges <= 0) {
                 const willAutoFit =
                     state.autoFit || // State auto-fit
                     (considerAutoFit && // Global auto-fit
@@ -359,9 +387,38 @@ export class MapContainer {
             }
             if (this.display.controls) {
                 this.display.controls.updateControlsToState();
+                if (newState.editMode) {
+                    this.display.map.pm.addControls({
+                        position: 'topright',
+                        drawCircleMarker: false,
+                        drawCircle: false,
+                        drawText: false,
+                        removalMode: false,
+                    });
+                    if (!this.display.addFileControl) {
+                        this.display.addFileControl = new AddFileControl(
+                            { position: 'topright' },
+                            this,
+                            this.app,
+                            this.plugin,
+                            this.settings,
+                        );
+                        this.display.map.addControl(
+                            this.display.addFileControl,
+                        );
+                    }
+                } else {
+                    this.display.map.pm.removeControls();
+                    if (this.display.addFileControl) {
+                        this.display.addFileControl.remove();
+                        this.display.addFileControl = null;
+                    }
+                }
             }
             if (this.display.lockControl)
                 this.display.lockControl.updateFromState(state.lock);
+            if (this.display.editControl)
+                this.display.editControl.updateFromState(newState.editMode);
         }
     }
 
@@ -372,8 +429,11 @@ export class MapContainer {
      * This is deliberately *not* an async method, because in the version that calls the Obsidian setState method,
      * we want to reliably get the status of freezeMap
      */
-    public highLevelSetViewState(partialState: Partial<MapState>): MapState {
-        if (Object.keys(partialState).length === 0) return;
+    public highLevelSetViewState(
+        partialState: Partial<MapState>,
+        forceUpdate: boolean = false,
+    ): MapState {
+        if (Object.keys(partialState).length === 0 && !forceUpdate) return;
         const state = this.getState();
         if (state) {
             const newState = mergeStates(state, partialState);
@@ -389,8 +449,9 @@ export class MapContainer {
      */
     public async highLevelSetViewStateAsync(
         partialState: Partial<MapState>,
+        forceUpdate: boolean = false,
     ): Promise<MapState> {
-        if (Object.keys(partialState).length === 0) return;
+        if (Object.keys(partialState).length === 0 && !forceUpdate) return;
         const state = this.getState();
         if (state) {
             const newState = mergeStates(state, partialState);
@@ -409,9 +470,14 @@ export class MapContainer {
      * For this purpose, this part of the flow is synchronuous.
      */
     public updateStateAfterMapChange(partialState: Partial<MapState>) {
-        this.state = mergeStates(this.state, partialState);
-        this.freezeMap = true;
-        this.highLevelSetViewState(partialState);
+        const mergedState = mergeStates(this.state, partialState);
+        if (!areStatesEqual(this.state, mergedState, this.display?.map)) {
+            this.state = mergedState;
+            this.freezeMap = true;
+            this.highLevelSetViewState(partialState);
+            if (this.onStateChangedByUserCallback)
+                this.onStateChangedByUserCallback(this.state);
+        }
         if (this.ongoingChanges <= 0) {
             this.freezeMap = false;
             this.ongoingChanges = 0;
@@ -500,9 +566,8 @@ export class MapContainer {
         this.display.tileLayer = null;
         this.display?.map?.off();
         this.display?.map?.remove();
-        this.display?.markers?.clear();
-        this.display?.controls?.controlsDiv?.remove();
-        await this.display?.controls?.reload();
+        this.display?.layers?.clear();
+        this.display?.controls?.reload();
         await this.createMap();
         this.updateMarkersToState(this.state, true);
         this.display?.controls?.updateControlsToState();
@@ -536,10 +601,14 @@ export class MapContainer {
                 DEFAULT_SETTINGS.maxClusterRadiusPixels,
             animate: false,
             chunkedLoading: true,
+            pmIgnore: true,
+            polygonOptions: {
+                pmIgnore: true,
+            },
         });
         this.display.map.addLayer(this.display.clusterGroup);
 
-        this.display.map.on('zoomend', async (event: leaflet.LeafletEvent) => {
+        this.display.map.on('zoomend', async (_event: leaflet.LeafletEvent) => {
             this.ongoingChanges -= 1;
             this.updateStateAfterMapChange({
                 mapZoom: this.display.map.getZoom(),
@@ -547,8 +616,9 @@ export class MapContainer {
             });
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
+            this.doPostUpdateActions();
         });
-        this.display.map.on('moveend', async (event: leaflet.LeafletEvent) => {
+        this.display.map.on('moveend', async (_event: leaflet.LeafletEvent) => {
             this.ongoingChanges -= 1;
             this.updateStateAfterMapChange({
                 mapZoom: this.display.map.getZoom(),
@@ -556,22 +626,97 @@ export class MapContainer {
             });
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
+            this.doPostUpdateActions();
         });
-        this.display.map.on('movestart', (event: leaflet.LeafletEvent) => {
+        this.display.map.on('movestart', (_event: leaflet.LeafletEvent) => {
             this.ongoingChanges += 1;
         });
-        this.display.map.on('zoomstart', (event: leaflet.LeafletEvent) => {
+        this.display.map.on('zoomstart', (_event: leaflet.LeafletEvent) => {
             this.ongoingChanges += 1;
         });
         this.display.map.on(
             'doubleClickZoom',
-            (event: leaflet.LeafletEvent) => {
+            (_event: leaflet.LeafletEvent) => {
                 this.ongoingChanges += 1;
             },
         );
+
+        const [defaultIcon, defaultPathOptions, _] =
+            this.plugin.displayRulesCache.getDefaults();
+        this.display.map.pm.setGlobalOptions({
+            snapDistance: 10,
+            markerStyle: {
+                icon: getIconFromOptions(
+                    defaultIcon,
+                    [],
+                    this.plugin.iconFactory,
+                ),
+            },
+            pathOptions: defaultPathOptions,
+            limitMarkersToCount: 20,
+            continueDrawing: false,
+        });
+        this.display.map.on('pm:drawstart', (e) => {
+            if (!this.display.controls.editModeTools.noteToEdit) {
+                new Notice('You must first select a note.');
+                this.display.map.pm.disableDraw();
+                this.display.controls.openEditSection();
+            }
+        });
+        this.display.map.on('pm:dragenable', (e) => {
+            this.inDragMode = true;
+        });
+        this.display.map.on('pm:dragdisable', (e) => {
+            this.inDragMode = false;
+        });
+        this.display.map.on(
+            'pm:create',
+            (e: {
+                shape: leaflet.PM.SUPPORTED_SHAPES;
+                layer: leaflet.Layer;
+            }) => {
+                const file = this.display.controls.editModeTools.noteToEdit;
+                const heading = this.display.controls.editModeTools.noteHeading;
+                const tags = this.display.controls.editModeTools.tags;
+                if (
+                    e.shape === 'Line' ||
+                    e.shape === 'Rectangle' ||
+                    e.shape === 'Polygon'
+                ) {
+                    createGeoJsonInFile(
+                        (e.layer as leaflet.Polyline).toGeoJSON(),
+                        file,
+                        heading,
+                        tags,
+                        this.app,
+                        this.settings,
+                    );
+                } else if (
+                    e.shape === 'Marker' &&
+                    e.layer instanceof leaflet.Marker
+                ) {
+                    createMarkerInFile(
+                        e.layer.getLatLng(),
+                        file,
+                        heading,
+                        tags,
+                        this.app,
+                        this.settings,
+                        this.plugin,
+                    );
+                } else {
+                    console.log('Unsupported shape:', e);
+                }
+                // This temporary layer doesn't truly represent a Map View marker -- remove it as it will soon be replaced by the
+                // newly-picked-up geolocation
+                e.layer.remove();
+            },
+        );
+
         this.display.map.on('viewreset', () => {
             this.setHighlight(this.display.highlight);
             this.updateRealTimeLocationMarkers();
+            this.doPostUpdateActions();
         });
 
         if (this.viewSettings.showSearch) {
@@ -585,6 +730,17 @@ export class MapContainer {
             this.display.map.addControl(this.display.searchControls);
         }
 
+        if (this.viewSettings.showRouting) {
+            this.display.routingControls = new RoutingControl(
+                { position: 'topright' },
+                this,
+                this.app,
+                this.plugin,
+                this.settings,
+            );
+            this.display.map.addControl(this.display.routingControls);
+        }
+
         if (
             this.viewSettings.showRealTimeButton &&
             this.settings.supportRealTimeGeolocation
@@ -596,6 +752,16 @@ export class MapContainer {
                 this.settings,
             );
             this.display.map.addControl(this.display.realTimeControls);
+        }
+
+        if (this.viewSettings.showEdit && !this.state.editMode) {
+            this.display.editControl = new EditControl(
+                { position: 'topright' },
+                this,
+                this.app,
+                this.settings,
+            );
+            this.display.map.addControl(this.display.editControl);
         }
 
         if (this.settings.showClusterPreview) {
@@ -616,7 +782,7 @@ export class MapContainer {
             });
         }
 
-        this.display.map.on('click', (event: leaflet.LeafletMouseEvent) => {
+        this.display.map.on('click', (_event: leaflet.LeafletMouseEvent) => {
             this.setHighlight(null);
             this.closeMarkerPopup(false);
         });
@@ -632,13 +798,15 @@ export class MapContainer {
                     this,
                     this.settings,
                     this.app,
+                    this.plugin,
+                    event.originalEvent,
                 );
                 mapPopup.showAtPosition(event.originalEvent);
             },
         );
 
         // This is an ugly work-around for an issue of marker popups sometimes not closing when they should,
-        // seemingly due to a race condition of closing and opening the popup from multiple markers upon
+        // seemingly due to a race condition of closing and opening the popup from multiple layers upon
         // rapid mouse movements.
         // I couldn't find a better solution to this edge case rather than check once in a while if a popup
         // happens to be open when it shouldn't.
@@ -651,7 +819,8 @@ export class MapContainer {
                 // If the popup is displayed, we're not on mobile (so it should be only displayed on hover) but
                 // there's no popup element, close the popup
                 if (!this.display.popupElement) this.closeMarkerPopup(false);
-                if (this.display.popupElement) {
+                if (this.display.popupElement instanceof leaflet.Marker) {
+                    // This is doable only for markers and not paths
                     const mousePosition = await utils.getMousePosition();
                     const element = this.display.popupElement?.getElement();
                     const rect = element?.getBoundingClientRect();
@@ -685,40 +854,28 @@ export class MapContainer {
         freezeMap: boolean = false,
     ) {
         if (this.settings.debug) console.time('updateMarkersToState');
-        let files = this.app.vault.getMarkdownFiles();
-        // Build the markers and filter them according to the query
-        let newMarkers = await buildMarkers(files, this.settings, this.app);
-        cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
-        try {
-            newMarkers = this.filterMarkers(newMarkers, state.query);
-            state.queryError = false;
-        } catch (e) {
-            newMarkers = [];
-            state.queryError = true;
+        if (!this.isOpen) {
+            console.log('Skipping closed map container:', this);
+            return;
         }
-        finalizeMarkers(
-            newMarkers,
+        await this.plugin.waitForInitialization();
+        const allLayers = this.filterAndPrepareMarkers(
+            this.plugin.layerCache.layers,
             state,
-            this.settings,
-            this.plugin.iconFactory,
-            this.app,
         );
-        addEdgesToMarkers(
-            newMarkers,
-            this.app,
-            state.showLinks,
-            this.display.polylines,
-        );
+        const forceRecreate = state.markerLabels != this.state.markerLabels;
         this.state = structuredClone(state);
 
-        this.updateMapMarkers(newMarkers);
+        // forceRecreate means we want to reset the layers before calling the real updateMapLayers
+        if (forceRecreate) this.updateMapLayers([]);
+        this.updateMapLayers(allLayers);
         // There are multiple layers of safeguards here, in an attempt to minimize the cases where a series
         // of interactions and async updates compete over the map.
         // See the comment in internalSetViewState to get more context
         if (
             !freezeMap &&
             !this.freezeMap &&
-            this.ongoingChanges == 0 &&
+            this.ongoingChanges <= 0 &&
             (this.display.map.getCenter().distanceTo(this.state.mapCenter) >
                 1 ||
                 this.display.map.getZoom() != this.state.mapZoom)
@@ -735,70 +892,120 @@ export class MapContainer {
         if (this.settings.debug) console.timeEnd('updateMarkersToState');
     }
 
-    filterMarkers(allMarkers: BaseGeoLayer[], queryString: string) {
+    filterAndPrepareMarkers(
+        layers: Iterable<BaseGeoLayer>,
+        state: MapState,
+    ): BaseGeoLayer[] {
+        let filteredLayers: BaseGeoLayer[] = [];
+        try {
+            filteredLayers = this.filterMarkers(
+                layers,
+                state.query,
+                this.basesQueryResult,
+            );
+            state.queryError = false;
+        } catch (e) {
+            filteredLayers = [];
+            state.queryError = true;
+        }
+        addEdgesToMarkers(
+            filteredLayers,
+            this.app,
+            state.showLinks,
+            this.display.polylines,
+        );
+        return filteredLayers;
+    }
+
+    filterMarkers(
+        allMarkers: Iterable<BaseGeoLayer>,
+        queryString: string,
+        basesQueryResult: BasesQueryResult | undefined,
+    ) {
         let results: BaseGeoLayer[] = [];
+        const filesSet = basesQueryResult
+            ? new Set(basesQueryResult.data.map((item) => item.file.path))
+            : null;
         const query = new Query(this.app, queryString);
         for (const marker of allMarkers)
-            if (query.testMarker(marker)) results.push(marker);
+            if (
+                (!filesSet || filesSet.has(marker.file.path)) &&
+                query.testLayer(marker)
+            )
+                results.push(marker);
         return results;
     }
 
     /**
-     * Update the actual Leaflet markers of the map according to a new list of logical markers.
-     * Unchanged markers are not touched, new markers are created and old markers that are not in the updated list are removed.
+     * Update the actual Leaflet layers of the map according to a new list of logical layers.
+     * Unchanged layers are not touched, new layers are created and old layers that are not in the updated list are removed.
      * Also, all the polylines (edge lines representing links) are cleared and redrawn, which is inefficient and can
      * be optimized in the future.
-     * @param newMarkers The new array of FileMarkers
+     * @param newLayer The new array of layers
      */
-    updateMapMarkers(newMarkers: BaseGeoLayer[]) {
-        let newMarkersMap: MarkersMap = new Map();
-        let markersToAdd: leaflet.Layer[] = [];
-        let markersToRemove: leaflet.Layer[] = [];
-        for (let marker of newMarkers) {
-            const existingMarker = this.display.markers.has(marker.id)
-                ? this.display.markers.get(marker.id)
-                : null;
-            if (existingMarker && existingMarker.isSame(marker)) {
-                // This marker exists, so just keep it
-                newMarkersMap.set(
-                    marker.id,
-                    this.display.markers.get(marker.id),
-                );
-                this.display.markers.delete(marker.id);
-            } else if (marker instanceof FileMarker) {
-                // New marker - create it
-                marker.geoLayer = this.newLeafletMarker(marker);
-                markersToAdd.push(marker.geoLayer);
-                if (newMarkersMap.get(marker.id))
-                    console.log(
-                        'Map view: warning, marker ID',
-                        marker.id,
-                        'already exists, please open an issue if you see this.',
+    updateMapLayers(newLayers: Iterable<BaseGeoLayer>) {
+        for (const layer of this.display.layers.layers) layer.touched = false;
+        let layersToAdd: BaseGeoLayer[] = [];
+        let totalLayers = 0;
+        for (let layer of newLayers) {
+            const existingLayer = this.display.layers.get(layer.id);
+            if (existingLayer && existingLayer.isSame(layer)) {
+                // This layer exists, so just keep it
+                existingLayer.touched = true;
+            } else {
+                // New layer - create it
+                if (layer instanceof FileMarker)
+                    layer.geoLayers.set(
+                        this.mapContainerId,
+                        this.newLeafletMarker(layer),
                     );
-                newMarkersMap.set(marker.id, marker);
+                else if (layer instanceof GeoJsonLayer)
+                    layer.geoLayers.set(
+                        this.mapContainerId,
+                        this.newLeafletGeoJson(layer),
+                    );
+                layersToAdd.push(layer);
+            }
+            totalLayers++;
+        }
+        let layersToRemove: BaseGeoLayer[] = [];
+        for (const layer of this.display.layers.layers) {
+            if (!layer.touched) {
+                layersToRemove.push(layer);
+                this.display.layers.delete(layer.id);
+                // Remove the edges that connect the layers we are removing, together with their polylines
+                if (layer instanceof FileMarker)
+                    layer.removeEdges(this.display.polylines);
             }
         }
-        for (let [key, value] of this.display.markers) {
-            markersToRemove.push(value.geoLayer);
-            // Remove the edges that connect the markers we are removing, together with their polylines
-            if (value instanceof FileMarker)
-                value.removeEdges(this.display.polylines);
-        }
-        this.display.clusterGroup.removeLayers(markersToRemove);
-        this.display.clusterGroup.addLayers(markersToAdd);
-        this.display.markers = newMarkersMap;
+        this.display.clusterGroup.removeLayers(
+            layersToRemove.map((layer) => this.getGeoLayer(layer)),
+        );
+        for (const layer of layersToAdd) this.display.layers.add(layer);
+        // Now add the actual layers & paths on the map
+        this.display.clusterGroup.addLayers(
+            layersToAdd.map((layer) => this.getGeoLayer(layer)),
+        );
         this.buildPolylines();
+        // Just a cheap sanity check
+        if (totalLayers != this.display.layers.size)
+            console.error(
+                'Something went wrong building the map, it has',
+                this.display.layers.size,
+                'items instead of',
+                totalLayers,
+            );
     }
 
     /**
-     * Builds all the non-existing polylines according to the edges stored in the markers, and adds them to the map.
+     * Builds all the non-existing polylines according to the edges stored in the layers, and adds them to the map.
      */
     private buildPolylines() {
         if (this.state.showLinks) {
-            for (const marker of this.display.markers.values()) {
-                if (marker instanceof FileMarker) {
-                    // Draw edges between markers
-                    for (const edge of marker.edges) {
+            for (const layer of this.display.layers.layers) {
+                if (layer instanceof FileMarker) {
+                    // Draw edges between layers
+                    for (const edge of layer.edges) {
                         // Since an edge is linked from both of its sides, we want to make sure we create
                         // the polyline just once
                         if (edge.polyline) {
@@ -820,6 +1027,48 @@ export class MapContainer {
         }
     }
 
+    private addPopupHandlingEvents(
+        leafletLayer: leaflet.Layer,
+        layer: BaseGeoLayer,
+        popupPlacement: 'element' | 'mouse',
+    ) {
+        leafletLayer.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+            if (!utils.isMobile(this.app))
+                this.showMarkerPopups(
+                    layer,
+                    leafletLayer,
+                    event,
+                    popupPlacement,
+                );
+        });
+        leafletLayer.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
+            if (!utils.isMobile(this.app)) {
+                this.closeMarkerPopup(false);
+            }
+        });
+        if (utils.isMobile(this.app)) {
+            leafletLayer.on(
+                'click',
+                async (event: leaflet.LeafletMouseEvent) => {
+                    if (
+                        layer.layerType === 'fileMarker' ||
+                        layer.layerType === 'floatingMarker'
+                    )
+                        this.setHighlight(layer);
+                    // We need to stop the click event here so the popup won't accidentally get clicked
+                    event.originalEvent.stopPropagation();
+                    event.originalEvent.preventDefault();
+                    this.showMarkerPopups(
+                        layer,
+                        leafletLayer,
+                        event,
+                        popupPlacement,
+                    );
+                },
+            );
+        }
+    }
+
     private newLeafletMarker(marker: FileMarker): leaflet.Marker {
         let icon: leaflet.Icon<IconOptions> | leaflet.DivIcon;
         if (marker.icon) {
@@ -831,20 +1080,18 @@ export class MapContainer {
         let newMarker = leaflet.marker(marker.location, {
             icon: icon,
             autoPan: true,
+            opacity: marker.opacity,
         });
 
         if (this.state.markerLabels && this.state.markerLabels != 'off')
-            newMarker.bindTooltip(marker.extraName ?? marker.file.basename, {
+            newMarker.bindTooltip(marker.name, {
                 permanent: true,
                 direction: this.state.markerLabels,
                 className: 'mv-marker-label',
             });
 
         newMarker.on('click', async (event: leaflet.LeafletMouseEvent) => {
-            if (utils.isMobile(this.app)) {
-                this.setHighlight(marker);
-                await this.showMarkerPopups(marker, event);
-            } else
+            if (!utils.isMobile(this.app)) {
                 this.goToMarker(
                     marker,
                     utils.mouseEventToOpenMode(
@@ -854,6 +1101,8 @@ export class MapContainer {
                     ),
                     true,
                 );
+            }
+            // The other case, of a click while in mobile, is handled in addPopupHandlingEvents
         });
         newMarker.on('mousedown', (event: leaflet.LeafletMouseEvent) => {
             // Middle click is supported only on mousedown and not on click, so we're checking for it here
@@ -869,21 +1118,11 @@ export class MapContainer {
                 );
         });
 
-        newMarker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
-            if (!utils.isMobile(this.app)) {
-                this.showMarkerPopups(marker, event);
-                this.display.popupElement = newMarker;
-            }
-        });
-        newMarker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
-            if (!utils.isMobile(this.app)) {
-                this.closeMarkerPopup(false);
-            }
-        });
-        newMarker.on('remove', (event: leaflet.LeafletMouseEvent) => {
+        this.addPopupHandlingEvents(newMarker, marker, 'element');
+        newMarker.on('remove', (_event: leaflet.LeafletMouseEvent) => {
             this.closeMarkerPopup(true);
         });
-        newMarker.on('add', (event: leaflet.LeafletEvent) => {
+        newMarker.on('add', (_event: leaflet.LeafletEvent) => {
             newMarker
                 .getElement()
                 .addEventListener('contextmenu', (ev: MouseEvent) => {
@@ -911,41 +1150,25 @@ export class MapContainer {
                     }
                 });
         });
-        newMarker.on('moveend', async (event: leaflet.LeafletEvent) => {
-            marker.location = newMarker.getLatLng().clone();
-            let newLat = marker.location.lat;
-            // If the user drags the marker too far, the longitude will exceed the threshold, an
-            // exception will be thrown, and the marker will disappear.
-            // If the threshold is exceeded, set the longitude back to the max (back in bounds).
-            // leaflet seems to protect against drags beyond the latitude threshold.
-            let newLng = marker.location.lng;
-            if (newLng < consts.LNG_LIMITS[0]) {
-                newLng = consts.LNG_LIMITS[0];
-            }
-            if (newLng > consts.LNG_LIMITS[1]) {
-                newLng = consts.LNG_LIMITS[1];
-            }
-            // We will now change the content of the note containing the marker. This will trigger Map View to rebuild
-            // the marker, causing the actual marker object to be replaced
-            if (marker.isFrontmatterMarker) {
-                await utils.verifyOrAddFrontMatter(
-                    this.app,
-                    marker.file,
-                    this.settings.frontMatterKey,
-                    `${newLat},${newLng}`,
-                    false,
-                );
-            } else if (marker.geolocationMatch?.groups) {
-                await utils.updateInlineGeolocation(
-                    this.app,
-                    marker.file,
-                    marker.fileLocation,
-                    marker.geolocationMatch,
-                    newLat,
-                    newLng,
-                );
-            }
-        });
+        newMarker.on(
+            'pm:edit',
+            (e: {
+                shape: leaflet.PM.SUPPORTED_SHAPES;
+                layer: leaflet.Layer;
+            }) => {
+                if (e.layer instanceof leaflet.Marker) {
+                    moveFileMarker(
+                        marker,
+                        e.layer.getLatLng(),
+                        this.settings,
+                        this.app,
+                    );
+                } else {
+                    new Notice('Cannot edit this path.');
+                    console.error('Cannot edit unknown object:', e);
+                }
+            },
+        );
         return newMarker;
     }
 
@@ -958,14 +1181,36 @@ export class MapContainer {
         let mapPopup = new Menu();
         if (marker instanceof FileMarker) {
             menus.populateOpenNote(this, marker, mapPopup, this.settings);
-            menus.populateMoveMarker(mapPopup, marker, this.plugin);
+            if (this.state.editMode) {
+                menus.populateRename(
+                    this,
+                    marker,
+                    mapPopup,
+                    this.settings,
+                    this.app,
+                    this.plugin,
+                );
+            } else {
+                menus.addStartEditMode(
+                    this,
+                    marker,
+                    mapPopup,
+                    this.settings,
+                    this.app,
+                    this.plugin,
+                );
+            }
             menus.populateRouting(
                 this,
                 marker.location,
                 mapPopup,
                 this.settings,
+                this.app,
+                this.plugin,
+                ev,
+                marker,
             );
-            const name = marker.extraName ?? marker.file.basename;
+            const name = marker.name;
             menus.populateOpenInItems(
                 mapPopup,
                 marker.location,
@@ -977,10 +1222,14 @@ export class MapContainer {
     }
 
     private async showMarkerPopups(
-        fileMarker: FileMarker,
+        layer: BaseGeoLayer,
+        leafletLayer: leaflet.Layer,
         event: leaflet.LeafletMouseEvent,
+        placement: 'element' | 'mouse' = 'element',
     ) {
-        // Popups based on the markers below the cursor shouldn't be opened while animations
+        // Not showing popups in drag mode so they won't interfere
+        if (this.inDragMode) return;
+        // Popups based on the layers below the cursor shouldn't be opened while animations
         // are occuring
         if (this.settings.showNoteNamePopup || this.settings.showNotePreview) {
             this.closeMarkerPopup(true);
@@ -991,7 +1240,8 @@ export class MapContainer {
                     app: this.app,
                     settings: this.settings,
                     view: this,
-                    marker: fileMarker,
+                    layer: layer,
+                    leafletLayer: leafletLayer,
                     doClose: () => {
                         this.closeMarkerPopup(false);
                     },
@@ -1001,44 +1251,67 @@ export class MapContainer {
                 unmount(component);
             };
 
-            const markerElement = event.target.getElement();
+            let refElement = null;
+            if (placement === 'mouse') {
+                // If we wish Popper to open where the mouse is, it requires a "virtual element", as explained in the Popper
+                // documentation here: https://popper.js.org/docs/v2/virtual-elements/
+                function generateGetBoundingClientRect(x = 0, y = 0) {
+                    return () => ({
+                        width: 0,
+                        height: 0,
+                        top: event.originalEvent.y,
+                        right: event.originalEvent.x,
+                        bottom: event.originalEvent.y,
+                        left: event.originalEvent.x,
+                    });
+                }
+                refElement = {
+                    getBoundingClientRect: generateGetBoundingClientRect(),
+                };
+            } else if (placement === 'element')
+                refElement = event.target.getElement();
             // Make the popup visible
             this.display.popupDiv.addClass('visible');
             // If we're using Popper (non-mobile), update the Popper instance about which marker it should follow.
             // Otherwise, use a more naive placement
             if (this.display.popperInstance) {
                 this.display.popperInstance.state.elements.reference =
-                    markerElement;
+                    refElement;
                 this.display.popperInstance.update();
             } else {
                 this.display.popupDiv.addClass('simple-placement');
             }
         }
-        if (this.settings.showNativeObsidianHoverPopup) {
+        if (
+            this.settings.showNativeObsidianHoverPopup &&
+            layer.layerType === 'fileMarker'
+        ) {
             const previewDetails = {
-                scroll: fileMarker.fileLine,
-                line: fileMarker.fileLine,
+                scroll: layer.fileLine,
+                line: layer.fileLine,
                 startLoc: {
-                    line: fileMarker.fileLine,
+                    line: layer.fileLine,
                     col: 0,
-                    offset: fileMarker.fileLocation,
+                    offset: layer.fileLocation,
                 } as Loc,
                 endLoc: {
-                    line: fileMarker.fileLine,
+                    line: layer.fileLine,
                     col: 0,
-                    offset: fileMarker.fileLocation,
+                    offset: layer.fileLocation,
                 } as Loc,
             };
+            const fileMarker = layer as FileMarker;
             this.app.workspace.trigger(
                 'link-hover',
-                fileMarker.geoLayer.getElement(),
-                fileMarker.geoLayer.getElement(),
-                fileMarker.file.path,
+                this.getGeoLayer(fileMarker).getElement(),
+                this.getGeoLayer(fileMarker).getElement(),
+                layer.file.path,
                 '',
                 previewDetails,
             );
         }
-        this.startHoverHighlight(fileMarker);
+        this.startHoverHighlight(layer);
+        this.display.popupElement = leafletLayer;
     }
 
     /*
@@ -1078,11 +1351,19 @@ export class MapContainer {
         event.propagatedFrom.activePopup = content;
     }
 
-    /** Zoom the map to fit all markers on the screen */
+    /** Zoom the map to fit all layers on the screen */
     public async autoFitMapToMarkers() {
-        if (this.display.markers.size > 0) {
+        const mapSize = this.display?.map?.getSize();
+        if (!(mapSize && mapSize.x > 0 && mapSize.y > 0)) {
+            // The map is not ready for an auto-fit.
+            // Add a call to this method for when the map finished updating.
+            this.postUpdateActions.push(() => {
+                this.autoFitMapToMarkers();
+            });
+        }
+        if (this.display.layers.size > 0) {
             const locations: leaflet.LatLng[] = [];
-            for (const marker of this.display.markers.values()) {
+            for (const marker of this.display.layers.layers) {
                 locations.push(...marker.getBounds());
             }
             this.display.map.fitBounds(leaflet.latLngBounds(locations), {
@@ -1173,88 +1454,36 @@ export class MapContainer {
 
     /**
      * Open and go to the editor location represented by the marker
-     * @param marker The FileMarker to open
+     * @param marker The marker to open
      * @param openBehavior the required type of action
      * @param highlight If true will highlight the line
+     * @param fileLocationOffset Go before or after the marker in the file
      */
     async goToMarker(
-        marker: FileMarker,
+        marker: BaseGeoLayer,
         openBehavior: OpenBehavior,
         highlight: boolean,
+        fileLocationOffset: number = 0,
     ) {
         return this.goToFile(marker.file, openBehavior, async (editor) => {
             await utils.goToEditorLocation(
                 editor,
-                marker.fileLocation,
+                marker.fileLocation + fileLocationOffset,
                 highlight,
             );
         });
-    }
-
-    /**
-     * Update the map markers with a list of markers not from the removed file plus the markers from the new file.
-     * Run when a file is deleted, renamed or *changed*.
-     * WARNING: THIS METHOD RUNS A LOT. When a Map View is open and a note is edited anywhere in Obsidian,
-     * this method can be called repeatedly during typing, and thus must be very efficient to not cause
-     * delays for the user.
-     * @param fileRemoved The old file path
-     * @param fileAddedOrChanged The new file data
-     */
-    private async updateMarkersWithRelationToFile(
-        fileRemoved: string,
-        fileAddedOrChanged: TAbstractFile,
-        skipMetadata: boolean,
-    ) {
-        if (!this.display.map || !this.isOpen)
-            // If the map has not been set up yet then do nothing
-            return;
-        let markers: BaseGeoLayer[] = [];
-        // Create an array of all file markers not in the removed file
-        for (let [_markerId, existingMarker] of this.display.markers) {
-            if (existingMarker.file.path !== fileRemoved)
-                markers.push(existingMarker);
-        }
-        let newMarkers: BaseGeoLayer[] = [];
-        if (fileAddedOrChanged && fileAddedOrChanged instanceof TFile) {
-            // Add file markers from the added/modified file. These markers may be (and usually are) identical
-            // to the ones already on the map
-            await buildAndAppendFileMarkers(
-                newMarkers,
-                fileAddedOrChanged,
-                this.settings,
-                this.app,
-            );
-            cacheTagsFromMarkers(newMarkers, this.plugin.allTags);
-            finalizeMarkers(
-                newMarkers,
-                this.state,
-                this.settings,
-                this.plugin.iconFactory,
-                this.app,
-            );
-            if (this.state.showLinks) {
-                // At the current state of affairs, if links are displayed and even a single marker is changed, there's
-                // no choice but to recalculate the links for *all* the markers.
-                addEdgesToMarkers(
-                    Array.combine([markers, newMarkers]),
-                    this.app,
-                    this.state.showLinks,
-                    this.display.polylines,
-                );
-            }
-        }
-        this.updateMapMarkers(Array.combine([markers, newMarkers]));
     }
 
     addSearchResultMarker(details: GeoSearchResult, keepZoom: boolean) {
         this.display.searchResult = leaflet.marker(details.location, {
             icon: getIconFromOptions(
                 consts.SEARCH_RESULT_MARKER,
+                [],
                 this.plugin.iconFactory,
             ),
         });
         const marker = this.display.searchResult;
-        marker.on('mouseover', (event: leaflet.LeafletMouseEvent) => {
+        marker.on('mouseover', (_event: leaflet.LeafletMouseEvent) => {
             marker
                 .bindPopup(details.name, {
                     closeButton: true,
@@ -1262,7 +1491,7 @@ export class MapContainer {
                 })
                 .openPopup();
         });
-        marker.on('mouseout', (event: leaflet.LeafletMouseEvent) => {
+        marker.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
             marker.closePopup();
         });
         marker.on('contextmenu', (event: leaflet.LeafletMouseEvent) => {
@@ -1275,11 +1504,83 @@ export class MapContainer {
                 this,
                 this.settings,
                 this.app,
+                this.plugin,
+                event.originalEvent,
             );
             mapPopup.showAtPosition(event.originalEvent);
         });
         marker.addTo(this.display.map);
         this.goToSearchResult(details.location, marker, keepZoom);
+    }
+
+    addFloatingRoute(route: RoutingResult) {
+        const distanceKmStr = (route.distanceMeters / 1000).toFixed(1);
+        const floatingPath = new FloatingPath(null, route.path);
+        floatingPath.routingResult = route;
+        const geoJsonLayer = leaflet.geoJSON(route.path, {
+            style: {
+                ...consts.ROUTING_PATH_OPTIONS,
+                bubblingMouseEvents: false, // This lets stuff like the 'contextmenu' event work
+            },
+            onEachFeature: (feature: any, layer: leaflet.Layer) => {
+                if (feature?.geometry?.type !== 'Point') {
+                    this.addPopupHandlingEvents(layer, floatingPath, 'mouse');
+                    layer.on(
+                        'click',
+                        async (event: leaflet.LeafletMouseEvent) => {
+                            if (utils.isMobile(this.app)) {
+                                // We need to stop the click event here so the popup won't accidentally get clicked
+                                event.originalEvent.stopPropagation();
+                                event.originalEvent.preventDefault();
+                                await this.showMarkerPopups(
+                                    floatingPath,
+                                    layer,
+                                    event,
+                                );
+                            }
+                        },
+                    );
+                }
+            },
+        });
+        floatingPath.geoLayer = geoJsonLayer;
+
+        geoJsonLayer.on('contextmenu', (event: leaflet.LeafletMouseEvent) => {
+            let menu = new Menu();
+            menus.addPathAddToNote(
+                menu,
+                route.path,
+                this,
+                this.settings,
+                this.app,
+                this.plugin,
+                () => {
+                    this.display.map.removeLayer(geoJsonLayer);
+                    this.display.calculatedRoutes.remove(geoJsonLayer);
+                },
+            );
+            menu.addItem((item: MenuItem) => {
+                item.setTitle('Remove calculated route');
+                item.setIcon('trash');
+                item.onClick(() => {
+                    this.display.map.removeLayer(geoJsonLayer);
+                    this.display.calculatedRoutes.remove(geoJsonLayer);
+                });
+            });
+            menu.addItem((item: MenuItem) => {
+                item.setTitle('Remove all calculated routes');
+                item.setIcon('trash');
+                item.onClick(() => {
+                    this.clearAllRouting(false);
+                });
+            });
+            menu.showAtPosition(event.originalEvent);
+        });
+        geoJsonLayer.addTo(this.display.map);
+        this.display.calculatedRoutes.push(geoJsonLayer);
+        new Notice(
+            `Routing with '${route.profileUsed}': ${distanceKmStr}km, ${utils.formatTime(route.timeMinutes)}`,
+        );
     }
 
     goToSearchResult(
@@ -1314,7 +1615,7 @@ export class MapContainer {
 
     openSearch() {
         if (this.display.searchControls)
-            this.display.searchControls.openSearch(this.display.markers);
+            this.display.searchControls.openSearch(this.display.layers);
     }
 
     setHighlight(mapOrFileMarker: leaflet.Layer | BaseGeoLayer) {
@@ -1322,7 +1623,7 @@ export class MapContainer {
         let highlight: leaflet.Layer = mapOrFileMarker
             ? mapOrFileMarker instanceof leaflet.Layer
                 ? mapOrFileMarker
-                : mapOrFileMarker.geoLayer
+                : this.getGeoLayer(mapOrFileMarker)
             : null;
         // In case the marker is hidden in a cluster group, we actually want the cluster group
         // to be the highlighted item
@@ -1360,7 +1661,7 @@ export class MapContainer {
         file: TAbstractFile,
         fileLine: number | null = null,
     ): BaseGeoLayer | null {
-        for (let [_, fileMarker] of this.display.markers) {
+        for (let [_, fileMarker] of this.display.layers.map) {
             if (fileMarker.file == file) {
                 if (!fileLine) return fileMarker;
                 if (fileLine == fileMarker.fileLine) return fileMarker;
@@ -1370,7 +1671,7 @@ export class MapContainer {
     }
 
     findMarkerById(markerId: string): BaseGeoLayer | undefined {
-        return this.display.markers.get(markerId);
+        return this.display.layers.get(markerId);
     }
 
     updateRealTimeLocationMarkers() {
@@ -1385,6 +1686,7 @@ export class MapContainer {
             .marker(center, {
                 icon: getIconFromOptions(
                     consts.CURRENT_LOCATION_MARKER,
+                    [],
                     this.plugin.iconFactory,
                 ),
             })
@@ -1401,6 +1703,8 @@ export class MapContainer {
                     this,
                     this.settings,
                     this.app,
+                    this.plugin,
+                    event.originalEvent,
                 );
                 mapPopup.showAtPosition(event.originalEvent);
             },
@@ -1448,7 +1752,7 @@ export class MapContainer {
         }
     }
 
-    setRoutingSource(location: leaflet.LatLng) {
+    setRoutingSource(location: leaflet.LatLng, name?: string) {
         if (this.display.routingSource) {
             this.display.routingSource.removeFrom(this.display.map);
             this.display.routingSource = null;
@@ -1458,25 +1762,71 @@ export class MapContainer {
                 .marker(location, {
                     icon: getIconFromOptions(
                         consts.ROUTING_SOURCE_MARKER,
+                        [],
                         this.plugin.iconFactory,
                     ),
+                    zIndexOffset: 1000, // Ensure this marker appears on top of others
                 })
                 .addTo(this.display.map);
-            this.display.routingSource.on(
-                'contextmenu',
-                (ev: leaflet.LeafletMouseEvent) => {
-                    let routingSourcePopup = new Menu();
-                    routingSourcePopup.addItem((item: MenuItem) => {
-                        item.setTitle('Remove routing source');
-                        item.setIcon('trash');
-                        item.onClick(() => {
-                            this.setRoutingSource(null);
-                        });
+
+            const marker = this.display.routingSource;
+            marker.on('mouseover', (_event: leaflet.LeafletMouseEvent) => {
+                this.display.routingSource
+                    .bindPopup(
+                        name ? `Routing source: ${name}` : 'Routing source',
+                        { autoClose: true },
+                    )
+                    .openPopup();
+            });
+            marker.on('mouseout', (_event: leaflet.LeafletMouseEvent) => {
+                marker.closePopup();
+            });
+            marker.on('contextmenu', (ev: leaflet.LeafletMouseEvent) => {
+                let routingSourcePopup = new Menu();
+                routingSourcePopup.addItem((item: MenuItem) => {
+                    item.setTitle('Remove routing source');
+                    item.setIcon('trash');
+                    item.onClick(() => {
+                        this.setRoutingSource(null);
                     });
-                    routingSourcePopup.showAtPosition(ev.originalEvent);
-                },
-            );
+                });
+                routingSourcePopup.addItem((item: MenuItem) => {
+                    item.setTitle('Route to...');
+                    item.setIcon('milestone');
+                    item.onClick(async () => {
+                        const result = await getMarkerFromUser(
+                            this.getState().mapCenter,
+                            'Select a marker for routing',
+                            this.app,
+                            this.plugin,
+                            this.settings,
+                        );
+                        if (result) {
+                            const [marker, _] = result;
+                            if (marker && marker instanceof FileMarker) {
+                                const menu = new Menu();
+                                menus.populateRouteToPoint(
+                                    this,
+                                    marker.location,
+                                    menu,
+                                    this.settings,
+                                );
+                                menu.showAtMouseEvent(ev.originalEvent);
+                            }
+                        }
+                    });
+                });
+                routingSourcePopup.showAtPosition(ev.originalEvent);
+            });
         }
+        this.display.routingControls?.updateControlsToState();
+    }
+
+    clearAllRouting(alsoSource: boolean) {
+        for (const route of this.display.calculatedRoutes)
+            this.display.map.removeLayer(route);
+        this.display.calculatedRoutes = [];
+        if (alsoSource) this.setRoutingSource(null);
     }
 
     setLock(lock: boolean) {
@@ -1524,27 +1874,28 @@ export class MapContainer {
         }
     }
 
-    startHoverHighlight(markerToFocus: FileMarker) {
+    startHoverHighlight(markerToFocus: BaseGeoLayer) {
         if (!this.state.showLinks) return;
         this.display.mapDiv.addClass('mv-fade-active');
-        for (const marker of this.display.markers.values()) {
+        for (const marker of this.display.layers.layers) {
             if (
                 markerToFocus &&
                 marker instanceof FileMarker &&
-                marker.geoLayer
+                this.getGeoLayer(marker)
             ) {
-                const parent = this.display.clusterGroup.getVisibleParent(
-                    marker.geoLayer,
-                );
-                const visibleLeafletMarker = parent || marker.geoLayer;
+                const geoLayer = this.getGeoLayer(marker);
+                const parent =
+                    this.display.clusterGroup.getVisibleParent(geoLayer);
+                const visibleLeafletMarker = parent || geoLayer;
                 const element = visibleLeafletMarker.getElement();
                 const shouldBeVisible =
                     marker === markerToFocus ||
-                    marker.isLinkedTo(markerToFocus);
+                    (markerToFocus.layerType === 'fileMarker' &&
+                        marker.isLinkedTo(markerToFocus as FileMarker));
                 if (element) {
                     // We add two classes, one denoting that generally a fade is active and another to denote
                     // that a specific marker should be shown. It is done this way because of cluster groups.
-                    // We want a cluster group to be shown if *at least one* of its markers should be shown
+                    // We want a cluster group to be shown if *at least one* of its layers should be shown
                     if (shouldBeVisible)
                         element.addClass('mv-fade-marker-shown');
                 }
@@ -1563,12 +1914,12 @@ export class MapContainer {
 
     endHoverHighlight() {
         this.display.mapDiv.removeClass('mv-fade-active');
-        for (const marker of this.display.markers.values()) {
-            if (marker.geoLayer && marker.geoLayer instanceof leaflet.Marker) {
-                const parent = this.display.clusterGroup.getVisibleParent(
-                    marker.geoLayer,
-                );
-                const visibleLeafletMarker = parent || marker.geoLayer;
+        for (const marker of this.display.layers.layers) {
+            const geoLayer = this.getGeoLayer(marker);
+            if (geoLayer && geoLayer instanceof leaflet.Marker) {
+                const parent =
+                    this.display.clusterGroup.getVisibleParent(geoLayer);
+                const visibleLeafletMarker = parent || geoLayer;
                 const element = visibleLeafletMarker.getElement();
                 if (element) element.removeClasses(['mv-fade-marker-shown']);
                 if (marker instanceof FileMarker) {
@@ -1622,5 +1973,127 @@ export class MapContainer {
             return element;
         };
         return tileLayer;
+    }
+
+    private newLeafletGeoJson(marker: GeoJsonLayer): leaflet.GeoJSON {
+        const geoJsonLayer = leaflet.geoJSON(marker.geojson, {
+            style: {
+                ...marker.pathOptions,
+                bubblingMouseEvents: false, // This lets stuff like the 'contextmenu' event work
+            },
+            onEachFeature: (feature: any, layer: leaflet.Layer) => {
+                // Features of type 'Point' are handled below
+                if (feature?.geometry?.type !== 'Point') {
+                    this.addPopupHandlingEvents(layer, marker, 'mouse');
+                    layer.on(
+                        'contextmenu',
+                        (event: leaflet.LeafletMouseEvent) => {
+                            let menu = new Menu();
+                            menus.addPathContextMenuItems(
+                                menu,
+                                marker,
+                                layer,
+                                event.originalEvent,
+                                this,
+                                this.settings,
+                                this.app,
+                                this.plugin,
+                            );
+                            menu.showAtPosition(event.originalEvent);
+                        },
+                    );
+                }
+            },
+            pointToLayer: (feature: any, latlng: leaflet.LatLng) => {
+                const leafletMarker = leaflet.marker(latlng, {
+                    icon: getIconFromOptions(
+                        consts.GEOJSON_MARKER,
+                        [],
+                        this.plugin.iconFactory,
+                    ),
+                });
+                const floatingMarker = new FloatingMarker(
+                    marker.file,
+                    leafletMarker,
+                );
+                floatingMarker.header =
+                    feature?.properties?.name ?? marker.file.name;
+                floatingMarker.description = feature?.properties?.desc ?? '';
+                floatingMarker.extraName = `Stored in '${marker.file.name}'`;
+                this.addPopupHandlingEvents(
+                    leafletMarker,
+                    floatingMarker,
+                    'element',
+                );
+                leafletMarker.on(
+                    'contextmenu',
+                    (event: leaflet.LeafletMouseEvent) => {
+                        let menu = new Menu();
+                        menus.addPathContextMenuItems(
+                            menu,
+                            marker,
+                            leafletMarker,
+                            event.originalEvent,
+                            this,
+                            this.settings,
+                            this.app,
+                            this.plugin,
+                        );
+                        menu.showAtPosition(event.originalEvent);
+                    },
+                );
+                return leafletMarker;
+            },
+        });
+
+        geoJsonLayer.on(
+            'pm:edit',
+            async (e: {
+                shape: leaflet.PM.SUPPORTED_SHAPES;
+                layer: leaflet.Layer;
+            }) => {
+                if (e.layer instanceof leaflet.Polyline) {
+                    await editGeoJson(
+                        marker,
+                        (e.layer as leaflet.Polyline).toGeoJSON(),
+                        this.settings,
+                        this.app,
+                    );
+                } else {
+                    new Notice('Cannot edit this path.');
+                    console.error('Cannot edit unknown object:', e);
+                }
+            },
+        );
+
+        return geoJsonLayer;
+    }
+
+    private getGeoLayer<T extends BaseGeoLayer>(
+        layer: T,
+    ): T extends FileMarker ? leaflet.Marker : leaflet.Layer {
+        return layer.geoLayers.get(this.mapContainerId) as any;
+    }
+
+    private doPostUpdateActions() {
+        const mapSize = this.display?.map?.getSize();
+        if (
+            mapSize &&
+            mapSize.x > 0 &&
+            mapSize.y > 0 &&
+            this.postUpdateActions.length > 0
+        ) {
+            // We clear the list of actions before running them because the action themselves may recursively trigger this method
+            // (e.g. an auto-fit causes zoom and pan events).
+            const actions = this.postUpdateActions;
+            this.postUpdateActions = [];
+            for (const action of actions) {
+                action();
+            }
+        }
+    }
+
+    get containerId() {
+        return this.mapContainerId;
     }
 }

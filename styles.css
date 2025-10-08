@@ -71,7 +71,7 @@ a.mv-icon-button.on {
 }
 
 .leaflet-container {
-    background-color: var(--titlebar-background-focused) !important;
+    background-color: var(--background-primary) !important;
 }
 
 .newPresetDialogGrid {
@@ -134,6 +134,8 @@ a.mv-icon-button.on {
     overflow: hidden;
     opacity: 0;
     visibility: hidden;
+    /* The 'visibility' property just hides the popup, but it's there to interact with the user. */
+    pointer-events: none;
     display: block;
     transition:
         opacity 0.1s ease-out,
@@ -146,6 +148,7 @@ a.mv-icon-button.on {
     opacity: 1;
     visibility: visible;
     transition: opacity 0.1s ease-in;
+    pointer-events: auto;
 }
 .mv-marker-popup-container .markdown-embed {
     border-left: 0;
@@ -247,6 +250,10 @@ div.map-view-highlight.marker-cluster {
     padding: 0;
 }
 
+.mv-hidden {
+    display: none !important;
+}
+
 @media print {
     .map-view-graph-controls {
         display: none;
@@ -301,4 +308,36 @@ div.map-view-highlight.marker-cluster {
 .mv-highlight-offline img.mv-offline {
     padding: 1px !important;
     background-color: blue;
+}
+
+.mv-badge {
+    position: absolute;
+    background-color: red;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+.mv-badge-tl {
+    top: 0;
+    left: 0;
+}
+.mv-badge-tr {
+    top: 0;
+    right: 0;
+}
+.mv-badge-bl {
+    bottom: 0;
+    left: 0;
+}
+.mv-badge-br {
+    bottom: 0;
+    right: 0;
+}
+
+.leaflet-pm-toolbar .button-container.pos-right {
+    margin-top: 0;
 }

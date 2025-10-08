@@ -3,7 +3,8 @@ import { App, TFile, TextComponent, PopoverSuggest, Scope } from 'obsidian';
 import * as consts from 'src/consts';
 import { matchByPosition, getTagUnderCursor } from 'src/utils';
 import * as regex from 'src/regex';
-import { BaseGeoLayer, FileMarker, isMarkerLinkedFrom } from 'src/markers';
+import { isLayerLinkedFrom } from 'src/fileMarker';
+import { BaseGeoLayer } from 'src/baseGeoLayer';
 import * as utils from 'src/utils';
 import { checkTagPatternMatch } from 'src/markerIcons';
 import MapViewPlugin from 'src/main';
@@ -32,7 +33,7 @@ export class Query {
         } else this.queryEmpty = true;
     }
 
-    preprocessQueryString(queryString: string) {
+    private preprocessQueryString(queryString: string) {
         // 1. Replace tag:#abc by "tag:#abc" because this parser doesn't like the '#' symbol
         // 2. Replace path:"abc def/ghi" by "path:abc def/dhi" because the parser doesn't like quotes as part of the words
         // 3. Same goes for linkedto:"", linkedfrom:"" and name:""
@@ -48,7 +49,7 @@ export class Query {
         return newString;
     }
 
-    testMarker(marker: BaseGeoLayer): boolean {
+    testLayer(layer: BaseGeoLayer): boolean {
         if (this.queryEmpty) return true;
         const toBool = (s: string) => {
             return s === 'true';
@@ -59,10 +60,8 @@ export class Query {
         let booleanStack: string[] = [];
         for (const token of this.queryRpn) {
             if (token.name === 'IDENTIFIER') {
-                if (marker instanceof FileMarker) {
-                    const result = this.testIdentifier(marker, token.value);
-                    booleanStack.push(toString(result));
-                }
+                const result = this.testIdentifier(layer, token.value);
+                booleanStack.push(toString(result));
             } else if (token.name === 'OPERATOR') {
                 let result;
                 if (token.value === 'NOT') {
@@ -86,24 +85,24 @@ export class Query {
         return toBool(booleanStack[0]);
     }
 
-    testIdentifier(marker: FileMarker, value: string): boolean {
+    private testIdentifier(layer: BaseGeoLayer, value: string): boolean {
         if (value.startsWith('tag:#')) {
             const queryTag = value.replace('tag:', '');
             if (queryTag.length === 0) return false;
-            if (checkTagPatternMatch(queryTag, marker.tags)) return true;
+            if (checkTagPatternMatch(queryTag, layer.tags)) return true;
             return false;
         } else if (value.startsWith('name:')) {
             const query = value.replace('name:', '').toLowerCase();
             if (query.length === 0) return false;
             // For inline geolocations, completely ignore the file name and use only the link name
-            if (marker.extraName)
-                return marker.extraName.toLowerCase().includes(query);
+            if (layer.extraName)
+                return layer.extraName.toLowerCase().includes(query);
             // For front matter geolocations, use the file name
-            return marker.file.name.toLowerCase().includes(query);
+            return layer.file.name.toLowerCase().includes(query);
         } else if (value.startsWith('path:')) {
             const queryPath = value.replace('path:', '').toLowerCase();
             if (queryPath.length === 0) return false;
-            return marker.file.path.toLowerCase().includes(queryPath);
+            return layer.file.path.toLowerCase().includes(queryPath);
         } else if (value.startsWith('linkedto:')) {
             const query = value.replace('linkedto:', '').toLowerCase();
             const linkedToDest = this.app.metadataCache.getFirstLinkpathDest(
@@ -111,7 +110,7 @@ export class Query {
                 '',
             );
             if (!linkedToDest) return false;
-            const fileCache = this.app.metadataCache.getFileCache(marker.file);
+            const fileCache = this.app.metadataCache.getFileCache(layer.file);
             const allLinks = [
                 ...(fileCache?.links ?? []),
                 ...(fileCache?.frontmatterLinks ?? []),
@@ -138,13 +137,14 @@ export class Query {
                 const allLinks = [
                     ...(linksFrom?.links ?? []),
                     ...(linksFrom?.frontmatterLinks ?? []),
+                    ...(linksFrom?.embeds ?? []),
                 ];
-                // Check if the given marker is linked from 'fileMatch'
+                // Check if the given layer is linked from 'fileMatch'
                 for (const link of allLinks) {
-                    if (isMarkerLinkedFrom(marker, link, this.app)) return true;
+                    if (isLayerLinkedFrom(layer, link, this.app)) return true;
                 }
                 // Also include the 'linked from' file itself
-                if (fileMatch.basename === marker.file.basename) return true;
+                if (fileMatch.basename === layer.file.basename) return true;
             }
         } else if (value.startsWith('lines:')) {
             const linesQueryMatch = value.match(/(lines:)([0-9]+)-([0-9]+)/);
@@ -152,9 +152,9 @@ export class Query {
                 const fromLine = parseInt(linesQueryMatch[2]);
                 const toLine = parseInt(linesQueryMatch[3]);
                 return (
-                    marker.fileLine &&
-                    marker.fileLine >= fromLine &&
-                    marker.fileLine <= toLine
+                    layer.fileLine &&
+                    layer.fileLine >= fromLine &&
+                    layer.fileLine <= toLine
                 );
             }
         } else if (value.startsWith('[')) {
@@ -166,7 +166,7 @@ export class Query {
             const [isExactName, propertyName] = unquote(propertyNameRaw);
             const [isExactQuery, propertyQuery] = unquote(propertyQueryRaw);
 
-            const fileCache = this.app.metadataCache.getFileCache(marker.file);
+            const fileCache = this.app.metadataCache.getFileCache(layer.file);
             let propertyValues: string[] = [];
             if (isExactName) {
                 const property = fileCache.frontmatter?.[propertyName];
@@ -232,7 +232,6 @@ type Suggestion = {
 
 export class QuerySuggest extends PopoverSuggest<Suggestion> {
     suggestionsDiv: HTMLDivElement;
-    app: App;
     plugin: MapViewPlugin;
     sourceElement: HTMLInputElement;
     selection: Suggestion = null;
@@ -247,7 +246,6 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
         scope?: Scope,
     ) {
         super(app, scope);
-        this.app = app;
         this.plugin = plugin;
         this.sourceElement = sourceElement;
     }
@@ -361,13 +359,12 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
                 return tagName.startsWith('#') ? tagName.substring(1) : tagName;
             };
             // Find all tags that include the query, with the pound sign removed, case insensitive
-            const allTagNames = utils
-                .getAllTagNames(this.app, this.plugin)
-                .filter((value) =>
+            const allTagNames = Array.from(this.plugin.allTags).filter(
+                (value) =>
                     value
                         .toLowerCase()
                         .includes(noPound(tagQuery).toLowerCase()),
-                );
+            );
             let toReturn: Suggestion[] = [{ text: 'TAGS', group: true }];
             for (const tagName of allTagNames) {
                 toReturn.push({

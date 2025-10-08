@@ -13,7 +13,7 @@ import {
     type MarkdownPostProcessorContext,
 } from 'obsidian';
 import MapViewPlugin from './main';
-import { matchInlineLocation, generateMarkerId } from './markers';
+import { matchInlineLocation, generateMarkerId } from './fileMarker';
 import * as regex from './regex';
 
 export interface GeoLinkReplacePlugin extends PluginValue {}
@@ -224,6 +224,10 @@ export const replaceLinksPostProcessor = (mapViewPlugin: MapViewPlugin) => {
                         `createMapPopup(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`,
                     );
                     link.setAttribute('onmouseout', 'closeMapPopup(event)');
+                    link.setAttribute(
+                        'oncontextmenu',
+                        `handleMapViewContextMenu(event, null, null, "${match.groups.lat}", "${match.groups.lng}")`,
+                    );
                 }
             }
         }

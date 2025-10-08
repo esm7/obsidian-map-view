@@ -10,6 +10,10 @@ export const SEARCH_RESULT_MARKER = {
     icon: 'fa-search',
     markerColor: 'blue',
 } as leaflet.ExtraMarkers.IconOptions;
+export const ROUTING_PATH_OPTIONS = {
+    color: 'red',
+    weight: 6,
+} as leaflet.PathOptions;
 export const CURRENT_LOCATION_MARKER = {
     prefix: 'fas',
     icon: 'fa-location-crosshairs',
@@ -24,6 +28,11 @@ export const UNLOCKED_MARKER = {
     prefix: 'fas',
     icon: 'fa-up-down-left-right',
     markerColor: SEARCH_RESULT_MARKER.markerColor,
+} as leaflet.ExtraMarkers.IconOptions;
+export const GEOJSON_MARKER = {
+    prefix: 'fas',
+    icon: 'fa-circle',
+    markerColor: 'blue',
 } as leaflet.ExtraMarkers.IconOptions;
 export const MAX_CLUSTER_PREVIEW_ICONS = 4;
 export const HISTORY_SAVE_ZOOM_DIFF = 2;

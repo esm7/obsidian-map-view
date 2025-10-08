@@ -1,4 +1,4 @@
-import { WorkspaceLeaf } from 'obsidian';
+import { WorkspaceLeaf, TAbstractFile, TFile } from 'obsidian';
 
 import { type PluginSettings } from 'src/settings';
 import MapViewPlugin from 'src/main';
@@ -22,7 +22,9 @@ export class MainMapView extends BaseMapView {
             showLinks: true,
             showEmbeddedControls: false,
             showPresets: true,
+            showEdit: true,
             showSearch: true,
+            showRouting: true,
             showRealTimeButton: true,
             showLockButton: false,
             showOpenButton: false,
