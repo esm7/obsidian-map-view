@@ -7,6 +7,7 @@ import {
     WorkspaceLeaf,
     Notice,
     MenuItem,
+    BasesQueryResult,
     type Loc,
 } from 'obsidian';
 import * as leaflet from 'leaflet';
@@ -112,6 +113,8 @@ export class MapContainer {
     public settings: PluginSettings;
     public viewSettings: ViewSettings;
     private parentEl: HTMLElement;
+    /** If this container is based on a Bases query, the query result object. */
+    public basesQueryResult: BasesQueryResult | null = null;
     /** The displayed controls and objects of the map, separated from its logical state.
      * Must only be updated in updateMarkersToState */
     public state: MapState;
@@ -197,6 +200,8 @@ export class MapContainer {
     public updateCodeBlockCallback: () => Promise<void>;
     /** On an embedded map view, this is set by the parent view object so the relevant button can call it. */
     public updateCodeBlockFromMapViewCallback: () => Promise<void>;
+    /** On a Bases map view, this is set by the parent view object so it can update view properties according to user-led state changs. */
+    public onStateChangedByUserCallback: (newState: MapState) => void;
     /** Internal URL for a pre-generated "error" tile */
     private errorTileUrl = '';
     private inDragMode = false;
@@ -424,8 +429,11 @@ export class MapContainer {
      * This is deliberately *not* an async method, because in the version that calls the Obsidian setState method,
      * we want to reliably get the status of freezeMap
      */
-    public highLevelSetViewState(partialState: Partial<MapState>): MapState {
-        if (Object.keys(partialState).length === 0) return;
+    public highLevelSetViewState(
+        partialState: Partial<MapState>,
+        forceUpdate: boolean = false,
+    ): MapState {
+        if (Object.keys(partialState).length === 0 && !forceUpdate) return;
         const state = this.getState();
         if (state) {
             const newState = mergeStates(state, partialState);
@@ -441,8 +449,9 @@ export class MapContainer {
      */
     public async highLevelSetViewStateAsync(
         partialState: Partial<MapState>,
+        forceUpdate: boolean = false,
     ): Promise<MapState> {
-        if (Object.keys(partialState).length === 0) return;
+        if (Object.keys(partialState).length === 0 && !forceUpdate) return;
         const state = this.getState();
         if (state) {
             const newState = mergeStates(state, partialState);
@@ -466,6 +475,8 @@ export class MapContainer {
             this.state = mergedState;
             this.freezeMap = true;
             this.highLevelSetViewState(partialState);
+            if (this.onStateChangedByUserCallback)
+                this.onStateChangedByUserCallback(this.state);
         }
         if (this.ongoingChanges <= 0) {
             this.freezeMap = false;
@@ -887,7 +898,11 @@ export class MapContainer {
     ): BaseGeoLayer[] {
         let filteredLayers: BaseGeoLayer[] = [];
         try {
-            filteredLayers = this.filterMarkers(layers, state.query);
+            filteredLayers = this.filterMarkers(
+                layers,
+                state.query,
+                this.basesQueryResult,
+            );
             state.queryError = false;
         } catch (e) {
             filteredLayers = [];
@@ -902,11 +917,22 @@ export class MapContainer {
         return filteredLayers;
     }
 
-    filterMarkers(allMarkers: Iterable<BaseGeoLayer>, queryString: string) {
+    filterMarkers(
+        allMarkers: Iterable<BaseGeoLayer>,
+        queryString: string,
+        basesQueryResult: BasesQueryResult | undefined,
+    ) {
         let results: BaseGeoLayer[] = [];
+        const filesSet = basesQueryResult
+            ? new Set(basesQueryResult.data.map((item) => item.file.path))
+            : null;
         const query = new Query(this.app, queryString);
         for (const marker of allMarkers)
-            if (query.testLayer(marker)) results.push(marker);
+            if (
+                (!filesSet || filesSet.has(marker.file.path)) &&
+                query.testLayer(marker)
+            )
+                results.push(marker);
         return results;
     }
 

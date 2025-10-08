@@ -25,6 +25,7 @@ import * as menus from 'src/menus';
 import { purgeTilesBySettings } from 'src/offlineTiles.svelte';
 import type { EmbedRegistry, EmbedContext } from 'obsidian-typings';
 import { EmbeddedComponent } from 'src/embeddedComponent';
+import { BasesMapView } from 'src/basesMapView';
 
 import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
@@ -103,6 +104,14 @@ export default class MapViewPlugin extends Plugin {
 
         this.registerView(consts.MAP_VIEW_NAME, (leaf: WorkspaceLeaf) => {
             return new MainMapView(leaf, this.settings, this);
+        });
+
+        this?.registerBasesView('map-view-plugin', {
+            name: 'Map View',
+            icon: 'map-pin',
+            factory: (controller, containerEl) =>
+                new BasesMapView(controller, containerEl, this.settings, this),
+            options: () => BasesMapView.getViewOptions(this.settings),
         });
 
         // An undocumented API (suggested by @liam) to set the type Obsidian stores for the 'location' property to

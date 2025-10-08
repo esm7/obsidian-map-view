@@ -25,6 +25,10 @@ import { openManagerDialog } from 'src/offlineTiles.svelte';
 
 import { MapContainer, type ViewSettings } from 'src/mapContainer';
 
+/*
+ * The base class for all of the Map View views.
+ * This is confusing with BasesMapView and should probably be renamed...
+ */
 export abstract class BaseMapView extends ItemView {
     public mapContainer: MapContainer;
     /** The state that was last saved to Obsidian's history stack */
