@@ -867,7 +867,13 @@ This is a very big release with a long list of new features, fixes and **breakin
 
 **Bug Fixes (some long overdue)**:
 
-- A fix to OSM search issues: https://github.com/esm7/obsidian-map-view/issues/336 - **IMPORTANT:** this requires setting an e-mail address to identify the user performing the queries.
+- Fixes to respect Obsidian's new "always focus new tab" setting.
+- Fix for https://github.com/esm7/obsidian-map-view/issues/308 (thanks @edzillion!).
+- Inline location bug on iOS (https://github.com/esm7/obsidian-map-view/issues/301).
+- Context menu 'open in' fix for Reading View (https://github.com/esm7/obsidian-map-view/issues/326).
+- Fixed file-menu event not properly registered to the plugin (https://github.com/esm7/obsidian-map-view/issues/327).
+- Fix to the `autoFit` state flag of embedded maps to work more consistently.
+- Map View now sets the type of the 'location' property to List, to prevent issues of Obsidian corrupting it.
 
 ### 5.5.0
 
