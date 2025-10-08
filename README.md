@@ -853,7 +853,7 @@ This is a very big release with a long list of new features, fixes and **breakin
 - Routing -- built-in tools for calculating driving, cycling and walking paths using the GraphHopper API, see [here](#routing).
 - Badges -- cute little icons that can be added to markers with display rules. See [here](#marker-badge).
 - Edit Mode -- a complete new interface for adding and modifying markers and paths directly from the map.
-- An experimental Obsidian Views view mode, see [here](#obsidian-bases-view).
+- An experimental Obsidian Bases view mode, see [here](#obsidian-bases-view).
 
 **Smaller New Stuff:**
 
