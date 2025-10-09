@@ -55,7 +55,7 @@
     label {
         display: block;
         padding: 1px;
-        color: var(--gray-darkest, #282828);
+        color: var(--text-normal);
     }
 
     label span {
