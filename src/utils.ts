@@ -405,7 +405,7 @@ export function getAllTagNames(app: App, plugin: MapViewPlugin): string[] {
     for (const file of allFiles) {
         const fileCache = app.metadataCache.getFileCache(file);
         const fileTagNames = getAllTags(fileCache) || [];
-        fileTagNames.forEach((tag) => tags.add(tag));
+        if (fileTagNames) fileTagNames.forEach((tag) => tags.add(tag));
     }
     const sortedTags = Array.from(tags).sort();
     return sortedTags;

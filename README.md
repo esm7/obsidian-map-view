@@ -834,6 +834,10 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
+### 6.0.1
+
+- Fix to https://github.com/esm7/obsidian-map-view/issues/352.
+
 ### 6.0.0
 
 This is a very big release with a long list of new features, fixes and **breaking changes**.
