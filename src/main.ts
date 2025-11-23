@@ -94,6 +94,7 @@ export default class MapViewPlugin extends Plugin {
 
     async onload() {
         await this.loadSettings();
+        await convertLegacySettings(this.settings, this);
 
         // Add a new ribbon entry to the left bar
         this.addRibbonIcon('map-pin', 'Open map view', (ev: MouseEvent) => {
@@ -113,12 +114,6 @@ export default class MapViewPlugin extends Plugin {
                 new BasesMapView(controller, containerEl, this.settings, this),
             options: () => BasesMapView.getViewOptions(this.settings),
         });
-
-        // An undocumented API (suggested by @liam) to set the type Obsidian stores for the 'location' property to
-        // 'multitext' (displayed in Obsidian as 'List').
-        // If users change the type of the 'location' property to something else, Obsidian may not only not properly display
-        // this property on geolocation notes, but may corrupt it.
-        (this.app as any).metadataTypeManager.setType('location', 'multitext');
 
         this.editorLinkReplacePlugin = getLinkReplaceEditorPlugin(this);
         this.registerEditorExtension(this.editorLinkReplacePlugin);
@@ -340,8 +335,6 @@ export default class MapViewPlugin extends Plugin {
 
         this.registerEditorSuggest(this.suggestor);
         this.registerEditorSuggest(this.tagSuggestor);
-
-        await convertLegacySettings(this.settings, this);
 
         this.iconFactory = new IconFactory(document.body);
 

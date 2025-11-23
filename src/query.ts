@@ -187,7 +187,10 @@ export class Query {
                     ? p === propertyQueryLower
                     : p.includes(propertyQueryLower),
             );
-        } else throw new Error('Unsupported query format ' + value);
+        } else
+            throw new Error(
+                `Unsupported query format for Map View display rule: "${value}"`,
+            );
     }
 }
 

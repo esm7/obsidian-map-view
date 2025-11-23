@@ -64,6 +64,7 @@ export class BasesMapView extends BasesView {
 
     onload(): void {
         this.mapContainer.onOpen();
+        this.setHeight(this.mapContainer.state.embeddedHeight);
         this.mapContainer.onStateChangedByUserCallback = (
             newState: MapState,
         ) => {
@@ -79,23 +80,68 @@ export class BasesMapView extends BasesView {
         // TODO
     }
 
+    setHeight(height: number) {
+        if (this.isEmbedded()) {
+            const currentHeight = parseInt(
+                this.mapContainer.display.viewDiv.style.height,
+            );
+            const state = this.mapContainer.state;
+            if (
+                height &&
+                height > 0 &&
+                (!currentHeight || currentHeight !== height)
+            ) {
+                this.mapContainer.display.viewDiv.style.height = `${height}px`;
+            }
+        }
+    }
+
+    isEmbedded(): boolean {
+        let element = this.parentEl;
+        while (element) {
+            if (
+                element.hasClass('bases-embed') ||
+                element.hasClass('block-language-base')
+            ) {
+                return true;
+            }
+            element = element.parentElement;
+        }
+        return false;
+    }
+
     onResize(): void {
-        // TODO
+        if (this.mapContainer.display.mapDiv) {
+            this.mapContainer.display.map.invalidateSize();
+            const mapSize = this.mapContainer.display.map.getSize();
+            if (mapSize.x > 0 && mapSize.y > 0) {
+                // On a size invalidation, if the state requires us to auto-fit, we must run it again
+                if (this.mapContainer.getState().autoFit)
+                    this.mapContainer.autoFitMapToMarkers();
+            }
+        }
     }
 
     public onDataUpdated(): void {
-        const partialState = this.viewConfigToMapState();
+        const [partialState, partialViewSettings] =
+            this.viewConfigToMapStructures();
         let fullState = mergeStates(this.settings.defaultState, partialState);
         this.mapContainer.basesQueryResult = this.data;
         this.mapContainer.highLevelSetViewStateAsync(fullState, true);
+        this.mapContainer.display.controls.setViewSettings(partialViewSettings);
+        this.setHeight(fullState.embeddedHeight);
     }
 
     async setState(state: Partial<MapState>): Promise<MapState> {
         return this.mapContainer.highLevelSetViewState(state);
     }
 
-    private viewConfigToMapState(): Partial<MapState> {
+    private viewConfigToMapStructures(): [
+        Partial<MapState>,
+        Partial<ViewSettings>,
+    ] {
         let mapState: any = {};
+        let viewSettings: Partial<ViewSettings> = {};
         const viewOptions = BasesMapView.getViewOptions(this.settings);
 
         // Helper function to process view options and extract keys
@@ -128,7 +174,13 @@ export class BasesMapView extends BasesView {
             else delete mapState.mapCenter;
         } else delete mapState.mapCenter;
 
-        return mapState;
+        if ('showEdit' in mapState) {
+            // This belongs to the view settings, not the state
+            viewSettings.showEdit = mapState.showEdit;
+            delete mapState.showEdit;
+        }
+
+        return [mapState, viewSettings];
     }
 
     static getViewOptions(settings: PluginSettings): ViewOption[] {
@@ -159,6 +211,15 @@ export class BasesMapView extends BasesView {
                             settings.defaultState.chosenMapSource.toString(),
                     },
                     {
+                        displayName: 'Embedded Height',
+                        key: 'embeddedHeight',
+                        type: 'slider',
+                        min: 50,
+                        max: 800,
+                        step: 25,
+                        default: settings.defaultState.embeddedHeight,
+                    },
+                    {
                         displayName: 'Labels',
                         key: 'markerLabels',
                         type: 'dropdown',
@@ -169,6 +230,12 @@ export class BasesMapView extends BasesView {
                         },
                         default: settings.defaultState.markerLabels,
                     },
+                    // {
+                    // 	displayName: 'Show Edit Controls',
+                    // 	key: 'showEdit',
+                    // 	type: 'toggle',
+                    // 	default: true
+                    // }
                 ],
             },
             {

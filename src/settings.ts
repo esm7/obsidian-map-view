@@ -487,7 +487,7 @@ export function convertMarkerIconRulesToDisplayRules(
         // Make sure not to add to any defaults
         settings.displayRules = [];
         for (const rule of settings.markerIconRules) {
-            let displayRule: DisplayRule;
+            let displayRule: DisplayRule = null;
             if (rule.preset) {
                 // If it's the user's default rule we're converting, take the icon details, then the path options and the badge options
                 // from the plugin's default (as the user doesn't have any yet)
@@ -501,16 +501,31 @@ export function convertMarkerIconRulesToDisplayRules(
                     pathOptions: defaultRule.pathOptions,
                     badgeOptions: defaultRule.badgeOptions,
                 };
-            } else {
+            } else if (rule.ruleName.trim().length > 0) {
                 displayRule = {
                     query: `tag:${rule.ruleName}`,
                     preset: false,
                     iconDetails: rule.iconDetails,
                 };
             }
-            settings.displayRules.push(displayRule);
-            changed = true;
+            if (displayRule) {
+                settings.displayRules.push(displayRule);
+                changed = true;
+            }
         }
+    }
+    // Remove empty display rules that are not the default, or ones with an empty tag, which might
+    // have been the result of a faulty conversion (see https://github.com/esm7/obsidian-map-view/issues/359)
+    const fixedRules = settings.displayRules.filter((rule) => {
+        const query = rule.query.trim();
+        return (
+            rule.preset === true ||
+            (query.length > 0 && query !== 'tag:' && query !== 'tag:#')
+        );
+    });
+    if (fixedRules.length != settings.displayRules.length) {
+        changed = true;
+        settings.displayRules = fixedRules;
     }
     delete settings.markerIconRules;
     return changed;

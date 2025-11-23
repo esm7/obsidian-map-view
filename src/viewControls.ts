@@ -87,6 +87,12 @@ export class ViewControls {
         });
     }
 
+    setViewSettings(newSettings: Partial<ViewSettings>) {
+        for (const key in newSettings) {
+            (this.viewSettings as any)[key] = (newSettings as any)[key];
+        }
+    }
+
     public updateControlsToState() {
         if (this.controlPanel) this.controlPanel.updateControlsToState();
     }

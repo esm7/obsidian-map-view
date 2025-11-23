@@ -834,6 +834,12 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
+### 6.0.3
+
+- Fix to https://github.com/esm7/obsidian-map-view/issues/359, not allowing anymore non-preset display rules with an empty query.
+- Fix to https://github.com/esm7/obsidian-map-view/issues/358, no more setting the `location` property to type `multitext`, which seems to do more harm than good.
+- Map View embeds through Bases now works, and an added Embedded Height control was added.
+
 ### 6.0.2
 
 Fix to https://github.com/esm7/obsidian-map-view/issues/354.
