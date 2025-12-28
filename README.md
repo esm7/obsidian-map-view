@@ -835,6 +835,10 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
+### 6.0.5
+
+- Fix to https://github.com/esm7/obsidian-map-view/issues/367.
+
 ### 6.0.4
 
 - Fix to support emojis in tag names (https://github.com/esm7/obsidian-map-view/issues/348).
