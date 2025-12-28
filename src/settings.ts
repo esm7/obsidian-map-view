@@ -336,7 +336,7 @@ export function convertLegacyMarkerIcons(
             };
             settings.markerIconRules.push(newRule);
         }
-        settings.markerIcons = null;
+        delete settings.markerIcons;
         return true;
     }
     return false;
@@ -483,7 +483,7 @@ export function convertMarkerIconRulesToDisplayRules(
     settings: PluginSettings & DepracatedFields,
 ) {
     let changed = false;
-    if (settings.markerIconRules) {
+    if (settings.markerIconRules && settings.markerIconRules.length > 0) {
         // Make sure not to add to any defaults
         settings.displayRules = [];
         for (const rule of settings.markerIconRules) {

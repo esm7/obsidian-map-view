@@ -401,7 +401,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
                     cursorOffset: -1,
                 },
                 {
-                    text: '[property:value]',
+                    text: '["property":"value"]',
                     textToInsert: '[:]',
                     cursorOffset: -2,
                 },

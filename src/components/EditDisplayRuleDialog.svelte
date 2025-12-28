@@ -260,6 +260,25 @@
                         class="rule-input"
                     />
                 </div>
+                <!-- TODO make this a toggle class -->
+                <!--            <div class="rule-input"> -->
+                <!--                {@render fieldName('Fill', 'true or false')} -->
+                <!-- <div -->
+                <!-- 	class="checkbox-container" -->
+                <!-- 	onclick={() => { -->
+                <!-- 		ruleCopy.pathOptions.fill = !ruleCopy.pathOptions.fill; -->
+                <!-- 	}} -->
+                <!-- > -->
+                <!-- 	<input -->
+                <!-- 		type="checkbox" -->
+                <!-- 		checked={ruleCopy.pathOptions.fill} -->
+                <!-- 		id="rule-path-fill" -->
+                <!-- 	/> -->
+                <!-- </div> -->
+                <!-- <label class="rule-path-fill-label" for="rule-path-fill" -->
+                <!-- 	>Filled</label -->
+                <!-- > -->
+                <!--            </div> -->
             </div>
         </div>
 

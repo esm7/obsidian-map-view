@@ -1,8 +1,9 @@
 // The pound sign is optional here
-export const TAG_NAME_WITH_HEADER = /tag:(#?[\p{L}\p{N}_\/\-]*)/gu;
+export const TAG_NAME_WITH_HEADER =
+    /tag:(#?[\p{L}\p{N}\p{Extended_Pictographic}_\/\-]*)/gu;
 // Same as above, but also supporting wildcards for query purposes (not used for inline tags)
 export const TAG_NAME_WITH_HEADER_AND_WILDCARD =
-    /tag:(#?[\p{L}\p{N}_\/\-\*]*)/gu;
+    /tag:(#?[\p{L}\p{N}\p{Extended_Pictographic}_\/\-\*]*)/gu;
 // Note no '#' sign
 export const INLINE_TAG_IN_NOTE = /tag:(?<tag>[\p{L}\p{N}_\/\-]+)/gu;
 export const PATH = "['p{L}p{N}_,&()/-\\.]+?";

@@ -432,6 +432,7 @@ The query string can contain the following _search operators_:
     - Anything that resolves into a legal Obsidian link will work, e.g. both a note name ('Cave Hikes') or a path will do, but a partial name will not.
     - Obsidian heading and block links are supported: if a link in the 'from' file includes a heading or a block link, it will match only front-matter markers or inline markers _within that heading or block_.
     - The Obsidian Plugin ["Copy Block Link"](https://github.com/mgmeyers/obsidian-copy-block-link) makes this extra useful.
+- `["property":"value"]` includes notes with the property name `property` set to `value`.
 - `lines:x-y` includes only inline markers that are defined in the given line range in their note.
     - For example, `lines:20-30` includes only inline geolocations that are defined in lines 20 to 30 in the file that contains them.
 
@@ -833,6 +834,12 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 6.0.4
+
+- Fix to support emojis in tag names (https://github.com/esm7/obsidian-map-view/issues/348).
+- Fix for plugin removing blank lines in note embeds (https://github.com/esm7/obsidian-map-view/issues/368).
+- An improvement to some cases that may still cause marker rules to disappear on upgrade (https://github.com/esm7/obsidian-map-view/issues/359).
 
 ### 6.0.3
 
