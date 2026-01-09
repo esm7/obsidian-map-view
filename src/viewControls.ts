@@ -8,7 +8,6 @@ import {
     Notice,
     normalizePath,
 } from 'obsidian';
-import { askForLocation } from 'src/realTimeLocation';
 
 import { type PluginSettings } from 'src/settings';
 
@@ -212,7 +211,6 @@ export class RealTimeControl extends leaflet.Control {
     app: App;
     settings: PluginSettings;
     locateButton: HTMLAnchorElement;
-    clearButton: HTMLAnchorElement;
 
     constructor(
         options: any,
@@ -232,27 +230,27 @@ export class RealTimeControl extends leaflet.Control {
             'leaflet-bar leaflet-control',
         );
         this.locateButton = div.createEl('a', 'mv-icon-button');
-        this.locateButton.title = 'Find Location (GPS)';
-        this.locateButton.appendChild(getIcon('locate-fixed'));
+        this.locateButton.addClass('mv-location-button');
         this.locateButton.addEventListener('click', (ev: MouseEvent) => {
-            askForLocation(this.app, this.settings, 'locate', 'showonmap');
+            this.view.goToRealTimeLocation();
         });
-
-        this.clearButton = div.createEl('a', 'mv-icon-button');
-        this.clearButton.title = 'Clear GPS location';
-        this.clearButton.appendChild(getIcon('trash'));
-        this.clearButton.addClass('mv-hidden');
-        this.clearButton.addEventListener('click', (ev: MouseEvent) => {
-            this.view.setRealTimeLocation(null, 0, 'clear');
-            this.clearButton.addClass('mv-hidden');
-        });
+        this.disable();
 
         return div;
     }
 
-    onLocationFound() {
-        // Show the 'clear' button
-        this.clearButton.removeClass('mv-hidden');
+    enable() {
+        this.locateButton.removeClass('disabled');
+        this.locateButton.innerHTML = '';
+        this.locateButton.appendChild(getIcon('locate'));
+        this.locateButton.title = 'Go to current location';
+    }
+
+    disable() {
+        this.locateButton.addClass('disabled');
+        this.locateButton.innerHTML = '';
+        this.locateButton.appendChild(getIcon('locate-off'));
+        this.locateButton.title = 'Location unavailable';
     }
 }
 
@@ -585,7 +583,10 @@ export class RoutingControl extends leaflet.Control {
         this.destinationButton.addEventListener(
             'click',
             async (ev: MouseEvent) => {
-                if (!this.view.display.routingSource) {
+                if (
+                    !this.view.display.routingSource &&
+                    !this.view.lastRealTimeLocation
+                ) {
                     new Notice('You must select a routing source first.');
                     return;
                 }

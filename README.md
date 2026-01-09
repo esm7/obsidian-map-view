@@ -11,6 +11,7 @@ It effectively turns your Obsidian vault into a **personal GIS system** that add
 
 You can...
 
+- Follow your current location on mobile.
 - Add locations using a built-in search (optionally utilizing Google Places).
 - Save geolocations from a variety of sources.
 - View paths in GeoJSON, GPX, KML and TCX formats.
@@ -45,12 +46,6 @@ I wrote this plugin because I wanted my ever-growing Zettelkasten to be able to 
 Map View can integrate with your note-taking flow in order to answer all of these questions and much more.
 
 Just like the Obsidian graph view lets you visualize associative relations between some of your notes, the map view lets you visualize geographic ones.
-
-## With Obsidian Mobile
-
-The main limitation of the plugin right now is that the Obsidian Mobile app has no location permission, so on mobile you cannot see your current location natively.
-
-To overcome this, Map View introduced a companion [Geo Helper app](#gps-location-support).
 
 ## Support the Development
 
@@ -741,38 +736,20 @@ There is currently no support to sync them between devices.
 
 ## GPS Location Support
 
-**This still in early beta.**
+Starting Obsidian Mobile 1.11, plugins can be granted precise location permission, allowing Map View to show and utilize an exact geolocation.
+This is enabled by default, and if you prefer not to use it, turn off GPS support in the plugin settings.
 
-Map View works inside Obsidian, and as such, is limited by some restrictions that Obsidian enforces.
-One of these restrictions is that the Obsidian apps (both desktop and mobile) do not ship with location permission enabled, and as such, plugins that run within Obsidian cannot access the device location.
-This has been discussed in the past with the Obsidian developers, but as a notes app, they prefer to keep this unavailable for the time being.
+When your location is available, you can focus on it using the icon on the right toolbar.
+You can also:
 
-As a workaround, Map View supports an external **geo helper** app, which has separate permissions, and can report the current location to Map View from outside the app.
-**This is currently in an early beta, and the experience may not be optimal.**
-However, it answers the basic need of adding proper GPS support to Map View in many cases.
+- Set "follow my location" in a view settings to automatically pan the map when you move.
+- Use the "GPS: find location and focus" command from anywhere in Obsidian to open Map View and focus on your current location.
+- Use the "GPS: focus and follow me" command from anywhere in Obsidian to do the same as above, but turn on "follow my location" so the view will move when you move.
+- Use "GPS: add geolocation (inline) at current position" or "GPS: add geolocation (front matter) to current note" to add your current location to a note you are editing.
+- Use "GPS: copy inline location" to copy an inline location to the clipboard.
+- Use "GPS: new geolocation note" to create a new note in your current location.
 
-There are currently two variants of the Geo Helper app: a web app and an Android app.
-[Visit the Geo Helper repo for instructions how to install and use it](https://github.com/esm7/obsidian-geo-helper) (the web app requires no installation, but you should still read the instructions).
-
-**Either way, the Geo Helper runs completely locally and your location is not sent to any server. Feel free to inspect the code (and improvements are welcome).**
-
-To use the Geo Helper, first turn on "GPS" in the Map View settings.
-Then, select the Geo Helper type: external URL (default), installed app or command line.
-The use for "command line" is for more advanced usages where you want the web app saved locally, or if you want it launched with a browser that is not your default.
-
-This adds the following functionality:
-
-- A GPS location icon is added to Map View maps (below the search controls). When clicked, it tries to get your location via the Geo Helper, and displays it on the map if successful.
-- Multiple commands that can be mapped and launched from within notes:
-    - GPS: copy inline location
-    - GPS: new geolocation note
-    - GPS: find location and focus
-    - GPS: add geolocation (inline) at current position
-    - GPS: add geolocation (front matter) to current note.
-
-Many of these can also be launched directly from the geo helper after it finds your location.
-
-**Help needed:** the geo helper mobile app is currently only available for Android. If you are an iOS developer who wishes to build and maintain the corresponding app, please reach out.
+Additionally, when a location is available, when you click an existing marker you can use "route to point" from your current location without choosing a routing source (see [Routing](#routing)).
 
 ## Links View
 
@@ -834,6 +811,11 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 - Given the stand-alone nature of its maps, Leaflet is probably more suitable for TTRPG maps. (These are also possible with Map View, but I believe it comes less naturally.)
 
 ## Changelog
+
+### 6.1.0
+
+- GPS support in mobile 1.11. (TODO enlist relevant commands, explain "route from")
+- Load indicator
 
 ### 6.0.5
 

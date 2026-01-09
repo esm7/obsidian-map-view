@@ -491,7 +491,11 @@ export function populateRouting(
             });
         });
 
-        if (mapContainer.display.routingSource) {
+        // We allow "route to point" either from the real-time location or an explicitly selected source
+        if (
+            mapContainer.display.routingSource ||
+            mapContainer.lastRealTimeLocation !== null
+        ) {
             menu.addItem((item: MenuItem) => {
                 item.setTitle('Route to point');
                 item.setSection('mapview');
@@ -504,7 +508,10 @@ export function populateRouting(
                     settings,
                 );
             });
-        } else {
+        }
+        // If there is no explicitly-selected source, we may have added "route to point" from the GPS location, but still
+        // show "route from"
+        if (!mapContainer.display.routingSource) {
             menu.addItem((item: MenuItem) => {
                 item.setTitle('Route from...');
                 item.setSection('mapview');
@@ -546,14 +553,20 @@ export function populateRouteToPoint(
     menu: Menu,
     settings: settings.PluginSettings,
 ) {
-    const origin = mapContainer.display.routingSource.getLatLng();
+    // The first priority is to choose the user-selected routing source.
+    // If there isn't any, we try the real-time (GPS) location.
+    const routingSource = mapContainer.display.routingSource
+        ? mapContainer.display.routingSource.getLatLng()
+        : mapContainer.lastRealTimeLocation?.center;
+    if (!routingSource)
+        throw Error('Called populateRouteToPoint with no routing source');
     menu.addItem((item: MenuItem) => {
         item.setTitle('With external service');
         item.onClick(() => {
             const routingTemplate = settings.routingUrl;
             const url = routingTemplate
-                .replace('{x0}', origin.lat.toString())
-                .replace('{y0}', origin.lng.toString())
+                .replace('{x0}', routingSource.lat.toString())
+                .replace('{y0}', routingSource.lng.toString())
                 .replace('{x1}', geolocation.lat.toString())
                 .replace('{y1}', geolocation.lng.toString());
             open(url);
@@ -566,7 +579,7 @@ export function populateRouteToPoint(
             item.setTitle(`GraphHopper: ${cleanedProfile}`);
             item.onClick(() => {
                 doRouting(
-                    origin,
+                    routingSource,
                     geolocation,
                     'graphhopper',
                     { profile: cleanedProfile },

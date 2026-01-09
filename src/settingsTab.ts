@@ -949,11 +949,10 @@ export class SettingsTab extends PluginSettingTab {
         const gpsTitle = new Setting(containerEl).setHeading().setName('GPS');
         const warningFragment = document.createDocumentFragment();
         const warningText = warningFragment.createDiv();
-        warningText.innerHTML =
-            '<strong>Warning!</strong> This is an experimental feature -- your milage may vary.<br>Make sure to read <a href="https://github.com/esm7/obsidian-map-view#gps-location-support">the documentation</a> before using.';
+        warningText.innerHTML = 'Requires location permissions.';
         gpsTitle.setDesc(warningFragment);
         new Setting(containerEl)
-            .setName('Enable experimental GPS support')
+            .setName('Enable GPS support.')
             .addToggle((component) => {
                 component
                     .setValue(
@@ -965,74 +964,6 @@ export class SettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
-        new Setting(containerEl)
-            .setName('Use native app on mobile')
-            .addToggle((component) => {
-                component
-                    .setValue(
-                        this.plugin.settings.geoHelperPreferApp ??
-                            DEFAULT_SETTINGS.geoHelperPreferApp,
-                    )
-                    .onChange(async (value) => {
-                        this.plugin.settings.geoHelperPreferApp = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-        new Setting(containerEl)
-            .setName('Geo helper type')
-            .setDesc(
-                'If the native app is not used, determines how to launch the geo helper.',
-            )
-            .addDropdown((component) => {
-                component
-                    .addOption('url', 'External URL')
-                    .addOption('commandline', 'Command line')
-                    .setValue(
-                        this.plugin.settings.geoHelperType ??
-                            DEFAULT_SETTINGS.geoHelperType,
-                    )
-                    .onChange(async (value) => {
-                        this.plugin.settings.geoHelperType =
-                            value as GeoHelperType;
-                        geoHelperUrl.settingEl.style.display =
-                            value === 'url' || 'commandline' ? '' : 'none';
-                        geoHelperCommand.settingEl.style.display =
-                            value === 'commandline' ? '' : 'none';
-                        await this.plugin.saveSettings();
-                    });
-            });
-        const geoHelperCommand = new Setting(containerEl).setName(
-            'Geo Helper Command',
-        );
-        geoHelperCommand.addText((component) => {
-            component
-                .setValue(
-                    this.plugin.settings.geoHelperCommand ??
-                        DEFAULT_SETTINGS.geoHelperCommand,
-                )
-                .onChange(async (value) => {
-                    this.plugin.settings.geoHelperCommand = value;
-                    await this.plugin.saveSettings();
-                });
-        });
-        const geoHelperUrl = new Setting(containerEl).setName('Geo Helper URL');
-        geoHelperUrl.addText((component) => {
-            component
-                .setPlaceholder(
-                    'URL to open (directly or using the defined command; see README for more details)',
-                )
-                .setValue(this.plugin.settings.geoHelperUrl ?? '')
-                .onChange(async (value) => {
-                    this.plugin.settings.geoHelperUrl = value;
-                    await this.plugin.saveSettings();
-                });
-        });
-        geoHelperUrl.settingEl.style.display =
-            this.plugin.settings.geoHelperUrl === 'url' || 'commandline'
-                ? ''
-                : 'none';
-        geoHelperCommand.settingEl.style.display =
-            this.plugin.settings.geoHelperType === 'commandline' ? '' : 'none';
 
         new Setting(containerEl).setHeading().setName('Advanced');
 

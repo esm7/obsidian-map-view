@@ -26,6 +26,8 @@ import { purgeTilesBySettings } from 'src/offlineTiles.svelte';
 import type { EmbedRegistry, EmbedContext } from 'obsidian-typings';
 import { EmbeddedComponent } from 'src/embeddedComponent';
 import { BasesMapView } from 'src/basesMapView';
+import { SvelteModal } from 'src/svelte';
+import TextBoxDialog from './components/TextBoxDialog.svelte';
 
 import { MainMapView } from 'src/mainMapView';
 // import { MiniMapView } from 'src/miniMapView';
@@ -33,10 +35,7 @@ import { EmbeddedMap } from 'src/embeddedMap';
 import { MapContainer } from 'src/mapContainer';
 import { IconFactory } from 'src/markerIcons';
 import { DisplayRulesCache } from 'src/displayRulesCache';
-import {
-    askForLocation,
-    type RealTimeLocationSource,
-} from 'src/realTimeLocation';
+import { askForLocation } from 'src/realTimeLocation';
 import {
     getLinkReplaceEditorPlugin,
     type GeoLinkReplacePlugin,
@@ -138,82 +137,24 @@ export default class MapViewPlugin extends Plugin {
                                       parseFloat(params.centerLng),
                                   )
                                 : null;
-                        const accuracy = params.accuracy;
-                        const source = params?.source ?? 'unknown';
-                        const map = await this.openMap('replaceCurrent', null);
-                        if (map) {
-                            map.mapContainer.setRealTimeLocation(
-                                location,
-                                parseFloat(accuracy),
-                                source as RealTimeLocationSource,
-                                true,
-                            );
-                        }
-                    } else if (params.mvaction === 'newnotehere') {
-                        const label = params?.label ?? '';
-                        const location =
-                            params.centerLat && params.centerLng
-                                ? new leaflet.LatLng(
-                                      parseFloat(params.centerLat),
-                                      parseFloat(params.centerLng),
-                                  )
-                                : null;
-                        if (location) {
-                            this.newFrontMatterNote(location, null, label, {});
-                        }
-                    } else if (params.mvaction === 'addtocurrentnotefm') {
-                        const location =
-                            params.centerLat && params.centerLng
-                                ? new leaflet.LatLng(
-                                      parseFloat(params.centerLat),
-                                      parseFloat(params.centerLng),
-                                  )
-                                : null;
-                        const editor = utils.getEditor(this.app);
-                        const file = utils.getFile(this.app);
-                        if (location && editor) {
-                            const locationString = `"${location.lat},${location.lng}"`;
-                            utils.verifyOrAddFrontMatter(
-                                this.app,
-                                file,
-                                this.settings.frontMatterKey,
-                                locationString,
-                                false,
-                            );
-                        } else
-                            new Notice(
-                                'Error: "Add to current note" requires an active note.',
-                                30000,
-                            );
-                    } else if (params.mvaction === 'addtocurrentnoteinline') {
-                        const label = params?.label ?? '';
-                        const location =
-                            params.centerLat && params.centerLng
-                                ? new leaflet.LatLng(
-                                      parseFloat(params.centerLat),
-                                      parseFloat(params.centerLng),
-                                  )
-                                : null;
-                        const editor = utils.getEditor(this.app);
-                        const file = utils.getFile(this.app);
-                        if (editor && file)
-                            utils.insertLocationToEditor(
-                                this.app,
-                                location,
-                                editor,
-                                file,
-                                this.settings,
-                                null,
-                                null,
-                                label,
-                            );
-                        else
-                            new Notice(
-                                'Error: "Add to current note" requires an active note.',
-                                30000,
-                            );
-                    } else if (params.mvaction === 'copyinlinelocation') {
-                        new Notice('Inline location copied to clipboard');
+                        let newState = {
+                            mapCenter: location,
+                            mapZoom: this.settings.zoomOnGoFromNote,
+                        } as MapState;
+                        await this.openMapWithState(
+                            newState,
+                            'replaceCurrent',
+                            false,
+                        );
+                    } else if (params.mvaction === 'track') {
+                        let newState: Partial<MapState> = {
+                            followMyLocation: true,
+                        };
+                        await this.openMapWithState(
+                            newState as MapState,
+                            'replaceCurrent',
+                            false,
+                        );
                     } else {
                         const state = stateFromParsedUrl(params);
                         // If a saved URL is opened in another device on which there aren't the same sources, use
@@ -466,65 +407,139 @@ export default class MapViewPlugin extends Plugin {
             this.addCommand({
                 id: 'gps-focus-in-map-view',
                 name: 'GPS: find location and focus',
-                callback: () => {
-                    askForLocation(
+                callback: async () => {
+                    const location = await askForLocation(
                         this.app,
                         this.settings,
-                        'locate',
-                        'showonmap',
                     );
+                    if (location) {
+                        let newState = {
+                            mapCenter: location.center,
+                            mapZoom: this.settings.zoomOnGoFromNote,
+                        } as MapState;
+                        await this.openMapWithState(newState, 'replaceCurrent');
+                    }
+                },
+            });
+
+            this.addCommand({
+                id: 'gps-follow-me-with-map-view',
+                name: 'GPS: focus and follow me',
+                callback: async () => {
+                    const location = await askForLocation(
+                        this.app,
+                        this.settings,
+                    );
+                    if (location) {
+                        let newState = {
+                            mapCenter: location.center,
+                            mapZoom: this.settings.zoomOnGoFromNote,
+                            followMyLocation: true,
+                        } as MapState;
+
+                        await this.openMapWithState(newState, 'replaceCurrent');
+                    }
                 },
             });
 
             this.addCommand({
                 id: 'gps-copy-inline-location',
                 name: 'GPS: copy inline location',
-                callback: () => {
-                    askForLocation(
+                callback: async () => {
+                    const location = await askForLocation(
                         this.app,
                         this.settings,
-                        'locate',
-                        'copyinlinelocation',
                     );
+                    if (location) {
+                        const dialog = new SvelteModal(
+                            TextBoxDialog,
+                            this.app,
+                            this,
+                            this.settings,
+                            {
+                                label: 'Select a name for the new marker:',
+                                existingText: '',
+                                onOk: (text: string) => {
+                                    navigator.clipboard.writeText(
+                                        `[${text}](geo:${location.center.lat},${location.center.lng})`,
+                                    );
+                                },
+                            },
+                        );
+                        dialog.open();
+                    }
                 },
             });
 
             this.addCommand({
                 id: 'gps-new-note-here',
                 name: 'GPS: new geolocation note',
-                callback: () => {
-                    askForLocation(
+                callback: async () => {
+                    const location = await askForLocation(
                         this.app,
                         this.settings,
-                        'locate',
-                        'newnotehere',
                     );
+                    if (location) {
+                        this.newFrontMatterNote(location.center, null, '', {});
+                    }
                 },
             });
 
             this.addCommand({
                 id: 'gps-add-to-current-note-front-matter',
                 name: 'GPS: add geolocation (front matter) to current note',
-                editorCallback: () => {
-                    askForLocation(
+                editorCallback: async (editor: Editor, ctx) => {
+                    const location = await askForLocation(
                         this.app,
                         this.settings,
-                        'locate',
-                        'addtocurrentnotefm',
                     );
+
+                    if (location) {
+                        const locationString = `"${location.center.lat},${location.center.lng}"`;
+                        utils.verifyOrAddFrontMatter(
+                            this.app,
+                            ctx.file,
+                            this.settings.frontMatterKey,
+                            locationString,
+                            false,
+                        );
+                    }
                 },
             });
 
             this.addCommand({
                 id: 'gps-add-to-current-note-inline',
                 name: 'GPS: add geolocation (inline) at current position',
-                editorCallback: () => {
-                    askForLocation(
+                editorCallback: async (editor: Editor, ctx) => {
+                    const location = await askForLocation(
                         this.app,
                         this.settings,
-                        'locate',
-                        'addtocurrentnoteinline',
                     );
+                    if (location) {
+                        const dialog = new SvelteModal(
+                            TextBoxDialog,
+                            this.app,
+                            this,
+                            this.settings,
+                            {
+                                label: 'Select a name for the new marker:',
+                                existingText: '',
+                                onOk: (text: string) => {
+                                    utils.insertLocationToEditor(
+                                        this.app,
+                                        location.center,
+                                        editor,
+                                        ctx.file,
+                                        this.settings,
+                                        null,
+                                        null,
+                                        text,
+                                    );
+                                },
+                            },
+                        );
+                        dialog.open();
+                    }
                 },
             });
         }

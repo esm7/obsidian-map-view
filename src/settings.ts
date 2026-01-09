@@ -177,6 +177,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         chosenMapSource: 0,
         forceHistorySave: false,
         followActiveNote: false,
+        followMyLocation: false,
         embeddedHeight: 300,
         autoFit: false,
         lock: false,

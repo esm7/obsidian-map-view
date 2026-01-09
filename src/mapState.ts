@@ -14,6 +14,7 @@ export type MapState = {
     chosenMapSource: number;
     forceHistorySave: boolean;
     followActiveNote: boolean;
+    followMyLocation: boolean;
     /** Used for embedded maps when >0 */
     embeddedHeight: number;
     /** Ignore the zoom level and force auto-fit */
@@ -88,6 +89,7 @@ export function areStatesEqual(
         state1.linkColor == state2.linkColor &&
         state1.showLinks == state2.showLinks &&
         state1.followActiveNote == state2.followActiveNote &&
+        state1.followMyLocation == state2.followMyLocation &&
         (state1.markerLabels || 'off') == (state2.markerLabels || 'off') &&
         state1.editMode == state2.editMode
     );

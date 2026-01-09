@@ -73,7 +73,8 @@ import { Query } from 'src/query';
 import { GeoSearchResult } from 'src/geosearch';
 import {
     type RealTimeLocation,
-    type RealTimeLocationSource,
+    registerToLocationUpdates,
+    unregisterLocationUpdates,
     isSame,
 } from 'src/realTimeLocation';
 import * as menus from 'src/menus';
@@ -124,6 +125,8 @@ export class MapContainer {
         viewDiv: HTMLDivElement;
         /** The HTML element holding the map */
         mapDiv: HTMLDivElement;
+        /** The load animation div */
+        loadAnimationDiv: HTMLDivElement;
         /** The element holding map marker popups */
         popupDiv: HTMLDivElement;
         popperInstance: PopperInstance;
@@ -165,7 +168,7 @@ export class MapContainer {
         routingSource: leaflet.Marker = null;
         /** The routes added to the map */
         calculatedRoutes: leaflet.GeoJSON[] = [];
-        realTimeLocationMarker: leaflet.Marker = null;
+        realTimeLocationMarker: leaflet.Layer = null;
         realTimeLocationRadius: leaflet.Circle = null;
         /** Part of an ugly mechanism that's required to cache loaded tiles */
         offlineHelperCanvas: HTMLCanvasElement = null;
@@ -318,6 +321,9 @@ export class MapContainer {
 
         await this.createMap();
 
+        if (this.settings.supportRealTimeGeolocation)
+            registerToLocationUpdates(this.app, this.settings, this);
+
         // Prepare marker popups
         this.display.popupDiv = this.display.viewDiv.createDiv();
         this.display.popupDiv.addClasses([
@@ -355,6 +361,7 @@ export class MapContainer {
 
     onClose() {
         this.isOpen = false;
+        unregisterLocationUpdates(this);
     }
 
     /**
@@ -582,6 +589,7 @@ export class MapContainer {
             worldCopyJump: true,
             maxBoundsViscosity: 1.0,
         });
+        this.createLoadAnimationDiv();
 
         if (this.viewSettings.showLockButton) {
             this.display.lockControl = new LockControl(
@@ -859,6 +867,7 @@ export class MapContainer {
             return;
         }
         await this.plugin.waitForInitialization();
+        this.display.loadAnimationDiv.style.display = 'none';
         const allLayers = this.filterAndPrepareMarkers(
             this.plugin.layerCache.layers,
             state,
@@ -1679,16 +1688,20 @@ export class MapContainer {
             this.display.realTimeLocationMarker.removeFrom(this.display.map);
         if (this.display.realTimeLocationRadius)
             this.display.realTimeLocationRadius.removeFrom(this.display.map);
-        if (this.lastRealTimeLocation === null) return;
+        if (this.lastRealTimeLocation === null) {
+            this.display.realTimeControls.disable();
+            return;
+        }
+        this.display.realTimeControls.enable();
         const center = this.lastRealTimeLocation.center;
         const accuracy = this.lastRealTimeLocation.accuracy;
         this.display.realTimeLocationMarker = leaflet
-            .marker(center, {
-                icon: getIconFromOptions(
-                    consts.CURRENT_LOCATION_MARKER,
-                    [],
-                    this.plugin.iconFactory,
-                ),
+            .circleMarker(center, {
+                radius: 8, // radius in pixels
+                color: '#4285F4',
+                fillColor: '#4285F4',
+                fillOpacity: 0.7,
+                weight: 2,
             })
             .addTo(this.display.map);
         this.display.realTimeLocationMarker.on(
@@ -1712,43 +1725,53 @@ export class MapContainer {
         this.display.realTimeLocationRadius = leaflet
             .circle(center, { radius: accuracy })
             .addTo(this.display.map);
-        this.display.realTimeControls.onLocationFound();
     }
 
     setRealTimeLocation(
-        center: leaflet.LatLng,
-        accuracy: number,
-        source: RealTimeLocationSource,
+        location: RealTimeLocation | null,
         forceRefresh: boolean = false,
     ) {
-        const location =
-            center === null
-                ? null
-                : {
-                      center: center,
-                      accuracy: accuracy,
-                      source: source,
-                      timestamp: Date.now(),
-                  };
         if (!isSame(location, this.lastRealTimeLocation) || forceRefresh) {
             this.lastRealTimeLocation = location;
             this.updateRealTimeLocationMarkers();
-            if (location) {
-                // If there's a real location (contrary to clearing an existing location), update the view
-                let newState: Partial<MapState> = {};
-                if (this.state.mapZoom < this.settings.zoomOnGoFromNote)
-                    newState.mapZoom = this.settings.zoomOnGoFromNote;
-                // If the new zoom is higher than the current zoom, OR the new center isn't already visible, change
-                // the map center.
-                // Or maybe easier to understand it this way: if the new center is already visible in the viewport, AND
-                // the new zoom is lower (meaning it will remain visible), we don't need to bother the user with a center change
-                if (
-                    newState.mapZoom != this.state.mapZoom ||
-                    !this.display.map.getBounds().contains(location.center)
-                )
-                    newState.mapCenter = location.center;
-                this.highLevelSetViewState(newState);
+            if (this.state.followMyLocation) {
+                // If the zoom makes no sense, "fly" to the current location. Otherwise, all we care about is to pan occasionally.
+                if (this.state.mapZoom < this.settings.zoomOnGoFromNote - 2) {
+                    this.display.map.flyTo(
+                        location.center,
+                        this.settings.zoomOnGoFromNote,
+                        { duration: 0.5 },
+                    );
+                }
+                const mapSize = this.display.map.getSize();
+                const PADDING_RATIO = 0.25;
+                const paddingX = mapSize.x * PADDING_RATIO;
+                const paddingY = mapSize.y * PADDING_RATIO;
+                this.display.map.panInside(location.center, {
+                    padding: leaflet.point(paddingX, paddingY),
+                });
             }
+        }
+    }
+
+    goToRealTimeLocation() {
+        const location = this.lastRealTimeLocation;
+        if (location) {
+            let newState: Partial<MapState> = {};
+            if (this.state.mapZoom < this.settings.zoomOnGoFromNote)
+                newState.mapZoom = this.settings.zoomOnGoFromNote;
+            // If the new zoom is higher than the current zoom, OR the new center isn't already visible, change
+            // the map center.
+            // Or maybe easier to understand it this way: if the new center is already visible in the viewport, AND
+            // the new zoom is lower (meaning it will remain visible), we don't need to bother the user with a center change
+            if (
+                newState.mapZoom != this.state.mapZoom ||
+                !this.display.map.getBounds().contains(location.center)
+            )
+                newState.mapCenter = location.center;
+            this.highLevelSetViewState(newState);
+        } else {
+            new Notice('No real-time location is available.');
         }
     }
 
@@ -2095,5 +2118,21 @@ export class MapContainer {
 
     get containerId() {
         return this.mapContainerId;
+    }
+
+    private createLoadAnimationDiv() {
+        if (this.display.loadAnimationDiv) return;
+
+        // Imitating the Obsidian load indicator
+        this.display.loadAnimationDiv =
+            this.display.mapDiv.createDiv('mv-load-bar');
+        this.display.loadAnimationDiv.id = 'mv-map-loading-bar';
+        const bar = this.display.loadAnimationDiv.createDiv(
+            'progress-bar-indicator',
+        );
+        bar.createDiv('progress-bar-line');
+        bar.createDiv('progress-bar-subline').style = 'display: none;';
+        bar.createDiv('progress-bar-subline').addClass('mod-increase');
+        bar.createDiv('progress-bar-subline').addClass('mod-decrease');
     }
 }

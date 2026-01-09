@@ -149,6 +149,10 @@
         if (!mapState.followActiveNote) mapState.query = '';
     }
 
+    function toggleFollowMyLocation() {
+        mapState.followMyLocation = !mapState.followMyLocation;
+    }
+
     // We save the current state in previousState before calling updateControlsToState because we don't want this initial
     // call to trigger an auto fit
     previousState = view.getState();
@@ -372,7 +376,26 @@
                         >
                             Fit
                         </button>
-                        <div class="graph-control-follow-div">
+                        <div class="graph-control-toggle-div">
+                            <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+                            <div
+                                class="checkbox-container"
+                                class:is-enabled={mapState.followMyLocation}
+                                onclick={() => toggleFollowMyLocation()}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={mapState.followMyLocation}
+                                    id="follow-location-active"
+                                />
+                            </div>
+                            <label
+                                class="follow-location-label"
+                                for="follow-location-active"
+                                >Follow my location</label
+                            >
+                        </div>
+                        <div class="graph-control-toggle-div">
                             <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
                             <div
                                 class="checkbox-container"
@@ -640,7 +663,7 @@
         color: var(--text-normal);
     }
 
-    .graph-control-follow-div {
+    .graph-control-toggle-div {
         display: flex;
         align-items: center;
         gap: 4px;
