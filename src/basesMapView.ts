@@ -220,6 +220,12 @@ export class BasesMapView extends BasesView {
                         default: settings.defaultState.embeddedHeight,
                     },
                     {
+                        displayName: 'Follow My Location',
+                        key: 'followMyLocation',
+                        type: 'toggle',
+                        default: settings.defaultState.followMyLocation,
+                    },
+                    {
                         displayName: 'Labels',
                         key: 'markerLabels',
                         type: 'dropdown',

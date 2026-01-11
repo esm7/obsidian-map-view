@@ -240,14 +240,12 @@ export class RealTimeControl extends leaflet.Control {
     }
 
     enable() {
-        this.locateButton.removeClass('disabled');
         this.locateButton.innerHTML = '';
         this.locateButton.appendChild(getIcon('locate'));
         this.locateButton.title = 'Go to current location';
     }
 
     disable() {
-        this.locateButton.addClass('disabled');
         this.locateButton.innerHTML = '';
         this.locateButton.appendChild(getIcon('locate-off'));
         this.locateButton.title = 'Location unavailable';

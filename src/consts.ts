@@ -48,3 +48,6 @@ export const DEFAULT_EMBEDDED_HEIGHT = 300;
 export const MIN_QUICK_EMBED_ZOOM = 8;
 
 export const MIN_HEIGHT_TO_SHOW_MARKER_POPUP = 400;
+
+// Real-time location is considered stale after this many milliseconds
+export const REAL_TIME_LOCATION_STALE_MS = 60000; // 60 seconds

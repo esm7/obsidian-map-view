@@ -773,7 +773,7 @@ Finally, you can configure the color used for the edges on the map using any val
 
 ## Obsidian Bases View
 
-On Obsidian 1.10 and above, Map View implements an experimental view for Obsidian Bases, on which the map controls work as Bases controls, and all Map View functionality continues to work the same.
+On Obsidian 1.10 and above, Map View implements a view for Obsidian Bases, on which the map controls work as Bases controls, and all Map View functionality continues to work the same.
 
 To use this, in the Bases view selector click Add View, then choose Map View as the view type.
 
@@ -814,8 +814,16 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ### 6.1.0
 
-- GPS support in mobile 1.11. (TODO enlist relevant commands, explain "route from")
-- Load indicator
+- Finally, real-time location support using the new location permissions of Obsidian Mobile 1.11!
+    - When starting Map View for the first time, you will be asked to grant location permissions. If you do, Map View will show your current location, and you can zoom to it using the button on the right toolbar.
+    - A new "follow my location" toggle in the View drop-down (and the Bases settings) that will pan the map to follow your current location.
+    - All the relevant commands were revised to use the new location permissions, see [here](#gps-location-support).
+    - Location support is not yet possible in Obsidian Desktop (Linux, Windows, Mac) -- only mobile. If you want this, vote [here](https://forum.obsidian.md/t/geolocation-ability-in-desktop-app/109686).
+    - The Geo-Helper app is now obsolete and unsupported, in spite of desktop users not being covered by the new mechanism (yet?)
+
+- Map View now shows a moving indicator if opened before it fully loads.
+
+Apologies to users waiting for some other features and various bug fixes -- I thought this real-time location support will benefit the vast majority of users and therefore prioritized it way above anything else.
 
 ### 6.0.5
 
