@@ -85,6 +85,10 @@ Here are a few examples for logging a favorite location you want to see in a map
 - Place markers or other shapes on the map using the tools that appeared below the pencil icon.
 - When in Edit Mode you can move or edit other markers and paths as well.
 
+**Option 4: from your current location**
+
+When using Obsidian Mobile, try the various GPS-enabled commands, like "GPS: new geolocation note" that creates a new note for your current geolocation.
+
 **There are many other ways to log geolocations in Map View**, see [here](#adding-a-location-to-a-note) for more details.
 
 ### Create a Trip Plan Map
@@ -284,6 +288,15 @@ The map can be searched using the tool on the upper-right side, so you can quick
 
 ![](img/copy.png)
 
+### Using Your Current Location
+
+When in Obsidian Mobile, Map View supports getting the device's real-time location, which enables several easy ways to add your locations to notes:
+
+- When editing a note, you can use the commands "GPS: add geolocation (inline) at current position" and "GPS: add geolocation (front matter) to current note".
+- You can also use "GPS: copy inline location" to just copy the geolocation without adding it to the current note.
+- Create a new note using the "GPS: new geolocation note" from anywhere in Obsidian.
+- ...or just right-click the marker showing your current location on the map and use the methods shown in "From the Map" above.
+
 ### Paste as Geolocation
 
 Map View monitors the system clipboard, and when it is is detected to contain an encoded geolocation (e.g. a Google Maps "lat, lng" location), a "Paste as geolocation" entry is added to the editor context menu.
@@ -302,6 +315,23 @@ Google Maps on desktop web offers a very easy shortcut for copying universal `la
 3. In any Obsidian note, right click and choose "paste as geolocation", or paste the coordinates into any Map View search box.
 
 ![](img/google-copy.png)
+
+## GPS Location Support
+
+Starting Obsidian Mobile 1.11, plugins can be granted precise location permission, allowing Map View to show and utilize an exact geolocation.
+This is enabled by default, and if you prefer not to use it, turn off GPS support in the plugin settings.
+
+When your location is available, you can focus on it using the icon on the right toolbar.
+You can also:
+
+- Set "follow my location" in a view settings to automatically pan the map when you move.
+- Use the "GPS: find location and focus" command from anywhere in Obsidian to open Map View and focus on your current location.
+- Use the "GPS: focus and follow me" command from anywhere in Obsidian to do the same as above, but turn on "follow my location" so the view will move when you move.
+- Use "GPS: add geolocation (inline) at current position" or "GPS: add geolocation (front matter) to current note" to add your current location to a note you are editing.
+- Use "GPS: copy inline location" to copy an inline location to the clipboard.
+- Use "GPS: new geolocation note" to create a new note in your current location.
+
+Additionally, when a location is available, when you click an existing marker you can use "route to point" from your current location without choosing a routing source (see [Routing](#routing)).
 
 ## Embedding Maps in Notes
 
@@ -733,23 +763,6 @@ In order to get a sense of what tiles are available offline, you can check "high
 
 Technically, tiles are stored locally in IndexedDB blobs.
 There is currently no support to sync them between devices.
-
-## GPS Location Support
-
-Starting Obsidian Mobile 1.11, plugins can be granted precise location permission, allowing Map View to show and utilize an exact geolocation.
-This is enabled by default, and if you prefer not to use it, turn off GPS support in the plugin settings.
-
-When your location is available, you can focus on it using the icon on the right toolbar.
-You can also:
-
-- Set "follow my location" in a view settings to automatically pan the map when you move.
-- Use the "GPS: find location and focus" command from anywhere in Obsidian to open Map View and focus on your current location.
-- Use the "GPS: focus and follow me" command from anywhere in Obsidian to do the same as above, but turn on "follow my location" so the view will move when you move.
-- Use "GPS: add geolocation (inline) at current position" or "GPS: add geolocation (front matter) to current note" to add your current location to a note you are editing.
-- Use "GPS: copy inline location" to copy an inline location to the clipboard.
-- Use "GPS: new geolocation note" to create a new note in your current location.
-
-Additionally, when a location is available, when you click an existing marker you can use "route to point" from your current location without choosing a routing source (see [Routing](#routing)).
 
 ## Links View
 
