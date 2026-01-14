@@ -342,7 +342,7 @@ div.map-view-highlight.marker-cluster {
     margin-top: 0;
 }
 
-#mv-map-loading-bar {
+.mv-load-bar {
     position: absolute;
     top: 0;
     left: 0;
@@ -352,7 +352,7 @@ div.map-view-highlight.marker-cluster {
     display: block;
 }
 
-#mv-map-loading-bar .progress-bar-indicator {
+.mv-load-bar .progress-bar-indicator {
     margin: 0;
     width: 100%;
 }

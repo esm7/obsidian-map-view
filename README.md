@@ -825,6 +825,10 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
+### 6.1.1
+
+Fixed issues with embedded maps (https://github.com/esm7/obsidian-map-view/issues/372).
+
 ### 6.1.0
 
 - Finally, real-time location support using the new location permissions of Obsidian Mobile 1.11!

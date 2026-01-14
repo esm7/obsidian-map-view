@@ -867,7 +867,8 @@ export class MapContainer {
             return;
         }
         await this.plugin.waitForInitialization();
-        this.display.loadAnimationDiv.style.display = 'none';
+        if (this.display.loadAnimationDiv)
+            this.display.loadAnimationDiv.style.display = 'none';
         const allLayers = this.filterAndPrepareMarkers(
             this.plugin.layerCache.layers,
             state,
@@ -1689,10 +1690,12 @@ export class MapContainer {
         if (this.display.realTimeLocationRadius)
             this.display.realTimeLocationRadius.removeFrom(this.display.map);
         if (this.lastRealTimeLocation === null) {
-            this.display.realTimeControls.disable();
+            if (this.display.realTimeControls)
+                this.display.realTimeControls.disable();
             return;
         }
-        this.display.realTimeControls.enable();
+        if (this.display.realTimeControls)
+            this.display.realTimeControls.enable();
         const center = this.lastRealTimeLocation.center;
         const accuracy = this.lastRealTimeLocation.accuracy;
         this.display.realTimeLocationMarker = leaflet
@@ -2122,11 +2125,11 @@ export class MapContainer {
 
     private createLoadAnimationDiv() {
         if (this.display.loadAnimationDiv) return;
+        if (this.plugin.layerCache) return;
 
         // Imitating the Obsidian load indicator
         this.display.loadAnimationDiv =
             this.display.mapDiv.createDiv('mv-load-bar');
-        this.display.loadAnimationDiv.id = 'mv-map-loading-bar';
         const bar = this.display.loadAnimationDiv.createDiv(
             'progress-bar-indicator',
         );

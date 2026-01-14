@@ -119,6 +119,7 @@ export class EmbeddedMap {
         if (state.embeddedHeight && state.embeddedHeight > 0)
             this.parentEl.style.height = `${state.embeddedHeight}px`;
         this.settings.mapControlsSections.viewDisplayed = false;
+        this.onResize();
     }
 
     async setState(state: Partial<MapState>): Promise<MapState> {
