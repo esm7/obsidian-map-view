@@ -58,6 +58,8 @@ export type PluginSettings = {
     saveHistory: boolean;
     queryForFollowActiveNote: string;
     supportRealTimeGeolocation: boolean;
+    autoAddLocationIfEmptyProperty: boolean;
+    autoAddLocationExclude: string;
     fixFrontMatterOnPaste: boolean;
     geoHelperPreferApp: boolean;
     geoHelperType: GeoHelperType;
@@ -299,6 +301,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     letZoomBeyondMax: false,
     queryForFollowActiveNote: 'path:"$PATH$"',
     supportRealTimeGeolocation: false,
+    autoAddLocationIfEmptyProperty: true,
+    autoAddLocationExclude: 'template',
     fixFrontMatterOnPaste: true,
     geoHelperPreferApp: false,
     geoHelperType: 'url',

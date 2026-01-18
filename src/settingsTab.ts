@@ -952,7 +952,7 @@ export class SettingsTab extends PluginSettingTab {
         warningText.innerHTML = 'Requires location permissions.';
         gpsTitle.setDesc(warningFragment);
         new Setting(containerEl)
-            .setName('Enable GPS support.')
+            .setName('Enable GPS support')
             .addToggle((component) => {
                 component
                     .setValue(
@@ -962,6 +962,41 @@ export class SettingsTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.supportRealTimeGeolocation = value;
                         await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName(
+                'Auto-add geolocation to an empty location proprty (mobile only)',
+            )
+            .setDesc(
+                "When an empty front-matter location key is found in a note (either 'location' or a custom key set above), and real-time location is available, auto-fill the location. Can be used together with templates to auto-fill a daily location etc. Only available on mobile.",
+            )
+            .addToggle((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.autoAddLocationIfEmptyProperty ??
+                            DEFAULT_SETTINGS.autoAddLocationIfEmptyProperty,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.autoAddLocationIfEmptyProperty =
+                            value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+        new Setting(containerEl)
+            .setName('Path patterns to never auto-fill location for')
+            .setDesc(
+                'File with paths including this text will not auto-fill on an empty location property. Important so Map View will not ruin templates.',
+            )
+            .addText((component) => {
+                component
+                    .setValue(
+                        this.plugin.settings.autoAddLocationExclude ||
+                            DEFAULT_SETTINGS.autoAddLocationExclude,
+                    )
+                    .onChange(async (value: string) => {
+                        this.plugin.settings.autoAddLocationExclude = value;
+                        this.plugin.saveSettings();
                     });
             });
 

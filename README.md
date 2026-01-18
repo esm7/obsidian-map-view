@@ -89,6 +89,8 @@ Here are a few examples for logging a favorite location you want to see in a map
 
 When using Obsidian Mobile, try the various GPS-enabled commands, like "GPS: new geolocation note" that creates a new note for your current geolocation.
 
+Alternatively, customize the mobile toolbar and add Map View commands to it, e.g. "Map View: GPS: add geolocation at current position".
+
 **There are many other ways to log geolocations in Map View**, see [here](#adding-a-location-to-a-note) for more details.
 
 ### Create a Trip Plan Map
@@ -292,7 +294,7 @@ The map can be searched using the tool on the upper-right side, so you can quick
 
 When in Obsidian Mobile, Map View supports getting the device's real-time location, which enables several easy ways to add your locations to notes:
 
-- When editing a note, you can use the commands "GPS: add geolocation (inline) at current position" and "GPS: add geolocation (front matter) to current note".
+- When editing a note, you can use the commands "GPS: add geolocation (inline) at current position" and "GPS: add geolocation (front matter) to current note" (it's very useful to map these to the mobile toolbar).
 - You can also use "GPS: copy inline location" to just copy the geolocation without adding it to the current note.
 - Create a new note using the "GPS: new geolocation note" from anywhere in Obsidian.
 - ...or just right-click the marker showing your current location on the map and use the methods shown in "From the Map" above.
@@ -331,7 +333,17 @@ You can also:
 - Use "GPS: copy inline location" to copy an inline location to the clipboard.
 - Use "GPS: new geolocation note" to create a new note in your current location.
 
+**Tip:** map commands you use often to the mobile toolbar for quickly adding the current location to notes.
+
 Additionally, when a location is available, when you click an existing marker you can use "route to point" from your current location without choosing a routing source (see [Routing](#routing)).
+
+### Auto-Adding Location to Notes
+
+On Obsidian Mobile, if this setting is turned on, Map View can automatically add the current location to notes. A common use case would be adding the current location to your daily note, for example.
+
+By default, Map View (on mobile) fills-in the current location if an empty `location` property is found in a note, except notes that include the word "template" (this is configurable).
+
+To auto-add the current location to notes, add an empty `location` property to the template that creates them, e.g. your daily note template.
 
 ## Embedding Maps in Notes
 
@@ -825,6 +837,11 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
+### 6.1.2
+
+- By a very common request, Map View on mobile can now auto-add the current location to notes (e.g. your daily notes). See [here](auto-adding-location-to-notes) for more details.
+- Added icons to the commands that Map View registers, so they're more easily visible if added to the mobile toolbar.
+
 ### 6.1.1
 
 Fixed issues with embedded maps (https://github.com/esm7/obsidian-map-view/issues/372).
@@ -906,119 +923,3 @@ This is a very big release with a long list of new features, fixes and **breakin
 - Fixed file-menu event not properly registered to the plugin (https://github.com/esm7/obsidian-map-view/issues/327).
 - Fix to the `autoFit` state flag of embedded maps to work more consistently.
 - Map View now sets the type of the 'location' property to List, to prevent issues of Obsidian corrupting it.
-
-### 5.5.0
-
-**The Big Stuff:**
-
-- A mechanism and various tools for **offline usage**. This includes:
-    - The ability to batch-download map tiles for offline usage.
-    - Manage downloaded tiles, e.g. selectively purge old tiles, add or delete downloaded data etc.
-    - Auto-cache tiles locally as part of the plugin's normal usage, with a configurable auto-purge after a certain age and storage size.
-    - The above can make Map View _considerably faster_ to start up, and it gets faster the more you use it.
-    - See [the documentation](#offline-tiles) for more details.
-
-- An [internal tool](#import-from-kml) for importing data from a KML file straight into a note, with configurable formats and fields.
-    - This is a lot thanks to [@mofosyne](https://github.com/mofosyne) who prototyped a very good KML conversion tool some time ago, and agreed to use his code as a base.
-
-**Other New Features:**
-
-- A new 'minimize' button for the controls panel (https://github.com/esm7/obsidian-map-view/issues/270), which was super easy to do after the Svelte rewrite, so why not :)
-- Marker popup improvements, especially for touch screens. The note snippet in the popup can now be interacted with and a button was added to open the context menu of the marker.
-- Google Maps place data in templates (thanks @HalFrgrd!)
-- Supporting templates with YAML content (thanks @HalFrgrd!)
-- New setting "search delay while typing" (which was previously hard-coded to 250ms).
-- If turned on in the settings (which is by default), Map View hijacks the context menu of geolinks in notes, to make sure the Map View "open in" options show up rather than Obsidian's defaults.
-- The `open-map-search` command can now either search in an existing Map View or open a new one. This means it can be mapped to a global Obsidian shortcut which will launch Map View with the search dialog.
-- Added a `{name}` parameter to "open in" items (https://github.com/esm7/obsidian-map-view/issues/290).
-
-**Fixes:**
-
-- Inconsistency in front matter format (https://github.com/esm7/obsidian-map-view/issues/288).
-- Inline tags don't work without a trailing space (https://github.com/esm7/obsidian-map-view/issues/286).
-- Inline geolocation suggestion fails for lines that contain wikilinks (https://github.com/esm7/obsidian-map-view/issues/299).
-
-**Under the Hood:**
-
-- The map controls were rewritten in Svelte.
-    - The immediate benefit is much shorter and cleaner code, but the main incentive is to be able to easily add UI-centric features with much less effort.
-    - **This might break themes or snippets with special customization for Map View.** Please let me know of any issues.
-- Maintenance work, package upgrades and code cleanups.
-
-### 5.1.0
-
-> [!NOTE]
-> I originally wanted this release to be a very major one, with several big features some users have been waiting for.
-> However due to lack of time to complete them in a timely manner, and a big bunch of important fixes and tweaks adding up, I'm releasing this packed minor version for now.
-
-- Allow filtering by front matter properties - thanks @zakj! (Fixes https://github.com/esm7/obsidian-map-view/issues/257)
-- When adding a front-matter geolocation to a note, Map View will now overwrite a previous front-matter geolocation if such existed. Fixes https://github.com/esm7/obsidian-map-view/issues/248 and generally improves the behavior with Obsidian properties.
-- I didn't give proper credit to @The-Noah for a change actually included in 5.0.3: support for front-matter links in 'linkedto' and 'linkedfrom'.
-- Improvements to plugin startup time.
-- Fixed a bug of links showing unexpectedly when opening Map View from a saved URL.
-- Added support for country flags emojis (https://github.com/esm7/obsidian-map-view/issues/183).
-- Upgraded the underlying library to Leaflet 1.9.4, thanks to @Falke-Design who helped me figure out how to make this play nicely inside Obsidian.
-- Added a delicate indication (orange dot) that filters are on.
-- Added support by default to the HiDPI tiles of CartoDB (thanks @sbungartz!)
-- Major improvement to the mechanism behind geolink previews in notes, providing much less false triggers on touch screens (https://github.com/esm7/obsidian-map-view/issues/185), and hopefully eliminating all issues when clicking on such links (https://github.com/esm7/obsidian-map-view/issues/200).
-- URL template does multi replace, e.g. support for OsmAnd (https://github.com/esm7/obsidian-map-view/issues/283)
-- Fix to auto light/dark theme selection (https://github.com/esm7/obsidian-map-view/pull/284 and https://github.com/esm7/obsidian-map-view/issues/136), thanks @The-Noah!
-- Allow a whitespace around the comma in a geolocation (https://github.com/esm7/obsidian-map-view/pull/272), thanks @zakj!
-
-Improvements relating to the [Geo Helper](https://github.com/esm7/obsidian-geo-helper):
-
-- Support for the new (0.0.2) optional location label.
-- Geo Helper settings reorganization (**the settings are not backwards-compatible**, you may need to revalidate them for Geo Helper to work).
-- No longer using filters or other state when asking for an external GPS location.
-
-### 5.0.3
-
-Many important bug fixes are waiting for me to have a little spare time, in the meantime had to settle for smaller release.
-
-- Fixed "Paste as geolocation" issue (https://github.com/esm7/obsidian-map-view/issues/253), thanks
-  @frees0l0!
-- Fixed "Using custom property instead default location does not work" (https://github.com/esm7/obsidian-map-view/issues/251).
-
-### 5.0.2
-
-- Fixed moving inline markers followed by tags (https://github.com/esm7/obsidian-map-view/issues/234).
-- Fixed certain emojis not being correctly recognized as such for map markers (https://github.com/esm7/obsidian-map-view/issues/233).
-- Added support for string arrays as front matter locations (https://github.com/esm7/obsidian-map-view/issues/229).
-
-### 5.0.1
-
-- Fixed a bug in "add geolocation (front matter) to current note".
-
-### 5.0.0
-
-**This is a major Map View release with tons of new features and fixes.**
-
-**Forward compatibility warning:** front-matter notes you create with this version will not show in previous Map View versions.
-
-**The Big Changes:**
-
-- Map View can now show **note links** as edges in the map. Open the Links drop-down in the map controls to turn it on and configure how it looks (big thanks to @IanLindsley!)
-    - All the markers of a given file are linked to the markers pointed by the links in that file. Those links may reference the whole destination file, and then all the markers in it are linked, or a heading/block and then only the front-matter marker and specific heading/block locations are linked.
-    - See more details [above](#links-view).
-- Markers can now be moved on the map: right-click a marker, click "enable move" and drag the marker to its new location. The corresponding note will be updated automatically. Big thanks to @IanLindsley for this too!
-- You can now set emojis as map markers. In configuring marker icon rules, just enter an emoji instead of a Font Awesome name and it should show up.
-- Markers can now show optional **labels** showing the marker name. You can turn it on from the View drop-down on the map.
-- The marker popup mechanism was rewritten to enable a much more streamlined experience and less intrusive popups.
-    - I was in a dilemma whether to continue maintaining the old option (the Obsidian native preview), as it still has its upsides (e.g. it allows scrolling and it preserves note formatting better), but decided against it due to the complexity it will introduce in the long run.
-    - If you have a strong opinion towards using the old Obsidian preview window, please open an issue so it can be discussed.
-- Map View now supports heading links and block links in 'linkedfrom:' queries, and also for the new Links feature.
-    - I recommend the "Copy Block Link" plugin that makes this more useful.
-- New format for front matter location, `location: "lat,lng"`, which plays better with Obsidian's property editor. The old format is still supported but new front-matter notes will be created with the new format. Solves https://github.com/esm7/obsidian-map-view/issues/202.
-- A new marker shape `simple-circle` is now supported, drawing a simple circle at the given color without a pin shape.
-
-**Smaller Improvements:**
-
-- The key to use for front matter geolocation is now configurable (https://github.com/esm7/obsidian-map-view/issues/195)
-- Search names containing slashes are now sanitized and handled properly (https://github.com/esm7/obsidian-map-view/issues/207)
-- Inline tags are now part of filter suggestions (https://github.com/esm7/obsidian-map-view/issues/225)
-- The actions from a search marker context menu now use the geolocation of the marker rather than the mouse location.
-- The way Font Awesome is used was changed to mitigate a performance issue that Map View caused (https://github.com/esm7/obsidian-map-view/issues/216).
-- Font Awesome upgraded to 6.5.1.
-- Map View now requires Obsidian 1.5.6 or newer, and uses the formal front matter API.
-- Tab icons of map views now have the proper map pin icon (https://github.com/esm7/obsidian-map-view/issues/227).
-- Fixed a bug of the cursor not jumping forward after an inline location suggestion.

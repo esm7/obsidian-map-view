@@ -45,6 +45,11 @@ function makeRealTimeLocation(position: GeolocationPosition) {
     };
 }
 
+/* Returns whether it's worth trying to get a location. This is used to avoid spamming non-supporting devices. */
+export function isLocationPossiblyAvailable(settings: PluginSettings) {
+    return settings.supportRealTimeGeolocation && !stopTrying;
+}
+
 /* A single-time query for a location */
 export async function askForLocation(
     app: App,

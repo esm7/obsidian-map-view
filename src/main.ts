@@ -35,7 +35,10 @@ import { EmbeddedMap } from 'src/embeddedMap';
 import { MapContainer } from 'src/mapContainer';
 import { IconFactory } from 'src/markerIcons';
 import { DisplayRulesCache } from 'src/displayRulesCache';
-import { askForLocation } from 'src/realTimeLocation';
+import {
+    askForLocation,
+    isLocationPossiblyAvailable,
+} from 'src/realTimeLocation';
 import {
     getLinkReplaceEditorPlugin,
     type GeoLinkReplacePlugin,
@@ -288,6 +291,7 @@ export default class MapViewPlugin extends Plugin {
         this.addCommand({
             id: 'open-map-view',
             name: 'Open Map View',
+            icon: 'map-pin',
             callback: () => {
                 this.app.workspace
                     .getLeaf()
@@ -299,6 +303,7 @@ export default class MapViewPlugin extends Plugin {
         this.addCommand({
             id: 'convert-selection-to-location',
             name: 'Convert Selection to Geolocation',
+            icon: 'scan',
             editorCheckCallback: (
                 checking,
                 editor,
@@ -314,6 +319,7 @@ export default class MapViewPlugin extends Plugin {
         this.addCommand({
             id: 'insert-geolink',
             name: 'Add inline geolocation link',
+            icon: 'link-2',
             editorCallback: (editor, view) => {
                 const positionBeforeInsert = editor.getCursor();
                 editor.replaceSelection('[](geo:)');
@@ -327,6 +333,7 @@ export default class MapViewPlugin extends Plugin {
         // Command that opens the location search dialog and creates a new note from this location
         this.addCommand({
             id: 'new-geolocation-note',
+            icon: 'edit',
             name: 'New geolocation note',
             callback: () => {
                 const dialog = new LocationSearchDialog(
@@ -344,6 +351,7 @@ export default class MapViewPlugin extends Plugin {
         this.addCommand({
             id: 'add-frontmatter-geolocation',
             name: 'Add geolocation (front matter) to current note',
+            icon: 'binoculars',
             editorCallback: (editor, view) => {
                 const dialog = new LocationSearchDialog(
                     this.app,
@@ -361,6 +369,7 @@ export default class MapViewPlugin extends Plugin {
         this.addCommand({
             id: 'open-map-search',
             name: 'Search active Map View or open a new one',
+            icon: 'map-pin',
             callback: async () => {
                 let view = utils.findOpenMapView(this.app);
                 if (!view)
@@ -378,6 +387,7 @@ export default class MapViewPlugin extends Plugin {
         this.addCommand({
             id: 'quick-map-embed',
             name: 'Add an embedded map',
+            icon: 'log-in',
             editorCallback: (editor: Editor, ctx) => {
                 this.openQuickEmbed(editor);
             },
@@ -386,6 +396,7 @@ export default class MapViewPlugin extends Plugin {
         this.addCommand({
             id: 'focus-note-in-map-view',
             name: 'Focus current note in Map View',
+            icon: 'map-pinned',
             editorCallback: (
                 editor: Editor,
                 ctx: MarkdownView | MarkdownFileInfo,
@@ -407,6 +418,7 @@ export default class MapViewPlugin extends Plugin {
             this.addCommand({
                 id: 'gps-focus-in-map-view',
                 name: 'GPS: find location and focus',
+                icon: 'locate',
                 callback: async () => {
                     const location = await askForLocation(
                         this.app,
@@ -425,6 +437,7 @@ export default class MapViewPlugin extends Plugin {
             this.addCommand({
                 id: 'gps-follow-me-with-map-view',
                 name: 'GPS: focus and follow me',
+                icon: 'locate',
                 callback: async () => {
                     const location = await askForLocation(
                         this.app,
@@ -445,6 +458,7 @@ export default class MapViewPlugin extends Plugin {
             this.addCommand({
                 id: 'gps-copy-inline-location',
                 name: 'GPS: copy inline location',
+                icon: 'map-pin-check',
                 callback: async () => {
                     const location = await askForLocation(
                         this.app,
@@ -474,6 +488,7 @@ export default class MapViewPlugin extends Plugin {
             this.addCommand({
                 id: 'gps-new-note-here',
                 name: 'GPS: new geolocation note',
+                icon: 'map-pin-plus-inside',
                 callback: async () => {
                     const location = await askForLocation(
                         this.app,
@@ -488,6 +503,7 @@ export default class MapViewPlugin extends Plugin {
             this.addCommand({
                 id: 'gps-add-to-current-note-front-matter',
                 name: 'GPS: add geolocation (front matter) to current note',
+                icon: 'map-pin-plus',
                 editorCallback: async (editor: Editor, ctx) => {
                     const location = await askForLocation(
                         this.app,
@@ -510,6 +526,7 @@ export default class MapViewPlugin extends Plugin {
             this.addCommand({
                 id: 'gps-add-to-current-note-inline',
                 name: 'GPS: add geolocation (inline) at current position',
+                icon: 'map-pin-pen',
                 editorCallback: async (editor: Editor, ctx) => {
                     const location = await askForLocation(
                         this.app,
@@ -709,6 +726,13 @@ export default class MapViewPlugin extends Plugin {
         );
 
         this.registerEvent(
+            this.app.workspace.on('file-open', (file: TFile) => {
+                if (this.settings.autoAddLocationIfEmptyProperty)
+                    this.addFrontMatterLocationIfEmpty(file);
+            }),
+        );
+
+        this.registerEvent(
             this.app.workspace.on('active-leaf-change', (leaf) => {
                 if (utils.lastUsedLeaves.contains(leaf)) {
                     utils.lastUsedLeaves.remove(leaf);
@@ -779,6 +803,15 @@ export default class MapViewPlugin extends Plugin {
         this.registerEvent(
             this.app.metadataCache.on('changed', (file) => {
                 this.updateMarkersWithRelationToFile(file.path, file, false);
+                if (this.settings.autoAddLocationIfEmptyProperty) {
+                    // Monitor changes to the active file from the metadata perspective. If a location property was added to it,
+                    // we may want to add a geolocation there
+                    const activeView =
+                        this.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (activeView && activeView.file === file) {
+                        this.addFrontMatterLocationIfEmpty(file);
+                    }
+                }
             }),
         );
         this.registerEvent(
@@ -1404,5 +1437,32 @@ export default class MapViewPlugin extends Plugin {
             }
         }
         this.allMapContainers = cleanedContainers;
+    }
+
+    private async addFrontMatterLocationIfEmpty(file: TFile) {
+        // Warning: this needs to be very efficient, as it runs many times on file changes!
+        if (!file) return;
+        if (!utils.isMobile(this.app)) return;
+        const exclude = this.settings.autoAddLocationExclude;
+        if (exclude && exclude.length > 0 && file.path.contains(exclude))
+            return;
+        const fileCache = this.app.metadataCache.getFileCache(file);
+        const keyName = this.settings.frontMatterKey;
+        if (
+            fileCache.frontmatter &&
+            fileCache.frontmatter[keyName] === null &&
+            isLocationPossiblyAvailable(this.settings)
+        ) {
+            const location = await askForLocation(this.app, this.settings);
+            if (location) {
+                const locationString = `${location.center.lat},${location.center.lng}`;
+                this.app.fileManager.processFrontMatter(
+                    file,
+                    (frontmatter: any) => {
+                        frontmatter[keyName] = locationString;
+                    },
+                );
+            }
+        }
     }
 }
