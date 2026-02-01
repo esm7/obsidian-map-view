@@ -52,7 +52,9 @@ export type PluginSettings = {
     searchProvider: 'osm' | 'google';
     osmUser: string;
     searchDelayMs: number;
+    geocodingApiMethod?: 'key' | 'path';
     geocodingApiKey: string;
+    geocodingApiPath?: string;
     useGooglePlacesNew2025: boolean;
     googlePlacesDataFields: string;
     saveHistory: boolean;
@@ -284,6 +286,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     searchProvider: 'osm',
     osmUser: '',
     searchDelayMs: 250,
+    geocodingApiMethod: 'key',
     geocodingApiKey: '',
     useGooglePlacesNew2025: false,
     googlePlacesDataFields: '',
