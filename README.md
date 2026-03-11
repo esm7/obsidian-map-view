@@ -839,7 +839,7 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ### 6.1.2
 
-- By a very common request, Map View on mobile can now auto-add the current location to notes (e.g. your daily notes). See [here](auto-adding-location-to-notes) for more details.
+- By a very common request, Map View on mobile can now auto-add the current location to notes (e.g. your daily notes). See [here](#auto-adding-location-to-notes) for more details.
 - Added icons to the commands that Map View registers, so they're more easily visible if added to the mobile toolbar.
 
 ### 6.1.1
