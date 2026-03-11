@@ -302,6 +302,7 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
 
     doSuggestIfNeeded() {
         const suggestions = this.createSuggestions();
+        if (!suggestions) return;
         suggestions.splice(consts.MAX_QUERY_SUGGESTIONS);
         if (!this.compareSuggestions(suggestions, this.lastSuggestions)) {
             this.clear();

@@ -251,20 +251,25 @@ export default class MapViewPlugin extends Plugin {
         if (this.settings.handlePathEmbeds) {
             const embedRegistry: EmbedRegistry = this.app.embedRegistry;
             if (embedRegistry) {
-                embedRegistry.registerExtensions(
-                    GEOJSON_FILE_FILTER,
-                    (context: EmbedContext, file: TFile, _) => {
-                        const component = new EmbeddedComponent(
-                            context.containerEl,
-                            this,
-                            this.app,
-                            this.settings,
-                            file,
-                            '',
-                        );
-                        return component;
-                    },
+                const unregistered = GEOJSON_FILE_FILTER.filter(
+                    (ext) => !embedRegistry.isExtensionRegistered(ext),
                 );
+                if (unregistered.length > 0) {
+                    embedRegistry.registerExtensions(
+                        unregistered,
+                        (context: EmbedContext, file: TFile, _) => {
+                            const component = new EmbeddedComponent(
+                                context.containerEl,
+                                this,
+                                this.app,
+                                this.settings,
+                                file,
+                                '',
+                            );
+                            return component;
+                        },
+                    );
+                }
             } else
                 console.error(
                     'Cannot register Map View embeds: embed registry not found.',
@@ -1012,7 +1017,14 @@ export default class MapViewPlugin extends Plugin {
         return null;
     }
 
-    onunload() {}
+    onunload() {
+        if (this.settings.handlePathEmbeds) {
+            const embedRegistry: EmbedRegistry = this.app.embedRegistry;
+            if (embedRegistry) {
+                embedRegistry.unregisterExtensions(GEOJSON_FILE_FILTER);
+            }
+        }
+    }
 
     /** Initialise the plugin settings from Obsidian's cache */
     async loadSettings() {
