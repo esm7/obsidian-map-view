@@ -19,7 +19,7 @@ import {
 } from 'src/utils';
 import { type PluginSettings } from 'src/settings';
 import * as regex from 'src/regex';
-import MapViewPlugin from 'src/main';
+import type MapViewPlugin from 'src/main';
 
 // File extensions supported for paths
 export const GEOJSON_FILE_FILTER = ['gpx', 'geojson', 'kml', 'tcx'];

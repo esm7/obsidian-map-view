@@ -17,6 +17,7 @@
     } from 'src/mapState';
     import { NewPresetDialog } from 'src/newPresetDialog';
     import * as utils from 'src/utils';
+    import { getAllTagNames } from 'src/pluginHelpers';
     import { NoteSelectDialog } from 'src/noteSelectDialog';
     import { type EditModeTools } from 'src/viewControls';
     import ChipsList from './ChipsList.svelte';
@@ -57,7 +58,7 @@
     let editTags: string[] = $state([]);
 
     let allNoteHeadings: string[] = $state([]);
-    let allTags: string[] = $state(utils.getAllTagNames(app, plugin));
+    let allTags: string[] = $state(getAllTagNames(app, plugin));
     let addTagInputElement: HTMLInputElement = $state();
 
     $effect(() => {

@@ -10,6 +10,7 @@ import {
 
 import { matchInlineLocation } from 'src/fileMarker';
 import * as utils from 'src/utils';
+import { getAllTagNames } from 'src/pluginHelpers';
 import MapViewPlugin from 'src/main';
 
 class SuggestInfo {
@@ -55,8 +56,7 @@ export class TagSuggest extends EditorSuggest<SuggestInfo> {
         };
         const tagQuery = context.query ?? '';
         // Find all tags that include the query
-        const matchingTags = utils
-            .getAllTagNames(this.app, this.plugin)
+        const matchingTags = getAllTagNames(this.app, this.plugin)
             .map((value) => noPound(value))
             .filter((value) =>
                 value.toLowerCase().includes(tagQuery.toLowerCase()),

@@ -1,6 +1,6 @@
 import * as leaflet from 'leaflet';
 import queryString from 'query-string';
-import { type ViewSettings } from './mapContainer';
+import type { ViewSettings } from './mapContainer';
 
 /** Represents a logical state of the map, in separation from the map display */
 export type MapState = {

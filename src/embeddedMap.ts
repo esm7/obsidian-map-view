@@ -5,7 +5,8 @@ import MapViewPlugin from 'src/main';
 
 import { MapContainer, type ViewSettings } from 'src/mapContainer';
 import { type MapState, getCodeBlock } from 'src/mapState';
-import { getEditor, findOpenMapView } from 'src/utils';
+import { getEditor } from 'src/utils';
+import { findOpenMapView } from 'src/pluginHelpers';
 
 export class EmbeddedMap {
     public mapContainer: MapContainer;

@@ -1,7 +1,7 @@
 <script lang="ts">
     import MapViewPlugin from '../main';
     import { App } from 'obsidian';
-    import { QuerySuggest } from '../query';
+    import { QuerySuggest } from '../querySuggest';
 
     let {
         plugin,

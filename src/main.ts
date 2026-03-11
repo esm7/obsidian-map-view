@@ -68,6 +68,7 @@ import { SettingsTab } from 'src/settingsTab';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { TagSuggest } from 'src/tagSuggest';
 import * as utils from 'src/utils';
+import { findOpenMapView } from 'src/pluginHelpers';
 import { MapPreviewPopup } from 'src/mapPreviewPopup';
 import { LayerCache } from 'src/layerCache';
 import { BaseGeoLayer, cacheTagsFromLayers } from 'src/baseGeoLayer';
@@ -376,7 +377,7 @@ export default class MapViewPlugin extends Plugin {
             name: 'Search active Map View or open a new one',
             icon: 'map-pin',
             callback: async () => {
-                let view = utils.findOpenMapView(this.app);
+                let view = findOpenMapView(this.app);
                 if (!view)
                     view = await this.openMap(this.settings.openMapBehavior);
                 if (view) {
@@ -1232,7 +1233,7 @@ export default class MapViewPlugin extends Plugin {
         );
         // If there is an open map view, use it to decide how and where to open the file.
         // Otherwise, open the file from the active leaf
-        const mapView = utils.findOpenMapView(this.app);
+        const mapView = findOpenMapView(this.app);
         if (mapView) {
             mapView.mapContainer.goToFile(
                 file,

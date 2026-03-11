@@ -1,7 +1,7 @@
 import { LatLng, type PathOptions } from 'leaflet';
 import { type SplitDirection, Notice } from 'obsidian';
 import { type MapState, type LegacyMapState, mergeStates } from 'src/mapState';
-import MapViewPlugin from 'src/main';
+import type MapViewPlugin from 'src/main';
 import * as consts from 'src/consts';
 
 export type GeoHelperType = 'url' | 'commandline';

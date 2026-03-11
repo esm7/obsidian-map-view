@@ -42,12 +42,8 @@ import {
     type TileSource,
     DEFAULT_SETTINGS,
 } from 'src/settings';
-import {
-    FileMarker,
-    addEdgesToMarkers,
-    moveFileMarker,
-    createMarkerInFile,
-} from 'src/fileMarker';
+import { FileMarker, addEdgesToMarkers, moveFileMarker } from 'src/fileMarker';
+import { createMarkerInFile } from 'src/markerActions';
 import { FloatingMarker } from 'src/floatingMarker';
 import { FloatingPath } from 'src/floatingPath';
 import {

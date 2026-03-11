@@ -21,7 +21,7 @@ let localL = L;
 import wildcard from 'wildcard';
 
 import { type IconBadgeOptions } from 'src/settings';
-import { FileMarker } from 'src/fileMarker';
+import type { FileMarker } from 'src/fileMarker';
 import type { DisplayRulesCache } from './displayRulesCache';
 
 // An extended Map View icon options, adding 'simple-circle' to the options of the 'shape' field.
