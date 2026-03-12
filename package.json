@@ -11,7 +11,8 @@
         "prettier": "npx prettier --write .",
         "stylecheck": "npx prettier --check .",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "prepare": "lefthook install"
     },
     "keywords": [],
     "author": "",
