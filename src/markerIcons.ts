@@ -25,8 +25,10 @@ import type { FileMarker } from 'src/fileMarker';
 import type { DisplayRulesCache } from './displayRulesCache';
 
 // An extended Map View icon options, adding 'simple-circle' to the options of the 'shape' field.
-export interface IconOptions
-    extends Omit<leaflet.ExtraMarkers.IconOptions, 'shape'> {
+export interface IconOptions extends Omit<
+    leaflet.ExtraMarkers.IconOptions,
+    'shape'
+> {
     shape?: leaflet.ExtraMarkers.IconOptions['shape'] | 'simple-circle';
 }
 

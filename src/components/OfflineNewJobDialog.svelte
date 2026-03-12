@@ -136,8 +136,8 @@
                 Only download tiles that aren't already in the cache.<br />
                 Use this to continue previous downloads or turn it off to refresh
                 old tiles.<br />
-                (When this is on, calculating the tiles to download takes longer
-                due to DB lookups.)
+                (When this is on, calculating the tiles to download takes longer due
+                to DB lookups.)
             </div>
         </div>
         <div class="setting-item-control">
