@@ -47,7 +47,9 @@ export default {
             exportConditions: ['svelte'],
             extensions: ['.mjs', '.js', '.json', '.node', '.ts', '.svelte'],
         }),
-        typescript(),
+        typescript({
+            outDir: process.env.BUILD === 'development' ? '.' : './dist',
+        }),
         image(),
         commonjs(),
         postcss({

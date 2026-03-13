@@ -215,4 +215,30 @@ describe('Query.testLayer', () => {
         const q = new Query(null as any, 'tag:#trip*');
         expect(q.testLayer(mockLayer({ tags: ['#trip-🏕️'] }))).toBe(true);
     });
+
+    // Emoji tags with variation selectors (U+FE0F) — issue #385
+    // These emojis are two code points: base emoji + variation selector-16 (️).
+    // The query preprocessor regex must include variation selectors, otherwise the
+    // variation selector ends up outside the quoted token and crashes boon-js.
+    it('does not crash when constructing query with emoji+variation-selector tag (☕️)', () => {
+        expect(() => new Query(null as any, 'tag:#☕️')).not.toThrow();
+    });
+
+    it('does not crash when constructing query with emoji+variation-selector tag (⚽️)', () => {
+        expect(() => new Query(null as any, 'tag:#⚽️')).not.toThrow();
+    });
+
+    it('does not crash when constructing query with emoji+variation-selector tag (🏔️)', () => {
+        expect(() => new Query(null as any, 'tag:#🏔️')).not.toThrow();
+    });
+
+    it('emoji+variation-selector tag query matches layer with that tag', () => {
+        const q = new Query(null as any, 'tag:#☕️');
+        expect(q.testLayer(mockLayer({ tags: ['#☕️'] }))).toBe(true);
+    });
+
+    it('emoji+variation-selector tag query does not match layer without that tag', () => {
+        const q = new Query(null as any, 'tag:#☕️');
+        expect(q.testLayer(mockLayer({ tags: ['#🍵'] }))).toBe(false);
+    });
 });

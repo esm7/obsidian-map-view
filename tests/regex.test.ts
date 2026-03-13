@@ -150,6 +150,21 @@ describe('TAG_NAME_WITH_HEADER', () => {
         expect(matches[0][1]).toBe('#🌍');
     });
 
+    it('captures emoji tag with variation selector (e.g. ☕️)', () => {
+        // ☕️ = U+2615 + U+FE0F (variation selector-16)
+        const input = 'tag:#☕️';
+        const matches = [...input.matchAll(regex.TAG_NAME_WITH_HEADER)];
+        expect(matches).toHaveLength(1);
+        expect(matches[0][1]).toBe('#☕️');
+    });
+
+    it('captures emoji tag with variation selector (e.g. ⚽️)', () => {
+        const input = 'tag:#⚽️';
+        const matches = [...input.matchAll(regex.TAG_NAME_WITH_HEADER)];
+        expect(matches).toHaveLength(1);
+        expect(matches[0][1]).toBe('#⚽️');
+    });
+
     it('captures accented tag', () => {
         const input = 'tag:#café';
         const matches = [...input.matchAll(regex.TAG_NAME_WITH_HEADER)];
@@ -166,6 +181,15 @@ describe('TAG_NAME_WITH_HEADER_AND_WILDCARD', () => {
         ];
         expect(matches).toHaveLength(1);
         expect(matches[0][1]).toBe('#trip*');
+    });
+
+    it('captures emoji tag with variation selector', () => {
+        const input = 'tag:#☕️';
+        const matches = [
+            ...input.matchAll(regex.TAG_NAME_WITH_HEADER_AND_WILDCARD),
+        ];
+        expect(matches).toHaveLength(1);
+        expect(matches[0][1]).toBe('#☕️');
     });
 });
 
@@ -191,5 +215,35 @@ describe('INLINE_TAG_IN_NOTE', () => {
         const matches = [...input.matchAll(regex.INLINE_TAG_IN_NOTE)];
         expect(matches).toHaveLength(1);
         expect(matches[0].groups?.tag).toBe('旅行');
+    });
+
+    it('captures an emoji tag (no variation selector)', () => {
+        const input = 'tag:🌍';
+        const matches = [...input.matchAll(regex.INLINE_TAG_IN_NOTE)];
+        expect(matches).toHaveLength(1);
+        expect(matches[0].groups?.tag).toBe('🌍');
+    });
+
+    it('captures an emoji tag with variation selector (e.g. ☕️)', () => {
+        const input = 'tag:☕️';
+        const matches = [...input.matchAll(regex.INLINE_TAG_IN_NOTE)];
+        expect(matches).toHaveLength(1);
+        expect(matches[0].groups?.tag).toBe('☕️');
+    });
+});
+
+describe('INLINE_LOCATION_WITH_TAGS emoji tags', () => {
+    it('extracts emoji tag without variation selector', () => {
+        const input = '[Café](geo:32.1,35.2) tag:🌍';
+        const matches = [...input.matchAll(regex.INLINE_LOCATION_WITH_TAGS)];
+        expect(matches).toHaveLength(1);
+        expect(matches[0].groups?.tags).toContain('tag:🌍');
+    });
+
+    it('extracts emoji tag with variation selector (e.g. ☕️)', () => {
+        const input = '[Café](geo:32.1,35.2) tag:☕️';
+        const matches = [...input.matchAll(regex.INLINE_LOCATION_WITH_TAGS)];
+        expect(matches).toHaveLength(1);
+        expect(matches[0].groups?.tags).toContain('tag:☕️');
     });
 });
