@@ -1242,7 +1242,7 @@ export default class MapViewPlugin extends Plugin {
                     utils.goToEditorLocation(editor, cursorPos, false),
             );
         } else {
-            const leaf = this.app.workspace.activeLeaf;
+            const leaf = this.app.workspace.getLeaf(false);
             await leaf.openFile(file, { active: true });
             const editor = utils.getEditor(this.app);
             if (editor)

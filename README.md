@@ -837,6 +837,12 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
+### Unreleased
+
+- Fix to https://github.com/esm7/obsidian-map-view/issues/385.
+- Fix to GPX registration causing plugin crashes.
+- Fix to https://github.com/esm7/obsidian-map-view/issues/383.
+
 ### 6.1.2
 
 - By a very common request, Map View on mobile can now auto-add the current location to notes (e.g. your daily notes). See [here](#auto-adding-location-to-notes) for more details.
