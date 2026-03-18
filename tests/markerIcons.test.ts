@@ -310,18 +310,16 @@ describe('getIconFromRules', () => {
 
     it('returns [icon, opacity] tuple', () => {
         const mockRulesCache = {
-            runOn: vi
-                .fn()
-                .mockReturnValue([
-                    {
-                        prefix: 'fas',
-                        icon: 'fa-circle',
-                        markerColor: 'blue',
-                        opacity: 1.0,
-                    },
-                    {},
-                    [],
-                ]),
+            runOn: vi.fn().mockReturnValue([
+                {
+                    prefix: 'fas',
+                    icon: 'fa-circle',
+                    markerColor: 'blue',
+                    opacity: 1.0,
+                },
+                {},
+                [],
+            ]),
         } as any;
         const result = getIconFromRules(mockMarker(), mockRulesCache, factory);
         expect(result).toHaveLength(2);
@@ -329,18 +327,16 @@ describe('getIconFromRules', () => {
 
     it('icon in the returned tuple is truthy', () => {
         const mockRulesCache = {
-            runOn: vi
-                .fn()
-                .mockReturnValue([
-                    {
-                        prefix: 'fas',
-                        icon: 'fa-circle',
-                        markerColor: 'blue',
-                        opacity: 0.8,
-                    },
-                    {},
-                    [],
-                ]),
+            runOn: vi.fn().mockReturnValue([
+                {
+                    prefix: 'fas',
+                    icon: 'fa-circle',
+                    markerColor: 'blue',
+                    opacity: 0.8,
+                },
+                {},
+                [],
+            ]),
         } as any;
         const [icon] = getIconFromRules(mockMarker(), mockRulesCache, factory);
         expect(icon).toBeTruthy();
@@ -348,18 +344,16 @@ describe('getIconFromRules', () => {
 
     it('opacity in the returned tuple matches the iconOptions opacity', () => {
         const mockRulesCache = {
-            runOn: vi
-                .fn()
-                .mockReturnValue([
-                    {
-                        prefix: 'fas',
-                        icon: 'fa-circle',
-                        markerColor: 'blue',
-                        opacity: 0.42,
-                    },
-                    {},
-                    [],
-                ]),
+            runOn: vi.fn().mockReturnValue([
+                {
+                    prefix: 'fas',
+                    icon: 'fa-circle',
+                    markerColor: 'blue',
+                    opacity: 0.42,
+                },
+                {},
+                [],
+            ]),
         } as any;
         const [, opacity] = getIconFromRules(
             mockMarker(),
@@ -372,18 +366,16 @@ describe('getIconFromRules', () => {
     it('calls displayRulesCache.runOn with the given marker', () => {
         const marker = mockMarker(['#trip']);
         const mockRulesCache = {
-            runOn: vi
-                .fn()
-                .mockReturnValue([
-                    {
-                        prefix: 'fas',
-                        icon: 'fa-circle',
-                        markerColor: 'blue',
-                        opacity: 1.0,
-                    },
-                    {},
-                    [],
-                ]),
+            runOn: vi.fn().mockReturnValue([
+                {
+                    prefix: 'fas',
+                    icon: 'fa-circle',
+                    markerColor: 'blue',
+                    opacity: 1.0,
+                },
+                {},
+                [],
+            ]),
         } as any;
         getIconFromRules(marker, mockRulesCache, factory);
         expect(mockRulesCache.runOn).toHaveBeenCalledWith(marker);
@@ -392,32 +384,28 @@ describe('getIconFromRules', () => {
     it('badge options from runOn are passed to the icon factory', () => {
         // When runOn returns badge options, the resulting icon should have a wrapped createIcon
         const noBadgeCache = {
-            runOn: vi
-                .fn()
-                .mockReturnValue([
-                    {
-                        prefix: 'fas',
-                        icon: 'fa-circle',
-                        markerColor: 'blue',
-                        opacity: 1.0,
-                    },
-                    {},
-                    [],
-                ]),
+            runOn: vi.fn().mockReturnValue([
+                {
+                    prefix: 'fas',
+                    icon: 'fa-circle',
+                    markerColor: 'blue',
+                    opacity: 1.0,
+                },
+                {},
+                [],
+            ]),
         } as any;
         const withBadgeCache = {
-            runOn: vi
-                .fn()
-                .mockReturnValue([
-                    {
-                        prefix: 'fas',
-                        icon: 'fa-circle',
-                        markerColor: 'blue',
-                        opacity: 1.0,
-                    },
-                    {},
-                    [{ badge: '★', backColor: 'red' }],
-                ]),
+            runOn: vi.fn().mockReturnValue([
+                {
+                    prefix: 'fas',
+                    icon: 'fa-circle',
+                    markerColor: 'blue',
+                    opacity: 1.0,
+                },
+                {},
+                [{ badge: '★', backColor: 'red' }],
+            ]),
         } as any;
         const [iconNoBadge] = getIconFromRules(
             mockMarker(),
