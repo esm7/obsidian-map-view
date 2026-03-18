@@ -837,11 +837,13 @@ And while both plugins are about maps and use Leaflet.js as their visual engine,
 
 ## Changelog
 
-### Unreleased
+### 6.1.3
 
+- Most importantly: fix to GPX registration causing plugin crashes.
 - Fix to https://github.com/esm7/obsidian-map-view/issues/385.
-- Fix to GPX registration causing plugin crashes.
 - Fix to https://github.com/esm7/obsidian-map-view/issues/383.
+
+Behind the scenes: long-overdue, addition of unit tests for many low-level functionality of the plugin.
 
 ### 6.1.2
 
