@@ -4,6 +4,12 @@ All notable changes to Map View are documented here.
 
 ---
 
+## Unreleased
+
+- Changed internal links to documentation.
+
+---
+
 ## 6.1.3
 
 ### Fixed

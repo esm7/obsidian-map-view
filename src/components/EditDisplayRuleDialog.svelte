@@ -167,7 +167,7 @@
                     <div class="setting-item-name">Marker Badge</div>
                     <div class="setting-item-description">
                         See documentation <a
-                            href="https://github.com/esm7/obsidian-map-view?tab=readme-ov-file#marker-badge"
+                            href="https://esm7.github.io/obsidian-map-view/display-rules#marker-badges"
                             >here</a
                         >.
                     </div>
@@ -226,7 +226,7 @@
                 <div class="setting-item-name">Path Properties</div>
                 <div class="setting-item-description">
                     See documentation <a
-                        href="https://github.com/esm7/obsidian-map-view?tab=readme-ov-file#path-properties"
+                        href="https://esm7.github.io/obsidian-map-view/display-rules#path-properties"
                         >here</a
                     >.
                 </div>
