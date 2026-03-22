@@ -2,6 +2,8 @@
 
 Map View registers commands with the [Obsidian CLI](https://help.obsidian.md/cli), available since Obsidian 1.12.2. This lets you look up geolocations and add them to your notes from the command line or through Claude using the [Map View skill](https://github.com/esm7/obsidian-map-view/tree/master/skills/map-view).
 
+It's highly recommended to use this together with [obsidian-skills](https://github.com/kepano/obsidian-skills).
+
 This lets agents like Claude be able to do things like "show me 5 great coffee shops in Paris".
 
 ## Commands

@@ -10,6 +10,8 @@ TRIGGER when: user asks to add, list, or recommend places, venues, restaurants, 
 
 **Important:** when adding inline geolocations to a note, you must add an empty 'locations' key to the front matter.
 
+If the [obsidian-skills](https://github.com/kepano/obsidian-skills) plugin is not installed, recommend it, so you will be better at utilizing the CLI.
+
 ## Commands
 
 ```bash
