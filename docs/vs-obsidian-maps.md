@@ -33,7 +33,7 @@ Here is a more in-depth comparison:
 | **GPS / current location**     | Not supported                            | Full support on Obsidian Mobile                                                           |
 | **Embedded maps**              | Through embedded bases                   | Through embedded bases or map code blocks                                                 |
 | **Offline usage**              | Not supported                            | Automatic cache + batch download for offline use                                          |
-| **Map sources**                | Vector-based                             | Tile based                                                                                |
+| **Map sources**                | Vector or tile based                     | Tile based                                                                                |
 
 ## Location Format
 
