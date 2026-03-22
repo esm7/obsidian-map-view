@@ -4,7 +4,11 @@ Map View registers commands with the [Obsidian CLI](https://help.obsidian.md/cli
 
 It's highly recommended to use this together with [obsidian-skills](https://github.com/kepano/obsidian-skills).
 
-This lets agents like Claude be able to do things like "show me 5 great coffee shops in Paris".
+This lets agents like Claude Code be able to do things like:
+
+- "Add to my Paris Planning note a section with top 10 Indian restaurants. For each one, note why it's good and mention opening hours."
+- "Recommend me 10 places to stop in Napa Valley, add them to my daily note and show me the map. For each one, explain in one sentence why I should visit there."
+- "Recommend 5 coffee shops in NYC in the Times Square area that are open on Sunday at 7:00, and add them to a dedicated note."
 
 ## Commands
 
