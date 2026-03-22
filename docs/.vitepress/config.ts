@@ -74,6 +74,10 @@ export default defineConfig({
                 text: 'Reference',
                 items: [
                     {
+                        text: 'vs. Obsidian Maps',
+                        link: '/vs-obsidian-maps',
+                    },
+                    {
                         text: 'vs. Obsidian Leaflet',
                         link: '/vs-leaflet',
                     },

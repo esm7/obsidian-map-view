@@ -32,3 +32,10 @@ features:
     - title: Obsidian Bases
       details: Full integration with Obsidian Bases for even more powerful queries and displays.
 ---
+
+## Other Options
+
+The Obsidian ecosystem provides at least two more notable plugins that provide map displays:
+
+- [**Obsidian Maps**](vs-obsidian-maps.md) - the map plugin maintained by the Obsidian developers.
+- [**Obsidian Leaflet**](vs-leaflet.md) - a community plugin focused on fine-grained, per-note map customization.
