@@ -31,6 +31,8 @@ features:
       details: Tiles are cached automatically for performance. Batch-download areas for offline use.
     - title: Obsidian Bases
       details: Full integration with Obsidian Bases for even more powerful queries and displays.
+    - title: Claude Integration
+      details: CLI commands let Claude look up geolocations and add them to your notes. Ask Claude to plan a trip, research places, or build a location list — it will add pins to your map.
 ---
 
 ## Other Options

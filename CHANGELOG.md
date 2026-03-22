@@ -4,9 +4,12 @@ All notable changes to Map View are documented here.
 
 ---
 
-## Unreleased
+## 6.1.4
 
-- Changed internal links to documentation.
+### Added
+
+- Added Obsidian CLI support that enable agents to use Map View for adding geolocations to your notes, [see here](https://esm7.github.io/obsidian-map-view/cli) for more information.
+- Changed internal links to the new [documentation site](https://esm7.github.io/obsidian-map-view/).
 
 ---
 

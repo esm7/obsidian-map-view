@@ -66,6 +66,10 @@ export default defineConfig({
                         text: 'Obsidian Bases View',
                         link: '/bases-view',
                     },
+                    {
+                        text: 'Obsidian CLI',
+                        link: '/cli',
+                    },
                     { text: 'Import from KML', link: '/import-kml' },
                     { text: 'View URLs', link: '/view-urls' },
                 ],

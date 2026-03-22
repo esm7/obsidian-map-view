@@ -67,6 +67,7 @@ import { FileMarker } from 'src/fileMarker';
 import { SettingsTab } from 'src/settingsTab';
 import { LocationSearchDialog } from 'src/locationSearchDialog';
 import { TagSuggest } from 'src/tagSuggest';
+import { registerCliHandlers } from 'src/cli';
 import * as utils from 'src/utils';
 import { findOpenMapView } from 'src/pluginHelpers';
 import { MapPreviewPopup } from 'src/mapPreviewPopup';
@@ -407,16 +408,7 @@ export default class MapViewPlugin extends Plugin {
                 editor: Editor,
                 ctx: MarkdownView | MarkdownFileInfo,
             ) => {
-                this.openMapWithState(
-                    {
-                        query: utils.replaceFollowActiveNoteQuery(
-                            ctx.file,
-                            this.settings,
-                        ),
-                    } as MapState,
-                    this.settings.openMapBehavior,
-                    true,
-                );
+                this.focusNoteInMap(ctx.file);
             },
         });
 
@@ -565,6 +557,10 @@ export default class MapViewPlugin extends Plugin {
                     }
                 },
             });
+        }
+
+        if ('registerCliHandler' in this) {
+            registerCliHandlers(this, this.app, this.settings);
         }
 
         this.addSettingTab(new SettingsTab(this.app, this));
@@ -916,6 +912,16 @@ export default class MapViewPlugin extends Plugin {
             });
         if (chosenLeaf.view instanceof MainMapView) return chosenLeaf.view;
         return null;
+    }
+
+    public focusNoteInMap(file: TFile) {
+        this.openMapWithState(
+            {
+                query: utils.replaceFollowActiveNoteQuery(file, this.settings),
+            } as MapState,
+            this.settings.openMapBehavior,
+            true,
+        );
     }
 
     public async openMapWithState(
