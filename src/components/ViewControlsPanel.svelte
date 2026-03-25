@@ -106,8 +106,6 @@
             noteToEdit = file;
             editModeTools.noteToEdit = noteToEdit;
         }
-        // Trigger reactivity
-        settings = { ...settings };
     }
 
     export function openChooseNote() {
@@ -137,8 +135,6 @@
             for (const key in settings.mapControlsSections) {
                 settings.mapControlsSections[key] = false;
             }
-            // Trigger reactivity
-            settings = { ...settings };
         }
         settings.mapControlsSections[path] = value;
         plugin.saveSettings();
@@ -224,13 +220,10 @@
     }
 
     async function saveAsDefault() {
-        settings.defaultState = {
-            ...mapState,
-            name: 'Default',
-        };
-        view.defaultState = settings.defaultState;
+        const newDefault = { ...mapState, name: 'Default' };
+        settings.defaultState = newDefault;
+        view.defaultState = newDefault;
         presets = [view.defaultState, ...(settings.savedStates || [])];
-        onChangePreset();
         await plugin.saveSettings();
         new Notice('Default preset updated');
     }
@@ -285,11 +278,9 @@
                         ? 'Expand controls'
                         : 'Minimize controls'}
                     onclick={() => {
-                        setMapControl(
-                            'minimized',
-                            !settings.mapControlsMinimized,
-                        );
                         minimized = !minimized;
+                        settings.mapControlsMinimized = minimized;
+                        plugin.saveSettings();
                     }}
                 >
                     {@html getIcon(minimized ? 'maximize-2' : 'minimize-2')

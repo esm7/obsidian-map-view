@@ -241,3 +241,5 @@ This project has limited automated test coverage. When making changes:
 - **Settings changes require plugin reload**: No hot-reload for plugin settings
 - **Svelte 5 runes syntax**: Use `$state`, `$derived`, `$effect` for reactivity
 - All new UI should use Svelte 5, and not the vanilla JS style on which I started the plugin with, and slowly replacing.
+- **`plugin.settings` is a `$state` reactive proxy**: `loadSettings()` wraps settings via `makeSettingsReactive()` (`src/settingsReactive.svelte.ts`). This means deep mutations like `settings.mapControlsSections.foo = true` are automatically tracked by Svelte components that receive `settings` as a prop — no need for `settings = { ...settings }` hacks to trigger re-renders.
+- **Never use `settings = { ...settings }` to trigger reactivity**: This creates a shallow copy and breaks the reference to `plugin.settings`. Any subsequent mutation to the copy (e.g. `settings.defaultState = x`) will not reach `plugin.settings` and will not be saved.

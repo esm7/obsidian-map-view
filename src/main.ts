@@ -73,6 +73,7 @@ import { findOpenMapView } from 'src/pluginHelpers';
 import { MapPreviewPopup } from 'src/mapPreviewPopup';
 import { LayerCache } from 'src/layerCache';
 import { BaseGeoLayer, cacheTagsFromLayers } from 'src/baseGeoLayer';
+import { makeSettingsReactive } from 'src/settingsReactive.svelte';
 
 export default class MapViewPlugin extends Plugin {
     settings: PluginSettings;
@@ -1037,6 +1038,7 @@ export default class MapViewPlugin extends Plugin {
     async loadSettings() {
         this.settings = Object.assign({}, structuredClone(DEFAULT_SETTINGS));
         Object.assign(this.settings, await this.loadData());
+        this.settings = makeSettingsReactive(this.settings);
     }
 
     /** Save the plugin settings to Obsidian's cache so it can be reused later. */

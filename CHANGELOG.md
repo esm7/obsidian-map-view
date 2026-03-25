@@ -4,6 +4,12 @@ All notable changes to Map View are documented here.
 
 ---
 
+## Unreleased
+
+### Fixed
+
+- Fixed issues with saving a new default preset and a few other UI quirks.
+
 ## 6.1.4
 
 ### Added
