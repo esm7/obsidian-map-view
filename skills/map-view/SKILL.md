@@ -93,3 +93,4 @@ This produces a list the user can view directly on the map.
 ## Important Notes
 
 - If there is an error running the `obsidian` command, the Obsidian CLI is probably not properly activated or registered. Explain this to the user.
+- Prefer to use the geosearch commands with addresses AS THE USER GIVES THEM TO YOU, in the source language. DO NOT translate addresses for the purpose of geo-searching.
