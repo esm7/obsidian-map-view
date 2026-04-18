@@ -2,9 +2,16 @@ import { App, Plugin, TFile } from 'obsidian';
 import * as leaflet from 'leaflet';
 import { GeoSearcher } from 'src/geosearch';
 import { calcRoute } from 'src/routing';
+import { Query } from 'src/query';
+import { FileMarker } from 'src/fileMarker';
+import type { LayerCache } from 'src/layerCache';
 import type { PluginSettings } from 'src/settings';
 
-type MapViewPlugin = Plugin & { focusNoteInMap: (file: TFile) => void };
+type MapViewPlugin = Plugin & {
+    focusNoteInMap: (file: TFile) => void;
+    waitForInitialization: () => Promise<void>;
+    layerCache: LayerCache | null;
+};
 
 export function registerCliHandlers(
     plugin: MapViewPlugin,
@@ -147,6 +154,44 @@ export function registerCliHandlers(
             } catch (e: any) {
                 return `Routing error: ${e?.message ?? e}`;
             }
+        },
+    );
+
+    plugin.registerCliHandler(
+        'mv-query',
+        'Return all map markers matching a Map View query (full query language supported). An empty query returns all markers. Waits up to 10 seconds for the layer cache to initialize if needed.',
+        {
+            query: {
+                value: '<query>',
+                description:
+                    'Map View query expression, e.g. tag:#hiking, path:trips, tag:#cafe AND path:Paris. Leave empty to return all markers.',
+                required: false,
+            },
+        },
+        async (params: { query?: string }) => {
+            // Support positional arg: `mv-query tag:#foo` arrives as {"tag:#foo": "true"}
+            const queryStr =
+                params.query ??
+                Object.keys(params).find((k) => k !== 'query') ??
+                '';
+            await plugin.waitForInitialization();
+            const query = new Query(app, queryStr);
+            const results: string[] = [];
+            let index = 1;
+            for (const layer of plugin.layerCache.layers) {
+                if (!(layer instanceof FileMarker)) continue;
+                if (!query.testLayer(layer)) continue;
+                const coords = `[${layer.location.lat.toFixed(5)}, ${layer.location.lng.toFixed(5)}]`;
+                results.push(
+                    `${index}. ${layer.name} ${coords} (${layer.file.path})`,
+                );
+                index++;
+            }
+            if (!results.length)
+                return queryStr
+                    ? `No markers matched: ${queryStr}`
+                    : 'No markers found in the vault.';
+            return results.join('\n');
         },
     );
 

@@ -185,7 +185,7 @@ export class Query {
             );
         } else
             throw new Error(
-                `Unsupported query format for Map View display rule: "${value}"`,
+                `Unsupported query format for Map View: "${value}"`,
             );
     }
 }

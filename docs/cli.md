@@ -103,6 +103,37 @@ Descent: 8 m
 
 Returns routed distance, estimated travel time, and elevation change. Does not return the path geometry.
 
+### `mv-query`
+
+Return all map markers that match a Map View query expression. Supports the full Map View query language — the same syntax used in the map's filter bar.
+
+```bash
+obsidian mv-query query="tag:#hiking"
+```
+
+The `query` parameter is optional. Omitting it returns every marker in the vault.
+
+Example output:
+
+```
+1. Sentier des Crêtes [48.01230, 7.07845] (Hikes/Vosges.md)
+2. Lac Blanc [47.99501, 7.05312] (Hikes/Vosges.md)
+3. Cascade du Tennbach [48.00812, 7.06631] (Hikes/Alsace.md)
+```
+
+Each line contains the marker's display name, coordinates, and the path of the source note.
+
+**Query syntax examples:**
+
+| Query                          | Meaning                                         |
+| ------------------------------ | ----------------------------------------------- |
+| `tag:#hiking`                  | Markers tagged `#hiking`                        |
+| `path:France`                  | Markers from notes whose path contains "France" |
+| `tag:#cafe AND path:Paris`     | Cafés in Paris notes                            |
+| `name:Louvre`                  | Markers whose display name contains "Louvre"    |
+| `tag:#restaurant OR tag:#cafe` | Restaurants or cafés                            |
+| _(empty)_                      | All markers                                     |
+
 ### `mv-focus-note`
 
 Focus a note in Map View, filtering the map to show only its locations.

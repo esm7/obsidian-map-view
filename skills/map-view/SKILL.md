@@ -1,6 +1,6 @@
 ---
 name: map-view
-description: Look up and record geolocations in Obsidian notes using the Map View plugin. Use as part of helping the user to plan a trip, research places to visit, record a location in a note, or whenever the content being added to a note includes named real-world places. Every time the user asks you add to a note something that is a location, consider using this skill so it will be logged as a geolocation. Another usage is to measure distances, either aerial or by routing (foot/driving/cycling etc), e.g. for researching for places that are nearby a location, within a walking distance from it, etc.
+description: Look up and record geolocations in Obsidian notes using the Map View plugin. Use as part of helping the user to plan a trip, research places to visit, record a location in a note, or whenever the content being added to a note includes named real-world places. Every time the user asks you add to a note something that is a location, consider using this skill so it will be logged as a geolocation. Also use when the user refers to a known place ("my home", "my office", "my hotel") — query their vault to find its coordinates, then use those for distance or routing calculations. Another usage is to measure distances, either aerial or by routing (foot/driving/cycling etc), e.g. for researching for places that are nearby a location, within a walking distance from it, within a driving distance, etc.
 ---
 
 # Map View
@@ -39,6 +39,21 @@ obsidian mv-focus-note file="Paris Trip"
 Opens Map View filtered to show only the locations in that note. Use after adding geolocations to a if the user wants to see the results visually. The `file` parameter is resolved like a wikilink — name only, no path or extension needed.
 
 Consider actively asking the user if he wants to see the results after adding geolocations.
+
+```bash
+obsidian mv-query query="<query>"
+```
+
+Returns all map markers that match a Map View query. The `query` parameter is optional — omitting it returns every marker in the vault. Supports the full Map View query language: `tag:`, `path:`, `name:`, `linkedto:`, `linkedfrom:`, `AND`, `OR`, `NOT`, and more. Each result line contains: display name, coordinates, and source note path.
+
+Example output:
+
+```
+1. Eiffel Tower [48.85837, 2.29450] (Places/Paris.md)
+2. Louvre Museum [48.86013, 2.33552] (Places/Paris.md)
+```
+
+Use this command to query the user's vault for known locations. When the user refers to a place they have recorded ("my home", "my office", "the hotel from last week"), search the vault with `mv-query` to retrieve its coordinates — then feed those into `mv-calc-distance` or `mv-calc-route`. Also useful to find existing locations before adding new ones, or to check what's already in a note. The command initializes the layer cache automatically — no map needs to be open.
 
 ```bash
 obsidian mv-calc-distance from="lat,lng" to="lat,lng"
@@ -87,6 +102,24 @@ User asks: _"Is the hotel within 20 minutes' drive of the conference center?"_
 ```bash
 obsidian mv-calc-route from="48.8584,2.2945" to="48.8738,2.2950" profile="car"
 ```
+
+**Example: distance from existing vault markers**
+
+User asks: _"Which restaurants in my vault are within a 15-minute walk of my hotel?"_
+
+1. Find the hotel's coordinates using `mv-query`:
+
+```bash
+obsidian mv-query query="name:Grand Hotel"
+```
+
+2. Get all restaurant markers:
+
+```bash
+obsidian mv-query query="tag:#restaurant"
+```
+
+3. Check walking time for each candidate with `mv-calc-route` (profile `foot`). Only keep results ≤ 15 min.
 
 **Example: quick aerial check before routing**
 
