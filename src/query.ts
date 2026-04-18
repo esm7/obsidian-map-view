@@ -1,4 +1,5 @@
 import { App } from 'obsidian';
+import * as leaflet from 'leaflet';
 
 import * as regex from 'src/regex';
 import { isLayerLinkedFrom } from 'src/fileMarker';
@@ -40,6 +41,7 @@ export class Query {
             .replace(regex.LINKEDTO_QUERY_WITH_HEADER, '"linkedto:$1"')
             .replace(regex.LINKEDFROM_QUERY_WITH_HEADER, '"linkedfrom:$1"')
             .replace(regex.NAME_QUERY_WITH_HEADER, '"name:$1"')
+            .replace(regex.DISTANCEFROM_QUERY_WITH_HEADER, '"distancefrom:$1"')
             .replace(/^\[(")(.+?)\1:/, "['$2':")
             .replace(/:(")(.+)?\1\]/, ":'$2']");
         return newString;
@@ -142,6 +144,30 @@ export class Query {
                 // Also include the 'linked from' file itself
                 if (fileMatch.basename === layer.file.basename) return true;
             }
+        } else if (value.startsWith('distancefrom:')) {
+            const match = value.match(
+                /^distancefrom:\[?(-?[\d.]+),(-?[\d.]+)\]?<([\d.]+)(km|mi|ft|m)$/,
+            );
+            if (!match) return false;
+            const lat = parseFloat(match[1]);
+            const lng = parseFloat(match[2]);
+            const radius = parseFloat(match[3]);
+            const unit = match[4];
+            const radiusMeters =
+                unit === 'km'
+                    ? radius * 1000
+                    : unit === 'mi'
+                      ? radius * 1609.344
+                      : unit === 'ft'
+                        ? radius * 0.3048
+                        : radius;
+            const location = (layer as any).location as
+                | leaflet.LatLngExpression
+                | undefined;
+            if (!location) return false;
+            return (
+                leaflet.latLng(lat, lng).distanceTo(location) <= radiusMeters
+            );
         } else if (value.startsWith('lines:')) {
             const linesQueryMatch = value.match(/(lines:)([0-9]+)-([0-9]+)/);
             if (linesQueryMatch && linesQueryMatch.length === 4) {

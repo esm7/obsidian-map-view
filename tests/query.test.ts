@@ -185,6 +185,188 @@ describe('Query.testLayer', () => {
         ).toBe(false);
     });
 
+    // distancefrom operator
+    // 1 degree latitude ≈ 111 km; test coordinates use lat offsets to produce known distances.
+    it('distancefrom matches layer exactly at the reference point', () => {
+        const q = new Query(null as any, 'distancefrom:32.0,34.0<1m');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.0, lng: 34.0 } })),
+        ).toBe(true);
+    });
+
+    it('distancefrom matches layer within radius in km', () => {
+        // lat offset 0.04° ≈ 4.4 km, well within 5 km
+        const q = new Query(null as any, 'distancefrom:32.0,34.0<5km');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.04, lng: 34.0 } })),
+        ).toBe(true);
+    });
+
+    it('distancefrom does not match layer outside radius in km', () => {
+        // lat offset 0.06° ≈ 6.7 km, outside 5 km
+        const q = new Query(null as any, 'distancefrom:32.0,34.0<5km');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.06, lng: 34.0 } })),
+        ).toBe(false);
+    });
+
+    it('distancefrom matches layer within radius in meters', () => {
+        // lat offset 0.003° ≈ 333 m, within 500 m
+        const q = new Query(null as any, 'distancefrom:32.0,34.0<500m');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.003, lng: 34.0 } })),
+        ).toBe(true);
+    });
+
+    it('distancefrom does not match layer outside radius in meters', () => {
+        // lat offset 0.01° ≈ 1111 m, outside 500 m
+        const q = new Query(null as any, 'distancefrom:32.0,34.0<500m');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.01, lng: 34.0 } })),
+        ).toBe(false);
+    });
+
+    it('distancefrom returns false for layer without location', () => {
+        const q = new Query(null as any, 'distancefrom:32.0,34.0<5km');
+        expect(q.testLayer(mockLayer())).toBe(false);
+    });
+
+    it('distancefrom works with negative coordinates', () => {
+        // NYC area — layer at same point
+        const q = new Query(null as any, 'distancefrom:40.71,-74.00<1km');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 40.71, lng: -74.0 } })),
+        ).toBe(true);
+    });
+
+    it('distancefrom works with optional brackets', () => {
+        const q = new Query(null as any, 'distancefrom:[32.0,34.0]<5km');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.04, lng: 34.0 } })),
+        ).toBe(true);
+    });
+
+    it('distancefrom composes with AND', () => {
+        const q = new Query(
+            null as any,
+            'distancefrom:32.0,34.0<5km AND tag:#hiking',
+        );
+        expect(
+            q.testLayer(
+                mockLayer({
+                    location: { lat: 32.04, lng: 34.0 },
+                    tags: ['#hiking'],
+                }),
+            ),
+        ).toBe(true);
+        expect(
+            q.testLayer(
+                mockLayer({
+                    location: { lat: 32.04, lng: 34.0 },
+                    tags: ['#food'],
+                }),
+            ),
+        ).toBe(false);
+    });
+
+    it('distancefrom matches within radius in miles', () => {
+        // 0.04° lat ≈ 4.4 km ≈ 2.7 mi, within 3 mi
+        const q = new Query(null as any, 'distancefrom:32.0,34.0<3mi');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.04, lng: 34.0 } })),
+        ).toBe(true);
+    });
+
+    it('distancefrom does not match outside radius in miles', () => {
+        // 0.06° lat ≈ 6.7 km ≈ 4.2 mi, outside 3 mi
+        const q = new Query(null as any, 'distancefrom:32.0,34.0<3mi');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.06, lng: 34.0 } })),
+        ).toBe(false);
+    });
+
+    it('distancefrom matches within radius in feet', () => {
+        // 0.003° lat ≈ 333 m ≈ 1093 ft, within 1500 ft
+        const q = new Query(null as any, 'distancefrom:32.0,34.0<1500ft');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.003, lng: 34.0 } })),
+        ).toBe(true);
+    });
+
+    it('distancefrom does not match outside radius in feet', () => {
+        // 0.01° lat ≈ 1111 m ≈ 3645 ft, outside 1500 ft
+        const q = new Query(null as any, 'distancefrom:32.0,34.0<1500ft');
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.01, lng: 34.0 } })),
+        ).toBe(false);
+    });
+
+    it('distancefrom composes with NOT', () => {
+        const q = new Query(null as any, 'NOT distancefrom:32.0,34.0<5km');
+        // Within 5 km → NOT → false
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.04, lng: 34.0 } })),
+        ).toBe(false);
+        // Outside 5 km → NOT → true
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.06, lng: 34.0 } })),
+        ).toBe(true);
+    });
+
+    it('distancefrom composes with OR', () => {
+        // Two separate reference points; layer is near the second one only
+        const q = new Query(
+            null as any,
+            'distancefrom:32.0,34.0<1km OR distancefrom:33.0,34.0<1km',
+        );
+        // Near first point
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.005, lng: 34.0 } })),
+        ).toBe(true);
+        // Near second point
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 33.005, lng: 34.0 } })),
+        ).toBe(true);
+        // Near neither
+        expect(
+            q.testLayer(mockLayer({ location: { lat: 32.5, lng: 34.0 } })),
+        ).toBe(false);
+    });
+
+    it('distancefrom works inside parentheses', () => {
+        const q = new Query(
+            null as any,
+            'tag:#cafe AND (distancefrom:32.0,34.0<2km OR distancefrom:33.0,34.0<2km)',
+        );
+        // Café near first point — matches
+        expect(
+            q.testLayer(
+                mockLayer({
+                    location: { lat: 32.01, lng: 34.0 },
+                    tags: ['#cafe'],
+                }),
+            ),
+        ).toBe(true);
+        // Café near neither point — does not match
+        expect(
+            q.testLayer(
+                mockLayer({
+                    location: { lat: 32.5, lng: 34.0 },
+                    tags: ['#cafe'],
+                }),
+            ),
+        ).toBe(false);
+        // Near first point but wrong tag — does not match
+        expect(
+            q.testLayer(
+                mockLayer({
+                    location: { lat: 32.01, lng: 34.0 },
+                    tags: ['#restaurant'],
+                }),
+            ),
+        ).toBe(false);
+    });
+
     // Unicode / emoji query cases
     it('Hebrew tag query matches layer with Hebrew tag', () => {
         const q = new Query(null as any, 'tag:#טיול');

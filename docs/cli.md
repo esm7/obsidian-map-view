@@ -125,14 +125,16 @@ Each line contains the marker's display name, coordinates, and the path of the s
 
 **Query syntax examples:**
 
-| Query                          | Meaning                                         |
-| ------------------------------ | ----------------------------------------------- |
-| `tag:#hiking`                  | Markers tagged `#hiking`                        |
-| `path:France`                  | Markers from notes whose path contains "France" |
-| `tag:#cafe AND path:Paris`     | Cafés in Paris notes                            |
-| `name:Louvre`                  | Markers whose display name contains "Louvre"    |
-| `tag:#restaurant OR tag:#cafe` | Restaurants or cafés                            |
-| _(empty)_                      | All markers                                     |
+| Query                                         | Meaning                                          |
+| --------------------------------------------- | ------------------------------------------------ |
+| `tag:#hiking`                                 | Markers tagged `#hiking`                         |
+| `path:France`                                 | Markers from notes whose path contains "France"  |
+| `tag:#cafe AND path:Paris`                    | Cafés in Paris notes                             |
+| `name:Louvre`                                 | Markers whose display name contains "Louvre"     |
+| `tag:#restaurant OR tag:#cafe`                | Restaurants or cafés                             |
+| `distancefrom:48.85,2.35<2km`                 | Markers within 2 km of a point (aerial distance) |
+| `distancefrom:32.08,34.78<500m AND tag:#cafe` | Cafés within 500 m of a point                    |
+| _(empty)_                                     | All markers                                      |
 
 ### `mv-focus-note`
 

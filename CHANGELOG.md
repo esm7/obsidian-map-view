@@ -6,6 +6,11 @@ All notable changes to Map View are documented here.
 
 ## Unreleased
 
+### Added
+
+- A new `distancefrom` query operator.
+- New CLI commands for running queries and calculating routes, especially for usage in conjunction with an LLM.
+
 ### Fixed
 
 - Fixed issues with saving a new default preset and a few other UI quirks.

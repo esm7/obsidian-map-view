@@ -1,6 +1,6 @@
 ---
 name: map-view
-description: Look up and record geolocations in Obsidian notes using the Map View plugin. Use as part of helping the user to plan a trip, research places to visit, record a location in a note, or whenever the content being added to a note includes named real-world places. Every time the user asks you add to a note something that is a location, consider using this skill so it will be logged as a geolocation. Also use when the user refers to a known place ("my home", "my office", "my hotel") — query their vault to find its coordinates, then use those for distance or routing calculations. Another usage is to measure distances, either aerial or by routing (foot/driving/cycling etc), e.g. for researching for places that are nearby a location, within a walking distance from it, within a driving distance, etc.
+description: Look up and record geolocations in Obsidian notes using the Map View plugin. Use as part of helping the user to plan a trip, research places to visit, record a location in a note, or whenever the content being added to a note includes named real-world places. Every time the user asks you add to a note something that is a location, consider using this skill so it will be logged as a geolocation. Also use when the user refers to a known place ("my home", "my office", "my hotel") — query their vault to find its coordinates, then use with other commands. Another usage is to measure distances, either aerial or by routing (foot/driving/cycling etc), e.g. for researching for places that are nearby a location, within a walking distance from it, within a driving distance, etc. Or to query for places around a point with the distancefrom operator.
 ---
 
 # Map View
@@ -66,6 +66,15 @@ obsidian mv-calc-route from="lat,lng" to="lat,lng" profile="foot"
 ```
 
 Returns routed distance, travel time in minutes, and elevation change (ascent/descent) using the routing engine configured in Map View settings (GraphHopper — requires an API key). Does **not** return path geometry. Available profiles: `foot`, `bike`, `car`, `hike`, `motorcycle`, `racingbike`, `mtb`. Coordinates can be given as `lat,lng` or `[lat,lng]` — the brackets are optional.
+
+Take special notice of the **`distancefrom:` query operator** that filters markers by aerial distance without any API call:
+
+```bash
+obsidian mv-query "distancefrom:32.08,34.78<5km"
+obsidian mv-query "distancefrom:32.08,34.78<500m AND tag:#restaurant"
+```
+
+Radius can be in `km`, `m`, `mi`, or `ft`. This is the fastest way to find vault markers near a given point — no routing API key required. Use it to quickly narrow down candidates before calling `mv-calc-route` only on the ones that are geographically plausible, or to answer the users for queries like "what do I have in my vault that is around...".
 
 ## Checking distance and travel time for recommendations
 

@@ -6,15 +6,16 @@ Map View supports powerful queries to filter what is shown on the map.
 
 ## Search Operators
 
-| Operator               | Description                                                                                                                                                                               |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tag:#...`             | Notes or markers tagged with a specific tag. Works on both note tags (`#hiking`) and inline tags (`tag:hiking`). Supports wildcards: `tag:#sleep*` matches `#sleep` and `#sleep/camping`. |
-| `name:...`             | Markers whose name contains the given string. For front-matter geolocations this matches the file name. For inline geolocations this matches the link name and **ignores** the file name. |
-| `path:...`             | Notes whose path matches the query. Includes all markers in matching notes.                                                                                                               |
-| `linkedto:...`         | Notes that contain a link to the specified note. E.g. `linkedto:"Cave Hikes"` includes all notes that link to `[[Cave Hikes]]`.                                                           |
-| `linkedfrom:...`       | Notes that are linked from the specified note (plus the origin note itself). E.g. `linkedfrom:"Trip to Italy"` includes all notes linked from `[[Trip to Italy]]`.                        |
-| `["property":"value"]` | Notes with the property `property` set to `value`.                                                                                                                                        |
-| `lines:x-y`            | Only inline markers defined in the given line range in their note. E.g. `lines:20-30`.                                                                                                    |
+| Operator                      | Description                                                                                                                                                                                                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tag:#...`                    | Notes or markers tagged with a specific tag. Works on both note tags (`#hiking`) and inline tags (`tag:hiking`). Supports wildcards: `tag:#sleep*` matches `#sleep` and `#sleep/camping`.                                                                                                  |
+| `name:...`                    | Markers whose name contains the given string. For front-matter geolocations this matches the file name. For inline geolocations this matches the link name and **ignores** the file name.                                                                                                  |
+| `path:...`                    | Notes whose path matches the query. Includes all markers in matching notes.                                                                                                                                                                                                                |
+| `linkedto:...`                | Notes that contain a link to the specified note. E.g. `linkedto:"Cave Hikes"` includes all notes that link to `[[Cave Hikes]]`.                                                                                                                                                            |
+| `linkedfrom:...`              | Notes that are linked from the specified note (plus the origin note itself). E.g. `linkedfrom:"Trip to Italy"` includes all notes linked from `[[Trip to Italy]]`.                                                                                                                         |
+| `["property":"value"]`        | Notes with the property `property` set to `value`.                                                                                                                                                                                                                                         |
+| `lines:x-y`                   | Only inline markers defined in the given line range in their note. E.g. `lines:20-30`.                                                                                                                                                                                                     |
+| `distancefrom:lat,lng<radius` | Only markers within a given aerial (straight-line) distance from the given coordinates. Radius can be in `km`, `m`, `mi`, or `ft`. E.g. `distancefrom:32.08,34.78<5km`, `distancefrom:40.71,-74.00<0.5mi`, `distancefrom:40.71,-74.00<500m`. Brackets around the coordinates are optional. |
 
 All operators are **case insensitive**.
 
@@ -56,6 +57,26 @@ tag:#hike AND (tag:#dogs OR tag:#amazing) AND NOT path:"bad places"
 ```
 
 Great hikes (dogs-OK or amazing), excluding notes in the "bad places" path.
+
+```
+distancefrom:48.8566,2.3522<2km AND tag:#restaurant
+```
+
+Restaurants within 2 km of central Paris.
+
+```
+distancefrom:32.08,34.78<500m
+```
+
+All markers within 500 metres of a reference point.
+
+```
+tag:#cafe AND (distancefrom:40.71,-74.00<1mi OR distancefrom:40.75,-73.99<1mi)
+```
+
+Cafés within 1 mile of either of two reference points.
+
+**Tip:** `distancefrom` works best in conjunction with an LLM that utilizes the [CLI](cli.md) and [Skill](https://github.com/esm7/obsidian-map-view/tree/master/skills/map-view).
 
 ## Creative Uses
 

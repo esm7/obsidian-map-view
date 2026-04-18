@@ -198,6 +198,10 @@ export class QuerySuggest extends PopoverSuggest<Suggestion> {
                     cursorOffset: -1,
                 },
                 {
+                    text: 'distancefrom:lat,lng<radius (e.g. distancefrom:32.08,34.78<5km)',
+                    textToInsert: 'distancefrom:',
+                },
+                {
                     text: '["property":"value"]',
                     textToInsert: '[:]',
                     cursorOffset: -2,

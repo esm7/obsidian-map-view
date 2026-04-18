@@ -32,6 +32,8 @@ export const QUOTED_OR_NOT_QUOTED_PATH =
     /path:(("((?:[^"]|\\")*)")|((?:[^"\s]|\\")*))/gu;
 export const QUOTED_OR_NOT_QUOTED_LINKEDTO =
     /linkedto:(("((?:[^"]|\\")*)")|((?:[^"\s]|\\")*))/gu;
+export const DISTANCEFROM_QUERY_WITH_HEADER =
+    /distancefrom:(\[?[+-]?[\d.]+,[+-]?[\d.]+\]?<[\d.]+(?:km|mi|ft|m))/gu;
 export const QUOTED_OR_NOT_QUOTED_LINKEDFROM =
     /linkedfrom:(("((?:[^"]|\\")*)")|((?:[^"\s]|\\")*))/gu;
 export const COORDINATES =
