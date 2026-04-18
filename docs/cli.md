@@ -62,6 +62,47 @@ Example output:
 
 Use to embed a location reference inside note content. Map View renders inline geolinks as clickable links and as pins on the map.
 
+### `mv-calc-distance`
+
+Calculate the straight-line (aerial) distance between two coordinates.
+
+```bash
+obsidian mv-calc-distance from="40.7128,-74.0060" to="48.8584,2.2945"
+```
+
+Coordinates can be given as `lat,lng` or `[lat,lng]` — the brackets are optional.
+
+Example output:
+
+```
+Distance: 5837093 m (5837.09 km)
+Note: this is the straight-line (aerial) distance, not a routed distance.
+```
+
+Useful for quickly checking whether two places are in the same area without needing a routing API key.
+
+### `mv-calc-route`
+
+Calculate a routed distance and travel time between two coordinates using the configured routing engine (GraphHopper). Requires a GraphHopper API key to be set in Map View settings.
+
+```bash
+obsidian mv-calc-route from="40.7484,-73.9967" to="40.7580,-73.9855" profile="foot"
+```
+
+Coordinates can be given as `lat,lng` or `[lat,lng]` — the brackets are optional. For available profiles, consult the Map View documentation.
+
+Example output:
+
+```
+Profile: foot
+Distance: 1823 m (1.82 km)
+Time: 22.1 min
+Ascent: 12 m
+Descent: 8 m
+```
+
+Returns routed distance, estimated travel time, and elevation change. Does not return the path geometry.
+
 ### `mv-focus-note`
 
 Focus a note in Map View, filtering the map to show only its locations.

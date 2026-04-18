@@ -1,6 +1,6 @@
 ---
 name: map-view
-description: Look up and record geolocations in Obsidian notes using the Map View plugin. Use as part of helping the user to plan a trip, research places to visit, record a location in a note, or whenever the content being added to a note includes named real-world places. Every time the user asks you add to a note something that is a location, consider using this skill so it will be logged as a geolocation.
+description: Look up and record geolocations in Obsidian notes using the Map View plugin. Use as part of helping the user to plan a trip, research places to visit, record a location in a note, or whenever the content being added to a note includes named real-world places. Every time the user asks you add to a note something that is a location, consider using this skill so it will be logged as a geolocation. Another usage is to measure distances, either aerial or by routing (foot/driving/cycling etc), e.g. for researching for places that are nearby a location, within a walking distance from it, etc.
 ---
 
 # Map View
@@ -39,6 +39,60 @@ obsidian mv-focus-note file="Paris Trip"
 Opens Map View filtered to show only the locations in that note. Use after adding geolocations to a if the user wants to see the results visually. The `file` parameter is resolved like a wikilink — name only, no path or extension needed.
 
 Consider actively asking the user if he wants to see the results after adding geolocations.
+
+```bash
+obsidian mv-calc-distance from="lat,lng" to="lat,lng"
+```
+
+Returns the straight-line (aerial) distance between two coordinates in meters and kilometers. No API key required. Use as a fast proximity check before committing to a routed calculation.
+
+```bash
+obsidian mv-calc-route from="lat,lng" to="lat,lng" profile="foot"
+```
+
+Returns routed distance, travel time in minutes, and elevation change (ascent/descent) using the routing engine configured in Map View settings (GraphHopper — requires an API key). Does **not** return path geometry. Available profiles: `foot`, `bike`, `car`, `hike`, `motorcycle`, `racingbike`, `mtb`. Coordinates can be given as `lat,lng` or `[lat,lng]` — the brackets are optional.
+
+## Checking distance and travel time for recommendations
+
+Use `mv-calc-distance` or `mv-calc-route` to verify that places meet a proximity criterion before presenting them to the user.
+
+**Example: walking distance from a reference point**
+
+User asks: _"Find amusement parks within 10-minute walking distance of 120 W 5th Avenue, NYC."_
+
+1. Geo-search the reference point to get its coordinates:
+
+```bash
+obsidian mv-geosearch name="120 W 5th Avenue, NYC"
+```
+
+2. Geo-search each candidate:
+
+```bash
+obsidian mv-geosearch name="Coney Island Amusement Park"
+```
+
+3. Check the walking route:
+
+```bash
+obsidian mv-calc-route from="40.7128,-74.0150" to="40.5755,-73.9707" profile="foot"
+```
+
+4. Only include places where `Time` is ≤ 10 min. Discard the rest and explain why.
+
+**Example: driving time between two places**
+
+User asks: _"Is the hotel within 20 minutes' drive of the conference center?"_
+
+```bash
+obsidian mv-calc-route from="48.8584,2.2945" to="48.8738,2.2950" profile="car"
+```
+
+**Example: quick aerial check before routing**
+
+If you need to filter a long list of candidates, first use `mv-calc-distance` to discard obviously far-away results (e.g. > 5 km aerial for a 10-min walk), then run `mv-calc-route` only for the remaining candidates to avoid unnecessary API calls.
+
+**IMPORTANT NOTE:** keep in mind that routing requires API calls, and they will cost the user money if done without care. Do not launch big numbers of such API calls (e.g. dozens or more) without making sure this is indeed what the user wants.
 
 ## Trip planning workflow
 
