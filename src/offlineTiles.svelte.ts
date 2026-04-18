@@ -177,9 +177,7 @@ async function doDownloadJob(job: Job) {
         } catch (error) {
             console.error(`Failed to download tile: ${tile.url}`, error);
             console.error(`Error details: ${error.message}`);
-            new Notice(
-                'Offline tiles downloaded failed, see the console for more details.',
-            );
+            new Notice('离线瓦片下载失败，详情请查看控制台。');
             break;
         }
     }
@@ -298,7 +296,5 @@ export async function purgeTilesBySettings(settings: PluginSettings) {
         }
     }
     if (numPurged > 0)
-        new Notice(
-            `Map View removed ${numPurged} old offline tiles according to the settings.`,
-        );
+        new Notice(`地图视图已根据设置删除了 ${numPurged} 个旧离线瓦片。`);
 }

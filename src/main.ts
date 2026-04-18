@@ -102,7 +102,7 @@ export default class MapViewPlugin extends Plugin {
         await convertLegacySettings(this.settings, this);
 
         // Add a new ribbon entry to the left bar
-        this.addRibbonIcon('map-pin', 'Open map view', (ev: MouseEvent) => {
+        this.addRibbonIcon('map-pin', '打开地图视图', (ev: MouseEvent) => {
             this.openMap(
                 utils.mouseEventToOpenMode(this.settings, ev, 'openMap'),
             );
@@ -113,7 +113,7 @@ export default class MapViewPlugin extends Plugin {
         });
 
         this?.registerBasesView('map-view-plugin', {
-            name: 'Map View',
+            name: 'Chinese Map View',
             icon: 'map-pin',
             factory: (controller, containerEl) =>
                 new BasesMapView(controller, containerEl, this.settings, this),
@@ -780,7 +780,7 @@ export default class MapViewPlugin extends Plugin {
                                     )
                                 ) {
                                     new Notice(
-                                        "The note's front matter was updated to denote locations are present",
+                                        '笔记的前置元数据已更新，标记为包含地理位置',
                                     );
                                 }
                             }

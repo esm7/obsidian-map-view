@@ -29,9 +29,7 @@ export async function doRouting(
     settings: PluginSettings,
 ) {
     if (!settings.routingGraphHopperApiKey) {
-        new Notice(
-            'You must first provide a GraphHopper API key in the settings.',
-        );
+        new Notice('请先在设置中提供 GraphHopper API 密钥。');
         return;
     }
     try {
@@ -61,7 +59,7 @@ export async function doRouting(
             !result.paths[0]?.points ||
             result.paths[0].points.length > 0
         ) {
-            new Notice('Empty routing result');
+            new Notice('路由结果为空');
             console.error('Routing result:', result);
             return;
         }
@@ -76,7 +74,7 @@ export async function doRouting(
         };
         map.addFloatingRoute(routingResult);
     } catch (e) {
-        new Notice('Routing error, see log for more details.');
+        new Notice('路由错误，详情请查看日志。');
         console.error('Routing error:', e);
     }
 }

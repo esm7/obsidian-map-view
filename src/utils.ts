@@ -538,9 +538,7 @@ export async function appendToNoteAtHeadingOrEnd(
             fileHeadings?.findIndex((h) => h.heading === heading) ?? null;
         if (headingObject > -1) nextHeading = fileHeadings[headingObject + 1];
         else {
-            new Notice(
-                `Can't find heading ${heading}, file may have changed after you selected it.`,
-            );
+            new Notice(`找不到标题 ${heading}，文件可能在您选择后已更改。`);
             return;
         }
     }

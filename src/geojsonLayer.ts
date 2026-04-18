@@ -270,7 +270,7 @@ export async function editGeoJson(
 ) {
     if (layer.sourceType !== 'geojson') {
         new Notice(
-            'The edit tool currently supports only inline GeoJSON paths. Your changes will not be saved.',
+            '编辑工具目前仅支持内联 GeoJSON 路径。您的更改将不会被保存。',
         );
         return;
     }

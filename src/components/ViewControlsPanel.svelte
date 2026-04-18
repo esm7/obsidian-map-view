@@ -225,7 +225,7 @@
         view.defaultState = newDefault;
         presets = [view.defaultState, ...(settings.savedStates || [])];
         await plugin.saveSettings();
-        new Notice('Default preset updated');
+        new Notice('默认预设已更新');
     }
 
     async function copyUrl() {
@@ -265,9 +265,7 @@
         <div class="top-right-controls">
             {#if viewSettings.showFilters}
                 {#if mapState.query.length > 0}
-                    <span class="mv-filters-on" title="Filters are active"
-                        >🟠</span
-                    >
+                    <span class="mv-filters-on" title="过滤器已激活">🟠</span>
                 {/if}
             {/if}
             {#if viewSettings.showMinimizeButton}
@@ -275,8 +273,8 @@
                 <div
                     class="minimize-button"
                     title={settings.mapControlsMinimized
-                        ? 'Expand controls'
-                        : 'Minimize controls'}
+                        ? '展开控制'
+                        : '最小化控制'}
                     onclick={() => {
                         minimized = !minimized;
                         settings.mapControlsMinimized = minimized;
@@ -295,19 +293,19 @@
             {#if viewSettings.showOpenButton}
                 <button
                     class="button"
-                    title="Open a full Map View with the current state."
+                    title="使用当前状态打开完整的地图视图。"
                     onclick={openButtonClick}
                 >
-                    Open
+                    打开
                 </button>
             {/if}
             {#if viewSettings.showEmbeddedControls && !areStatesEqual(mapState, lastSavedState, view.display?.map)}
                 <button
                     class="button"
-                    title="Update the source code block with the updated view state."
+                    title="用更新的视图状态更新源代码块。"
                     onclick={() => saveButton()}
                 >
-                    Save
+                    保存
                 </button>
             {/if}
             {#if viewSettings.showFilters}
@@ -344,29 +342,29 @@
                         class="dropdown mv-map-control"
                         bind:value={settings.chosenMapMode}
                     >
-                        <option value="auto">Auto</option>
-                        <option value="light">Light</option>
-                        <option value="dark">Dark</option>
+                        <option value="auto">自动</option>
+                        <option value="light">浅色</option>
+                        <option value="dark">深色</option>
                     </select>
                     <button
                         class="button"
-                        title="Reset the view to the defined default."
+                        title="重置视图为定义的默认值。"
                         onclick={() => {
                             selectedPreset = '0';
                             onChangePreset();
                         }}
                     >
-                        Reset
+                        重置
                     </button>
                     {#if viewSettings.viewTabType === 'regular'}
                         <button
                             class="button"
-                            title="Set the map view to fit all currently-displayed markers."
+                            title="调整地图视图以适应所有当前显示的标记。"
                             onclick={() => {
                                 view.autoFitMapToMarkers();
                             }}
                         >
-                            Fit
+                            适应
                         </button>
                         <div class="graph-control-toggle-div">
                             <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
@@ -383,8 +381,7 @@
                             </div>
                             <label
                                 class="follow-location-label"
-                                for="follow-location-active"
-                                >Follow my location</label
+                                for="follow-location-active">跟随我的位置</label
                             >
                         </div>
                         <div class="graph-control-toggle-div">
@@ -401,7 +398,7 @@
                                 />
                             </div>
                             <label class="follow-label" for="follow-active"
-                                >Follow active note</label
+                                >跟随活跃笔记</label
                             >
                         </div>
 
@@ -409,16 +406,16 @@
                             class="dropdown mv-map-control"
                             bind:value={mapState.markerLabels}
                         >
-                            <option value="off">No labels</option>
-                            <option value="left">Left labels</option>
-                            <option value="right">Right labels</option>
+                            <option value="off">无标签</option>
+                            <option value="left">左侧标签</option>
+                            <option value="right">右侧标签</option>
                         </select>
                     {/if}
                 </ViewCollapsibleSection>
             {/if}
             {#if viewSettings.showLinks}
                 <ViewCollapsibleSection
-                    headerText="Links"
+                    headerText="链接"
                     expanded={settings.mapControlsSections.linksDisplayed}
                     afterToggle={(expanded) =>
                         setMapControl('linksDisplayed', expanded)}
@@ -430,23 +427,23 @@
                             (mapState.showLinks =
                                 e.currentTarget.value === 'true')}
                     >
-                        <option value="false">Off</option>
-                        <option value="true">Show links</option>
+                        <option value="false">关闭</option>
+                        <option value="true">显示链接</option>
                     </select>
                     <input
                         type="text"
                         class="mv-map-control"
-                        placeholder="color"
+                        placeholder="颜色"
                         bind:value={mapState.linkColor}
                         contenteditable="true"
-                        title="Color used for lines (edges). Can be any valid HTML color, e.g. 'red' or '#bc11ff'."
+                        title="线条（边）使用的颜色。可以是任何有效的 HTML 颜色，例如 'red' 或 '#bc11ff'。"
                         style="width: 6em;"
                     />
                 </ViewCollapsibleSection>
             {/if}
             {#if viewSettings.showPresets}
                 <ViewCollapsibleSection
-                    headerText="Presets"
+                    headerText="预设"
                     expanded={settings.mapControlsSections.presetsDisplayed}
                     afterToggle={(expanded) =>
                         setMapControl('presetsDisplayed', expanded)}
@@ -456,62 +453,62 @@
                         bind:value={selectedPreset}
                         onchange={() => onChangePreset()}
                     >
-                        <option value="-1">(no preset)</option>
+                        <option value="-1">（无预设）</option>
                         {#each presets as preset, i}
                             <option value={i.toString()}>{preset.name}</option>
                         {/each}
                     </select>
                     <button
                         class="button mv-map-control"
-                        title="Save the current view as a preset."
+                        title="将当前视图保存为预设。"
                         onclick={() => {
                             presetSaveAs();
                         }}
                     >
-                        Save as...
+                        另存为...
                     </button>
                     <button
                         class="button mv-map-control"
-                        title="Delete the currently-selected preset."
+                        title="删除当前选中的预设。"
                         onclick={() => {
                             deletePreset();
                         }}
                     >
-                        Delete
+                        删除
                     </button>
                     <button
                         class="button mv-map-control"
-                        title="Save the current view as the default one."
+                        title="将当前视图保存为默认视图。"
                         onclick={() => {
                             saveAsDefault();
                         }}
                     >
-                        Save as Default
+                        保存为默认
                     </button>
                     <button
                         class="button mv-map-control"
-                        title="Copy the current view as a URL."
+                        title="复制当前视图为 URL。"
                         onclick={() => {
                             copyUrl();
                         }}
                     >
-                        Copy URL
+                        复制 URL
                     </button>
                     <button
                         class="button mv-map-control"
-                        title="Copy the current view as a code block you can paste in notes for an inline map."
+                        title="复制当前视图为代码块，可粘贴到笔记中嵌入地图。"
                         onclick={() => {
                             copyBlock();
                         }}
                     >
-                        Copy Block
+                        复制代码块
                     </button>
                 </ViewCollapsibleSection>
             {/if}
 
             {#if viewSettings.showEdit}
                 <ViewCollapsibleSection
-                    headerText="Edit"
+                    headerText="编辑"
                     expanded={settings.mapControlsSections.editDisplayed}
                     afterToggle={(expanded) =>
                         setMapControl('editDisplayed', expanded)}
@@ -533,7 +530,7 @@
                                 />
                             </div>
                             <label class="edit-label" for="edit-active"
-                                >Edit Mode</label
+                                >编辑模式</label
                             >
                         </div>
 
@@ -544,13 +541,13 @@
                                     noteToEdit === null}
                                 title={noteToEdit
                                     ? noteToEdit.basename
-                                    : 'Choose the note to use for adding markers and paths'}
+                                    : '选择用于添加标记和路径的笔记'}
                                 onclick={() => {
                                     openChooseNote();
                                 }}
                             >
                                 {noteToEdit
-                                    ? "Adding to '" +
+                                    ? "添加到 '" +
                                       (noteToEdit.basename.length > 10
                                           ? noteToEdit.basename.substring(
                                                 0,
@@ -558,7 +555,7 @@
                                             ) + '...'
                                           : noteToEdit.basename) +
                                       "'"
-                                    : 'Choose Note...'}
+                                    : '选择笔记...'}
                             </button>
                             {#if noteToEdit !== null}
                                 <span
@@ -573,10 +570,10 @@
                         <select
                             class="dropdown mv-map-control edit-section-dropdown"
                             bind:value={noteHeading}
-                            title="Choose where in the selected note you wish markers and paths to be added."
+                            title="选择要将标记和路径添加到所选笔记的哪个位置。"
                             disabled={noteToEdit === null}
                         >
-                            <option value={null}>Append to end</option>
+                            <option value={null}>追加到末尾</option>
                             {#each allNoteHeadings as heading}
                                 <option value={heading}>{heading}</option>
                             {/each}

@@ -93,21 +93,18 @@
     <div class="scrollable">
         <div class="section">
             <div class="setting-item-info">
-                <div class="setting-item-name">Marker Icon Properties</div>
+                <div class="setting-item-name">标记图标属性</div>
                 <div class="setting-item-description">
-                    See Font Awesome reference <a
-                        href="https://fontawesome.com/search?ic=free">here</a
+                    参见 Font Awesome 参考 <a
+                        href="https://fontawesome.com/search?ic=free">这里</a
                     >
-                    and emoji reference
-                    <a href="https://emojipedia.org/">here</a>.
+                    和表情符号参考
+                    <a href="https://emojipedia.org/">这里</a>。
                 </div>
             </div>
             <div class="rule-group">
                 <div class="rule-input">
-                    {@render fieldName(
-                        'Icon',
-                        'A FontAwesome icon or an emoji',
-                    )}
+                    {@render fieldName('图标', 'FontAwesome 图标或表情符号')}
                     <input
                         type="text"
                         bind:value={ruleCopy.iconDetails.icon}
@@ -116,8 +113,8 @@
                 </div>
                 <div class="rule-input">
                     {@render fieldName(
-                        'Marker Color',
-                        "A hex color or one of the following: 'red', 'darkred', 'orange', 'green', 'darkgreen', 'blue', 'purple', 'darkpurple', 'cadetblue'",
+                        '标记颜色',
+                        "十六进制颜色或以下之一：'red', 'darkred', 'orange', 'green', 'darkgreen', 'blue', 'purple', 'darkpurple', 'cadetblue'",
                     )}
                     <input
                         type="text"
@@ -126,10 +123,7 @@
                     />
                 </div>
                 <div class="rule-input">
-                    {@render fieldName(
-                        'Icon Color',
-                        'Any color name or a hex value',
-                    )}
+                    {@render fieldName('图标颜色', '任何颜色名称或十六进制值')}
                     <input
                         type="text"
                         bind:value={ruleCopy.iconDetails.iconColor}
@@ -138,7 +132,7 @@
                 </div>
                 <div class="rule-input">
                     {@render fieldName(
-                        'Shape',
+                        '形状',
                         'circle, square, star, penta, simple-circle',
                     )}
                     <input
@@ -149,8 +143,8 @@
                 </div>
                 <div class="rule-input">
                     {@render fieldName(
-                        'Opacity',
-                        'A value between 0 (fully transparent) and 1 (fully opaque)',
+                        '透明度',
+                        '0（完全透明）到 1（完全不透明）之间的值',
                     )}
                     <input
                         type="text"
@@ -164,20 +158,17 @@
         {#if !displayRule.preset}
             <div class="section">
                 <div class="setting-item-info">
-                    <div class="setting-item-name">Marker Badge</div>
+                    <div class="setting-item-name">标记徽章</div>
                     <div class="setting-item-description">
-                        See documentation <a
+                        参见文档 <a
                             href="https://esm7.github.io/obsidian-map-view/display-rules#marker-badges"
-                            >here</a
-                        >.
+                            >这里</a
+                        >。
                     </div>
                 </div>
                 <div class="rule-group">
                     <div class="rule-input">
-                        {@render fieldName(
-                            'Symbol',
-                            'An emoji or up to 2 characters',
-                        )}
+                        {@render fieldName('符号', '表情符号或最多 2 个字符')}
                         <input
                             type="text"
                             bind:value={ruleCopy.badgeOptions.badge}
@@ -186,8 +177,8 @@
                     </div>
                     <div class="rule-input">
                         {@render fieldName(
-                            'Text Color',
-                            'Any color name or a hex value',
+                            '文字颜色',
+                            '任何颜色名称或十六进制值',
                         )}
                         <input
                             type="text"
@@ -197,8 +188,8 @@
                     </div>
                     <div class="rule-input">
                         {@render fieldName(
-                            'Background color',
-                            'Any color name or a hex value',
+                            '背景颜色',
+                            '任何颜色名称或十六进制值',
                         )}
                         <input
                             type="text"
@@ -208,8 +199,8 @@
                     </div>
                     <div class="rule-input">
                         {@render fieldName(
-                            'Border',
-                            "A CSS 'border' value, e.g. '1px solid black'",
+                            '边框',
+                            "CSS 'border' 值，例如 '1px solid black'",
                         )}
                         <input
                             type="text"
@@ -223,20 +214,17 @@
 
         <div class="section">
             <div class="setting-item-info">
-                <div class="setting-item-name">Path Properties</div>
+                <div class="setting-item-name">路径属性</div>
                 <div class="setting-item-description">
-                    See documentation <a
+                    参见文档 <a
                         href="https://esm7.github.io/obsidian-map-view/display-rules#path-properties"
-                        >here</a
-                    >.
+                        >这里</a
+                    >。
                 </div>
             </div>
             <div class="rule-group">
                 <div class="rule-input">
-                    {@render fieldName(
-                        'Color',
-                        'Any color name or a hex value',
-                    )}
+                    {@render fieldName('颜色', '任何颜色名称或十六进制值')}
                     <input
                         type="text"
                         bind:value={ruleCopy.pathOptions.color}
@@ -244,7 +232,7 @@
                     />
                 </div>
                 <div class="rule-input">
-                    {@render fieldName('Weight', 'Line weight in pixels')}
+                    {@render fieldName('粗细', '线条粗细（像素）')}
                     <input
                         type="number"
                         bind:value={ruleCopy.pathOptions.weight}
@@ -252,11 +240,11 @@
                     />
                 </div>
                 <div class="rule-input">
-                    {@render fieldName('Opacity', 'Between 0 to 1')}
+                    {@render fieldName('透明度', '0 到 1 之间')}
                     <input
                         type="number"
                         bind:value={ruleCopy.pathOptions.opacity}
-                        placeholder="Opacity"
+                        placeholder="透明度"
                         class="rule-input"
                     />
                 </div>
@@ -287,13 +275,12 @@
         </div>
 
         <div class="section">
-            <ViewCollapsibleSection headerText="Advanced">
+            <ViewCollapsibleSection headerText="高级">
                 <p>
-                    Edit the rule directly as JSON, which allows a wider range
-                    of advanced options. See <a
+                    直接以 JSON 格式编辑规则，这允许更广泛的高级选项。参见 <a
                         href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties"
-                        >here</a
-                    > for the complete list of properties.
+                        >这里</a
+                    > 了解完整的属性列表。
                 </p>
                 <textarea
                     class="json-editor"
@@ -319,14 +306,14 @@
         {#if !allOk}
             <div
                 class="warning-sign"
-                title="One or more rules are malformed or contain and illegal query."
+                title="一个或多个规则格式错误或包含非法查询。"
             >
                 {@html getIcon('circle-alert').outerHTML}
             </div>
         {/if}
-        <button class="mod-warning" onclick={close}>Cancel</button>
+        <button class="mod-warning" onclick={close}>取消</button>
         <button class="mod-cta" onclick={save} disabled={!allOk}
-            >Save & Close</button
+            >保存并关闭</button
         >
     </div>
 </div>

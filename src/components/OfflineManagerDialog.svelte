@@ -78,12 +78,7 @@
     }
 
     async function deleteDownload(layer: DownloadedLayerInfo) {
-        if (
-            !confirm(
-                'This will delete all the tiles for the selected URL, are you sure?',
-            )
-        )
-            return;
+        if (!confirm('这将删除所选 URL 的所有瓦片，确定吗？')) return;
         const storageInfo = await getStorageInfo(layer.urlTemplate);
         for (const tile of storageInfo) {
             await removeTile(tile.key);
@@ -131,42 +126,40 @@
                     document.querySelector('.offline-manager'),
                 )
             )
-                new Notice(
-                    'Map View: an offline background download has finished.',
-                );
+                new Notice('地图视图：后台离线下载已完成。');
         });
     }
 </script>
 
 <div class="offline-manager">
     <div class="setting-item-container">
-        <div class="setting-item-heading">Downloaded Tiles</div>
+        <div class="setting-item-heading">已下载的瓦片</div>
         {#if downloadedTiles.length > 0}
             {#each downloadedTiles as layer}
                 <div class="setting-item">
                     <div class="setting-item-info">
                         <div class="setting-item-name">{layer.url}</div>
                         <div class="setting-item-description">
-                            {layer.tiles} tiles, total
+                            {layer.tiles} 个瓦片，共
                             <b
                                 >{(layer.totalSize / (1024 * 1024)).toFixed(
                                     1,
                                 )}MB</b
-                            >.<br />
-                            Oldest tile is from {new Date(layer.oldestTile)
+                            >。<br />
+                            最早的瓦片日期：{new Date(layer.oldestTile)
                                 .toISOString()
-                                .split('T')[0]}.
+                                .split('T')[0]}。
                         </div>
                     </div>
                     <div class="setting-item-control">
                         <button onclick={() => openPurgeDialog(layer)}>
-                            Purge old...
+                            清除旧的...
                         </button>
                         <button
                             class="mod-warning"
                             onclick={() => deleteDownload(layer)}
                         >
-                            Delete
+                            删除
                         </button>
                     </div>
                 </div>
@@ -174,16 +167,12 @@
         {:else}
             <div class="setting-item">
                 <div class="setting-item-info">
-                    <div class="setting-item-name">
-                        No tiles were downloaded yet.
-                    </div>
+                    <div class="setting-item-name">尚未下载任何瓦片。</div>
                     <div class="setting-item-description">
                         {#if offlineTiles.getJobs().length > 0}
-                            Once the ongoing job(s) finish, you will see them
-                            here.
+                            进行中的下载任务完成后，将在此处显示。
                         {:else}
-                            You can make the current view available offline
-                            using the button below.
+                            您可以使用下方按钮将当前视图设为离线可用。
                         {/if}
                     </div>
                 </div>
@@ -196,13 +185,12 @@
             {@html getIcon('info').outerHTML}
         </div>
         <p>
-            You can see a visualization of your offline tiles using the
-            "Highlight Offline Tiles" option in the Map View context menu.
+            您可以通过地图视图上下文菜单中的"高亮离线瓦片"选项查看离线瓦片的可视化效果。
         </p>
     </div>
     {#if offlineTiles.getJobs().length > 0}
         <div class="setting-item">
-            <div class="setting-item-name"><b>Ongoing Downloads</b></div>
+            <div class="setting-item-name"><b>进行中的下载</b></div>
         </div>
         <div class="jobs-container">
             {#each offlineTiles.getJobs() as job}
@@ -210,12 +198,12 @@
                     <div class="setting-item-info">
                         <div class="setting-item-name">{job.name}</div>
                         <div class="setting-item-description">
-                            <span>Progress: {Math.round(job.progress)}%</span>
+                            <span>进度：{Math.round(job.progress)}%</span>
                         </div>
                     </div>
                     <div class="setting-item-control">
                         <button onclick={() => offlineTiles.cancelJob(job.id)}>
-                            Cancel
+                            取消
                         </button>
                     </div>
                 </div>
@@ -224,10 +212,7 @@
                 <div class="info-icon">
                     {@html getIcon('info').outerHTML}
                 </div>
-                <p>
-                    Downloads will continue in the background whether or not
-                    this dialog is open.
-                </p>
+                <p>无论此对话框是否打开，下载都会在后台继续进行。</p>
             </div>
         </div>
     {/if}
@@ -235,7 +220,7 @@
     <div class="setting-item">
         <div class="setting-item-control">
             <button class="mod-cta" onclick={openNewDownloadDialog}>
-                Download Tiles...
+                下载瓦片...
             </button>
         </div>
     </div>

@@ -370,7 +370,7 @@ export class AddFileControl extends leaflet.Control {
 
     verifyNoteSelected() {
         if (!this.view.display.controls.editModeTools.noteToEdit) {
-            new Notice('You must first select a note.');
+            new Notice('请先选择一个笔记。');
             return false;
         }
         return true;
@@ -405,9 +405,7 @@ export class AddFileControl extends leaflet.Control {
                             file,
                             heading,
                             doAfterImport: () => {
-                                new Notice(
-                                    `Locations were imported into ${file.name}.`,
-                                );
+                                new Notice(`位置已导入到 ${file.name}。`);
                             },
                         },
                     );
@@ -451,12 +449,12 @@ export class AddFileControl extends leaflet.Control {
                                         this.settings,
                                     );
                                     new Notice(
-                                        'The path was saved as an inline GeoJSON in the selected Edit Mode file.',
+                                        '路径已作为内联 GeoJSON 保存到选定的编辑模式文件中。',
                                     );
-                                } else new Notice('Error converting file');
+                                } else new Notice('转换文件出错');
                             } catch (e) {
                                 console.error('Error converting file:', e);
-                                new Notice('Error converting file');
+                                new Notice('转换文件出错');
                             }
                         }
                     }
@@ -477,9 +475,7 @@ export class AddFileControl extends leaflet.Control {
                                 saveInPath,
                                 fileContent,
                             );
-                            new Notice(
-                                'The chosen file was added as a vault attachment.',
-                            );
+                            new Notice('所选文件已作为附件添加到笔记库。');
                         }
                     }
                 });
@@ -585,7 +581,7 @@ export class RoutingControl extends leaflet.Control {
                     !this.view.display.routingSource &&
                     !this.view.lastRealTimeLocation
                 ) {
-                    new Notice('You must select a routing source first.');
+                    new Notice('请先选择一个路由源。');
                     return;
                 }
                 const result = await getMarkerFromUser(

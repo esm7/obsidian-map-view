@@ -1,7 +1,7 @@
 {
-    "name": "obsidian-map-view",
+    "name": "obsidian-chinese-map-view",
     "version": "6.1.4",
-    "description": "An interactive map view for Obsidian.md",
+    "description": "为 Obsidian 提供的交互式中国地图视图，内置高德地图和坐标转换。",
     "main": "main.js",
     "type": "module",
     "scripts": {

@@ -39,13 +39,13 @@ export class SettingsTab extends PluginSettingTab {
         containerEl.empty();
 
         containerEl.createEl('h2', {
-            text: 'Settings for the map view plugin.',
+            text: '地图视图插件设置',
         });
 
         new Setting(containerEl)
-            .setName('Pre-load markers and paths')
+            .setName('预加载标记和路径')
             .setDesc(
-                'Load map markers and paths cache in the background when Obsidian starts. This greatly speeds up Map View but takes memory even when unused. When off, the map content will load only when Map View is first used.',
+                '在 Obsidian 启动时后台加载地图标记和路径缓存。这会大幅加快地图视图速度，但即使不使用也会占用内存。关闭后，只有在首次使用地图视图时才会加载。',
             )
             .addToggle((component) => {
                 component
@@ -57,9 +57,9 @@ export class SettingsTab extends PluginSettingTab {
             });
 
         new Setting(containerEl)
-            .setName('Map follows search results')
+            .setName('地图跟随搜索结果')
             .setDesc(
-                'Auto zoom & pan the map to fit search results, including Follow Active Note.',
+                '自动缩放和平移地图以适应搜索结果，包括"跟随活跃笔记"功能。',
             )
             .addToggle((component) => {
                 component
@@ -71,9 +71,9 @@ export class SettingsTab extends PluginSettingTab {
             });
 
         new Setting(containerEl)
-            .setName('Only one controls section expanded at a time')
+            .setName('每次只展开一个控制面板')
             .setDesc(
-                'Keep only one controls section expanded at a time, i.e. collapse the currently-expanded section when you click another one. (Restart Map View for this to take effect.)',
+                '每次只保持一个控制面板展开，点击另一个面板时折叠当前展开的面板。（重启地图视图后生效）',
             )
             .addToggle((component) => {
                 component
@@ -87,14 +87,14 @@ export class SettingsTab extends PluginSettingTab {
         let apiKeyControl: Setting = null;
         let osmUser: Setting = null;
         new Setting(containerEl)
-            .setName('Geocoding search provider')
+            .setName('地理编码搜索提供商')
             .setDesc(
-                'The service used for searching for geolocations. To use Google, see details in the plugin documentation.',
+                '用于搜索地理位置的服务。要使用 Google 服务，请查看插件文档了解详情。',
             )
             .addDropdown((component) => {
                 component
                     .addOption('osm', 'OpenStreetMap')
-                    .addOption('google', 'Google (API key required)')
+                    .addOption('google', 'Google（需要 API 密钥）')
                     .setValue(
                         this.plugin.settings.searchProvider ||
                             DEFAULT_SETTINGS.searchProvider,
@@ -117,9 +117,9 @@ export class SettingsTab extends PluginSettingTab {
             });
 
         osmUser = new Setting(containerEl)
-            .setName('OpenStreetMap user e-mail')
+            .setName('OpenStreetMap 用户邮箱')
             .setDesc(
-                'The OpenStreetMap Nominatim provider requires a user email. Restart Map View after setting it.',
+                'OpenStreetMap Nominatim 服务要求提供用户邮箱。设置后需重启地图视图。',
             )
             .addText((component) => {
                 component
@@ -138,9 +138,9 @@ export class SettingsTab extends PluginSettingTab {
             });
 
         apiKeyControl = new Setting(containerEl)
-            .setName('Gecoding API key')
+            .setName('地理编码 API 密钥')
             .setDesc(
-                'If using Google as the geocoding search provider, paste the API key here. See the plugin documentation for more details. Changes are applied after restart.',
+                '如果使用 Google 作为地理编码搜索提供商，请在此粘贴 API 密钥。详见插件文档。更改在重启后生效。',
             )
             .addText((component) => {
                 component
@@ -158,9 +158,9 @@ export class SettingsTab extends PluginSettingTab {
                     : 'red';
             });
         let googlePlacesControl = new Setting(containerEl)
-            .setName('Use Google Places for searches')
+            .setName('使用 Google Places 进行搜索')
             .setDesc(
-                'Use Google Places API instead of Google Geocoding to get higher-quality results. Your API key must have a specific "Google Places (New)" permission turned on! See the plugin documentation for more details.',
+                '使用 Google Places API 代替 Google Geocoding 以获得更高质量的搜索结果。您的 API 密钥必须启用"Google Places (New)"权限！详见插件文档。',
             )
             .addToggle((component) => {
                 component
@@ -174,9 +174,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         let googlePlacesDataFields = new Setting(containerEl)
-            .setName('Google Places data fields to query')
+            .setName('Google Places 查询数据字段')
             .setDesc(
-                'To use Places API templates (see the documentation -- i.e. "googleMapsPlaceData.place_id"), enlist here the fields you are interested to query, separated by commas, e.g. place_id,business_status.',
+                '要使用 Places API 模板（参见文档——如 "googleMapsPlaceData.place_id"），请在此列出您要查询的字段，以逗号分隔，例如 place_id,business_status。',
             )
             .addText((component) => {
                 component
@@ -200,9 +200,9 @@ export class SettingsTab extends PluginSettingTab {
         googlePlacesDataFields.settingEl.style.display =
             googlePlacesControl.settingEl.style.display;
         new Setting(containerEl)
-            .setName('Search delay while typing')
+            .setName('输入时的搜索延迟')
             .setDesc(
-                'Delay in ms to wait before searching while you type (required to not flood the search provider with every key). In the OSM search provider, a minimum of 1 second is required and enforced.',
+                '输入时发起搜索前的等待延迟（毫秒），避免每次按键都发起搜索。OSM 搜索提供商强制最低 1 秒。',
             )
             .addSlider((slider) => {
                 slider
@@ -219,9 +219,9 @@ export class SettingsTab extends PluginSettingTab {
             });
 
         new Setting(containerEl)
-            .setName('New note name format')
+            .setName('新笔记名称格式')
             .setDesc(
-                'Date/times in the format can be wrapped in {{date:...}}, e.g. "note-{{date:YYYY-MM-DD}}". Search queries can be added with {{query}}.',
+                '日期/时间可以用 {{date:...}} 包裹，例如 "note-{{date:YYYY-MM-DD}}"。搜索查询可用 {{query}} 添加。',
             )
             .addText((component) => {
                 component
@@ -235,8 +235,8 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('New note path')
-            .setDesc('Disk path for notes created from the map.')
+            .setName('新笔记路径')
+            .setDesc('从地图创建笔记时的磁盘路径。')
             .addText((component) => {
                 component
                     .setValue(this.plugin.settings.newNotePath || '')
@@ -246,10 +246,8 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Template file path')
-            .setDesc(
-                'Choose the file to use as a template, e.g. "templates/map-log.md".',
-            )
+            .setName('模板文件路径')
+            .setDesc('选择用作模板的文件，例如 "templates/map-log.md"。')
             .addText((component) => {
                 component
                     .setValue(this.plugin.settings.newNoteTemplate || '')
@@ -259,9 +257,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Max cluster size in pixels')
+            .setName('聚类最大像素大小')
             .setDesc(
-                'Maximal radius in pixels to cover in a marker cluster. Higher values will group more markers together, which leads to better performance. (Requires restart.)',
+                '标记聚类的最大半径（像素）。值越大，聚合的标记越多，性能越好。（需要重启）',
             )
             .addSlider((slider) => {
                 slider
@@ -277,9 +275,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Default zoom for "show on map" action')
+            .setName('"在地图上显示"操作的默认缩放级别')
             .setDesc(
-                'When jumping to the map from a note, what should be the display zoom? This is also used as a max zoom for "Map follows search results" above.',
+                '从笔记跳转到地图时的显示缩放级别。也用作上方"地图跟随搜索结果"的最大缩放。',
             )
             .addSlider((component) => {
                 component
@@ -295,9 +293,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Allow zooming beyond the defined maximum')
+            .setName('允许超过定义的最大缩放')
             .setDesc(
-                'Allow zooming further than the maximum defined for the map source, interpolating the image of the highest available zoom.',
+                '允许缩放超过地图源定义的最大级别，对最高可用缩放的图像进行插值。',
             )
             .addToggle((component) => {
                 component
@@ -312,9 +310,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Save back/forward history')
+            .setName('保存前进/后退历史')
             .setDesc(
-                'While making changes to the map, save the history to be browsable through Obsidian back/forward buttons.',
+                '在地图上操作时保存历史记录，可通过 Obsidian 前进/后退按钮浏览。',
             )
             .addToggle((component) => {
                 component
@@ -325,10 +323,8 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Query format for "follow active note"')
-            .setDesc(
-                'What query to use for following active notes (in the main or mini view), $PATH$ being the file path.',
-            )
+            .setName('"跟随活跃笔记"的查询格式')
+            .setDesc('跟随活跃笔记时使用的查询格式，$PATH$ 为文件路径。')
             .addText((component) => {
                 component
                     .setValue(
@@ -341,9 +337,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Fix front-matter on inline geolocation paste')
+            .setName('粘贴内联地理位置时修复前置元数据')
             .setDesc(
-                'Monitor the clipboard and add a "locations:" front-matter if a supported geolocation is pasted from the keyboard.',
+                '监控剪贴板，当粘贴支持的地理位置格式时自动添加 "locations:" 前置元数据。',
             )
             .addToggle((component) => {
                 component
@@ -357,9 +353,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Key for front matter location')
+            .setName('前置元数据位置的键名')
             .setDesc(
-                'The key Map View uses to denote a front matter geolocation. Restart required. Beware: changing this will make your old front matter key not recognized as geolocations by Map View.',
+                '地图视图用于表示前置元数据位置的键名。需要重启。注意：更改后旧键名将不再被识别为地理位置。',
             )
             .addText((component) => {
                 component
@@ -373,9 +369,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Tag name to denote inline geolocations')
+            .setName('标记内联地理位置的标签名')
             .setDesc(
-                'Instead or in addition to the "locations:" YAML tag, you can use a regular tag that will mark for Map View that a note has inline geolocations, e.g. "#hasLocations". (Note: this has a performance penalty for the time being.)',
+                '代替或补充 "locations:" YAML 标签，您可以使用普通标签来标记包含内联地理位置的笔记，例如 "#hasLocations"。（注意：目前使用此功能会降低性能。）',
             )
             .addText((component) => {
                 component
@@ -388,14 +384,14 @@ export class SettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setHeading()
-            .setName('Geolinks in Notes')
+            .setName('笔记中的地理链接')
             .setDesc(
-                'How and if Map View handles geolinks in notes (both front matter and inline)',
+                '地图视图如何处理笔记中的地理链接（包括前置元数据和内联）',
             );
         new Setting(containerEl)
-            .setName('Handle geolinks in notes')
+            .setName('处理笔记中的地理链接')
             .setDesc(
-                'When turned on, Map View will handle geolinks internally, and turn front matter locations into links. (Requires restarting Obsidian to update correctly.)',
+                '开启后，地图视图将在内部处理地理链接，并将前置元数据位置转换为链接。（需要重启 Obsidian 才能正确更新。）',
             )
             .addToggle((component) => {
                 component
@@ -409,9 +405,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Show geolink previews in notes')
+            .setName('在笔记中显示地理链接预览')
             .setDesc(
-                'Show a popup with a map preview when hovering on geolinks in notes. Requires "Geolinks in Notes" above.',
+                '鼠标悬停在笔记中的地理链接上时显示地图预览弹窗。需要上方"笔记中的地理链接"功能。',
             )
             .addToggle((component) => {
                 component
@@ -425,8 +421,8 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Zoom of the geolink map preview')
-            .setDesc('Zoom level to use for the geolink map preview popup.')
+            .setName('地理链接地图预览的缩放级别')
+            .setDesc('地理链接地图预览弹窗使用的缩放级别。')
             .addSlider((component) => {
                 component
                     .setLimits(1, 18, 1)
@@ -441,9 +437,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Geolink context menu in notes')
+            .setName('笔记中的地理链接上下文菜单')
             .setDesc(
-                'Override the Obsidian context menu for geolinks in notes, making sure Map View "open in" items are shown correctly. Requires "Geolinks in Notes" above. Does not currently work in iOS.',
+                '覆盖 Obsidian 对笔记中地理链接的上下文菜单，确保地图视图的"打开方式"选项正确显示。需要上方"笔记中的地理链接"功能。目前在 iOS 上不可用。',
             )
             .addToggle((component) => {
                 component
@@ -459,15 +455,11 @@ export class SettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setHeading()
-            .setName('Marker Hover & Previews')
-            .setDesc(
-                'What is shown when hovering (desktop) or clicking (mobile) map markers.',
-            );
+            .setName('标记悬停和预览')
+            .setDesc('鼠标悬停（桌面）或点击（移动端）地图标记时显示的内容。');
         new Setting(containerEl)
-            .setName('Show note name on marker hover')
-            .setDesc(
-                'Show a popup with the note name when hovering on a map marker.',
-            )
+            .setName('标记悬停时显示笔记名称')
+            .setDesc('鼠标悬停在地图标记上时显示包含笔记名称的弹窗。')
             .addToggle((component) => {
                 component
                     .setValue(this.plugin.settings.showNoteNamePopup)
@@ -477,15 +469,13 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Show inline link name on marker hover')
-            .setDesc(
-                'In the popup above, show also the link name, in the case of an inline link.',
-            )
+            .setName('标记悬停时显示内联链接名称')
+            .setDesc('在上方弹窗中，如果是内联链接，同时显示链接名称。')
             .addDropdown((component) => {
                 component
-                    .addOption('always', 'Always')
-                    .addOption('mobileOnly', 'Only on mobile')
-                    .addOption('never', 'Never')
+                    .addOption('always', '总是')
+                    .addOption('mobileOnly', '仅移动端')
+                    .addOption('never', '从不')
                     .setValue(
                         this.plugin.settings.showLinkNameInPopup ??
                             DEFAULT_SETTINGS.showLinkNameInPopup,
@@ -497,9 +487,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Show note preview on marker hover')
+            .setName('标记悬停时显示笔记预览')
             .setDesc(
-                'In addition to the note name, show a preview if the note contents. Either way, it will be displayed only if the map is large enough to contain it.',
+                '除笔记名称外，还显示笔记内容预览。仅当地图足够大时才会显示。',
             )
             .addToggle((component) => {
                 component
@@ -510,10 +500,10 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Show native Obsidian popup on marker hover')
+            .setName('标记悬停时显示原生 Obsidian 弹窗')
             .setDesc(
-                'In addition to the above settings, trigger the native Obsidian note preview when hovering on a marker. ' +
-                    'The native Obsidian preview is more feature-rich than the above, and not recommended together with it, but Map View cannot control its placement and cannot add to it the note name, marker name etc.',
+                '除上述设置外，悬停标记时触发原生 Obsidian 笔记预览。' +
+                    '原生 Obsidian 预览功能更丰富，但不建议与上述功能同时使用，因为地图视图无法控制其位置，也无法向其添加笔记名称、标记名称等信息。',
             )
             .addToggle((component) => {
                 component
@@ -525,10 +515,8 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Show preview for marker clusters')
-            .setDesc(
-                'Show a hover popup summarizing the icons inside a marker cluster.',
-            )
+            .setName('显示标记聚类预览')
+            .setDesc('悬停标记聚类时显示包含内部图标摘要的弹窗。')
             .addToggle((component) => {
                 component
                     .setValue(this.plugin.settings.showClusterPreview)
@@ -541,10 +529,8 @@ export class SettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setHeading()
-            .setName('Pane & Tab Usage')
-            .setDesc(
-                'Control when and if Map View should use panes vs tabs, new panes vs existing ones etc.',
-            );
+            .setName('面板和标签页使用')
+            .setDesc('控制地图视图何时使用面板或标签页、新建还是复用等。');
 
         // Name is 'click', 'Ctrl+click' and 'middle click'
         const addOpenBehaviorOptions = (
@@ -557,20 +543,14 @@ export class SettingsTab extends PluginSettingTab {
                 component
                     .addOption(
                         'replaceCurrent',
-                        'Open in same pane (replace Map View)',
+                        '在同一面板中打开（替换地图视图）',
                     )
-                    .addOption(
-                        'dedicatedPane',
-                        'Open in a 2nd pane and keep reusing it',
-                    )
-                    .addOption('alwaysNew', 'Always open a new pane')
-                    .addOption(
-                        'dedicatedTab',
-                        'Open in a new tab and keep reusing it',
-                    )
-                    .addOption('alwaysNewTab', 'Always open a new tab');
+                    .addOption('dedicatedPane', '在第 2 个面板中打开并持续复用')
+                    .addOption('alwaysNew', '总是打开新面板')
+                    .addOption('dedicatedTab', '在新标签页中打开并持续复用')
+                    .addOption('alwaysNewTab', '总是打开新标签页');
                 if (includeLatest)
-                    component.addOption('lastUsed', 'Open in last-used pane');
+                    component.addOption('lastUsed', '在最近使用的面板中打开');
                 component
                     .setValue(getValue() || 'samePane')
                     .onChange(async (value: OpenBehavior) => {
@@ -582,10 +562,8 @@ export class SettingsTab extends PluginSettingTab {
 
         addOpenBehaviorOptions(
             new Setting(containerEl)
-                .setName('Default action for map marker click')
-                .setDesc(
-                    'How should the corresponding note be opened following a click on a marker?',
-                ),
+                .setName('地图标记点击的默认操作')
+                .setDesc('点击标记后如何打开对应的笔记？'),
             (value: OpenBehavior) => {
                 this.plugin.settings.markerClickBehavior = value;
             },
@@ -596,10 +574,8 @@ export class SettingsTab extends PluginSettingTab {
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
-                .setName('Default action for map marker Ctrl+click')
-                .setDesc(
-                    'How should the corresponding note be opened following a Ctrl+click on a marker?',
-                ),
+                .setName('地图标记 Ctrl+点击的默认操作')
+                .setDesc('Ctrl+点击标记后如何打开对应的笔记？'),
             (value: OpenBehavior) => {
                 this.plugin.settings.markerCtrlClickBehavior = value;
             },
@@ -610,10 +586,8 @@ export class SettingsTab extends PluginSettingTab {
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
-                .setName('Default action for map marker middle-click')
-                .setDesc(
-                    'How should the corresponding note be opened following a middle-click on a marker?',
-                ),
+                .setName('地图标记中键点击的默认操作')
+                .setDesc('中键点击标记后如何打开对应的笔记？'),
             (value: OpenBehavior) => {
                 this.plugin.settings.markerMiddleClickBehavior = value;
             },
@@ -625,9 +599,9 @@ export class SettingsTab extends PluginSettingTab {
 
         addOpenBehaviorOptions(
             new Setting(containerEl)
-                .setName('Default mode for opening Map View')
+                .setName('打开地图视图的默认模式')
                 .setDesc(
-                    'How should Map View open by default (e.g. when clicking the ribbon icon, or from within a note).',
+                    '地图视图默认如何打开（例如点击功能区图标或从笔记中打开时）。',
                 ),
             (value: OpenBehavior) => {
                 this.plugin.settings.openMapBehavior = value;
@@ -639,8 +613,8 @@ export class SettingsTab extends PluginSettingTab {
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
-                .setName('Opening Map View with Ctrl+Click')
-                .setDesc('How should Map View open when Ctrl is pressed.'),
+                .setName('Ctrl+点击打开地图视图')
+                .setDesc('按住 Ctrl 时如何打开地图视图。'),
             (value: OpenBehavior) => {
                 this.plugin.settings.openMapCtrlClickBehavior = value;
             },
@@ -651,8 +625,8 @@ export class SettingsTab extends PluginSettingTab {
         );
         addOpenBehaviorOptions(
             new Setting(containerEl)
-                .setName('Opening Map View with middle-Click')
-                .setDesc('How should Map View open when using middle-click.'),
+                .setName('中键点击打开地图视图')
+                .setDesc('使用中键点击时如何打开地图视图。'),
             (value: OpenBehavior) => {
                 this.plugin.settings.openMapMiddleClickBehavior = value;
             },
@@ -663,14 +637,12 @@ export class SettingsTab extends PluginSettingTab {
         );
 
         new Setting(containerEl)
-            .setName('New pane split direction')
-            .setDesc(
-                'Which way should the pane be split when opening in a new pane.',
-            )
+            .setName('新面板分割方向')
+            .setDesc('在新面板中打开时的分割方向。')
             .addDropdown((component) => {
                 component
-                    .addOption('horizontal', 'Horizontal')
-                    .addOption('vertical', 'Vertical')
+                    .addOption('horizontal', '水平')
+                    .addOption('vertical', '垂直')
                     .setValue(
                         this.plugin.settings.newPaneSplitDirection ||
                             'horizontal',
@@ -683,12 +655,12 @@ export class SettingsTab extends PluginSettingTab {
 
         const mapSources = new Setting(containerEl)
             .setHeading()
-            .setName('Map Sources');
-        mapSources.descEl.innerHTML = `Change and switch between sources for map tiles. An optional dark mode URL can be defined for each source. If no such URL is defined and dark mode is used, the map colors are reverted. See <a href="https://esm7.github.io/obsidian-map-view/map-sources">the documentation</a> for more details.`;
+            .setName('地图源');
+        mapSources.descEl.innerHTML = `更改和切换地图瓦片源。可以为每个源定义可选的深色模式 URL。如果没有定义深色 URL 并使用深色模式，地图颜色将反转。详见<a href="https://esm7.github.io/obsidian-map-view/map-sources">文档</a>。`;
 
         let mapSourcesDiv: HTMLDivElement = null;
         new Setting(containerEl).addButton((component) =>
-            component.setButtonText('New map source').onClick(() => {
+            component.setButtonText('新建地图源').onClick(() => {
                 this.plugin.settings.mapSources.push({
                     name: '',
                     urlLight: '',
@@ -704,14 +676,14 @@ export class SettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setHeading()
-            .setName('Custom "Open In" Actions')
+            .setName('自定义"在...中打开"操作')
             .setDesc(
-                "'Open in' actions showing in geolocation-relevant popup menus. URL should have {x} and {y} as parameters to transfer, and an optional {name} parameter can be used.",
+                "'在...中打开'操作显示在与地理位置相关的弹出菜单中。URL 应包含 {x} 和 {y} 作为坐标参数，可选的 {name} 参数用于传递名称。",
             );
 
         let openInActionsDiv: HTMLDivElement = null;
         new Setting(containerEl).addButton((component) =>
-            component.setButtonText('New Custom Action').onClick(() => {
+            component.setButtonText('新建自定义操作').onClick(() => {
                 this.plugin.settings.openIn.push({ name: '', urlPattern: '' });
                 this.refreshOpenInSettings(openInActionsDiv);
             }),
@@ -721,14 +693,14 @@ export class SettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setHeading()
-            .setName('URL Parsing Rules')
+            .setName('URL 解析规则')
             .setDesc(
-                'Customizable rules for converting URLs of various mapping services to coordinates, for the purpose of the "Convert URL" action.',
+                '用于将各种地图服务的 URL 转换为坐标的可自定义规则，供"转换 URL"操作使用。',
             );
 
         let parsingRulesDiv: HTMLDivElement = null;
         new Setting(containerEl).addButton((component) =>
-            component.setButtonText('New Parsing Rule').onClick(() => {
+            component.setButtonText('新建解析规则').onClick(() => {
                 this.plugin.settings.urlParsingRules.push({
                     name: '',
                     regExp: '',
@@ -743,36 +715,34 @@ export class SettingsTab extends PluginSettingTab {
 
         const iconRulesHeading = new Setting(containerEl)
             .setHeading()
-            .setName('Marker & Path Display Rules');
-        iconRulesHeading.descEl.innerHTML = `Customize map markers by note tags.
-			Refer to <a href="https://fontawesome.com/">Font Awesome</a> for icon names or use <a href="https://emojipedia.org">emojis</a>, and see <a href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties">here</a> for the other properties.
-			<br>The rules override each other, starting from the default. Refer to the plugin documentation for more details.
+            .setName('标记和路径显示规则');
+        iconRulesHeading.descEl.innerHTML = `通过笔记标签自定义地图标记。
+			图标名称参考 <a href="https://fontawesome.com/">Font Awesome</a> 或使用 <a href="https://emojipedia.org">表情符号</a>，其他属性参见 <a href="https://github.com/coryasilva/Leaflet.ExtraMarkers#properties">这里</a>。
+			<br>规则按顺序覆盖，从默认规则开始。详见插件文档。
 		`;
 
         new Setting(containerEl).addButton((component) =>
-            component
-                .setButtonText('Marker & Path Display Rules...')
-                .onClick(() => {
-                    const dialog = new SvelteModal(
-                        DisplayRules,
-                        this.app,
-                        this.plugin,
-                        this.plugin.settings,
-                        {
-                            settings: this.plugin.settings,
-                            app: this.app,
-                            plugin: this.plugin,
-                        },
-                        ['mod-settings'],
-                    );
-                    dialog.open();
-                }),
+            component.setButtonText('标记和路径显示规则...').onClick(() => {
+                const dialog = new SvelteModal(
+                    DisplayRules,
+                    this.app,
+                    this.plugin,
+                    this.plugin.settings,
+                    {
+                        settings: this.plugin.settings,
+                        app: this.app,
+                        plugin: this.plugin,
+                    },
+                    ['mod-settings'],
+                );
+                dialog.open();
+            }),
         );
 
-        new Setting(containerEl).setHeading().setName('Paths, GeoJSONs, GPXs');
+        new Setting(containerEl).setHeading().setName('路径、GeoJSON、GPX');
         new Setting(containerEl)
-            .setName("Handle 'geojson' code blocks")
-            .setDesc("Display an embedded map for a 'geojson' code block.")
+            .setName("处理 'geojson' 代码块")
+            .setDesc("为 'geojson' 代码块显示嵌入式地图。")
             .addToggle((component) => {
                 component
                     .setValue(
@@ -785,9 +755,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Handle supported path embeds')
+            .setName('处理支持的路径嵌入')
             .setDesc(
-                'Display an embedded map for embeds (e.g. `![[my path.gpx]]`) of supported path files.',
+                '为支持的路径文件嵌入（如 `![[my path.gpx]]`）显示嵌入式地图。',
             )
             .addToggle((component) => {
                 component
@@ -801,11 +771,11 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
 
-        new Setting(containerEl).setHeading().setName('Routing');
+        new Setting(containerEl).setHeading().setName('路由');
         new Setting(containerEl)
-            .setName('External routing service URL')
+            .setName('外部路由服务 URL')
             .setDesc(
-                'URL to use for an external routing service, used for "route to point". {x0},{y0} are the source lat,lng and {x1},{y1} are the destination lat,lng.',
+                '用于外部路由服务的 URL，用于"路由到此点"功能。{x0},{y0} 为起点经纬度，{x1},{y1} 为终点经纬度。',
             )
             .addText((component) => {
                 component
@@ -819,9 +789,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('GraphHopper API key')
+            .setName('GraphHopper API 密钥')
             .setDesc(
-                'You may obtain a free or a paid key from GraphHopper to enable native routing in Map View.',
+                '您可以从 GraphHopper 获取免费或付费密钥，以启用地图视图的内置路由功能。',
             )
             .addText((component) => {
                 component
@@ -832,9 +802,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('GraphHopper profiles')
+            .setName('GraphHopper 配置文件')
             .setDesc(
-                'A comma-delimited list of profiles to support. Note that the free plan supports only the default values listed here.',
+                '以逗号分隔的配置文件列表。注意免费计划仅支持此处列出的默认值。',
             )
             .addText((component) => {
                 component
@@ -845,9 +815,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('GraphHopper extra parameters (advanced)')
+            .setName('GraphHopper 额外参数（高级）')
             .setDesc(
-                'Paste here a JSON (wrapped in {...}) of valid GraphHopper parameters. See the GraphHopper routing POST documentation for more details.',
+                '在此粘贴有效的 GraphHopper 参数 JSON（用 {...} 包裹）。详见 GraphHopper 路由 POST 文档。',
             )
             .addText((component) => {
                 component
@@ -868,14 +838,14 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
 
-        new Setting(containerEl).setHeading().setName('Offline Maps');
+        new Setting(containerEl).setHeading().setName('离线地图');
         new Setting(containerEl)
-            .setName('Manage offline storage')
+            .setName('管理离线存储')
             .setDesc(
-                'Save and delete tiles for offline usage. Also available via the context menu of the map.',
+                '保存和删除瓦片以供离线使用。也可通过地图的上下文菜单访问。',
             )
             .addButton((component) => {
-                component.setButtonText('Offline storage...').onClick(() => {
+                component.setButtonText('离线存储...').onClick(() => {
                     const mapView = this.findMapView();
                     if (mapView)
                         openManagerDialog(
@@ -883,13 +853,13 @@ export class SettingsTab extends PluginSettingTab {
                             this.plugin.settings,
                             mapView.mapContainer,
                         );
-                    else alert('This requires an open Map View.');
+                    else alert('需要先打开地图视图。');
                 });
             });
         new Setting(containerEl)
-            .setName('Auto cache')
+            .setName('自动缓存')
             .setDesc(
-                'Automatically store all viewed tiles to be available locally. Great for performance but takes some storage. When this is off, only tiles explicitly downloaded for offline storage are kept.',
+                '自动存储所有查看过的瓦片到本地。有利于性能但会占用存储空间。关闭后，仅保留显式下载的离线瓦片。',
             )
             .addToggle((component) => {
                 component
@@ -903,17 +873,17 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Auto-purge tiles older than...')
+            .setName('自动清除超过...的瓦片')
             .setDesc(
-                'Remove old tiles on Obsidian startup to keep your map up-to-date. This currently applies both to auto-cached and explicitly downloaded tiles.',
+                '在 Obsidian 启动时移除旧瓦片以保持地图更新。目前同时适用于自动缓存和显式下载的瓦片。',
             )
             .addDropdown((component) => {
                 component
-                    .addOption('1', '1 month')
-                    .addOption('3', '3 months')
-                    .addOption('6', '6 months')
-                    .addOption('12', '12 months')
-                    .addOption('0', 'Never')
+                    .addOption('1', '1 个月')
+                    .addOption('3', '3 个月')
+                    .addOption('6', '6 个月')
+                    .addOption('12', '12 个月')
+                    .addOption('0', '从不')
                     .setValue(
                         (
                             this.plugin.settings.offlineMaxTileAgeMonths ?? 0
@@ -926,9 +896,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Max offline tiles storage (GB)')
+            .setName('离线瓦片最大存储量 (GB)')
             .setDesc(
-                'Remove tiles by age on Obsidian startup if the storage size is too high. This currently applies both to auto-cached and explicitly downloaded tiles.',
+                '如果存储量过大，在 Obsidian 启动时按时间清除旧瓦片。目前同时适用于自动缓存和显式下载的瓦片。',
             )
             .addText((component) => {
                 component
@@ -946,13 +916,15 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
 
-        const gpsTitle = new Setting(containerEl).setHeading().setName('GPS');
+        const gpsTitle = new Setting(containerEl)
+            .setHeading()
+            .setName('GPS 和实时位置');
         const warningFragment = document.createDocumentFragment();
         const warningText = warningFragment.createDiv();
-        warningText.innerHTML = 'Requires location permissions.';
+        warningText.innerHTML = '需要位置权限。';
         gpsTitle.setDesc(warningFragment);
         new Setting(containerEl)
-            .setName('Enable GPS support')
+            .setName('启用 GPS 支持')
             .addToggle((component) => {
                 component
                     .setValue(
@@ -965,11 +937,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName(
-                'Auto-add geolocation to an empty location proprty (mobile only)',
-            )
+            .setName('自动填充空位置属性（仅移动端）')
             .setDesc(
-                "When an empty front-matter location key is found in a note (either 'location' or a custom key set above), and real-time location is available, auto-fill the location. Can be used together with templates to auto-fill a daily location etc. Only available on mobile.",
+                "当笔记中发现空的前置元数据位置键（'location' 或上面设置的自定义键）且有实时位置时，自动填充位置。可与模板配合使用来自动填充每日位置等。仅限移动端。",
             )
             .addToggle((component) => {
                 component
@@ -984,9 +954,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
         new Setting(containerEl)
-            .setName('Path patterns to never auto-fill location for')
+            .setName('不自动填充位置的路径模式')
             .setDesc(
-                'File with paths including this text will not auto-fill on an empty location property. Important so Map View will not ruin templates.',
+                '包含此文本的文件路径不会自动填充空位置属性。重要：防止地图视图破坏模板文件。',
             )
             .addText((component) => {
                 component
@@ -1000,10 +970,10 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
 
-        new Setting(containerEl).setHeading().setName('Advanced');
+        new Setting(containerEl).setHeading().setName('高级');
 
         new Setting(containerEl)
-            .setName('Debug logs (advanced)')
+            .setName('调试日志（高级）')
             .addToggle((component) => {
                 component
                     .setValue(
@@ -1041,7 +1011,7 @@ export class SettingsTab extends PluginSettingTab {
             const controls = new Setting(containerEl)
                 .addText((component) => {
                     component
-                        .setPlaceholder('Name')
+                        .setPlaceholder('名称')
                         .setValue(setting.name)
                         .onChange(async (value: string) => {
                             setting.name = value;
@@ -1051,7 +1021,7 @@ export class SettingsTab extends PluginSettingTab {
                 })
                 .addText((component) => {
                     component
-                        .setPlaceholder('URL (light/default)')
+                        .setPlaceholder('URL（浅色/默认）')
                         .setValue(setting.urlLight)
                         .onChange(async (value: string) => {
                             setting.urlLight = value;
@@ -1061,7 +1031,7 @@ export class SettingsTab extends PluginSettingTab {
                 })
                 .addText((component) => {
                     component
-                        .setPlaceholder('URL (dark) (opt.)')
+                        .setPlaceholder('URL（深色）（可选）')
                         .setValue(setting.urlDark)
                         .onChange(async (value: string) => {
                             setting.urlDark = value;
@@ -1071,7 +1041,7 @@ export class SettingsTab extends PluginSettingTab {
                 })
                 .addText((component) => {
                     component
-                        .setPlaceholder('Max Tile Zoom')
+                        .setPlaceholder('最大缩放级别')
                         .setValue(
                             (
                                 setting.maxZoom ?? DEFAULT_MAX_TILE_ZOOM
@@ -1089,7 +1059,7 @@ export class SettingsTab extends PluginSettingTab {
                 });
             if (!setting.preset)
                 controls.addButton((component) =>
-                    component.setButtonText('Delete').onClick(async () => {
+                    component.setButtonText('删除').onClick(async () => {
                         this.plugin.settings.mapSources.remove(setting);
                         this.refreshPluginOnHide = true;
                         await this.plugin.saveSettings();
@@ -1107,7 +1077,7 @@ export class SettingsTab extends PluginSettingTab {
             const controls = new Setting(containerEl)
                 .addText((component) => {
                     component
-                        .setPlaceholder('Name')
+                        .setPlaceholder('名称')
                         .setValue(setting.name)
                         .onChange(async (value: string) => {
                             setting.name = value;
@@ -1116,7 +1086,7 @@ export class SettingsTab extends PluginSettingTab {
                 })
                 .addText((component) => {
                     component
-                        .setPlaceholder('URL template')
+                        .setPlaceholder('URL 模板')
                         .setValue(setting.urlPattern)
                         .onChange(async (value: string) => {
                             setting.urlPattern = value;
@@ -1124,7 +1094,7 @@ export class SettingsTab extends PluginSettingTab {
                         });
                 })
                 .addButton((component) =>
-                    component.setButtonText('Delete').onClick(async () => {
+                    component.setButtonText('删除').onClick(async () => {
                         this.plugin.settings.openIn.remove(setting);
                         await this.plugin.saveSettings();
                         this.refreshOpenInSettings(containerEl);
@@ -1156,8 +1126,8 @@ export class SettingsTab extends PluginSettingTab {
             let adjustToRuleType = (ruleType: UrlParsingRuleType) => {
                 text.setPlaceholder(
                     ruleType === 'fetch'
-                        ? 'Regex with 1 capture group'
-                        : 'Regex with 2 capture groups',
+                        ? '含 1 个捕获组的正则表达式'
+                        : '含 2 个捕获组的正则表达式',
                 );
                 if (line2)
                     line2.style.display =
@@ -1165,7 +1135,7 @@ export class SettingsTab extends PluginSettingTab {
             };
             const controls = new Setting(line1).addText((component) => {
                 component
-                    .setPlaceholder('Name')
+                    .setPlaceholder('名称')
                     .setValue(setting.name)
                     .onChange(async (value: string) => {
                         setting.name = value;
@@ -1194,7 +1164,7 @@ export class SettingsTab extends PluginSettingTab {
             controls.settingEl.style.borderTop = 'none';
             if (!setting.preset)
                 controls.addButton((component) =>
-                    component.setButtonText('Delete').onClick(async () => {
+                    component.setButtonText('删除').onClick(async () => {
                         this.plugin.settings.urlParsingRules.remove(setting);
                         await this.plugin.saveSettings();
                         this.refreshUrlParsingRules(containerEl);
@@ -1203,10 +1173,10 @@ export class SettingsTab extends PluginSettingTab {
             line2 = parsingRuleDiv.createDiv('parsing-rule-line-2');
             adjustToRuleType(setting.ruleType);
             const contentLabel = line2.createEl('label');
-            contentLabel.setText('Content parsing expression:');
+            contentLabel.setText('内容解析表达式：');
             contentLabel.style.paddingRight = '10px';
             new TextComponent(line2)
-                .setPlaceholder('Regex with 1-2 capture groups')
+                .setPlaceholder('含 1-2 个捕获组的正则表达式')
                 .setValue(setting.contentParsingRegExp)
                 .onChange(async (value) => {
                     setting.contentParsingRegExp = value;

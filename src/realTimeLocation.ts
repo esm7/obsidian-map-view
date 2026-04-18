@@ -57,17 +57,15 @@ export async function askForLocation(
 ): Promise<RealTimeLocation | null> {
     if (!settings.supportRealTimeGeolocation) return null;
     return new Promise((resolve) => {
-        new Notice('Waiting for location...');
+        new Notice('正在获取位置...');
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const location = makeRealTimeLocation(position);
-                // Although this is not the continuous real-time update flow, and the actual goal of this function is to return a single location,
-                // take the opportunity to update the open map containers about the location we established.
                 onUpdate(position);
                 resolve(location);
             },
             (error) => {
-                new Notice('Map View failed to get location: ' + error.message);
+                new Notice('地图视图获取位置失败：' + error.message);
                 resolve(null);
             },
             {

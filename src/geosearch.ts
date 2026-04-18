@@ -34,7 +34,7 @@ export class GeoSearcher {
         if (settings.searchProvider == 'osm') {
             if (!settings.osmUser) {
                 new Notice(
-                    'Map View: the OpenStreetMap geosearch requires a user email address. Set one in the settings to be able to use this feature.',
+                    '地图视图：OpenStreetMap 地理搜索需要用户邮箱地址。请在设置中填写以使用此功能。',
                     5000,
                 );
                 return;

@@ -250,6 +250,11 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             name: 'Google Maps',
             urlPattern: 'https://maps.google.com/?q={x},{y}',
         },
+        {
+            name: 'Amap (高德地图)',
+            urlPattern:
+                'https://uri.amap.com/marker?position={y},{x}&name={name}',
+        },
     ],
     urlParsingRules: [
         {
@@ -288,6 +293,13 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     useGooglePlacesNew2025: false,
     googlePlacesDataFields: '',
     mapSources: [
+        {
+            name: 'Amap (高德地图)',
+            urlLight:
+                'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+            preset: true,
+            maxZoom: 18,
+        },
         {
             name: 'CartoDB',
             urlLight:
@@ -407,15 +419,18 @@ export function removeLegacyPresets1(
         settings.urlParsingRules.splice(googleMapsParsingRule, 1);
         return true;
     }
-    if (
-        settings.mapSources.findIndex(
-            (item) => item.name == DEFAULT_SETTINGS.mapSources[0].name,
-        ) === -1
-    ) {
-        settings.mapSources.unshift(DEFAULT_SETTINGS.mapSources[0]);
-        return true;
+    let changed = false;
+    for (const defaultSource of DEFAULT_SETTINGS.mapSources) {
+        if (
+            settings.mapSources.findIndex(
+                (item) => item.name === defaultSource.name,
+            ) === -1
+        ) {
+            settings.mapSources.push(defaultSource);
+            changed = true;
+        }
     }
-    return false;
+    return changed;
 }
 
 export function convertTagsToQueries(settings: PluginSettings): boolean {
@@ -477,7 +492,7 @@ export function convertLegacyGooglePlaces(settings: PluginSettings): boolean {
         settings.useGooglePlacesNew2025 = true;
         changed = true;
         new Notice(
-            'IMPORTANT! Map View now uses the new "Google Places (New)" API, which requires that you update your API key. See the "Migrating to Google Places API (New)" section of the README. Your geo searches might fail until you do this update!',
+            '重要！地图视图现在使用新的"Google Places (New)" API，需要您更新 API 密钥。请查看 README 中的"迁移到 Google Places API (New)"部分。在更新之前，您的地理搜索可能会失败！',
             0,
         );
     }
@@ -558,52 +573,40 @@ export async function convertLegacySettings(
     // Convert old settings formats that are no longer supported
     if (convertLegacyMarkerIcons(settings)) {
         changed = true;
-        new Notice(
-            'Map View: legacy marker icons were converted to the new format',
-        );
+        new Notice('地图视图：旧版标记图标已转换为新格式');
     }
     if (convertLegacyTilesUrl(settings)) {
         changed = true;
-        new Notice(
-            'Map View: legacy tiles URL was converted to the new format',
-        );
+        new Notice('地图视图：旧版瓦片 URL 已转换为新格式');
     }
     if (convertLegacyDefaultState(settings)) {
         changed = true;
-        new Notice(
-            'Map View: legacy default state was converted to the new format',
-        );
+        new Notice('地图视图：旧版默认状态已转换为新格式');
     }
     if (removeLegacyPresets1(settings)) {
         changed = true;
         new Notice(
-            'Map View: legacy URL parsing rules and/or map sources were converted. See the release notes',
+            '地图视图：旧版 URL 解析规则和/或地图源已转换。请查看发布说明',
         );
     }
     if (convertTagsToQueries(settings)) {
         changed = true;
-        new Notice(
-            'Map View: legacy tag queries were converted to the new query format',
-        );
+        new Notice('地图视图：旧版标签查询已转换为新的查询格式');
     }
     if (convertUrlParsingRules1(settings)) {
         changed = true;
-        new Notice(
-            'Map View: URL parsing rules were converted to the new format',
-        );
+        new Notice('地图视图：URL 解析规则已转换为新格式');
     }
     if (convertLegacyOpenBehavior(settings)) {
         changed = true;
         new Notice(
-            'Map View: marker click settings were converted to the new settings format (check the settings for new options!)',
+            '地图视图：标记点击设置已转换为新的设置格式（请检查新选项！）',
         );
     }
     if (convertLegacyGooglePlaces(settings)) changed = true;
     if (convertMarkerIconRulesToDisplayRules(settings)) {
         changed = true;
-        new Notice(
-            'Map View: legacy marker icon rules were converted to the new "display rules" format.',
-        );
+        new Notice('地图视图：旧版标记图标规则已转换为新的"显示规则"格式。');
     }
 
     completePartialSavedStates(settings);

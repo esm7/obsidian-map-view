@@ -28,6 +28,10 @@ import { SvelteModal } from 'src/svelte';
 import TextBoxDialog from './components/TextBoxDialog.svelte';
 import ImportDialog from './components/ImportDialog.svelte';
 import { doRouting } from 'src/routing';
+import {
+    transformFromDisplay,
+    isAutoNaviMapSource,
+} from 'src/coordinateTransformer';
 import { type GeoJSON } from 'geojson';
 import { BaseGeoLayer } from 'src/baseGeoLayer';
 import { GeoJsonLayer } from 'src/geojsonLayer';
@@ -44,7 +48,7 @@ export function addShowOnMap(
 ) {
     if (geolocation) {
         menu.addItem((item: MenuItem) => {
-            item.setTitle('Show on map');
+            item.setTitle('在地图上显示');
             item.setSection('mapview');
             item.setIcon('globe');
             const openFunc = async (evt: MouseEvent) =>
@@ -70,7 +74,7 @@ export function addOpenWith(
 ) {
     if (geolocation) {
         menu.addItem((item: MenuItem) => {
-            item.setTitle('Open with default app');
+            item.setTitle('用默认应用打开');
             item.setIcon('map-pin');
             item.setSection('mapview');
             item.onClick((_ev) => {
@@ -101,7 +105,7 @@ export function populateOpenInItems(
             .replace(/{y}/g, location.lng.toString())
             .replace(/{name}/g, name || '');
         menu.addItem((item: MenuItem) => {
-            item.setTitle(`Open in ${setting.name}`);
+            item.setTitle(`在${setting.name}中打开`);
             item.setIcon('map-pin');
             item.setSection('mapview');
             item.onClick((_ev) => {
@@ -120,7 +124,7 @@ export function addGeolocationToNote(
     settings: settings.PluginSettings,
 ) {
     menu.addItem((item: MenuItem) => {
-        item.setTitle('Add geolocation (front matter)');
+        item.setTitle('添加地理位置（front matter）');
         item.setSection('mapview');
         item.setIcon('map-pin-plus');
         item.onClick(async (_evt: MouseEvent) => {
@@ -146,7 +150,7 @@ export function addFocusNoteInMapView(
 ) {
     menu.addItem((item: MenuItem) => {
         const fileName = utils.trimmedFileName(file);
-        item.setTitle(`Focus '${fileName}' in Map View`);
+        item.setTitle(`在地图视图中聚焦'${fileName}'`);
         item.setIcon('map-pinned');
         item.setSection('mapview');
         const openFunc = async (evt: MouseEvent) =>
@@ -174,7 +178,7 @@ export function addUrlConversionItems(
     if (editor.getSelection()) {
         // If there is text selected, add a menu item to convert it to coordinates using geosearch
         menu.addItem((item: MenuItem) => {
-            item.setTitle('Convert to geolocation (geosearch)');
+            item.setTitle('转换为地理位置（地理搜索）');
             item.setIcon('search');
             item.setSection('mapview');
             item.onClick(
@@ -186,7 +190,7 @@ export function addUrlConversionItems(
     if (urlConvertor.hasMatchInLine(editor))
         // If the line contains a recognized geolocation that can be converted from a URL parsing rule
         menu.addItem(async (item: MenuItem) => {
-            item.setTitle('Convert to geolocation');
+            item.setTitle('转换为地理位置');
             item.setIcon('search');
             item.setSection('mapview');
             item.onClick(async () => {
@@ -195,7 +199,7 @@ export function addUrlConversionItems(
         });
 
     menu.addItem((item: MenuItem) => {
-        item.setTitle('Paste as geolocation');
+        item.setTitle('粘贴为地理位置');
         item.setSection('mapview');
         item.setIcon('clipboard-x');
         item.onClick(async () => {
@@ -218,7 +222,7 @@ export function addUrlConversionItems(
 
 export function addEmbed(menu: Menu, plugin: MapViewPlugin, editor: Editor) {
     menu.addItem((item: MenuItem) => {
-        item.setTitle('Embed a Map View');
+        item.setTitle('嵌入地图视图');
         item.setSection('mapview');
         item.setIcon('log-in');
         item.onClick(() => {
@@ -236,7 +240,7 @@ export function addNewNoteItems(
 ) {
     const locationString = `${geolocation.lat},${geolocation.lng}`;
     menu.addItem((item: MenuItem) => {
-        item.setTitle('New note here (inline)');
+        item.setTitle('在此创建新笔记（inline）');
         item.setIcon('edit');
         item.setSection('new');
         const openFunc = async (ev: MouseEvent) => {
@@ -263,7 +267,7 @@ export function addNewNoteItems(
         addPatchyMiddleClickHandler(item, menu, openFunc);
     });
     menu.addItem((item: MenuItem) => {
-        item.setTitle('New note here (front matter)');
+        item.setTitle('在此创建新笔记（front matter）');
         item.setIcon('edit');
         item.setSection('new');
         const openFunc = async (ev: MouseEvent) => {
@@ -300,7 +304,7 @@ export function addCopyGeolocationItems(
 ) {
     const locationString = `${geolocation.lat},${geolocation.lng}`;
     menu.addItem((item: MenuItem) => {
-        item.setTitle(`Copy geolocation`);
+        item.setTitle(`复制地理位置`);
         item.setIcon('copy');
         item.setSection('copy');
         item.onClick((_ev) => {
@@ -310,7 +314,7 @@ export function addCopyGeolocationItems(
                 plugin,
                 settings,
                 {
-                    label: 'Select a name for the new marker:',
+                    label: '输入新标记的名称：',
                     existingText: '',
                     onOk: (text: string) => {
                         navigator.clipboard.writeText(
@@ -323,7 +327,7 @@ export function addCopyGeolocationItems(
         });
     });
     menu.addItem((item: MenuItem) => {
-        item.setTitle(`Copy geolocation as front matter`);
+        item.setTitle(`复制地理位置为 front matter`);
         item.setIcon('copy');
         item.setSection('copy');
         item.onClick((_ev) => {
@@ -344,11 +348,7 @@ export function addFocusLinesInMapView(
     settings: settings.PluginSettings,
 ) {
     menu.addItem((item: MenuItem) => {
-        item.setTitle(
-            `Focus ${numLocations} ${
-                numLocations > 1 ? 'geolocations' : 'geolocation'
-            } in Map View`,
-        );
+        item.setTitle(`在地图视图中聚焦 ${numLocations} 个地理位置`);
         item.setIcon('map-pinned');
         item.setSection('mapview');
         const openFunc = async (evt: MouseEvent) =>
@@ -373,7 +373,7 @@ export function addImport(
     settings: settings.PluginSettings,
 ) {
     menu.addItem((item: MenuItem) => {
-        item.setTitle('Import geolocations from file...');
+        item.setTitle('从文件导入地理位置...');
         item.setIcon('map-pin-plus-inside');
         item.setSection('mapview');
         item.onClick(async (evt: MouseEvent) => {
@@ -396,7 +396,7 @@ export function populateOpenNote(
     settings: PluginSettings,
 ) {
     menu.addItem((item: MenuItem) => {
-        item.setTitle('Open note');
+        item.setTitle('打开笔记');
         item.setIcon('file');
         item.setSection('open-note');
         item.onClick(async (evt: MouseEvent) => {
@@ -425,7 +425,7 @@ export function populateRename(
     plugin: MapViewPlugin,
 ) {
     menu.addItem((item: MenuItem) => {
-        item.setTitle('Rename...');
+        item.setTitle('重命名...');
         item.setIcon('folder-pen');
         item.setSection('open-note');
         item.onClick(async (_evt: MouseEvent) => {
@@ -445,7 +445,7 @@ export function addStartEditMode(
     if (!fileMarker.file) return;
     if (!mapContainer.viewSettings.showEdit) return;
     menu.addItem((item: MenuItem) => {
-        item.setTitle('Start Edit Mode');
+        item.setTitle('开始编辑模式');
         item.setIcon('pencil');
         item.setSection('open-note');
         item.onClick(async (_evt: MouseEvent) => {
@@ -484,7 +484,7 @@ export function populateRouting(
 ) {
     if (geolocation) {
         menu.addItem((item: MenuItem) => {
-            item.setTitle('Mark as routing source');
+            item.setTitle('标记为路由源');
             item.setSection('mapview');
             item.setIcon('flag');
             item.onClick(() => {
@@ -498,7 +498,7 @@ export function populateRouting(
             mapContainer.lastRealTimeLocation !== null
         ) {
             menu.addItem((item: MenuItem) => {
-                item.setTitle('Route to point');
+                item.setTitle('路由到此点');
                 item.setSection('mapview');
                 item.setIcon('milestone');
                 const submenu = (item as any).setSubmenu();
@@ -514,7 +514,7 @@ export function populateRouting(
         // show "route from"
         if (!mapContainer.display.routingSource) {
             menu.addItem((item: MenuItem) => {
-                item.setTitle('Route from...');
+                item.setTitle('路由从...');
                 item.setSection('mapview');
                 item.setIcon('milestone');
                 item.onClick(async () => {
@@ -562,7 +562,7 @@ export function populateRouteToPoint(
     if (!routingSource)
         throw Error('Called populateRouteToPoint with no routing source');
     menu.addItem((item: MenuItem) => {
-        item.setTitle('With external service');
+        item.setTitle('使用外部服务');
         item.onClick(() => {
             const routingTemplate = settings.routingUrl;
             const url = routingTemplate
@@ -607,7 +607,7 @@ export function addMarkerAddToNote(
         mapContainer.getState().editMode &&
         mapContainer.display.controls.editModeTools.noteToEdit;
     menu.addItem((item: MenuItem) => {
-        item.setTitle('Add to Edit Mode note');
+        item.setTitle('添加到编辑模式笔记');
         item.setIcon('edit');
         item.setSection('new');
         item.setDisabled(!enabled);
@@ -642,7 +642,7 @@ export function addPathAddToNote(
         mapContainer.getState().editMode &&
         mapContainer.display.controls.editModeTools.noteToEdit;
     menu.addItem((item: MenuItem) => {
-        item.setTitle('Add to Edit Mode note');
+        item.setTitle('添加到编辑模式笔记');
         item.setIcon('edit');
         item.setDisabled(!enabled);
         item.onClick(() => {
@@ -669,16 +669,18 @@ export function addMapContextMenuItems(
     plugin: MapViewPlugin,
     originalEvent: MouseEvent,
 ) {
-    addNewNoteItems(mapPopup, geolocation, mapContainer, settings, app);
+    const mapSource = mapContainer.getMapSource();
+    const saveLocation = transformFromDisplay(geolocation, mapSource);
+    addNewNoteItems(mapPopup, saveLocation, mapContainer, settings, app);
     addMarkerAddToNote(
         mapPopup,
-        geolocation,
+        saveLocation,
         mapContainer,
         settings,
         app,
         plugin,
     );
-    addCopyGeolocationItems(mapPopup, geolocation, app, plugin, settings);
+    addCopyGeolocationItems(mapPopup, saveLocation, app, plugin, settings);
     populateRouting(
         mapContainer,
         geolocation,
@@ -704,7 +706,7 @@ export function addPathContextMenuItems(
     // In the case of an embedded JSON...
     if (layer.sourceType === 'geojson' && layer.fileLocation > 0) {
         menu.addItem((item: MenuItem) => {
-            item.setTitle('Go to path definition');
+            item.setTitle('跳转到路径定义');
             item.onClick(() => {
                 mapContainer.goToMarker(
                     layer,
@@ -755,7 +757,7 @@ export function addPathContextMenuItems(
                 menu.addItem((item: MenuItem) => {
                     item.setTitle(
                         isSingle
-                            ? `Open '${reference.file.basename}'`
+                            ? `打开'${reference.file.basename}'`
                             : reference.file.basename,
                     );
                     item.onClick((evt) => {
@@ -786,7 +788,7 @@ export function addPathContextMenuItems(
                 addRefernece(menu, results[0], true);
             } else {
                 menu.addItem((item: MenuItem) => {
-                    item.setTitle('Go to reference...');
+                    item.setTitle('跳转到引用...');
                     const submenu = (item as any).setSubmenu();
                     for (const reference of results)
                         addRefernece(submenu, reference, false);
@@ -798,11 +800,11 @@ export function addPathContextMenuItems(
     // Finally, add an option to reveal non-notes in the file explorer
     if (layer.file && layer.file.extension !== 'md') {
         menu.addItem((item: MenuItem) => {
-            item.setTitle('Reveal in file explorer');
+            item.setTitle('在文件管理器中显示');
             item.onClick(() => {
                 if (!(app.vault as any)?.config?.showUnsupportedFiles)
                     new Notice(
-                        'Some file types can only be displayed if you turn on "detect all file extensions" in the Obsidian "Files and links" settings.',
+                        '某些文件类型只有在 Obsidian "文件与链接" 设置中开启"检测所有文件扩展名"后才能显示。',
                         60 * 1000,
                     );
                 const fileExplorer = (

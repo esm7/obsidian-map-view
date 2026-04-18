@@ -61,26 +61,18 @@
     <div class="setting-item">
         <div class="setting-item-info">
             <div class="setting-item-name">
-                <b>Download Tiles for Offline Usage</b>
+                <b>下载瓦片以供离线使用</b>
             </div>
             <div class="setting-item-description">
-                <p>
-                    Add a download job for the map tiles based on the current
-                    view, with a zoom range of your choice.
-                </p>
-                <p>
-                    Use responsibly and make sure you are not violating the
-                    terms of your tiles provider.
-                </p>
+                <p>基于当前视图和您选择的缩放级别范围添加地图瓦片下载任务。</p>
+                <p>请负责任地使用，确保不违反瓦片提供商的服务条款。</p>
             </div>
         </div>
     </div>
     <div class="setting-item">
         <div class="setting-item-info">
-            <div class="setting-item-name">Minimum Zoom Level</div>
-            <div class="setting-item-description">
-                The closest zoom level to download
-            </div>
+            <div class="setting-item-name">最小缩放级别</div>
+            <div class="setting-item-description">要下载的最近缩放级别</div>
         </div>
         <div class="setting-item-control">
             <div class="slider-container">
@@ -98,10 +90,8 @@
 
     <div class="setting-item">
         <div class="setting-item-info">
-            <div class="setting-item-name">Current Zoom Level</div>
-            <div class="setting-item-description">
-                The zoom level currently displayed in the map.
-            </div>
+            <div class="setting-item-name">当前缩放级别</div>
+            <div class="setting-item-description">地图当前显示的缩放级别。</div>
         </div>
         <div class="setting-item-control">
             <div class="slider-value"><b>{displayedZoom}</b></div>
@@ -110,10 +100,8 @@
 
     <div class="setting-item">
         <div class="setting-item-info">
-            <div class="setting-item-name">Maximum Zoom Level</div>
-            <div class="setting-item-description">
-                The furthest zoom level to download
-            </div>
+            <div class="setting-item-name">最大缩放级别</div>
+            <div class="setting-item-description">要下载的最远缩放级别</div>
         </div>
         <div class="setting-item-control">
             <div class="slider-container">
@@ -131,13 +119,11 @@
 
     <div class="setting-item mod-toggle">
         <div class="setting-item-info">
-            <div class="setting-item-name">Skip Existing Tiles</div>
+            <div class="setting-item-name">跳过已有瓦片</div>
             <div class="setting-item-description">
-                Only download tiles that aren't already in the cache.<br />
-                Use this to continue previous downloads or turn it off to refresh
-                old tiles.<br />
-                (When this is on, calculating the tiles to download takes longer due
-                to DB lookups.)
+                仅下载缓存中尚不存在的瓦片。<br />
+                使用此选项继续先前的下载，或关闭以刷新旧瓦片。<br />
+                （启用时，由于数据库查询，计算要下载的瓦片需要更长时间。）
             </div>
         </div>
         <div class="setting-item-control">
@@ -154,10 +140,8 @@
 
     <div class="setting-item">
         <div class="setting-item-info">
-            <div class="setting-item-name">Max Requests per Second</div>
-            <div class="setting-item-description">
-                Limit the rate of tile downloads
-            </div>
+            <div class="setting-item-name">每秒最大请求数</div>
+            <div class="setting-item-description">限制瓦片下载速率</div>
         </div>
         <div class="setting-item-control">
             <input
@@ -173,28 +157,21 @@
     <div class="setting-item tiles-info-container">
         <div class="setting-item-info">
             <div class="setting-item-name">
-                <b>Tiles to download in this job: {numTilesToDownload}</b>
+                <b>此任务要下载的瓦片数：{numTilesToDownload}</b>
             </div>
             <div class="setting-item-description">
                 {#if numTilesToDownload === MAX_TILES_TO_DOWNLOAD}
                     <p>
-                        <b
-                            >This is the maximal number of tiles to download at
-                            one job.</b
-                        > To download more, complete this job and start a new one
-                        with "Skip Existing Tiles" turned on.
+                        <b>这是单个任务最多可下载的瓦片数。</b> 要下载更多，请完成此任务并开启"跳过已有瓦片"后开始新任务。
                     </p>
                 {/if}
+                <p>开始下载前，请确保在瓦片提供商的账户配额范围内。</p>
                 <p>
-                    Before starting the download, make sure this is within the
-                    account quota of the tiles provider.
-                </p>
-                <p>
-                    Estimated time: {(
+                    预计时间：{(
                         numTilesToDownload /
                         maxRequestsPerSecond /
                         60
-                    ).toFixed(1)} minutes.
+                    ).toFixed(1)} 分钟。
                 </p>
             </div>
         </div>
@@ -203,10 +180,9 @@
                 <div class="loading-container">
                     <div class="loading-spinner"></div>
                     <span>
-                        <b>Calculating tiles to download...</b>
+                        <b>正在计算要下载的瓦片...</b>
                         {#if skipExisting}
-                            <br />("Skip Existing Tiles" takes longer to
-                            calculate)
+                            <br />（"跳过已有瓦片"计算需要更长时间）
                         {/if}
                     </span>
                 </div>
@@ -220,9 +196,9 @@
             onclick={handleSubmit}
             disabled={numTilesToDownload <= 0 || estimationRunning > 0}
         >
-            Start Download
+            开始下载
         </button>
-        <button class="mod-warning" onclick={close}> Cancel </button>
+        <button class="mod-warning" onclick={close}> 取消 </button>
     </div>
 </div>
 

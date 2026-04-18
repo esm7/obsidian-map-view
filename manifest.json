@@ -1,8 +1,8 @@
 {
     "id": "obsidian-map-view",
-    "name": "Map View",
+    "name": "Chinese Map View",
     "version": "6.1.4",
     "minAppVersion": "1.11.4",
-    "description": "An interactive map view.",
+    "description": "为 Obsidian 提供的交互式中国地图视图，内置高德地图和坐标转换。",
     "isDesktopOnly": false
 }

@@ -109,9 +109,7 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
                 this.settings,
             )
         )
-            new Notice(
-                "The note's front matter was updated to denote locations are present",
-            );
+            new Notice('笔记的前置元数据已更新，标记为包含地理位置');
     }
 
     getGeolinkOfCursor(cursor: EditorPosition, editor: Editor) {
@@ -169,11 +167,9 @@ export class LocationSuggest extends EditorSuggest<SuggestInfo> {
                     this.settings,
                 )
             )
-                new Notice(
-                    "The note's front matter was updated to denote locations are present",
-                );
+                new Notice('笔记的前置元数据已更新，标记为包含地理位置');
         } else {
-            new Notice(`No location found for the term '${selectionLines}'`);
+            new Notice(`未找到术语 '${selectionLines}' 的位置`);
         }
     }
 }

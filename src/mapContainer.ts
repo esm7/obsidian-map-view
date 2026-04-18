@@ -76,6 +76,12 @@ import {
 import * as menus from 'src/menus';
 import { createPopper, type Instance as PopperInstance } from '@popperjs/core';
 import * as offlineTiles from 'src/offlineTiles.svelte';
+import {
+    isAutoNaviMapSource,
+    transformToDisplay,
+    transformGeoJsonToDisplay,
+    transformGeoJsonFromDisplay,
+} from 'src/coordinateTransformer';
 import MarkerPopup from './components/MarkerPopup.svelte';
 import { type RoutingResult } from 'src/routing';
 import { getMarkerFromUser } from 'src/markerSelectDialog';
@@ -247,15 +253,13 @@ export class MapContainer {
         const params = stateToUrl(this.state);
         const url = `obsidian://mapview?do=open&${params}`;
         navigator.clipboard.writeText(url);
-        new Notice('Copied state URL to clipboard');
+        new Notice('已复制状态 URL 到剪贴板');
     }
 
     copyCodeBlock() {
         const block = getCodeBlock(this.state);
         navigator.clipboard.writeText(block);
-        new Notice(
-            'Copied state as code block which you can embed in any note',
-        );
+        new Notice('已复制状态为代码块，您可以嵌入到任何笔记中');
     }
 
     getMarkers() {
@@ -518,12 +522,15 @@ export class MapContainer {
             const neededClassName = revertMap ? 'dark-mode' : '';
             const maxNativeZoom =
                 chosenMapSource.maxZoom ?? consts.DEFAULT_MAX_TILE_ZOOM;
+            const subdomains = isAutoNaviMapSource(chosenMapSource)
+                ? ['1', '2', '3', '4']
+                : ['mt0', 'mt1', 'mt2', 'mt3'];
             this.display.tileLayer = this.createTileLayer(mapSourceUrl, {
                 maxZoom: this.settings.letZoomBeyondMax
                     ? consts.MAX_ZOOM
                     : maxNativeZoom,
                 maxNativeZoom: maxNativeZoom,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                subdomains: subdomains,
                 attribution: attribution,
                 className: neededClassName,
                 errorTileUrl: this.createErrorTile(),
@@ -662,7 +669,7 @@ export class MapContainer {
         });
         this.display.map.on('pm:drawstart', (e) => {
             if (!this.display.controls.editModeTools.noteToEdit) {
-                new Notice('You must first select a note.');
+                new Notice('请先选择一个笔记。');
                 this.display.map.pm.disableDraw();
                 this.display.controls.openEditSection();
             }
@@ -688,7 +695,10 @@ export class MapContainer {
                     e.shape === 'Polygon'
                 ) {
                     createGeoJsonInFile(
-                        (e.layer as leaflet.Polyline).toGeoJSON(),
+                        transformGeoJsonFromDisplay(
+                            (e.layer as leaflet.Polyline).toGeoJSON(),
+                            this.getMapSource(),
+                        ),
                         file,
                         heading,
                         tags,
@@ -1018,7 +1028,16 @@ export class MapContainer {
                             continue;
                         }
                         let polyline = leaflet.polyline(
-                            [edge.marker1.location, edge.marker2.location],
+                            [
+                                transformToDisplay(
+                                    edge.marker1.location,
+                                    this.getMapSource(),
+                                ),
+                                transformToDisplay(
+                                    edge.marker2.location,
+                                    this.getMapSource(),
+                                ),
+                            ],
                             {
                                 color: this.state.linkColor,
                                 weight: 1,
@@ -1083,7 +1102,9 @@ export class MapContainer {
             icon = new leaflet.Icon.Default();
         }
 
-        let newMarker = leaflet.marker(marker.location, {
+        const mapSource = this.getMapSource();
+        const displayLocation = transformToDisplay(marker.location, mapSource);
+        let newMarker = leaflet.marker(displayLocation, {
             icon: icon,
             autoPan: true,
             opacity: marker.opacity,
@@ -1170,7 +1191,7 @@ export class MapContainer {
                         this.app,
                     );
                 } else {
-                    new Notice('Cannot edit this path.');
+                    new Notice('无法编辑此路径。');
                     console.error('Cannot edit unknown object:', e);
                 }
             },
@@ -1481,7 +1502,9 @@ export class MapContainer {
     }
 
     addSearchResultMarker(details: GeoSearchResult, keepZoom: boolean) {
-        this.display.searchResult = leaflet.marker(details.location, {
+        const mapSource = this.getMapSource();
+        const displayLocation = transformToDisplay(details.location, mapSource);
+        this.display.searchResult = leaflet.marker(displayLocation, {
             icon: getIconFromOptions(
                 consts.SEARCH_RESULT_MARKER,
                 [],
@@ -1523,7 +1546,9 @@ export class MapContainer {
         const distanceKmStr = (route.distanceMeters / 1000).toFixed(1);
         const floatingPath = new FloatingPath(null, route.path);
         floatingPath.routingResult = route;
-        const geoJsonLayer = leaflet.geoJSON(route.path, {
+        const mapSource = this.getMapSource();
+        const displayPath = transformGeoJsonToDisplay(route.path, mapSource);
+        const geoJsonLayer = leaflet.geoJSON(displayPath, {
             style: {
                 ...consts.ROUTING_PATH_OPTIONS,
                 bubblingMouseEvents: false, // This lets stuff like the 'contextmenu' event work
@@ -1585,7 +1610,7 @@ export class MapContainer {
         geoJsonLayer.addTo(this.display.map);
         this.display.calculatedRoutes.push(geoJsonLayer);
         new Notice(
-            `Routing with '${route.profileUsed}': ${distanceKmStr}km, ${utils.formatTime(route.timeMinutes)}`,
+            `路由 '${route.profileUsed}'：${distanceKmStr}公里，${utils.formatTime(route.timeMinutes)}`,
         );
     }
 
@@ -1770,7 +1795,7 @@ export class MapContainer {
                 newState.mapCenter = location.center;
             this.highLevelSetViewState(newState);
         } else {
-            new Notice('No real-time location is available.');
+            new Notice('没有可用的实时位置。');
         }
     }
 
@@ -1780,8 +1805,10 @@ export class MapContainer {
             this.display.routingSource = null;
         }
         if (location) {
+            const mapSource = this.getMapSource();
+            const displayLocation = transformToDisplay(location, mapSource);
             this.display.routingSource = leaflet
-                .marker(location, {
+                .marker(displayLocation, {
                     icon: getIconFromOptions(
                         consts.ROUTING_SOURCE_MARKER,
                         [],
@@ -1998,7 +2025,12 @@ export class MapContainer {
     }
 
     private newLeafletGeoJson(marker: GeoJsonLayer): leaflet.GeoJSON {
-        const geoJsonLayer = leaflet.geoJSON(marker.geojson, {
+        const mapSource = this.getMapSource();
+        const displayGeojson = transformGeoJsonToDisplay(
+            marker.geojson,
+            mapSource,
+        );
+        const geoJsonLayer = leaflet.geoJSON(displayGeojson, {
             style: {
                 ...marker.pathOptions,
                 bubblingMouseEvents: false, // This lets stuff like the 'contextmenu' event work
@@ -2077,12 +2109,15 @@ export class MapContainer {
                 if (e.layer instanceof leaflet.Polyline) {
                     await editGeoJson(
                         marker,
-                        (e.layer as leaflet.Polyline).toGeoJSON(),
+                        transformGeoJsonFromDisplay(
+                            (e.layer as leaflet.Polyline).toGeoJSON(),
+                            this.getMapSource(),
+                        ),
                         this.settings,
                         this.app,
                     );
                 } else {
-                    new Notice('Cannot edit this path.');
+                    new Notice('无法编辑此路径。');
                     console.error('Cannot edit unknown object:', e);
                 }
             },
