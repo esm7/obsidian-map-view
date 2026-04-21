@@ -10,6 +10,7 @@ All notable changes to Map View are documented here.
 
 - A new `distancefrom` query operator.
 - New CLI commands for running queries and calculating routes, especially for usage in conjunction with an LLM.
+- Geosearch CLI can return Google Places field to give agents access to ratings, opening hours etc.
 
 ### Fixed
 

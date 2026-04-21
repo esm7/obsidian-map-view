@@ -30,6 +30,30 @@ Example output:
 
 Use this to find and verify the right result before recording it.
 
+Add `extra-data` to include all fields returned by the geocoding provider:
+
+```bash
+obsidian mv-geosearch name="Eiffel Tower" --extra-data
+```
+
+When using Google Places (New) API with data fields configured in Map View settings (e.g. `regularOpeningHours,rating,websiteUri`), the extra data is appended as JSON after each result:
+
+```
+1. Eiffel Tower (Champ de Mars, 5 Av. Anatole France, 75007 Paris, France) [48.8584, 2.2945]
+{
+  "regularOpeningHours": {
+    "openNow": true,
+    "weekdayDescriptions": [
+      "Monday: 9:00 AM – 11:45 PM",
+      ...
+    ]
+  },
+  "rating": 4.6
+}
+```
+
+The `extra-data` flag works on all three geosearch commands.
+
 ### `mv-geosearch-as-front-matter`
 
 Search for a location and return the top result as a front matter property.

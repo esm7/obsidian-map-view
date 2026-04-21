@@ -18,29 +18,40 @@ export function registerCliHandlers(
     app: App,
     settings: PluginSettings,
 ) {
-    const nameFlag = {
+    const nameAndExtraDataFlags = {
         name: {
             value: '<query>',
             description: 'Location name or address to search for',
             required: true,
+        },
+        'extra-data': {
+            description:
+                'Include all extra data returned by the geocoding provider (e.g. opening hours, rating, website from Google Places). Requires Google Places API with data fields configured in Map View settings.',
+            required: false,
         },
     };
 
     plugin.registerCliHandler(
         'mv-geosearch',
         'Search for a location by name and return up to 10 results',
-        nameFlag,
+        nameAndExtraDataFlags,
         async (params: { name: string }) => {
             const results = await new GeoSearcher(app, settings).search(
                 params.name,
             );
             if (!results.length) return 'No results found.';
+            const wantExtra =
+                (params as any)['--extra-data'] === 'true' ||
+                (params as any)['--extra-data'] === 'true' ||
+                (params as any)['extra-data'] === 'true';
             return results
                 .slice(0, 10)
-                .map(
-                    (r, i) =>
-                        `${i + 1}. ${r.name} [${r.location.lat}, ${r.location.lng}]`,
-                )
+                .map((r, i) => {
+                    const line = `${i + 1}. ${r.name} [${r.location.lat}, ${r.location.lng}]`;
+                    return wantExtra
+                        ? line + '\n' + formatExtraData(r.extraLocationData)
+                        : line;
+                })
                 .join('\n');
         },
     );
@@ -48,28 +59,44 @@ export function registerCliHandlers(
     plugin.registerCliHandler(
         'mv-geosearch-as-front-matter',
         'Search for a location and return it as a front matter property',
-        nameFlag,
+        nameAndExtraDataFlags,
         async (params: { name: string }) => {
             const results = await new GeoSearcher(app, settings).search(
                 params.name,
             );
             if (!results.length) return 'No results found.';
             const { lat, lng } = results[0].location;
-            return `${settings.frontMatterKey}: "${lat},${lng}"`;
+            const main = `${settings.frontMatterKey}: "${lat},${lng}"`;
+            if (
+                (params as any)['--extra-data'] === 'true' ||
+                (params as any)['extra-data'] === 'true'
+            )
+                return (
+                    main + '\n' + formatExtraData(results[0].extraLocationData)
+                );
+            return main;
         },
     );
 
     plugin.registerCliHandler(
         'mv-geosearch-as-inline',
         'Search for a location and return it as an inline geolink',
-        nameFlag,
+        nameAndExtraDataFlags,
         async (params: { name: string }) => {
             const results = await new GeoSearcher(app, settings).search(
                 params.name,
             );
             if (!results.length) return 'No results found.';
             const { lat, lng } = results[0].location;
-            return `[${params.name}](geo:${lat},${lng})`;
+            const main = `[${params.name}](geo:${lat},${lng})`;
+            if (
+                (params as any)['--extra-data'] === 'true' ||
+                (params as any)['extra-data'] === 'true'
+            )
+                return (
+                    main + '\n' + formatExtraData(results[0].extraLocationData)
+                );
+            return main;
         },
     );
 
@@ -194,6 +221,27 @@ export function registerCliHandlers(
             return results.join('\n');
         },
     );
+
+    function formatExtraData(extra: any): string {
+        const place = extra?.googleMapsPlaceData;
+        if (!place) {
+            return (
+                '[No extra data returned. Requires Google Places (New) API ' +
+                'with data fields configured in Map View settings, e.g. ' +
+                'regularOpeningHours,rating,websiteUri]'
+            );
+        }
+        // Strip fields already shown in the main output line
+        const { location, displayName, formattedAddress, ...rest } = place;
+        if (Object.keys(rest).length === 0) {
+            return (
+                '[No additional fields. Add field names such as ' +
+                'regularOpeningHours,rating,websiteUri to "Google Places Data Fields" ' +
+                'in Map View settings.]'
+            );
+        }
+        return JSON.stringify(rest, null, 2);
+    }
 
     function parseLatLng(str: string): leaflet.LatLng | null {
         const cleaned = str.replace(/[\[\]\s]/g, '');

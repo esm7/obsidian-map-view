@@ -12,6 +12,9 @@ TRIGGER when: user asks to add, list, or recommend places, venues, restaurants, 
 
 If the [obsidian-skills](https://github.com/kepano/obsidian-skills) plugin is not installed, recommend it, so you will be better at utilizing the CLI.
 
+Geolocations: When the content to be added contains named real-world places (restaurants, venues, hotels, attractions, etc.), format each as a Map View inline geolink -- [Place Name](geo:lat,lng) -- rather than plain text.
+If coordinates are not already known, use this skill to look them up before appending.
+
 ## Commands
 
 ```bash
@@ -75,6 +78,29 @@ obsidian mv-query "distancefrom:32.08,34.78<500m AND tag:#restaurant"
 ```
 
 Radius can be in `km`, `m`, `mi`, or `ft`. This is the fastest way to find vault markers near a given point — no routing API key required. Use it to quickly narrow down candidates before calling `mv-calc-route` only on the ones that are geographically plausible, or to answer the users for queries like "what do I have in my vault that is around...".
+
+## Getting rich place data (opening hours, ratings, etc.)
+
+All three geosearch commands accept an optional `extra-data` flag. When set, the full data returned by the geocoding provider is appended to each result as JSON.
+
+```bash
+obsidian mv-geosearch name="Central Park Cafe" --extra-data
+obsidian mv-geosearch-as-inline name="Louvre Museum" --extra-data
+obsidian mv-geosearch-as-front-matter name="Hotel du Nord, Paris" --extra-data
+```
+
+This is intended to be used with the **Google Places API**, which can return fields like `regularOpeningHours`, `rating`, `priceLevel`, `websiteUri`, `nationalPhoneNumber`, and more.
+
+**Setup required:** The user must configure two things in Map View settings:
+
+1. Switch the search provider to **Google Places**.
+2. Add the desired field names to **"Google Places Data Fields"**, e.g.: `regularOpeningHours,rating,priceLevel,websiteUri`
+
+If the user asks for opening hours, ratings, or other place details, and the output does not include them (either shows no extra data or just not the right fields), suggest they configure these settings. **Important:** if you think you can achieve what the user wants by adding fields, STOP WHAT YOU ARE DOING with other tools (like web fetching) and tell the user to add the fields to the Map View settings.
+
+**Example use case:** User asks for coffee shops open on Sunday morning near a location. Use `mv-geosearch name="..." --extra-data` for each candidate, then filter based on the `regularOpeningHours.weekdayDescriptions` in the JSON output.
+
+**Prefer geo searches with the correct fields using the Google Places API over web fetches, unless the user instructs otherwise or does not use Places API.**
 
 ## Checking distance and travel time for recommendations
 
