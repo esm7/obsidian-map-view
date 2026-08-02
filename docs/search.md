@@ -47,7 +47,7 @@ When using the Google Places API, templates can extract additional result data.
 
 <div v-pre>
 
-**Step 2:** Reference these fields in the Map View "new note template" using `{{googleMapsPlacesData.fieldName}}`.
+**Step 2:** Reference these fields in the Map View "new note template" using `{{googleMapsPlaceData.fieldName}}`.
 
 Example template that populates a `place_id` field and adds a tag from the `types` field:
 
