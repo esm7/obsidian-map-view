@@ -1,5 +1,5 @@
 import { LatLng, type PathOptions } from 'leaflet';
-import { type SplitDirection, Notice } from 'obsidian';
+import { type SplitDirection, App, Notice } from 'obsidian';
 import { type MapState, type LegacyMapState, mergeStates } from 'src/mapState';
 import type MapViewPlugin from 'src/main';
 import * as consts from 'src/consts';
@@ -52,7 +52,11 @@ export type PluginSettings = {
     searchProvider: 'osm' | 'google';
     osmUser: string;
     searchDelayMs: number;
+    /**
+     * @deprecated - Use "geocodingApiKeySecret"
+     */
     geocodingApiKey: string;
+    geocodingApiKeySecret: string;
     useGooglePlacesNew2025: boolean;
     googlePlacesDataFields: string;
     saveHistory: boolean;
@@ -72,7 +76,11 @@ export type PluginSettings = {
     zoomOnGeolinkPreview: number;
     handleGeolinkContextMenu: boolean;
     routingUrl: string;
+    /**
+     * @deprecated - use "routingGraphHopperApiKeySecret"
+     */
     routingGraphHopperApiKey: string;
+    routingGraphHopperApiKeySecret: string;
     routingGraphHopperProfiles: string;
     routingGraphHopperExtra: any;
     cacheAllTiles: boolean;
@@ -92,6 +100,8 @@ export type DepracatedFields = {
     defaultTags?: string[];
     snippetLines?: number;
     useGooglePlaces?: boolean;
+    routingGraphHopperApiKey: string;
+    geocodingApiKey: string;
 };
 
 export type MapLightDark = 'auto' | 'light' | 'dark';
@@ -285,6 +295,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     osmUser: '',
     searchDelayMs: 250,
     geocodingApiKey: '',
+    geocodingApiKeySecret: '',
     useGooglePlacesNew2025: false,
     googlePlacesDataFields: '',
     mapSources: [
@@ -317,6 +328,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     routingUrl:
         'https://www.google.com/maps/dir/?api=1&origin={x0},{y0}&destination={x1},{y1}',
     routingGraphHopperApiKey: '',
+    routingGraphHopperApiKeySecret: '',
     routingGraphHopperProfiles: 'foot, bike, car',
     routingGraphHopperExtra: {},
     cacheAllTiles: true,
@@ -484,6 +496,30 @@ export function convertLegacyGooglePlaces(settings: PluginSettings): boolean {
     return changed;
 }
 
+export function convertLegacyAPIKeysToSecretStorage(
+    settings: PluginSettings & DepracatedFields,
+    app: App,
+): boolean {
+    let changed = false;
+    if (settings.geocodingApiKey) {
+        app.secretStorage.setSecret(
+            settings.geocodingApiKeySecret,
+            settings.geocodingApiKey,
+        );
+        delete settings.geocodingApiKey;
+        changed = true;
+    }
+    if (settings.routingGraphHopperApiKey) {
+        app.secretStorage.setSecret(
+            settings.routingGraphHopperApiKeySecret,
+            settings.routingGraphHopperApiKey,
+        );
+        delete settings.routingGraphHopperApiKey;
+        changed = true;
+    }
+    return changed;
+}
+
 export function convertMarkerIconRulesToDisplayRules(
     settings: PluginSettings & DepracatedFields,
 ) {
@@ -603,6 +639,13 @@ export async function convertLegacySettings(
         changed = true;
         new Notice(
             'Map View: legacy marker icon rules were converted to the new "display rules" format.',
+        );
+    }
+
+    if (convertLegacyAPIKeysToSecretStorage(settings, this.app)) {
+        changed = true;
+        new Notice(
+            'Map View: Legacy API keys for Geocoding and/or converted to the new Secret Storage API.',
         );
     }
 

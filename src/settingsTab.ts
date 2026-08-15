@@ -5,6 +5,8 @@ import {
     TextAreaComponent,
     Setting,
     DropdownComponent,
+    SecretComponent,
+    Component,
 } from 'obsidian';
 
 import MapViewPlugin from 'src/main';
@@ -23,6 +25,8 @@ import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
 import { openManagerDialog } from 'src/offlineTiles.svelte';
 import { SvelteModal } from 'src/svelte';
 import DisplayRules from './components/DisplayRules.svelte';
+import { value } from 'happy-dom/lib/PropertySymbol';
+import { V } from 'vitest/dist/chunks/reporters.d.DVUYHHhe';
 
 export class SettingsTab extends PluginSettingTab {
     plugin: MapViewPlugin;
@@ -142,21 +146,15 @@ export class SettingsTab extends PluginSettingTab {
             .setDesc(
                 'If using Google as the geocoding search provider, paste the API key here. See the plugin documentation for more details. Changes are applied after restart.',
             )
-            .addText((component) => {
-                component
-                    .setValue(this.plugin.settings.geocodingApiKey)
-                    .onChange(async (value) => {
-                        this.plugin.settings.geocodingApiKey = value;
-                        await this.plugin.saveSettings();
-                        component.inputEl.style.borderColor = value
-                            ? ''
-                            : 'red';
-                    });
-                component.inputEl.style.borderColor = this.plugin.settings
-                    .geocodingApiKey
-                    ? ''
-                    : 'red';
-            });
+            .addComponent((component) =>
+                new SecretComponent(this.app, component)
+                    .setValue(this.plugin.settings.geocodingApiKeySecret)
+                    .onChange((value) => {
+                        this.plugin.settings.geocodingApiKeySecret = value;
+                        this.plugin.saveSettings();
+                        component.style.borderColor = value ? '' : 'red';
+                    }),
+            );
         let googlePlacesControl = new Setting(containerEl)
             .setName('Use Google Places for searches')
             .setDesc(
@@ -818,19 +816,24 @@ export class SettingsTab extends PluginSettingTab {
                         this.plugin.saveSettings();
                     });
             });
+
         new Setting(containerEl)
             .setName('GraphHopper API key')
             .setDesc(
                 'You may obtain a free or a paid key from GraphHopper to enable native routing in Map View.',
             )
-            .addText((component) => {
-                component
-                    .setValue(this.plugin.settings.routingGraphHopperApiKey)
-                    .onChange(async (value: string) => {
-                        this.plugin.settings.routingGraphHopperApiKey = value;
+            .addComponent((component) =>
+                new SecretComponent(this.app, component)
+                    .setValue(
+                        this.plugin.settings.routingGraphHopperApiKeySecret,
+                    )
+                    .onChange((value) => {
+                        this.plugin.settings.routingGraphHopperApiKeySecret =
+                            value;
                         this.plugin.saveSettings();
-                    });
-            });
+                    }),
+            );
+
         new Setting(containerEl)
             .setName('GraphHopper profiles')
             .setDesc(

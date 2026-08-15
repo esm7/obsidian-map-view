@@ -126,6 +126,7 @@ export class UrlConvertor {
     async getGeolocationFromGoogleLink(
         url: string,
         settings: PluginSettings,
+        app: App,
     ): Promise<leaflet.LatLng> {
         const content = await request({ url: url });
         if (this.settings.debug) console.log('Google link: searching url', url);
@@ -136,7 +137,9 @@ export class UrlConvertor {
             const placeName = placeNameMatch[1];
             if (this.settings.debug)
                 console.log('Google link: found place name = ', placeName);
-            const googleApiKey = settings.geocodingApiKey;
+            const googleApiKey = app.secretStorage.getSecret(
+                settings.geocodingApiKeySecret,
+            );
             const params = {
                 query: placeName,
                 key: googleApiKey,

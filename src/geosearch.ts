@@ -46,7 +46,7 @@ export class GeoSearcher {
             });
         } else if (settings.searchProvider == 'google') {
             this.searchProvider = new geosearch.GoogleProvider({
-                apiKey: settings.geocodingApiKey,
+                apiKey: settings.geocodingApiKeySecret,
             });
         }
     }
@@ -76,7 +76,7 @@ export class GeoSearcher {
         if (
             this.settings.searchProvider == 'google' &&
             this.settings.useGooglePlacesNew2025 &&
-            this.settings.geocodingApiKey
+            this.settings.geocodingApiKeySecret
         ) {
             try {
                 const placesResults = await googlePlacesSearch(
@@ -132,7 +132,7 @@ export async function googlePlacesSearch(
 ): Promise<GeoSearchResult[]> {
     if (settings.searchProvider != 'google' || !settings.useGooglePlacesNew2025)
         return [];
-    const googleApiKey = settings.geocodingApiKey;
+    const googleApiKey = settings.geocodingApiKeySecret;
 
     // Request body for the new Places API
     const requestBody = {
