@@ -604,6 +604,7 @@ export class RoutingControl extends leaflet.Control {
                             marker.location,
                             menu,
                             this.settings,
+                            this.app,
                         );
                         menu.showAtMouseEvent(ev);
                     }
