@@ -643,7 +643,7 @@ export async function convertLegacySettings(
     if (convertLegacyAPIKeysToSecretStorage(settings, plugin.app)) {
         changed = true;
         new Notice(
-            'Map View: Legacy API keys for Geocoding and/or converted to the new Secret Storage API.',
+            'Map View: Legacy API keys for Geocoding and/or converted to the new Secret Storage API. You may need to re-link the secret in settings afterwards.',
         );
     }
 
