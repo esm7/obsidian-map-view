@@ -45,8 +45,11 @@ export class GeoSearcher {
                 },
             });
         } else if (settings.searchProvider == 'google') {
+            //TODO: this can be improved so that it auto-updates when `apiKey` is changed
             this.searchProvider = new geosearch.GoogleProvider({
-                apiKey: settings.geocodingApiKeySecret,
+                apiKey: app.secretStorage.getSecret(
+                    settings.geocodingApiKeySecret,
+                ),
             });
         }
     }
@@ -129,10 +132,13 @@ export async function googlePlacesSearch(
     query: string,
     settings: PluginSettings,
     centerOfSearch: leaflet.LatLng | null,
+    app: App,
 ): Promise<GeoSearchResult[]> {
     if (settings.searchProvider != 'google' || !settings.useGooglePlacesNew2025)
         return [];
-    const googleApiKey = settings.geocodingApiKeySecret;
+    const googleApiKey = app.secretStorage.getSecret(
+        settings.geocodingApiKeySecret,
+    );
 
     // Request body for the new Places API
     const requestBody = {
