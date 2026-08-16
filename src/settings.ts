@@ -502,18 +502,16 @@ export function convertLegacyAPIKeysToSecretStorage(
 ): boolean {
     let changed = false;
     if (settings.geocodingApiKey) {
-        app.secretStorage.setSecret(
-            settings.geocodingApiKeySecret,
-            settings.geocodingApiKey,
-        );
+        const key = 'obsidian-map-view-geocoding-apikey';
+        app.secretStorage.setSecret(key, settings.geocodingApiKey);
+        settings.geocodingApiKeySecret = key;
         delete settings.geocodingApiKey;
         changed = true;
     }
     if (settings.routingGraphHopperApiKey) {
-        app.secretStorage.setSecret(
-            settings.routingGraphHopperApiKeySecret,
-            settings.routingGraphHopperApiKey,
-        );
+        const key = 'obsidian-map-view-routing-graphhopper-apikey';
+        app.secretStorage.setSecret(key, settings.routingGraphHopperApiKey);
+        settings.geocodingApiKeySecret = key;
         delete settings.routingGraphHopperApiKey;
         changed = true;
     }
@@ -642,7 +640,7 @@ export async function convertLegacySettings(
         );
     }
 
-    if (convertLegacyAPIKeysToSecretStorage(settings, this.app)) {
+    if (convertLegacyAPIKeysToSecretStorage(settings, plugin.app)) {
         changed = true;
         new Notice(
             'Map View: Legacy API keys for Geocoding and/or converted to the new Secret Storage API.',
