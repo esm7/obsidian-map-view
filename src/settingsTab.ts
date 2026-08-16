@@ -25,8 +25,6 @@ import { DEFAULT_MAX_TILE_ZOOM, MAX_ZOOM } from 'src/consts';
 import { openManagerDialog } from 'src/offlineTiles.svelte';
 import { SvelteModal } from 'src/svelte';
 import DisplayRules from './components/DisplayRules.svelte';
-import { value } from 'happy-dom/lib/PropertySymbol';
-import { V } from 'vitest/dist/chunks/reporters.d.DVUYHHhe';
 
 export class SettingsTab extends PluginSettingTab {
     plugin: MapViewPlugin;
