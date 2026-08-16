@@ -48,7 +48,7 @@ export async function calcRoute(
         ...settings.routingGraphHopperExtra,
     };
     const resultContent: any = await request({
-        url: `https://graphhopper.com/api/1/route?key=${settings.routingGraphHopperApiKeySecret}`,
+        url: `https://graphhopper.com/api/1/route?key=${apiKey}`,
         method: 'POST',
         body: JSON.stringify(requestBody),
         headers: {
