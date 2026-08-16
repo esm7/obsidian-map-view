@@ -27,10 +27,13 @@ export class GeoSearcher {
         | geosearch.GoogleProvider = null;
     private settings: PluginSettings;
     private urlConvertor: UrlConvertor;
+    private app: App;
 
     constructor(app: App, settings: PluginSettings) {
         this.settings = settings;
         this.urlConvertor = new UrlConvertor(app, settings);
+        this.app = app;
+
         if (settings.searchProvider == 'osm') {
             if (!settings.osmUser) {
                 new Notice(
@@ -86,6 +89,9 @@ export class GeoSearcher {
                     query,
                     this.settings,
                     searchArea?.getCenter(),
+                    this.app.secretStorage.getSecret(
+                        this.settings.geocodingApiKeySecret,
+                    ),
                 );
                 for (const result of placesResults) {
                     results.push({
@@ -132,13 +138,10 @@ export async function googlePlacesSearch(
     query: string,
     settings: PluginSettings,
     centerOfSearch: leaflet.LatLng | null,
-    app: App,
+    googleApiKey: string,
 ): Promise<GeoSearchResult[]> {
     if (settings.searchProvider != 'google' || !settings.useGooglePlacesNew2025)
         return [];
-    const googleApiKey = app.secretStorage.getSecret(
-        settings.geocodingApiKeySecret,
-    );
 
     // Request body for the new Places API
     const requestBody = {
