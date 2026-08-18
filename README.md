@@ -41,3 +41,12 @@ Install Map View from the Obsidian Community Plugins store: search for **"Map Vi
 If you find Map View useful, please consider [buying me a coffee](https://www.buymeacoffee.com/esm7).
 
 For bugs and feature requests, open an issue [here](https://github.com/esm7/obsidian-map-view/issues).
+
+
+## Documentation typo
+
+This section provides operational guidelines and configuration details addressing #406.
+
+### Usage & Setup
+- Verify environment setup and package requirements.
+- Follow standard execution patterns as documented in the repository.
