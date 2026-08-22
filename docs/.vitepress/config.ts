@@ -82,6 +82,10 @@ export default defineConfig({
                         link: '/vs-obsidian-maps',
                     },
                     {
+                        text: 'vs. Advanced Maps',
+                        link: '/vs-advanced-maps',
+                    },
+                    {
                         text: 'vs. Obsidian Leaflet',
                         link: '/vs-leaflet',
                     },
