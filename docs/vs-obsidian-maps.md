@@ -35,7 +35,7 @@ Here is a more in-depth comparison:
 | **Offline usage**              | Not supported                            | Automatic cache + batch download for offline use                                          |
 | **Map sources**                | Vector or tile based                     | Tile based                                                                                |
 
-Some of the rows above change if you extend Obsidian Maps with a community plugin — see [Map View vs. Advanced Maps](vs-advanced-maps.md).
+Some of the rows above change if you extend Obsidian Maps with a community plugin -- see [Map View vs. Advanced Maps](vs-advanced-maps.md).
 
 ## Location Format
 
