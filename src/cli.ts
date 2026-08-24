@@ -170,6 +170,7 @@ export function registerCliHandlers(
                     'graphhopper',
                     { profile: params.profile },
                     settings,
+                    app,
                 );
                 return [
                     `Profile: ${result.profileUsed}`,

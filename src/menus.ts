@@ -507,6 +507,7 @@ export function populateRouting(
                     geolocation,
                     submenu,
                     settings,
+                    app,
                 );
             });
         }
@@ -538,6 +539,7 @@ export function populateRouting(
                                 geolocation,
                                 menu,
                                 settings,
+                                app,
                             );
                             menu.showAtMouseEvent(originalEvent);
                         }
@@ -553,6 +555,7 @@ export function populateRouteToPoint(
     geolocation: leaflet.LatLng,
     menu: Menu,
     settings: settings.PluginSettings,
+    app: App,
 ) {
     // The first priority is to choose the user-selected routing source.
     // If there isn't any, we try the real-time (GPS) location.
@@ -586,6 +589,7 @@ export function populateRouteToPoint(
                     { profile: cleanedProfile },
                     mapContainer,
                     settings,
+                    app,
                 );
             });
         });

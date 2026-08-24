@@ -27,10 +27,13 @@ export class GeoSearcher {
         | geosearch.GoogleProvider = null;
     private settings: PluginSettings;
     private urlConvertor: UrlConvertor;
+    private app: App;
 
     constructor(app: App, settings: PluginSettings) {
         this.settings = settings;
         this.urlConvertor = new UrlConvertor(app, settings);
+        this.app = app;
+
         if (settings.searchProvider == 'osm') {
             if (!settings.osmUser) {
                 new Notice(
@@ -45,8 +48,11 @@ export class GeoSearcher {
                 },
             });
         } else if (settings.searchProvider == 'google') {
+            //TODO: this can be improved so that it auto-updates when `apiKey` is changed
             this.searchProvider = new geosearch.GoogleProvider({
-                apiKey: settings.geocodingApiKey,
+                apiKey: app.secretStorage.getSecret(
+                    settings.geocodingApiKeySecret,
+                ),
             });
         }
     }
@@ -76,13 +82,16 @@ export class GeoSearcher {
         if (
             this.settings.searchProvider == 'google' &&
             this.settings.useGooglePlacesNew2025 &&
-            this.settings.geocodingApiKey
+            this.settings.geocodingApiKeySecret
         ) {
             try {
                 const placesResults = await googlePlacesSearch(
                     query,
                     this.settings,
                     searchArea?.getCenter(),
+                    this.app.secretStorage.getSecret(
+                        this.settings.geocodingApiKeySecret,
+                    ),
                 );
                 for (const result of placesResults) {
                     results.push({
@@ -129,10 +138,10 @@ export async function googlePlacesSearch(
     query: string,
     settings: PluginSettings,
     centerOfSearch: leaflet.LatLng | null,
+    googleApiKey: string,
 ): Promise<GeoSearchResult[]> {
     if (settings.searchProvider != 'google' || !settings.useGooglePlacesNew2025)
         return [];
-    const googleApiKey = settings.geocodingApiKey;
 
     // Request body for the new Places API
     const requestBody = {

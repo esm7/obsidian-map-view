@@ -2,7 +2,7 @@ import { MapContainer } from 'src/mapContainer';
 import MapViewPlugin from 'src/main';
 import { type PluginSettings } from 'src/settings';
 import * as leaflet from 'leaflet';
-import { request, Notice } from 'obsidian';
+import { request, Notice, App } from 'obsidian';
 import { type GeoJSON } from 'geojson';
 
 type RoutingProvider = 'graphhopper';
@@ -26,8 +26,12 @@ export async function calcRoute(
     provider: RoutingProvider,
     params: RoutingParams,
     settings: PluginSettings,
+    app: App,
 ): Promise<RoutingResult> {
-    if (!settings.routingGraphHopperApiKey) {
+    const apiKey = app.secretStorage.getSecret(
+        settings.routingGraphHopperApiKeySecret,
+    );
+    if (!apiKey) {
         throw new Error(
             'No GraphHopper API key configured in Map View settings.',
         );
@@ -44,7 +48,7 @@ export async function calcRoute(
         ...settings.routingGraphHopperExtra,
     };
     const resultContent: any = await request({
-        url: `https://graphhopper.com/api/1/route?key=${settings.routingGraphHopperApiKey}`,
+        url: `https://graphhopper.com/api/1/route?key=${apiKey}`,
         method: 'POST',
         body: JSON.stringify(requestBody),
         headers: {
@@ -78,8 +82,9 @@ export async function doRouting(
     params: RoutingParams,
     map: MapContainer,
     settings: PluginSettings,
+    app: App,
 ) {
-    if (!settings.routingGraphHopperApiKey) {
+    if (!settings.routingGraphHopperApiKeySecret) {
         new Notice(
             'You must first provide a GraphHopper API key in the settings.',
         );
@@ -92,6 +97,7 @@ export async function doRouting(
             provider,
             params,
             settings,
+            app,
         );
         map.addFloatingRoute(routingResult);
     } catch (e) {

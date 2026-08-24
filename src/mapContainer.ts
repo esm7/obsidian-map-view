@@ -1832,6 +1832,7 @@ export class MapContainer {
                                     marker.location,
                                     menu,
                                     this.settings,
+                                    this.app,
                                 );
                                 menu.showAtMouseEvent(ev.originalEvent);
                             }
