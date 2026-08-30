@@ -1,6 +1,6 @@
 import { App, Editor, TFile, request } from 'obsidian';
 import queryString from 'query-string';
-
+import { readFileSync } from 'fs';
 import * as leaflet from 'leaflet';
 import { type PluginSettings, type UrlParsingRule } from 'src/settings';
 import * as utils from 'src/utils';
@@ -136,7 +136,12 @@ export class UrlConvertor {
             const placeName = placeNameMatch[1];
             if (this.settings.debug)
                 console.log('Google link: found place name = ', placeName);
-            const googleApiKey = settings.geocodingApiKey;
+
+            const googleApiKey =
+                settings.geocodingApiMethod === 'key'
+                    ? settings.geocodingApiKey
+                    : readFileSync(settings.geocodingApiPath, 'utf-8').trim();
+
             const params = {
                 query: placeName,
                 key: googleApiKey,

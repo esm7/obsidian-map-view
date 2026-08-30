@@ -2,7 +2,7 @@ import { request, App, Notice } from 'obsidian';
 import * as geosearch from 'leaflet-geosearch';
 import * as leaflet from 'leaflet';
 import queryString from 'query-string';
-
+import { readFileSync } from 'fs';
 import { type PluginSettings } from 'src/settings';
 import { UrlConvertor } from 'src/urlConvertor';
 import { FileMarker } from 'src/fileMarker';
@@ -45,9 +45,12 @@ export class GeoSearcher {
                 },
             });
         } else if (settings.searchProvider == 'google') {
-            this.searchProvider = new geosearch.GoogleProvider({
-                apiKey: settings.geocodingApiKey,
-            });
+            const apiKey =
+                settings.geocodingApiMethod === 'key'
+                    ? settings.geocodingApiKey
+                    : readFileSync(settings.geocodingApiPath, 'utf-8').trim();
+
+            this.searchProvider = new geosearch.GoogleProvider({ apiKey });
         }
     }
 
@@ -132,7 +135,9 @@ export async function googlePlacesSearch(
 ): Promise<GeoSearchResult[]> {
     if (settings.searchProvider != 'google' || !settings.useGooglePlacesNew2025)
         return [];
-    const googleApiKey = settings.geocodingApiKey;
+    const googleApiKey = settings.geocodingApiMethod === 'key'
+        ? settings.geocodingApiKey
+        : readFileSync(settings.geocodingApiPath, 'utf-8').trim();
 
     // Request body for the new Places API
     const requestBody = {

@@ -84,7 +84,9 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
 
+        let apiMethodControl: Setting = null;
         let apiKeyControl: Setting = null;
+        let apiPathControl: Setting = null;
         let osmUser: Setting = null;
         new Setting(containerEl)
             .setName('Geocoding search provider')
@@ -105,8 +107,18 @@ export class SettingsTab extends PluginSettingTab {
                         this.refreshPluginOnHide = true;
                         osmUser.settingEl.style.display =
                             value === 'osm' ? '' : 'none';
-                        apiKeyControl.settingEl.style.display =
+                        apiMethodControl.settingEl.style.display =
                             value === 'google' ? '' : 'none';
+                        apiKeyControl.settingEl.style.display =
+                            value === 'google' &&
+                            this.plugin.settings.geocodingApiMethod === 'key'
+                                ? ''
+                                : 'none';
+                        apiPathControl.settingEl.style.display =
+                            value === 'google' &&
+                            this.plugin.settings.geocodingApiMethod === 'path'
+                                ? ''
+                                : 'none';
                         googlePlacesControl.settingEl.style.display =
                             this.plugin.settings.searchProvider === 'google'
                                 ? ''
@@ -137,8 +149,40 @@ export class SettingsTab extends PluginSettingTab {
                     : 'red';
             });
 
+        osmUser.settingEl.style.display =
+            this.plugin.settings.searchProvider === 'osm' ? '' : 'none';
+
+        apiMethodControl = new Setting(containerEl)
+            .setName('Geocoding API Method')
+            .setDesc(
+                'Choose whether to provide the API key directly or via a file path.'
+            )
+            .addDropdown((component) => {
+                component
+                    .addOption('key', 'API Key')
+                    .addOption('path', 'API Key Path')
+                    .setValue(this.plugin.settings.geocodingApiMethod || 'key')
+                    .onChange(async (value: 'key' | 'path') => {
+                        this.plugin.settings.geocodingApiMethod = value;
+                        await this.plugin.saveSettings();
+                        apiKeyControl.settingEl.style.display =
+                            value === 'key' &&
+                            this.plugin.settings.searchProvider === 'google'
+                                ? ''
+                                : 'none';
+                        apiPathControl.settingEl.style.display =
+                            value === 'path' &&
+                            this.plugin.settings.searchProvider === 'google'
+                                ? ''
+                                : 'none';
+                    });
+            });
+
+        apiMethodControl.settingEl.style.display =
+            this.plugin.settings.searchProvider === 'google' ? '' : 'none';
+
         apiKeyControl = new Setting(containerEl)
-            .setName('Gecoding API key')
+            .setName('Geocoding API key')
             .setDesc(
                 'If using Google as the geocoding search provider, paste the API key here. See the plugin documentation for more details. Changes are applied after restart.',
             )
@@ -157,6 +201,40 @@ export class SettingsTab extends PluginSettingTab {
                     ? ''
                     : 'red';
             });
+
+        apiKeyControl.settingEl.style.display =
+            this.plugin.settings.searchProvider === 'google' &&
+            this.plugin.settings.geocodingApiMethod === 'key'
+                ? ''
+                : 'none';
+
+        apiPathControl = new Setting(containerEl)
+            .setName('Geocoding API key path')
+            .setDesc(
+                'If using Google as the geocoding search provider and using a path to the API key, enter the file path here. See the plugin documentation for more details. Changes are applied after restart.'
+            )
+            .addText((component) => {
+                component
+                    .setValue(this.plugin.settings.geocodingApiPath)
+                    .onChange(async (value) => {
+                        this.plugin.settings.geocodingApiPath = value;
+                        await this.plugin.saveSettings();
+                        component.inputEl.style.borderColor = value
+                            ? ''
+                            : 'red';
+                    });
+                component.inputEl.style.borderColor = this.plugin.settings
+                    .geocodingApiPath
+                    ? ''
+                    : 'red';
+            });
+
+        apiPathControl.settingEl.style.display =
+            this.plugin.settings.searchProvider === 'google' &&
+            this.plugin.settings.geocodingApiMethod === 'path'
+                ? ''
+                : 'none';
+
         let googlePlacesControl = new Setting(containerEl)
             .setName('Use Google Places for searches')
             .setDesc(
@@ -190,11 +268,6 @@ export class SettingsTab extends PluginSettingTab {
                     });
             });
 
-        // Display the user or API key control only if the search provider requires it
-        osmUser.settingEl.style.display =
-            this.plugin.settings.searchProvider === 'osm' ? '' : 'none';
-        apiKeyControl.settingEl.style.display =
-            this.plugin.settings.searchProvider === 'google' ? '' : 'none';
         googlePlacesControl.settingEl.style.display =
             this.plugin.settings.searchProvider === 'google' ? '' : 'none';
         googlePlacesDataFields.settingEl.style.display =
