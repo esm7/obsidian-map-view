@@ -9,15 +9,20 @@ To get the most out of Map View, you'll probably want to configure a geosearch p
 **Option 1: OpenStreetMap (free, simplest, no account required)**
 
 1. Open Obsidian **Settings → Map View**.
-2. Find **"Geosearch email address"** and enter your email (this is an OpenStreetMap Nominatim requirement which is used to distinguish API calls between different users, so they won't be pooled together and blocked.)
+2. Select "OpenStreetMap" in the **"Geocoding search provider"** drop down menu
+3. Enter your email address into the **"OpenStreetMap user e-mail"** field
 
-That's it. OpenStreetMap's Nominatim service is free - no registration needed.
+Your email address is an OpenStreetMap Nominatim requirement which is used to distinguish API calls between different users, so they won't be pooled together and blocked.
+
+That's it! OpenStreetMap's Nominatim service is free - no registration needed.
 
 **Option 2: Google Maps / Google Places (most powerful, worth the 2-minute setup!)**
 
 1. Obtain an API key from [Google Cloud](https://developers.google.com/maps/documentation/javascript/get-api-key).
-2. Open Obsidian **Settings → Map View** and paste the key into **"Google Maps API key"**.
-3. Optionally enable **"Use Google Places for searches"** for richer results (recommended!)
+2. Open Obsidian **Settings → Map View**
+3. Select "Google (API key required)" in the **"Geocoding search provider"** drop down menu
+4. Paste your new Google API Key into the **"Geocoding API key"** field
+5. Optionally enable **"Use Google Places for searches"** for richer results (recommended!)
 
 For most note-taking usage, the Google Geocoding API is free or very cheap.
 
